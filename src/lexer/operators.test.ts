@@ -287,9 +287,20 @@ describe("Lexer - Single-Character Punctuation", () => {
 
         it("should tokenize array/list syntax", () => {
             const lexer = new Lexer("[1,2,3]", "test.vf");
+            const tokens = lexer.tokenize();
 
-            // Note: numbers not implemented yet, should throw error
-            expect(() => lexer.tokenize()).toThrow("Unexpected character: '1'");
+            // Now numbers are implemented, this should parse correctly
+            expect(tokens).toHaveLength(8); // [, 1, ,, 2, ,, 3, ], EOF
+            expect(tokens.map((t) => t.type)).toEqual([
+                "LBRACKET",
+                "INT_LITERAL",
+                "COMMA",
+                "INT_LITERAL",
+                "COMMA",
+                "INT_LITERAL",
+                "RBRACKET",
+                "EOF",
+            ]);
         });
 
         it("should tokenize record syntax", () => {

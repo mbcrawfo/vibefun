@@ -262,6 +262,178 @@ export class Lexer {
     }
 
     /**
+     * Check if a character is a decimal digit (0-9)
+     * @param char - The character to check
+     * @returns true if char is 0-9
+     */
+    private isDigit(char: string): boolean {
+        return char >= "0" && char <= "9";
+    }
+
+    /**
+     * Check if a character is a hexadecimal digit (0-9, a-f, A-F)
+     * @param char - The character to check
+     * @returns true if char is a hex digit
+     */
+    private isHexDigit(char: string): boolean {
+        return this.isDigit(char) || (char >= "a" && char <= "f") || (char >= "A" && char <= "F");
+    }
+
+    /**
+     * Read a number literal from the source
+     * Dispatches to specific parser based on prefix (0x, 0b) or defaults to decimal
+     * @returns A token (INT_LITERAL or FLOAT_LITERAL)
+     * @throws {LexerError} If number format is invalid
+     */
+    private readNumber(): Token {
+        const start = this.makeLocation();
+
+        // Check for hexadecimal prefix
+        if (this.peek() === "0" && (this.peek(1) === "x" || this.peek(1) === "X")) {
+            return this.readHexNumber(start);
+        }
+
+        // Check for binary prefix
+        if (this.peek() === "0" && (this.peek(1) === "b" || this.peek(1) === "B")) {
+            return this.readBinaryNumber(start);
+        }
+
+        // Default to decimal number
+        return this.readDecimalNumber(start);
+    }
+
+    /**
+     * Read a decimal number (integer or float with optional scientific notation)
+     * Formats: 42, 3.14, 1e10, 3.14e-2
+     * @param start - The starting location of the number
+     * @returns INT_LITERAL or FLOAT_LITERAL token
+     * @throws {LexerError} If number format is invalid
+     */
+    private readDecimalNumber(start: Location): Token {
+        let value = "";
+        let isFloat = false;
+
+        // Read integer part
+        while (this.isDigit(this.peek())) {
+            value += this.advance();
+        }
+
+        // Check for decimal point (must be followed by a digit)
+        if (this.peek() === "." && this.isDigit(this.peek(1))) {
+            isFloat = true;
+            value += this.advance(); // consume '.'
+
+            // Read fractional part
+            while (this.isDigit(this.peek())) {
+                value += this.advance();
+            }
+        }
+
+        // Check for scientific notation
+        if (this.peek() === "e" || this.peek() === "E") {
+            isFloat = true;
+            value += this.advance(); // consume 'e' or 'E'
+
+            // Optional sign
+            if (this.peek() === "+" || this.peek() === "-") {
+                value += this.advance();
+            }
+
+            // Must have at least one digit after exponent
+            if (!this.isDigit(this.peek())) {
+                throw new LexerError(
+                    "Invalid scientific notation: expected digit after exponent",
+                    this.makeLocation(),
+                    "Add at least one digit after 'e' or 'E'",
+                );
+            }
+
+            // Read exponent digits
+            while (this.isDigit(this.peek())) {
+                value += this.advance();
+            }
+        }
+
+        const numValue = isFloat ? parseFloat(value) : parseInt(value, 10);
+
+        return {
+            type: isFloat ? "FLOAT_LITERAL" : "INT_LITERAL",
+            value: numValue,
+            loc: start,
+        };
+    }
+
+    /**
+     * Read a hexadecimal number (0x prefix)
+     * Format: 0x1A, 0xFF, 0x0
+     * @param start - The starting location of the number
+     * @returns INT_LITERAL token
+     * @throws {LexerError} If hex format is invalid
+     */
+    private readHexNumber(start: Location): Token {
+        // Skip '0x' or '0X'
+        this.advance();
+        this.advance();
+
+        let value = "";
+
+        // Read hex digits
+        while (this.isHexDigit(this.peek())) {
+            value += this.advance();
+        }
+
+        // Must have at least one hex digit
+        if (value.length === 0) {
+            throw new LexerError(
+                "Invalid hex literal: expected at least one hex digit after 0x",
+                this.makeLocation(),
+                "Add hex digits (0-9, a-f, A-F) after 0x",
+            );
+        }
+
+        return {
+            type: "INT_LITERAL",
+            value: parseInt(value, 16),
+            loc: start,
+        };
+    }
+
+    /**
+     * Read a binary number (0b prefix)
+     * Format: 0b1010, 0b11111111
+     * @param start - The starting location of the number
+     * @returns INT_LITERAL token
+     * @throws {LexerError} If binary format is invalid
+     */
+    private readBinaryNumber(start: Location): Token {
+        // Skip '0b' or '0B'
+        this.advance();
+        this.advance();
+
+        let value = "";
+
+        // Read binary digits (0 or 1)
+        while (this.peek() === "0" || this.peek() === "1") {
+            value += this.advance();
+        }
+
+        // Must have at least one binary digit
+        if (value.length === 0) {
+            throw new LexerError(
+                "Invalid binary literal: expected at least one binary digit after 0b",
+                this.makeLocation(),
+                "Add binary digits (0 or 1) after 0b",
+            );
+        }
+
+        return {
+            type: "INT_LITERAL",
+            value: parseInt(value, 2),
+            loc: start,
+        };
+    }
+
+    /**
      * Tokenize the entire source code
      * @returns Array of tokens representing the source code
      * @throws {LexerError} If an invalid token is encountered
@@ -285,6 +457,12 @@ export class Lexer {
                 const start = this.makeLocation();
                 this.advance();
                 tokens.push({ type: "NEWLINE", value: "\n", loc: start });
+                continue;
+            }
+
+            // Numbers
+            if (this.isDigit(char)) {
+                tokens.push(this.readNumber());
                 continue;
             }
 
