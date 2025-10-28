@@ -1,0 +1,6 @@
+.claude
+.config
+coverage
+dist
+
+*.md
