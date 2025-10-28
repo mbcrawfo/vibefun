@@ -4,6 +4,8 @@
 
 The vibefun compiler is a source-to-source transpiler that converts `.vf` files to JavaScript. The compilation pipeline consists of several distinct phases, each with clear inputs and outputs.
 
+**Note:** For the complete language specification including syntax, semantics, and all language features, see [vibefun-spec.md](../../../vibefun-spec.md). This document focuses on the compiler implementation architecture.
+
 ## Compilation Pipeline
 
 ```
@@ -73,14 +75,27 @@ type Token =
 type Keyword =
     | 'let' | 'mut' | 'type' | 'if' | 'then' | 'else'
     | 'match' | 'when' | 'rec' | 'import' | 'export'
-    | 'external' | 'unsafe' | 'from' | 'as'
+    | 'external' | 'unsafe' | 'from' | 'as' | 'ref'
 
 type Operator =
+    // Arithmetic
     | '+' | '-' | '*' | '/' | '%'
+    // Comparison
     | '==' | '!=' | '<' | '>' | '<=' | '>='
+    // Logical
     | '&&' | '||' | '!'
-    | '++' | '|>' | '>>' | '<<'
-    | '=' | ':=' | '...'
+    // Bitwise
+    | '&' | '|' | '~' | '<<' | '>>'
+    // String
+    | '++'
+    // Pipe and composition
+    | '|>' | '>>' | '<<'
+    // Special
+    | '::' | '...' | '->' | '=>' | '=' | ':='
+
+// Note: Some operators like >> and << have multiple meanings based on context
+// >> can be right shift (bitwise) or forward composition (functional)
+// << can be left shift (bitwise) or backward composition (functional)
 
 type Location = {
     file: string

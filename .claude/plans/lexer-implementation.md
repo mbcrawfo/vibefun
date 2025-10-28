@@ -4,7 +4,11 @@
 
 This document provides a detailed implementation plan for the vibefun lexer - the first phase of the compilation pipeline that transforms source code into a stream of tokens.
 
+**Note:** For the complete language specification including all operators, keywords, and syntax rules, see [vibefun-spec.md](../../../vibefun-spec.md). This document focuses on the implementation plan and approach.
+
 ## Design Decisions
+
+**Implementation Status Note:** This document describes the complete planned implementation. As of the current progress (tracked in `.claude/LEXER_PROGRESS.md`), Phase 3 has been completed with basic single-character operators. Multi-character operators and additional operators (`::` list cons, `&` bitwise AND) will be implemented in Phase 7.
 
 ### 1. Number Literals
 
@@ -993,9 +997,23 @@ describe('Lexer - Location Tracking', () => {
 4. **Error Recovery**: Continue lexing after errors for better IDE experience
 5. **Source Maps**: Generate source maps during lexing
 
+## Operators to Add in Phase 7
+
+Beyond the current implementation, Phase 7 should add:
+
+**Missing two-character operators:**
+- `::` - List cons operator (COLON_COLON)
+
+**Missing single-character operators:**
+- `&` - Bitwise AND / Reference (AMP)
+
+**Note:** The pipe `|` and bitwise OR use the same character but are distinguished by context in the parser. Similarly, `>>` and `<<` serve both as bitwise shift operators and function composition operators.
+
 ## References
 
+- **Language specification**: `vibefun-spec.md` (complete language reference)
 - Language design: `.claude/plans/language-design.md`
 - Type system: `.claude/plans/type-system.md`
 - Compiler architecture: `.claude/plans/compiler-architecture.md`
 - Coding standards: `.claude/CODING_STANDARDS.md`
+- Current progress: `.claude/LEXER_PROGRESS.md`
