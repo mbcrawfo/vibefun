@@ -8,6 +8,7 @@
 
 import type { Location, Token } from "../types/index.js";
 
+import { isBoolLiteral, isKeyword } from "../types/token.js";
 import { LexerError } from "../utils/index.js";
 
 /**
@@ -107,6 +108,73 @@ export class Lexer {
     }
 
     /**
+     * Check if a character can start an identifier
+     * Identifiers can start with Unicode letters or underscore
+     * @param char - The character to check
+     * @returns true if char can start an identifier
+     */
+    private isIdentifierStart(char: string): boolean {
+        if (char === "_") return true;
+        // Check if it's a Unicode letter using Unicode property escapes
+        // \p{L} matches any Unicode letter character
+        return /\p{L}/u.test(char);
+    }
+
+    /**
+     * Check if a character can continue an identifier
+     * Identifiers can continue with Unicode letters, digits, or underscore
+     * @param char - The character to check
+     * @returns true if char can continue an identifier
+     */
+    private isIdentifierContinue(char: string): boolean {
+        if (char === "_") return true;
+        if (char >= "0" && char <= "9") return true;
+        // Check if it's a Unicode letter
+        return /\p{L}/u.test(char);
+    }
+
+    /**
+     * Read an identifier from the source
+     * Handles keywords, boolean literals, and regular identifiers
+     * @returns A token (KEYWORD, BOOL_LITERAL, or IDENTIFIER)
+     */
+    private readIdentifier(): Token {
+        const start = this.makeLocation();
+        let value = "";
+
+        // Read identifier characters
+        while (!this.isAtEnd() && this.isIdentifierContinue(this.peek())) {
+            value += this.advance();
+        }
+
+        // Check if it's a keyword
+        if (isKeyword(value)) {
+            return {
+                type: "KEYWORD",
+                value,
+                keyword: value,
+                loc: start,
+            };
+        }
+
+        // Check if it's a boolean literal
+        if (isBoolLiteral(value)) {
+            return {
+                type: "BOOL_LITERAL",
+                value: value === "true",
+                loc: start,
+            };
+        }
+
+        // Regular identifier
+        return {
+            type: "IDENTIFIER",
+            value,
+            loc: start,
+        };
+    }
+
+    /**
      * Tokenize the entire source code
      * @returns Array of tokens representing the source code
      * @throws {LexerError} If an invalid token is encountered
@@ -115,24 +183,103 @@ export class Lexer {
         const tokens: Token[] = [];
 
         while (!this.isAtEnd()) {
-            // For now, just create a placeholder token for each character
-            // This will be expanded in later phases to handle actual token types
             const char = this.peek();
 
+            // Skip whitespace (but not newlines - they're significant)
+            if (char === " " || char === "\t" || char === "\r") {
+                this.advance();
+                continue;
+            }
+
+            // Newlines
             if (char === "\n") {
-                tokens.push(this.makeToken("NEWLINE", char));
+                const start = this.makeLocation();
                 this.advance();
-            } else if (char === " " || char === "\t" || char === "\r") {
-                // Skip whitespace (but not newlines)
-                this.advance();
-            } else {
-                // For now, throw an error for any other character
-                // This will be replaced with actual token parsing in later phases
-                throw new LexerError(
-                    `Unexpected character: '${char}'`,
-                    this.makeLocation(),
-                    "Token parsing will be implemented in later phases",
-                );
+                tokens.push({ type: "NEWLINE", value: "\n", loc: start });
+                continue;
+            }
+
+            // Identifiers and keywords
+            if (this.isIdentifierStart(char)) {
+                tokens.push(this.readIdentifier());
+                continue;
+            }
+
+            // Single-character punctuation and operators
+            const start = this.makeLocation();
+            this.advance();
+
+            switch (char) {
+                case "(":
+                    tokens.push({ type: "LPAREN", value: "(", loc: start });
+                    continue;
+                case ")":
+                    tokens.push({ type: "RPAREN", value: ")", loc: start });
+                    continue;
+                case "{":
+                    tokens.push({ type: "LBRACE", value: "{", loc: start });
+                    continue;
+                case "}":
+                    tokens.push({ type: "RBRACE", value: "}", loc: start });
+                    continue;
+                case "[":
+                    tokens.push({ type: "LBRACKET", value: "[", loc: start });
+                    continue;
+                case "]":
+                    tokens.push({ type: "RBRACKET", value: "]", loc: start });
+                    continue;
+                case ",":
+                    tokens.push({ type: "COMMA", value: ",", loc: start });
+                    continue;
+                case ".":
+                    tokens.push({ type: "DOT", value: ".", loc: start });
+                    continue;
+                case ":":
+                    tokens.push({ type: "COLON", value: ":", loc: start });
+                    continue;
+                case ";":
+                    tokens.push({ type: "SEMICOLON", value: ";", loc: start });
+                    continue;
+                case "+":
+                    tokens.push({ type: "PLUS", value: "+", loc: start });
+                    continue;
+                case "-":
+                    tokens.push({ type: "MINUS", value: "-", loc: start });
+                    continue;
+                case "*":
+                    tokens.push({ type: "STAR", value: "*", loc: start });
+                    continue;
+                case "/":
+                    tokens.push({ type: "SLASH", value: "/", loc: start });
+                    continue;
+                case "%":
+                    tokens.push({ type: "PERCENT", value: "%", loc: start });
+                    continue;
+                case "<":
+                    tokens.push({ type: "LT", value: "<", loc: start });
+                    continue;
+                case ">":
+                    tokens.push({ type: "GT", value: ">", loc: start });
+                    continue;
+                case "=":
+                    tokens.push({ type: "EQ", value: "=", loc: start });
+                    continue;
+                case "!":
+                    tokens.push({ type: "BANG", value: "!", loc: start });
+                    continue;
+                case "~":
+                    tokens.push({ type: "TILDE", value: "~", loc: start });
+                    continue;
+                case "|":
+                    tokens.push({ type: "PIPE", value: "|", loc: start });
+                    continue;
+
+                default:
+                    throw new LexerError(
+                        `Unexpected character: '${char}'`,
+                        start,
+                        "This character is not valid in vibefun syntax",
+                    );
             }
         }
 

@@ -263,13 +263,13 @@ describe("Lexer - Core Functionality", () => {
         });
 
         it("should throw error for unexpected characters", () => {
-            const lexer = new Lexer("abc", "test.vf");
+            const lexer = new Lexer("@#$", "test.vf");
 
             expect(() => lexer.tokenize()).toThrow(LexerError);
         });
 
         it("should include location in error message", () => {
-            const lexer = new Lexer("  \n  x", "test.vf");
+            const lexer = new Lexer("  \n  @", "test.vf");
 
             try {
                 lexer.tokenize();
@@ -298,9 +298,11 @@ describe("Lexer - Core Functionality", () => {
     describe("Location Tracking - Edge Cases", () => {
         it("should handle carriage return without consuming it as token", () => {
             const lexer = new Lexer("a\r\nb", "test.vf");
+            const tokens = lexer.tokenize();
 
             // Should skip \r but process \n
-            expect(() => lexer.tokenize()).toThrow(LexerError); // Will fail on 'a' and 'b'
+            // 'a' is identifier, \r is skipped, \n is newline, 'b' is identifier
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "NEWLINE", "IDENTIFIER", "EOF"]);
         });
 
         it("should track location accurately through mixed content", () => {
@@ -329,15 +331,14 @@ describe("Lexer - Core Functionality", () => {
         it("should handle very long lines", () => {
             const longLine = "a".repeat(10000);
             const lexer = new Lexer(`  ${longLine}`, "test.vf");
+            const tokens = lexer.tokenize();
 
-            try {
-                lexer.tokenize();
-            } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                // Should be at column 3 (after two spaces)
-                expect(lexerError.location.column).toBe(3);
-            }
+            // Should tokenize the long identifier successfully
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: longLine,
+            });
+            expect(tokens[0]?.loc.column).toBe(3); // Starts at column 3 after two spaces
         });
     });
 
@@ -376,6 +377,153 @@ describe("Lexer - Core Functionality", () => {
 
             expect(lexer.peek()).toBe("d");
             expect(lexer.peek(1)).toBe("");
+        });
+    });
+});
+
+describe("Lexer - Phase 3 Integration", () => {
+    describe("simple expressions", () => {
+        it("should tokenize variable assignment", () => {
+            const lexer = new Lexer("let x = true", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["KEYWORD", "IDENTIFIER", "EQ", "BOOL_LITERAL", "EOF"]);
+            expect(tokens[0]?.value).toBe("let");
+            expect(tokens[1]?.value).toBe("x");
+            expect(tokens[3]?.value).toBe(true);
+        });
+
+        it("should tokenize function call", () => {
+            const lexer = new Lexer("foo(bar, baz)", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "LPAREN",
+                "IDENTIFIER",
+                "COMMA",
+                "IDENTIFIER",
+                "RPAREN",
+                "EOF",
+            ]);
+        });
+
+        it("should tokenize match expression skeleton", () => {
+            const lexer = new Lexer("match x", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "KEYWORD",
+                keyword: "match",
+            });
+            expect(tokens[1]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "x",
+            });
+        });
+    });
+
+    describe("multi-line code", () => {
+        it("should tokenize multi-line let statements", () => {
+            const code = "let x = true\nlet y = false";
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "KEYWORD",
+                "IDENTIFIER",
+                "EQ",
+                "BOOL_LITERAL",
+                "NEWLINE",
+                "KEYWORD",
+                "IDENTIFIER",
+                "EQ",
+                "BOOL_LITERAL",
+                "EOF",
+            ]);
+        });
+
+        it("should tokenize block with braces", () => {
+            const code = "{\nlet x\n}";
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("LBRACE");
+            expect(tokens[1]?.type).toBe("NEWLINE");
+            expect(tokens[2]?.type).toBe("KEYWORD");
+            expect(tokens[3]?.type).toBe("IDENTIFIER");
+            expect(tokens[4]?.type).toBe("NEWLINE");
+            expect(tokens[5]?.type).toBe("RBRACE");
+        });
+    });
+
+    describe("mixed tokens", () => {
+        it("should handle identifiers with operators", () => {
+            const lexer = new Lexer("x+y*z", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "PLUS",
+                "IDENTIFIER",
+                "STAR",
+                "IDENTIFIER",
+                "EOF",
+            ]);
+        });
+
+        it("should handle keywords with punctuation", () => {
+            const lexer = new Lexer("if(x){let y}", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "KEYWORD",
+                "LPAREN",
+                "IDENTIFIER",
+                "RPAREN",
+                "LBRACE",
+                "KEYWORD",
+                "IDENTIFIER",
+                "RBRACE",
+                "EOF",
+            ]);
+        });
+
+        it("should handle complex expression", () => {
+            const lexer = new Lexer("let add = (x, y)", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "KEYWORD",
+                "IDENTIFIER",
+                "EQ",
+                "LPAREN",
+                "IDENTIFIER",
+                "COMMA",
+                "IDENTIFIER",
+                "RPAREN",
+                "EOF",
+            ]);
+        });
+    });
+
+    describe("unicode support", () => {
+        it("should handle unicode identifiers in expressions", () => {
+            const lexer = new Lexer("let café = true", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[1]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "café",
+            });
+        });
+
+        it("should handle Greek letters", () => {
+            const lexer = new Lexer("let α = β", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[1]?.value).toBe("α");
+            expect(tokens[3]?.value).toBe("β");
         });
     });
 });
