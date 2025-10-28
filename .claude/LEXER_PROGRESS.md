@@ -112,35 +112,45 @@ This document tracks the implementation progress of the vibefun lexer through it
 
 ---
 
-## Phase 4: Comments & Whitespace
+## Phase 4: Comments & Whitespace ✅ COMPLETED
 
 **Time Estimate:** 45 minutes
-**Status:** ⏳ Not Started
+**Actual Time:** ~30 minutes
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `skipWhitespace()` - skip spaces/tabs (not newlines)
-- [ ] Implement `skipSingleLineComment()` - handle //
-- [ ] Implement `skipMultiLineComment()` - handle /* */ with nesting
-- [ ] Implement nested comment depth tracking
-- [ ] Handle unterminated comment errors
-- [ ] Write whitespace skipping tests
-- [ ] Write single-line comment tests
-- [ ] Write multi-line comment tests
-- [ ] Write nested comment tests
-- [ ] Write error case tests (unterminated)
+- [x] Implement `skipWhitespaceAndComments()` - skip spaces/tabs/comments (not newlines)
+- [x] Implement `skipSingleLineComment()` - handle //
+- [x] Implement `skipMultiLineComment()` - handle /* */ with nesting
+- [x] Implement nested comment depth tracking
+- [x] Handle unterminated comment errors
+- [x] Write whitespace skipping tests
+- [x] Write single-line comment tests
+- [x] Write multi-line comment tests
+- [x] Write nested comment tests
+- [x] Write error case tests (unterminated)
 
 ### Deliverables
-- Whitespace skipping (preserving newlines)
-- Single-line comment support
-- Nested multi-line comment support
-- `src/lexer/comments.test.ts`
+- Whitespace skipping (preserving newlines) ✓
+- Single-line comment support (`//`) ✓
+- Nested multi-line comment support (`/* */`) ✓
+- `src/lexer/comments.test.ts` (45 tests) ✓
 
 ### Acceptance Criteria
-- [ ] Whitespace correctly skipped (but not newlines)
-- [ ] Single-line comments work
-- [ ] Nested multi-line comments work correctly
-- [ ] Unterminated comments throw helpful errors
-- [ ] All tests passing
+- [x] Whitespace correctly skipped (but not newlines)
+- [x] Single-line comments work
+- [x] Nested multi-line comments work correctly
+- [x] Unterminated comments throw helpful errors
+- [x] All tests passing (192 total tests)
+
+### Notes
+- Implemented `skipWhitespaceAndComments()` method that handles both whitespace and comments
+- Single-line comments (`//`) extend to end of line or EOF
+- Multi-line comments (`/* */`) support nesting with depth counter
+- Unterminated multi-line comments throw LexerError with helpful message
+- Newlines are preserved as significant tokens (not skipped with whitespace)
+- Comments can contain any characters including special symbols
+- All npm run verify checks passing
 
 ---
 
@@ -310,13 +320,15 @@ This document tracks the implementation progress of the vibefun lexer through it
 ## Overall Progress
 
 **Total Estimated Time:** 8.5 hours
-**Time Spent:** ~1.75 hours
-**Phases Completed:** 3/9 (33%)
+**Time Spent:** ~2 hours
+**Phases Completed:** 4/9 (44%)
 
 ### Next Steps
-1. Begin Phase 4: Comments & Whitespace
-2. Implement single-line comment skipping (`//`)
-3. Implement multi-line comment skipping with nesting (`/* */`)
+1. Begin Phase 5: Numbers
+2. Implement decimal number parsing (integers and floats)
+3. Implement hexadecimal literal parsing (0x)
+4. Implement binary literal parsing (0b)
+5. Implement scientific notation parsing (e/E)
 
 ### Success Metrics
 - [ ] All 9 phases completed

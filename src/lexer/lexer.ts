@@ -175,13 +175,12 @@ export class Lexer {
     }
 
     /**
-     * Tokenize the entire source code
-     * @returns Array of tokens representing the source code
-     * @throws {LexerError} If an invalid token is encountered
+     * Skip whitespace and comments
+     * Whitespace (spaces, tabs, carriage returns) is skipped
+     * Newlines are preserved as significant tokens
+     * Comments are skipped (both single-line and multi-line with nesting)
      */
-    tokenize(): Token[] {
-        const tokens: Token[] = [];
-
+    private skipWhitespaceAndComments(): void {
         while (!this.isAtEnd()) {
             const char = this.peek();
 
@@ -190,6 +189,96 @@ export class Lexer {
                 this.advance();
                 continue;
             }
+
+            // Check for single-line comment
+            if (char === "/" && this.peek(1) === "/") {
+                this.skipSingleLineComment();
+                continue;
+            }
+
+            // Check for multi-line comment
+            if (char === "/" && this.peek(1) === "*") {
+                this.skipMultiLineComment();
+                continue;
+            }
+
+            // No more whitespace or comments to skip
+            break;
+        }
+    }
+
+    /**
+     * Skip a single-line comment (//)
+     * Consumes characters until newline or EOF
+     */
+    private skipSingleLineComment(): void {
+        // Skip '//'
+        this.advance();
+        this.advance();
+
+        // Skip until newline or EOF
+        while (!this.isAtEnd() && this.peek() !== "\n") {
+            this.advance();
+        }
+    }
+
+    /**
+     * Skip a multi-line comment with nesting support
+     * Handles nested comments (slash-star ... star-slash) by tracking depth
+     * @throws {LexerError} If comment is unterminated
+     */
+    private skipMultiLineComment(): void {
+        const start = this.makeLocation();
+
+        // Skip '/*'
+        this.advance();
+        this.advance();
+
+        let depth = 1;
+
+        while (!this.isAtEnd() && depth > 0) {
+            // Check for nested opening /*
+            if (this.peek() === "/" && this.peek(1) === "*") {
+                this.advance();
+                this.advance();
+                depth++;
+            }
+            // Check for closing */
+            else if (this.peek() === "*" && this.peek(1) === "/") {
+                this.advance();
+                this.advance();
+                depth--;
+            }
+            // Regular character
+            else {
+                this.advance();
+            }
+        }
+
+        // Check if comment was properly closed
+        if (depth > 0) {
+            throw new LexerError("Unterminated multi-line comment", start, "Add closing */");
+        }
+    }
+
+    /**
+     * Tokenize the entire source code
+     * @returns Array of tokens representing the source code
+     * @throws {LexerError} If an invalid token is encountered
+     */
+    tokenize(): Token[] {
+        const tokens: Token[] = [];
+
+        while (!this.isAtEnd()) {
+            // Skip whitespace and comments
+            this.skipWhitespaceAndComments();
+
+            // Check for EOF after skipping
+            if (this.isAtEnd()) {
+                break;
+            }
+
+            const char = this.peek();
 
             // Newlines
             if (char === "\n") {
