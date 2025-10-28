@@ -60,6 +60,9 @@ export type Token =
     | { type: "PIPE_PIPE"; value: string; loc: Location }
     | { type: "BANG"; value: string; loc: Location }
 
+    // Operators - Bitwise
+    | { type: "AMP"; value: string; loc: Location }
+
     // Operators - Pipe and Composition
     | { type: "PIPE_GT"; value: string; loc: Location }
     | { type: "GT_GT"; value: string; loc: Location }
@@ -68,9 +71,10 @@ export type Token =
     // Operators - Other
     | { type: "TILDE"; value: string; loc: Location }
 
-    // Assignment
+    // Assignment and Special Operators
     | { type: "EQ"; value: string; loc: Location }
     | { type: "COLON_EQ"; value: string; loc: Location }
+    | { type: "COLON_COLON"; value: string; loc: Location }
 
     // Punctuation
     | { type: "LPAREN"; value: string; loc: Location }
