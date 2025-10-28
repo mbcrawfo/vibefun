@@ -434,6 +434,220 @@ export class Lexer {
     }
 
     /**
+     * Read a string literal from the source
+     * Dispatches to single-line or multi-line string parser based on opening quotes
+     * @returns STRING_LITERAL token
+     * @throws {LexerError} If string is unterminated or has invalid escape sequences
+     */
+    private readString(): Token {
+        const start = this.makeLocation();
+
+        // Check for multi-line string (""")
+        if (this.peek() === '"' && this.peek(1) === '"' && this.peek(2) === '"') {
+            return this.readMultiLineString(start);
+        }
+
+        return this.readSingleLineString(start);
+    }
+
+    /**
+     * Read a single-line string literal
+     * Single-line strings cannot contain unescaped newlines
+     * @param start - The starting location of the string
+     * @returns STRING_LITERAL token
+     * @throws {LexerError} If string is unterminated or contains newline
+     */
+    private readSingleLineString(start: Location): Token {
+        this.advance(); // consume opening "
+
+        let value = "";
+
+        while (!this.isAtEnd() && this.peek() !== '"') {
+            if (this.peek() === "\n") {
+                throw new LexerError(
+                    "Unterminated string: newline in single-line string",
+                    this.makeLocation(),
+                    'Use """ for multi-line strings or escape the newline with \\n',
+                );
+            }
+
+            if (this.peek() === "\\") {
+                value += this.readEscapeSequence();
+            } else {
+                value += this.advance();
+            }
+        }
+
+        if (this.isAtEnd()) {
+            throw new LexerError('Unterminated string: expected closing "', this.makeLocation());
+        }
+
+        this.advance(); // consume closing "
+
+        return {
+            type: "STRING_LITERAL",
+            value,
+            loc: start,
+        };
+    }
+
+    /**
+     * Read a multi-line string literal (triple-quoted)
+     * Multi-line strings can contain newlines and preserve formatting
+     * @param start - The starting location of the string
+     * @returns STRING_LITERAL token
+     * @throws {LexerError} If string is unterminated
+     */
+    private readMultiLineString(start: Location): Token {
+        // Consume opening """
+        this.advance();
+        this.advance();
+        this.advance();
+
+        let value = "";
+
+        while (!this.isAtEnd()) {
+            // Check for closing """
+            if (this.peek() === '"' && this.peek(1) === '"' && this.peek(2) === '"') {
+                this.advance();
+                this.advance();
+                this.advance();
+
+                return {
+                    type: "STRING_LITERAL",
+                    value,
+                    loc: start,
+                };
+            }
+
+            if (this.peek() === "\\") {
+                value += this.readEscapeSequence();
+            } else {
+                value += this.advance();
+            }
+        }
+
+        throw new LexerError('Unterminated multi-line string: expected closing """', this.makeLocation());
+    }
+
+    /**
+     * Read an escape sequence from a string
+     * Handles: \n, \t, \r, \", \', \\, \xHH, \uXXXX, \u{XXXXXX}
+     * @returns The unescaped character(s)
+     * @throws {LexerError} If escape sequence is invalid
+     */
+    private readEscapeSequence(): string {
+        this.advance(); // consume '\'
+
+        const char = this.peek();
+
+        switch (char) {
+            case "n":
+                this.advance();
+                return "\n";
+            case "t":
+                this.advance();
+                return "\t";
+            case "r":
+                this.advance();
+                return "\r";
+            case '"':
+                this.advance();
+                return '"';
+            case "'":
+                this.advance();
+                return "'";
+            case "\\":
+                this.advance();
+                return "\\";
+
+            case "x":
+                return this.readHexEscape();
+            case "u":
+                return this.readUnicodeEscape();
+
+            default:
+                throw new LexerError(
+                    `Invalid escape sequence: \\${char}`,
+                    this.makeLocation(),
+                    "Valid escapes: \\n, \\t, \\r, \\\", \\', \\\\, \\xHH, \\uXXXX, \\u{XXXXXX}",
+                );
+        }
+    }
+
+    /**
+     * Read a hex escape sequence (\xHH)
+     * Expects exactly 2 hex digits
+     * @returns The character represented by the hex code
+     * @throws {LexerError} If format is invalid
+     */
+    private readHexEscape(): string {
+        this.advance(); // consume 'x'
+
+        let hex = "";
+        for (let i = 0; i < 2; i++) {
+            if (!this.isHexDigit(this.peek())) {
+                throw new LexerError("Invalid \\xHH escape: expected 2 hex digits", this.makeLocation());
+            }
+            hex += this.advance();
+        }
+
+        return String.fromCharCode(parseInt(hex, 16));
+    }
+
+    /**
+     * Read a unicode escape sequence (\uXXXX or \u{XXXXXX})
+     * Short form: exactly 4 hex digits
+     * Long form: 1-6 hex digits in braces
+     * @returns The character represented by the unicode codepoint
+     * @throws {LexerError} If format is invalid or codepoint is out of range
+     */
+    private readUnicodeEscape(): string {
+        this.advance(); // consume 'u'
+
+        // Check for long form \u{...}
+        if (this.peek() === "{") {
+            this.advance(); // consume '{'
+
+            let hex = "";
+            // Read hex digits until we hit a non-hex-digit
+            while (!this.isAtEnd() && this.isHexDigit(this.peek())) {
+                hex += this.advance();
+            }
+
+            // After reading hex digits, we must find a closing }
+            if (this.peek() !== "}") {
+                throw new LexerError("Invalid \\u{...} escape: expected closing }", this.makeLocation());
+            }
+
+            this.advance(); // consume '}'
+
+            if (hex.length === 0 || hex.length > 6) {
+                throw new LexerError("Invalid \\u{...} escape: expected 1-6 hex digits", this.makeLocation());
+            }
+
+            const codePoint = parseInt(hex, 16);
+
+            if (codePoint > 0x10ffff) {
+                throw new LexerError(`Invalid unicode codepoint: 0x${hex} (max is 0x10FFFF)`, this.makeLocation());
+            }
+
+            return String.fromCodePoint(codePoint);
+        }
+
+        // Short form \uXXXX
+        let hex = "";
+        for (let i = 0; i < 4; i++) {
+            if (!this.isHexDigit(this.peek())) {
+                throw new LexerError("Invalid \\uXXXX escape: expected 4 hex digits", this.makeLocation());
+            }
+            hex += this.advance();
+        }
+
+        return String.fromCharCode(parseInt(hex, 16));
+    }
+
+    /**
      * Tokenize the entire source code
      * @returns Array of tokens representing the source code
      * @throws {LexerError} If an invalid token is encountered
@@ -463,6 +677,12 @@ export class Lexer {
             // Numbers
             if (this.isDigit(char)) {
                 tokens.push(this.readNumber());
+                continue;
+            }
+
+            // Strings
+            if (char === '"') {
+                tokens.push(this.readString());
                 continue;
             }
 
