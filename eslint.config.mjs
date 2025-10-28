@@ -7,6 +7,7 @@ export default [
     eslint.configs.recommended,
     {
         files: ['src/**/*.ts'],
+        ignores: ['**/*.test.ts', '**/*.spec.ts'],
         languageOptions: {
             parser: tsparser,
             parserOptions: {
@@ -19,10 +20,8 @@ export default [
             '@typescript-eslint': tseslint,
         },
         rules: {
-            // TypeScript specific rules
-            '@typescript-eslint/no-explicit-any': 'error',
-            '@typescript-eslint/explicit-function-return-type': 'off',
-            '@typescript-eslint/explicit-module-boundary-types': 'off',
+            // Disable base rule and use TypeScript version
+            'no-unused-vars': 'off',
             '@typescript-eslint/no-unused-vars': [
                 'error',
                 {
@@ -30,7 +29,44 @@ export default [
                     varsIgnorePattern: '^_',
                 },
             ],
+
+            // TypeScript specific rules
+            '@typescript-eslint/no-explicit-any': 'error',
+            '@typescript-eslint/explicit-function-return-type': 'off',
+            '@typescript-eslint/explicit-module-boundary-types': 'off',
             '@typescript-eslint/no-non-null-assertion': 'warn',
+
+            // General rules
+            'no-console': ['warn', { allow: ['warn', 'error'] }],
+            'prefer-const': 'error',
+            'no-var': 'error',
+        },
+    },
+    {
+        files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+        languageOptions: {
+            parser: tsparser,
+            parserOptions: {
+                ecmaVersion: 2022,
+                sourceType: 'module',
+            },
+        },
+        plugins: {
+            '@typescript-eslint': tseslint,
+        },
+        rules: {
+            // Disable base rule and use TypeScript version
+            'no-unused-vars': 'off',
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                },
+            ],
+
+            // TypeScript specific rules
+            '@typescript-eslint/no-explicit-any': 'error',
 
             // General rules
             'no-console': ['warn', { allow: ['warn', 'error'] }],
