@@ -4,6 +4,16 @@
 
 **Vibefun** is a pragmatic functional programming language that transpiles to JavaScript. It combines ML-style functional programming with modern type system features, targeting the JavaScript runtime for practical real-world applications.
 
+### Quick Summary
+
+- **Paradigm:** Pragmatic functional (like OCaml/F#)
+- **Target:** JavaScript/Node.js runtime
+- **Type System:** ML-style with Hindley-Milner inference
+- **Key Features:** Algebraic data types, pattern matching, immutability by default, explicit JavaScript interop
+- **File Extension:** `.vf`
+
+**For comprehensive language details, syntax, semantics, and examples, see [vibefun-spec.md](./vibefun-spec.md).**
+
 ## Core Project Directives
 
 These directives guide all development work on the vibefun project:
@@ -32,34 +42,18 @@ These directives guide all development work on the vibefun project:
 
    Or use the convenience command: `npm run verify` (runs all checks)
 
-## Core Design Decisions
+## Language Design Summary
 
-### Language Paradigm
-- **Pragmatic functional**: Like OCaml/F# - strong functional defaults with escape hatches
-- **Immutability by default**: `let` bindings are immutable, `let mut` for mutable references
-- **First-class functions**: Currying, partial application, higher-order functions
-- **Algebraic data types**: Sum types (variants) and product types (records)
-- **Pattern matching**: Exhaustive matching with compiler checks
+The vibefun language design is based on these core principles:
 
-### Type System
-- **ML-style with inference**: Hindley-Milner algorithm for type inference
-- **Extended with**:
-  - Generics (parametric polymorphism)
-  - Union types for flexible composition
-  - No type classes in v1 (future consideration)
-- **Type annotations**: Optional but required for FFI boundaries
-- **Runtime type checking**: At FFI boundaries and optionally in development mode
+- **Functional-first with pragmatic escape hatches** - Immutability and pure functions by default
+- **Strong static typing with inference** - Hindley-Milner type system minimizes annotations
+- **Algebraic data types** - Sum types (variants) and product types (records)
+- **Pattern matching** - Exhaustive matching with compiler guarantees
+- **Explicit JavaScript interop** - Clear FFI boundaries with `external` and `unsafe`
+- **Developer experience** - Clear error messages, readable generated code, fast compilation
 
-### JavaScript Interop
-- **Explicit boundaries**: FFI with `external` keyword and `unsafe` blocks
-- **Clear separation**: Vibefun code is safe, JS interop is explicitly marked unsafe
-- **Type safety**: JS values must be typed at boundaries
-
-### Priority Features
-1. **Functions & composition**: Pipe operators (`|>`), function composition (`>>`, `<<`)
-2. **Algebraic types**: Variants and records with pattern matching
-3. **Type inference**: Minimal annotations needed
-4. **Good error messages**: Developer experience is paramount
+**For detailed language specification, see [vibefun-spec.md](./vibefun-spec.md).**
 
 ## Project Structure
 
@@ -139,77 +133,40 @@ Runtime:
 - Minimal runtime library (custom implementation)
 - No external runtime dependencies for compiled output
 
-## File Extensions and Conventions
+## Quick Language Reference
 
-- **Source files**: `.vf`
-- **Module system**: Each file is a module
-- **Import/export**: ES6-style syntax
-- **Naming conventions**:
-  - Types: PascalCase (`Option`, `Result`, `Person`)
-  - Functions: camelCase (`map`, `filter`, `getUserId`)
-  - Constructors: PascalCase (`Some`, `None`, `Ok`, `Err`)
-  - Constants: camelCase
+### File Extension
+- Source files: `.vf`
+- Each file is a module
 
-## Key Language Features
+### Naming Conventions
+- Types & Constructors: `PascalCase`
+- Functions & Variables: `camelCase`
 
-### Syntax Examples
+### Simple Examples
 
-**Basic function:**
 ```vibefun
+// Functions
 let add = (x, y) => x + y
-```
 
-**Type definition:**
-```vibefun
+// Types
 type Option<T> = Some(T) | None
-```
 
-**Pattern matching:**
-```vibefun
-let unwrap = (opt) => match opt {
+// Pattern matching
+match option {
     | Some(x) => x
-    | None => panic("unwrap on None")
+    | None => 0
 }
+
+// Pipe operator
+data |> filter(pred) |> map(transform) |> sum
+
+// JavaScript interop
+external log: (String) -> Unit = "console.log"
+unsafe { log("Hello!") }
 ```
 
-**Records:**
-```vibefun
-type Person = { name: String, age: Int }
-let person = { name: "Alice", age: 30 }
-let older = { ...person, age: 31 }
-```
-
-**Pipe operator:**
-```vibefun
-let result = data
-    |> filter((x) => x > 0)
-    |> map((x) => x * 2)
-    |> sum
-```
-
-**FFI (JavaScript interop):**
-```vibefun
-external console_log: (String) -> Unit = "console.log"
-
-let debug = (msg) => unsafe {
-    console_log(msg)
-}
-```
-
-## Standard Library Design
-
-### Core Modules
-
-1. **List**: map, filter, fold, length, head, tail, etc.
-2. **Option**: map, flatMap, getOrElse, isSome, isNone
-3. **Result**: map, mapErr, flatMap, isOk, isErr
-4. **String**: length, concat (++), toUpperCase, toLowerCase, split, etc.
-5. **Int/Float**: Basic arithmetic, conversions
-
-### Design Principles
-- **Functional**: Immutable data structures
-- **Curried**: Functions take one argument at a time
-- **Composable**: Easy to chain and compose
+**See [vibefun-spec.md](./vibefun-spec.md) for complete syntax, semantics, type system details, and standard library.**
 
 ## Development Workflow
 
@@ -279,14 +236,17 @@ vibefun run src/main.vf            # Compile and run
 - Developer experience is a first-class concern
 - Document design decisions as we make them
 
-## Resources
+## Documentation Resources
 
-### Design Documentation
-- **Language specification**: `.claude/plans/language-design.md`
-- **Type system details**: `.claude/plans/type-system.md`
-- **Compiler architecture**: `.claude/plans/compiler-architecture.md`
-- **Lexer implementation plan**: `.claude/plans/lexer-implementation.md`
+### Language Documentation
+- **[vibefun-spec.md](./vibefun-spec.md)** - Complete language specification (syntax, types, semantics, standard library)
+
+### Design & Planning Documents
+- **[.claude/plans/language-design.md](./.claude/plans/language-design.md)** - Original language design exploration
+- **[.claude/plans/type-system.md](./.claude/plans/type-system.md)** - Detailed type system design and algorithms
+- **[.claude/plans/compiler-architecture.md](./.claude/plans/compiler-architecture.md)** - Compiler pipeline design
+- **[.claude/plans/lexer-implementation.md](./.claude/plans/lexer-implementation.md)** - Detailed lexer implementation plan
 
 ### Development Resources
-- **Coding standards**: `.claude/CODING_STANDARDS.md`
-- **Current progress**: `.claude/LEXER_PROGRESS.md` (tracks current implementation status)
+- **[.claude/CODING_STANDARDS.md](./.claude/CODING_STANDARDS.md)** - Project coding standards and conventions
+- **[.claude/LEXER_PROGRESS.md](./.claude/LEXER_PROGRESS.md)** - Current lexer implementation progress tracker
