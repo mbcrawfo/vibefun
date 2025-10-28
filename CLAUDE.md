@@ -8,21 +8,23 @@
 
 These directives guide all development work on the vibefun project:
 
-1. **Detailed Planning**: Always create detailed plans before implementing changes. Use `.claude/plans/` to document plans for future reference.
+1. **Coding Standards**: Before writing any code, review `.claude/CODING_STANDARDS.md` to understand the project's coding conventions, naming patterns, and best practices.
 
-2. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
+2. **Detailed Planning**: Always create detailed plans before implementing changes. Use `.claude/plans/` to document plans for future reference.
 
-3. **Type Safety**: All code must be written in TypeScript using appropriate types. The use of `any` is **strictly prohibited**.
+3. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
 
-4. **Functional Style**: Prefer functional programming style in TypeScript code. Use pure functions, immutability, and composition where possible. Classes may be used when practical (e.g., for lexers, parsers, or stateful components).
+4. **Type Safety**: All code must be written in TypeScript using appropriate types. The use of `any` is **strictly prohibited**.
 
-5. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
+5. **Functional Style**: Prefer functional programming style in TypeScript code. Use pure functions, immutability, and composition where possible. Classes may be used when practical (e.g., for lexers, parsers, or stateful components).
+
+6. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
    - Unit tests for individual functions/components
    - Integration tests for module interactions
    - Edge cases and error conditions
    - Type checking validation
 
-6. **Quality Checks**: After implementing any changes, always run the following in order:
+7. **Quality Checks**: After implementing any changes, always run the following in order:
    - `npm run check` - Type checking
    - `npm run lint` - Linting
    - `npm test` - Tests
@@ -67,21 +69,37 @@ vibefun/
 │   ├── plans/
 │   │   ├── language-design.md        # Comprehensive language specification
 │   │   ├── type-system.md            # Detailed type system design
-│   │   └── compiler-architecture.md  # Compiler pipeline design
-│   └── settings.local.json
-├── src/                               # Source code (to be created)
-│   ├── lexer/                        # Tokenization
-│   ├── parser/                       # AST generation
-│   ├── typechecker/                  # Type inference & checking
-│   ├── compiler/                     # Transpilation to JS
-│   ├── runtime/                      # Runtime library
-│   ├── stdlib/                       # Standard library
-│   └── cli/                          # Command-line interface
-├── examples/                          # Example programs (to be created)
-├── tests/                            # Test suite (to be created)
-├── package.json                      # To be created
-├── tsconfig.json                     # To be created
-└── README.md                         # To be created
+│   │   ├── compiler-architecture.md  # Compiler pipeline design
+│   │   └── lexer-implementation.md   # Detailed lexer implementation plan
+│   ├── CODING_STANDARDS.md           # Project coding standards and conventions
+│   ├── LEXER_PROGRESS.md             # Current lexer implementation progress
+│   └── settings.local.json           # Claude Code settings
+├── src/
+│   ├── types/
+│   │   ├── token.ts                  # Token type definitions
+│   │   ├── token.test.ts             # Token tests
+│   │   ├── ast.ts                    # AST type definitions
+│   │   └── index.ts                  # Type exports
+│   ├── utils/
+│   │   ├── error.ts                  # Error handling utilities
+│   │   ├── error.test.ts             # Error utilities tests
+│   │   └── index.ts                  # Utility exports
+│   ├── lexer/                        # Tokenization (in progress)
+│   ├── parser/                       # AST generation (planned)
+│   ├── typechecker/                  # Type inference & checking (planned)
+│   ├── compiler/                     # Transpilation to JS (planned)
+│   ├── runtime/                      # Runtime library (planned)
+│   ├── stdlib/                       # Standard library (planned)
+│   └── cli/                          # Command-line interface (planned)
+├── examples/                          # Example programs (planned)
+├── package.json                      # Project dependencies and scripts
+├── package-lock.json                 # Locked dependency versions
+├── tsconfig.json                     # TypeScript configuration
+├── vitest.config.ts                  # Vitest test configuration
+├── eslint.config.mjs                 # ESLint configuration
+├── .prettierrc.json                  # Prettier configuration
+├── .editorconfig                     # Editor configuration
+└── .gitignore                        # Git ignore patterns
 ```
 
 ## Technical Decisions
@@ -242,36 +260,6 @@ vibefun run src/main.vf            # Compile and run
 4. **Code generation tests**: Verify JavaScript output
 5. **Example programs**: Real-world usage examples
 
-## Current Status
-
-**Phase**: Initial project setup and design documentation
-
-**Completed**:
-- ✅ Project directory initialized
-- ✅ Configuration files (prettier, editorconfig, git)
-- ✅ Comprehensive language design documentation
-- ✅ Type system design documented
-- ✅ Compiler architecture planned
-- ✅ CLAUDE.md memory file created
-- ✅ Core project directives established
-- ✅ Package.json with dependencies and verification scripts
-- ✅ TypeScript configured (strict mode)
-- ✅ ESLint configured
-- ✅ Vitest configured for testing
-- ✅ Coding standards documented
-- ✅ Source directory structure created (stashed)
-
-**Next Steps**:
-1. Write README.md
-2. Implement lexer with tests
-3. Implement parser with tests
-4. Implement type checker with tests
-5. Implement code generator with tests
-6. Build CLI tool with tests
-7. Implement standard library with tests
-8. Create example programs
-9. Write integration tests
-
 ## Open Questions & Future Considerations
 
 1. **Effect system**: How to handle async/await and side effects?
@@ -293,7 +281,12 @@ vibefun run src/main.vf            # Compile and run
 
 ## Resources
 
+### Design Documentation
 - **Language specification**: `.claude/plans/language-design.md`
 - **Type system details**: `.claude/plans/type-system.md`
 - **Compiler architecture**: `.claude/plans/compiler-architecture.md`
+- **Lexer implementation plan**: `.claude/plans/lexer-implementation.md`
+
+### Development Resources
 - **Coding standards**: `.claude/CODING_STANDARDS.md`
+- **Current progress**: `.claude/LEXER_PROGRESS.md` (tracks current implementation status)
