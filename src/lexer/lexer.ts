@@ -4,6 +4,33 @@
  * The Lexer is responsible for converting source code into a stream of tokens.
  * It maintains position tracking for accurate error reporting and handles
  * character-by-character navigation through the source code.
+ *
+ * @example
+ * ```typescript
+ * import { Lexer } from './lexer/lexer.js';
+ *
+ * const code = 'let x = 42';
+ * const lexer = new Lexer(code, 'example.vf');
+ * const tokens = lexer.tokenize();
+ *
+ * // tokens = [
+ * //   { type: 'KEYWORD', value: 'let', keyword: 'let', loc: {...} },
+ * //   { type: 'IDENTIFIER', value: 'x', loc: {...} },
+ * //   { type: 'EQ', value: '=', loc: {...} },
+ * //   { type: 'INT_LITERAL', value: 42, loc: {...} },
+ * //   { type: 'EOF', value: '', loc: {...} }
+ * // ]
+ * ```
+ *
+ * @remarks
+ * The lexer supports:
+ * - All vibefun keywords (let, type, if, match, etc.)
+ * - Identifiers with Unicode support
+ * - Number literals (integers, floats, hex, binary, scientific notation)
+ * - String literals (single-line and multi-line with escape sequences)
+ * - All operators (single and multi-character with longest-match)
+ * - Comments (single-line // and nested multi-line /* *\/)
+ * - Accurate location tracking for error reporting
  */
 
 import type { Location, Token } from "../types/index.js";
@@ -12,7 +39,10 @@ import { isBoolLiteral, isKeyword } from "../types/token.js";
 import { LexerError } from "../utils/index.js";
 
 /**
- * Lexer state management and tokenization
+ * Lexer class for tokenizing vibefun source code
+ *
+ * Converts source code text into a sequence of tokens with location information.
+ * Handles all vibefun syntax including keywords, literals, operators, and comments.
  */
 export class Lexer {
     private position: number = 0; // Current position in source (0-indexed)
@@ -21,6 +51,17 @@ export class Lexer {
     private readonly source: string;
     private readonly filename: string;
 
+    /**
+     * Creates a new Lexer instance
+     *
+     * @param source - The source code to tokenize
+     * @param filename - The filename for error reporting (defaults to "<input>")
+     *
+     * @example
+     * ```typescript
+     * const lexer = new Lexer('let x = 1', 'example.vf');
+     * ```
+     */
     constructor(source: string, filename: string = "<input>") {
         this.source = source;
         this.filename = filename;
