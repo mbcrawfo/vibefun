@@ -246,18 +246,6 @@ describe("Lexer - Single-Character Punctuation", () => {
         });
     });
 
-    describe("other operators", () => {
-        it("should tokenize tilde", () => {
-            const lexer = new Lexer("~", "test.vf");
-            const tokens = lexer.tokenize();
-
-            expect(tokens[0]).toMatchObject({
-                type: "TILDE",
-                value: "~",
-            });
-        });
-    });
-
     describe("punctuation sequences", () => {
         it("should tokenize comma-separated list", () => {
             const lexer = new Lexer("a,b,c", "test.vf");
@@ -409,6 +397,12 @@ describe("Lexer - Invalid Characters", () => {
         const lexer = new Lexer("$", "test.vf");
 
         expect(() => lexer.tokenize()).toThrow("Unexpected character: '$'");
+    });
+
+    it("should throw error for ~ character", () => {
+        const lexer = new Lexer("~", "test.vf");
+
+        expect(() => lexer.tokenize()).toThrow("Unexpected character: '~'");
     });
 
     it("should include location in error for invalid character", () => {

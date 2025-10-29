@@ -67,9 +67,6 @@ export type Token =
     | { type: "GT_GT"; value: string; loc: Location }
     | { type: "LT_LT"; value: string; loc: Location }
 
-    // Operators - Other
-    | { type: "TILDE"; value: string; loc: Location }
-
     // Assignment and Special Operators
     | { type: "EQ"; value: string; loc: Location }
     | { type: "COLON_EQ"; value: string; loc: Location }

@@ -797,8 +797,6 @@ export class Lexer {
                 return { type: "EQ", value: "=", loc: start };
             case "!":
                 return { type: "BANG", value: "!", loc: start };
-            case "~":
-                return { type: "TILDE", value: "~", loc: start };
             case "(":
                 return { type: "LPAREN", value: "(", loc: start };
             case ")":
