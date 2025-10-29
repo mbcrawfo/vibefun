@@ -46,11 +46,6 @@ const value = data as string; // ⚠️ Use only when TypeScript can't infer cor
 
 **DO**:
 ```typescript
-// Pure functions
-function add(a: number, b: number): number {
-    return a + b;
-}
-
 // Use map, filter, reduce instead of loops
 function getActiveUsers(users: User[]): User[] {
     return users.filter(user => user.active);
@@ -61,36 +56,25 @@ function updateUser(user: User, updates: Partial<User>): User {
     return { ...user, ...updates };
 }
 
-// Function composition
-const processData = pipe(
-    validateInput,
-    transformData,
-    formatOutput
-);
-
-// Use const for everything that doesn't change
+// Use const for values that don't change
 const result = compute();
 ```
 
 **DON'T**:
 ```typescript
-// Avoid mutations
+// Avoid mutations - return new values instead
 function addItem(array: string[], item: string): void {
     array.push(item); // ❌ Mutates input
 }
 
 // Avoid imperative loops when functional alternatives exist
 function double(numbers: number[]): number[] {
-    const result = []; // ❌ Prefer map
+    const result = []; // ❌ Use: numbers.map(n => n * 2)
     for (let i = 0; i < numbers.length; i++) {
         result.push(numbers[i] * 2);
     }
     return result;
 }
-
-// Use const, not let when possible
-let x = 5; // ❌ Use const if x doesn't change
-x = 10;
 ```
 
 ### When to Use Classes
@@ -108,7 +92,6 @@ Classes are acceptable and encouraged for:
 class Lexer {
     private position: number = 0;
     private line: number = 1;
-    private column: number = 1;
 
     constructor(private readonly source: string) {}
 
@@ -121,37 +104,16 @@ class Lexer {
         this.column++;
     }
 }
-
-class Parser {
-    private current: number = 0;
-
-    constructor(private readonly tokens: Token[]) {}
-
-    parse(): Module {
-        return this.parseModule();
-    }
-
-    private parseModule(): Module {
-        // Recursive descent parsing
-    }
-}
 ```
 
-**Prefer functions for**:
+**Prefer functions for stateless operations**:
 ```typescript
 // Pure transformations
-function desugar(expr: Expr): CoreExpr {
-    // Stateless transformation
-}
+function desugar(expr: Expr): CoreExpr { /* ... */ }
 
-// Utilities
+// Utilities and type operations
 function isKeyword(str: string): str is Keyword {
     return KEYWORDS.has(str as Keyword);
-}
-
-// Type operations
-function unify(t1: Type, t2: Type, subst: Substitution): Substitution {
-    // Pure type unification
 }
 ```
 
@@ -164,20 +126,6 @@ function unify(t1: Type, t2: Type, subst: Substitution): Substitution {
 - **Private members**: prefix with underscore (`_position`, `_currentToken`)
 - **Type parameters**: Single uppercase letter or PascalCase (`T`, `TValue`, `TError`)
 
-```typescript
-// Good naming
-type Token = { /* ... */ };
-const MAX_RECURSION_DEPTH = 1000;
-
-function parseExpression(tokens: Token[]): Expr {
-    // ...
-}
-
-class Parser {
-    private _current: number = 0;
-}
-```
-
 ### Error Handling
 
 **DO**:
@@ -189,37 +137,18 @@ throw new ParserError(
     'Expected an expression'
 );
 
-// Use Result types for expected failures
-type ParseResult = Result<Expr, ParserError>;
-
-function tryParse(tokens: Token[]): ParseResult {
-    try {
-        const expr = parse(tokens);
-        return { ok: true, value: expr };
-    } catch (error) {
-        return { ok: false, error: error as ParserError };
-    }
-}
-
-// Provide helpful error messages
+// Provide helpful, descriptive error messages
 throw new TypeError(
     `Type mismatch: expected ${typeToString(expected)}, got ${typeToString(actual)}`,
     loc,
-    `Consider adding a type annotation or converting the value`
+    `Consider adding a type annotation`
 );
 ```
 
 **DON'T**:
 ```typescript
-// Don't throw generic errors
+// Don't throw generic errors without context
 throw new Error('failed'); // ❌ Not helpful
-
-// Don't swallow errors
-try {
-    parse(tokens);
-} catch {
-    // ❌ No error handling
-}
 
 // Don't lose location information
 throw new Error('Parse error'); // ❌ Where did it happen?
@@ -284,23 +213,7 @@ describe('Lexer', () => {
 
 - Use descriptive test names that explain what is being tested
 - Follow pattern: `should <expected behavior> when <condition>`
-- Group related tests with `describe` blocks
-
-```typescript
-describe('TypeChecker', () => {
-    describe('inferType', () => {
-        it('should infer Int type for integer literals', () => { });
-        it('should infer function type from lambda expressions', () => { });
-        it('should throw TypeError when types do not unify', () => { });
-    });
-
-    describe('unify', () => {
-        it('should unify identical types', () => { });
-        it('should unify type variables with concrete types', () => { });
-        it('should detect infinite types (occurs check)', () => { });
-    });
-});
-```
+- Group related tests with `describe` blocks (see Test Organization example above)
 
 ## Code Review Checklist
 
@@ -310,6 +223,8 @@ Before submitting code, verify:
 - [ ] All functions have explicit return types
 - [ ] Functional style preferred over imperative (where appropriate)
 - [ ] Classes only used for stateful components
+- [ ] All modules export through index.ts
+- [ ] Imports are from index.ts (not direct implementation files)
 - [ ] Comprehensive test coverage
 - [ ] All tests pass: `npm run test`
 - [ ] Type checking passes: `npm run check`
@@ -340,18 +255,18 @@ npm run verify:ci  # Uses format:check instead of format
 
 ## File Structure
 
-Organize code logically:
+Organize code logically. All modules use index.ts for exports (see Module Organization above):
 
 ```
 src/
 ├── lexer/
-│   ├── lexer.ts           # Main lexer class
-│   ├── lexer.test.ts      # Lexer tests
+│   ├── lexer.ts           # Implementation
+│   ├── lexer.test.ts      # Tests
 │   └── index.ts           # Public exports
 ├── parser/
-│   ├── parser.ts
-│   ├── parser.test.ts
-│   └── index.ts
+│   ├── parser.ts          # Implementation
+│   ├── parser.test.ts     # Tests
+│   └── index.ts           # Public exports
 ├── types/
 │   ├── ast.ts             # AST type definitions
 │   ├── token.ts           # Token types
@@ -359,8 +274,8 @@ src/
 │   └── index.ts           # Re-export all types
 └── utils/
     ├── error.ts           # Error classes
-    ├── error.test.ts
-    └── index.ts
+    ├── error.test.ts      # Tests
+    └── index.ts           # Public exports
 ```
 
 ## Documentation
@@ -393,38 +308,91 @@ export function tokenize(source: string, filename: string): Token[] {
 
 - Prefer immutable data structures (they're fast in modern JS)
 - Use `Map` and `Set` for lookups instead of objects/arrays
-- Avoid premature optimization
-- Profile before optimizing
+- Avoid premature optimization - profile before optimizing
 - Document performance-critical sections
 
 ```typescript
-// Good: Use Map for fast lookups
+// Use Map/Set for O(1) lookups instead of arrays (O(n))
 const typeEnv: Map<string, TypeScheme> = new Map();
-
-// Good: Use Set for membership testing
 const keywords: Set<string> = new Set(['let', 'type', 'match']);
+```
 
-// Avoid: Linear search in arrays
-const keywords: string[] = ['let', 'type', 'match'];
-if (keywords.includes(token)) { } // O(n) lookup
+## Module Organization
+
+**Every module must use an `index.ts` file as its public API.**
+
+This pattern provides:
+- Clear separation between implementation and public interface
+- Easier refactoring (implementation files can be renamed/split without affecting consumers)
+- Consistent import paths across the codebase
+- Explicit control over what is exported
+
+### Module Structure Pattern
+
+```
+src/
+├── parser/
+│   ├── parser.ts           # Implementation
+│   ├── parser.test.ts      # Tests
+│   ├── helpers.ts          # Internal utilities (not exported)
+│   └── index.ts            # Public exports ONLY
+```
+
+### Implementation File (parser.ts)
+
+```typescript
+// parser.ts - Contains implementation
+export class Parser {
+    // Implementation details
+}
+
+export function parseModule(tokens: Token[]): Module {
+    // Implementation
+}
+```
+
+### Index File (index.ts)
+
+```typescript
+// index.ts - Re-exports public API only
+export { Parser, parseModule } from './parser.js';
+export type { ParseOptions } from './parser.js';
+
+// Note: helpers.ts is NOT exported - it's internal to the module
+```
+
+### Importing from Modules
+
+```typescript
+// Always import from index.ts
+import { Parser, parseModule } from './parser/index.js';
+import type { ParseOptions } from './parser/index.js';
+
+// Never import directly from implementation files
+import { Parser } from './parser/parser.js'; // ❌ Avoid
 ```
 
 ## Import/Export Guidelines
 
-- Use named exports (not default exports)
-- Import types with `type` keyword when possible
-- Use index.ts files for public module APIs
+- **Always use named exports** (never default exports)
+- **Import types with `type` keyword** when importing only types
+- **All public APIs must go through index.ts**
 - Keep imports organized (prettier will sort them)
 
 ```typescript
-// Good
-import type { Token, TokenType } from './types/index.js';
+// Good - named exports
+export { tokenize, Parser };
+export type { Token, ParseOptions };
+
+// Bad - default exports
+export default class Parser { } // ❌
+
+// Good - type imports
+import type { Token } from './types/index.js';
 import { tokenize } from './lexer/index.js';
 
-export { tokenize, type Token, type TokenType };
-
-// Avoid default exports
-export default class Lexer { } // ❌
+// Bad - mixing when you only need types
+import { Token } from './types/index.js'; // ❌ Use 'import type'
 ```
 
 ## Additional Resources
