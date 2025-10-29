@@ -1346,30 +1346,30 @@ pattern when guard
 
 ### Operators Reference
 
-| Operator   | Precedence | Associativity | Description              |
-|------------|------------|---------------|--------------------------|
-| `.`        | 14         | Left          | Field access             |
-| `()`       | 14         | Left          | Function call            |
-| `[]`       | 14         | Left          | List indexing            |
-| `!`        | 13         | Right         | Dereference/Logical NOT  |
-| `-`        | 13         | Right         | Unary minus              |
-| `*`        | 12         | Left          | Multiplication           |
-| `/`        | 12         | Left          | Division                 |
-| `%`        | 12         | Left          | Modulo                   |
-| `+`        | 11         | Left          | Addition                 |
-| `-`        | 11         | Left          | Subtraction              |
-| `&`        | 11         | Left          | String concatenation     |
-| `<`        | 9          | Left          | Less than                |
-| `<=`       | 9          | Left          | Less than or equal       |
-| `>`        | 9          | Left          | Greater than             |
-| `>=`       | 9          | Left          | Greater than or equal    |
-| `==`       | 8          | Left          | Equal                    |
-| `!=`       | 8          | Left          | Not equal                |
-| `&&`       | 5          | Left          | Logical AND              |
-| `||`       | 4          | Left          | Logical OR               |
-| `::`       | 3          | Right         | List cons                |
-| `|>`       | 2          | Left          | Forward pipe             |
-| `:=`       | 1          | Right         | Reference assignment     |
+| Operator                  | Precedence | Associativity | Description              |
+|---------------------------|-----------|---------------|--------------------------|
+| `.`                       | 14        | Left          | Field access             |
+| `()`                      | 14        | Left          | Function call            |
+| `[]`                      | 14        | Left          | List indexing            |
+| `!`                       | 13        | Right         | Dereference/Logical NOT  |
+| `-`                       | 13        | Right         | Unary minus              |
+| `*`                       | 12        | Left          | Multiplication           |
+| `/`                       | 12        | Left          | Division                 |
+| `%`                       | 12        | Left          | Modulo                   |
+| `+`                       | 11        | Left          | Addition                 |
+| `-`                       | 11        | Left          | Subtraction              |
+| `&`                       | 11        | Left          | String concatenation     |
+| `<`                       | 9         | Left          | Less than                |
+| `<=`                      | 9         | Left          | Less than or equal       |
+| `>`                       | 9         | Left          | Greater than             |
+| `>=`                      | 9         | Left          | Greater than or equal    |
+| `==`                      | 8         | Left          | Equal                    |
+| `!=`                      | 8         | Left          | Not equal                |
+| `&&`                      | 5         | Left          | Logical AND              |
+| <code>&vert;&vert;</code> | 4          | Left          | Logical OR               |
+| `::`                      | 3         | Right         | List cons                |
+| <code>&vert;&gt;</code>`  | 2          | Left          | Forward pipe             |
+| `:=`                      | 1         | Right         | Reference assignment     |
 
 ### File Organization Best Practices
 
