@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { Lexer } from "../lexer/lexer.js";
+import { Lexer } from "../lexer/index.js";
 import { ParserError } from "../utils/error.js";
 import { Parser } from "./parser.js";
 

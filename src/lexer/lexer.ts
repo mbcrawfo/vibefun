@@ -7,7 +7,7 @@
  *
  * @example
  * ```typescript
- * import { Lexer } from './lexer/lexer.js';
+ * import { Lexer } from './lexer/index.js';
  *
  * const code = 'let x = 42';
  * const lexer = new Lexer(code, 'example.vf');

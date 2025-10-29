@@ -6,7 +6,7 @@ import type { Module } from "../types/index.js";
 
 import { describe, expect, it } from "vitest";
 
-import { Lexer } from "../lexer/lexer.js";
+import { Lexer } from "../lexer/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to parse a complete module
