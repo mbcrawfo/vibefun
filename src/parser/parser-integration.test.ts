@@ -213,7 +213,10 @@ describe("Parser - Integration", () => {
             expect(module.imports).toHaveLength(1);
             expect(module.imports[0]).toMatchObject({
                 kind: "ImportDecl",
-                items: [{ name: "User", isType: true }, { name: "getUser", isType: false }],
+                items: [
+                    { name: "User", isType: true },
+                    { name: "getUser", isType: false },
+                ],
             });
         });
     });
