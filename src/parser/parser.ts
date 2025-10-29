@@ -215,11 +215,278 @@ export class Parser {
 
     /**
      * Parse an expression
-     * For Phase 3, this just parses primary expressions
-     * Will be expanded in Phase 4 with operator precedence
+     * Entry point for expression parsing with operator precedence
      */
     parseExpression(): Expr {
-        return this.parsePrimary();
+        return this.parsePipe();
+    }
+
+    /**
+     * Parse pipe expressions: expr |> func
+     * Precedence level 2 (lowest binary operator)
+     */
+    private parsePipe(): Expr {
+        let expr = this.parseRefAssign();
+
+        while (this.match("PIPE_GT")) {
+            const func = this.parseRefAssign();
+            expr = {
+                kind: "Pipe",
+                expr,
+                func,
+                loc: expr.loc,
+            };
+        }
+
+        return expr;
+    }
+
+    /**
+     * Parse reference assignment: ref := value
+     * Precedence level 1 (right-associative)
+     */
+    private parseRefAssign(): Expr {
+        const expr = this.parseCons();
+
+        if (this.match("COLON_EQ")) {
+            const value = this.parseRefAssign(); // Right-associative
+            return {
+                kind: "BinOp",
+                op: "RefAssign",
+                left: expr,
+                right: value,
+                loc: expr.loc,
+            };
+        }
+
+        return expr;
+    }
+
+    /**
+     * Parse list cons: head :: tail
+     * Precedence level 3 (right-associative)
+     */
+    private parseCons(): Expr {
+        const expr = this.parseLogicalOr();
+
+        if (this.match("COLON_COLON")) {
+            const tail = this.parseCons(); // Right-associative
+            return {
+                kind: "ListCons",
+                head: expr,
+                tail,
+                loc: expr.loc,
+            };
+        }
+
+        return expr;
+    }
+
+    /**
+     * Parse logical OR: expr || expr
+     * Precedence level 4
+     */
+    private parseLogicalOr(): Expr {
+        let left = this.parseLogicalAnd();
+
+        while (this.match("PIPE_PIPE")) {
+            const right = this.parseLogicalAnd();
+            left = {
+                kind: "BinOp",
+                op: "LogicalOr",
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse logical AND: expr && expr
+     * Precedence level 5
+     */
+    private parseLogicalAnd(): Expr {
+        let left = this.parseBitwiseOr();
+
+        while (this.match("AMP_AMP")) {
+            const right = this.parseBitwiseOr();
+            left = {
+                kind: "BinOp",
+                op: "LogicalAnd",
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse bitwise OR: expr | expr
+     * Precedence level 6
+     */
+    private parseBitwiseOr(): Expr {
+        let left = this.parseBitwiseAnd();
+
+        while (this.match("PIPE")) {
+            const right = this.parseBitwiseAnd();
+            left = {
+                kind: "BinOp",
+                op: "BitwiseOr",
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse bitwise AND: expr & expr
+     * Precedence level 7
+     */
+    private parseBitwiseAnd(): Expr {
+        let left = this.parseEquality();
+
+        while (this.match("AMP")) {
+            const right = this.parseEquality();
+            left = {
+                kind: "BinOp",
+                op: "BitwiseAnd",
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse equality: expr == expr, expr != expr
+     * Precedence level 8
+     */
+    private parseEquality(): Expr {
+        let left = this.parseComparison();
+
+        while (this.match("EQ_EQ", "BANG_EQ")) {
+            const opToken = this.peek(-1);
+            const op = opToken.type === "EQ_EQ" ? "Equal" : "NotEqual";
+            const right = this.parseComparison();
+            left = {
+                kind: "BinOp",
+                op,
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse comparison: <, <=, >, >=
+     * Precedence level 9
+     */
+    private parseComparison(): Expr {
+        let left = this.parseShift();
+
+        while (this.match("LT", "LT_EQ", "GT", "GT_EQ")) {
+            const opToken = this.peek(-1);
+            const op =
+                opToken.type === "LT"
+                    ? "LessThan"
+                    : opToken.type === "LT_EQ"
+                      ? "LessEqual"
+                      : opToken.type === "GT"
+                        ? "GreaterThan"
+                        : "GreaterEqual";
+            const right = this.parseShift();
+            left = {
+                kind: "BinOp",
+                op,
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse shift: <<, >>
+     * Precedence level 10
+     */
+    private parseShift(): Expr {
+        let left = this.parseAdditive();
+
+        while (this.match("LT_LT", "GT_GT")) {
+            const opToken = this.peek(-1);
+            const op = opToken.type === "LT_LT" ? "LeftShift" : "RightShift";
+            const right = this.parseAdditive();
+            left = {
+                kind: "BinOp",
+                op,
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse additive: +, -, ++
+     * Precedence level 11
+     */
+    private parseAdditive(): Expr {
+        let left = this.parseMultiplicative();
+
+        while (this.match("PLUS", "MINUS", "PLUS_PLUS")) {
+            const opToken = this.peek(-1);
+            const op = opToken.type === "PLUS" ? "Add" : opToken.type === "MINUS" ? "Subtract" : "Concat";
+            const right = this.parseMultiplicative();
+            left = {
+                kind: "BinOp",
+                op,
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse multiplicative: *, /, %
+     * Precedence level 12
+     */
+    private parseMultiplicative(): Expr {
+        let left = this.parsePrimary(); // For now, directly to primary
+        // Will add unary operators in Phase 4b
+
+        while (this.match("STAR", "SLASH", "PERCENT")) {
+            const opToken = this.peek(-1);
+            const op = opToken.type === "STAR" ? "Multiply" : opToken.type === "SLASH" ? "Divide" : "Modulo";
+            const right = this.parsePrimary();
+            left = {
+                kind: "BinOp",
+                op,
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
     }
 
     /**

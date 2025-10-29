@@ -759,6 +759,11 @@ export class Lexer {
             this.advance();
             return { type: "FAT_ARROW", value: "=>", loc: start };
         }
+        if (char === ":" && next === ":") {
+            this.advance();
+            this.advance();
+            return { type: "COLON_COLON", value: "::", loc: start };
+        }
         if (char === ":" && next === "=") {
             this.advance();
             this.advance();

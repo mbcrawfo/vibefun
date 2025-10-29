@@ -547,6 +547,18 @@ describe("Lexer - Multi-Character Operators", () => {
         });
     });
 
+    describe("two-character list operators", () => {
+        it("should tokenize ::", () => {
+            const lexer = new Lexer("::", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "COLON_COLON",
+                value: "::",
+            });
+        });
+    });
+
     describe("two-character logical operators", () => {
         it("should tokenize &&", () => {
             const lexer = new Lexer("&&", "test.vf");

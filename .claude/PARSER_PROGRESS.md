@@ -170,26 +170,156 @@ This document tracks the implementation progress of the vibefun parser through i
 
 ---
 
-## Phase 4: Complex Expressions
+## Phase 4a: Binary Operators with Precedence
 
-**Time Estimate:** 3 hours
+**Time Estimate:** 1 hour
+**Actual Time:** ~1.5 hours
+**Status:** ✅ Done
+
+### Tasks
+- [x] Implement operator precedence climbing algorithm
+- [x] Implement `parsePipe()` - pipe expressions (|>)
+- [x] Implement `parseRefAssign()` - reference assignment (:=)
+- [x] Implement `parseCons()` - list cons (::)
+- [x] Implement `parseLogicalOr()` - logical OR (||)
+- [x] Implement `parseLogicalAnd()` - logical AND (&&)
+- [x] Implement `parseBitwiseOr()` - bitwise OR (|)
+- [x] Implement `parseBitwiseAnd()` - bitwise AND (&)
+- [x] Implement `parseEquality()` - equality (==, !=)
+- [x] Implement `parseComparison()` - comparison (<, >, <=, >=)
+- [x] Implement `parseShift()` - bitwise shift (<<, >>)
+- [x] Implement `parseAdditive()` - addition/subtraction (+, -, ++)
+- [x] Implement `parseMultiplicative()` - multiplication/division (*, /, %)
+- [x] Write tests for all binary operators
+- [x] Write tests for operator precedence
+- [x] Write tests for associativity
+- [x] Fix lexer to recognize :: token
+
+### Deliverables
+- Binary operator precedence parsing complete (10 precedence levels)
+- 60+ expression tests passing
+- `src/parser/parser.ts` extended with precedence methods (~500 lines total)
+- `src/parser/expressions.test.ts` (60 tests passing + 4 todo)
+- Lexer fix: Added COLON_COLON token recognition
+
+### Acceptance Criteria
+- [x] All binary operators parse correctly
+- [x] Operator precedence correct (14 levels, binary operators: levels 2-12)
+- [x] Associativity correct (left vs right)
+- [x] All tests passing (462 total: 60 expression tests + 402 existing)
+- [x] All npm run verify checks pass
+
+### Notes
+- Implemented 10 precedence-level parsing functions using precedence climbing algorithm
+- Precedence levels (highest to lowest for binary ops):
+  - Level 12: Multiplicative (*, /, %)
+  - Level 11: Additive (+, -, ++)
+  - Level 10: Shift (<<, >>)
+  - Level 9: Comparison (<, <=, >, >=)
+  - Level 8: Equality (==, !=)
+  - Level 7: Bitwise AND (&)
+  - Level 6: Bitwise OR (|)
+  - Level 5: Logical AND (&&)
+  - Level 4: Logical OR (||)
+  - Level 3: List cons (::) - right-associative
+  - Level 1: Reference assignment (:=) - right-associative
+  - Level 2: Pipe (|>) - left-associative
+- Right-associative operators: ::, :=
+- Left-associative operators: all others
+- Special nodes: Pipe (not BinOp), ListCons (not BinOp)
+- Bug found and fixed: Lexer was tokenizing :: as two COLON tokens instead of one COLON_COLON token
+- Added comprehensive tests covering:
+  - All binary operators (arithmetic, comparison, logical, bitwise, special)
+  - Precedence rules (5 tests verifying correct precedence)
+  - Associativity (4 tests for left/right associativity)
+  - Parentheses overriding precedence (1 test)
+
+---
+
+## Phase 4b: Unary Operators and Function Calls
+
+**Time Estimate:** 1 hour
 **Actual Time:** _Not started_
 **Status:** 🔜 Not Started
 
 ### Tasks
-
-#### Binary Operators (1 hour)
-- [ ] Implement operator precedence climbing algorithm
-- [ ] Implement `parsePipe()` - pipe expressions (|>)
-- [ ] Implement `parseLogicalOr()` - logical OR (||)
-- [ ] Implement `parseLogicalAnd()` - logical AND (&&)
-- [ ] Implement `parseEquality()` - equality (==, !=)
-- [ ] Implement `parseComparison()` - comparison (<, >, <=, >=)
-- [ ] Implement `parseAdditive()` - addition/subtraction (+, -, ++)
-- [ ] Implement `parseMultiplicative()` - multiplication/division (*, /, %)
 - [ ] Implement `parseUnary()` - unary operators (-, !, ~)
-- [ ] Write tests for operator precedence
-- [ ] Write tests for associativity
+- [ ] Implement `parseCall()` - function calls with arguments
+- [ ] Handle curried functions
+- [ ] Write unary operator tests
+- [ ] Write function call tests
+
+---
+
+## Phase 4c: Lambda Expressions
+
+**Time Estimate:** 45 minutes
+**Actual Time:** _Not started_
+**Status:** 🔜 Not Started
+
+### Tasks
+- [ ] Implement `parseLambda()` - lambda expressions
+- [ ] Parse lambda parameters (patterns)
+- [ ] Parse lambda body
+- [ ] Write lambda tests
+
+---
+
+## Phase 4d: Control Flow - If/Match
+
+**Time Estimate:** 45 minutes
+**Actual Time:** _Not started_
+**Status:** 🔜 Not Started
+
+### Tasks
+- [ ] Implement `parseIf()` - if-then-else expressions
+- [ ] Implement `parseMatch()` - match expressions with patterns
+- [ ] Parse match cases with optional guards
+- [ ] Write if-expression tests
+- [ ] Write match-expression tests
+
+---
+
+## Phase 4e: Data Structures - Records and Lists
+
+**Time Estimate:** 30 minutes
+**Actual Time:** _Not started_
+**Status:** 🔜 Not Started
+
+### Tasks
+- [ ] Implement `parseRecord()` - record construction and access
+- [ ] Parse record field access (dot notation)
+- [ ] Parse record updates with spread
+- [ ] Implement `parseList()` - list literals
+- [ ] Write record tests
+- [ ] Write list tests
+
+---
+
+## Phase 4: Complex Expressions (Legacy - Replaced by 4a-4e)
+
+**Note:** Phase 4 was broken down into sub-phases 4a-4e for more granular commits. See individual sub-phase sections above.
+
+**Time Estimate:** 3 hours
+**Actual Time:** _See sub-phases_
+**Status:** 🔄 In Progress (4a complete, 4b-4e pending)
+
+### Tasks
+
+#### Binary Operators (1 hour) - ✅ DONE (See Phase 4a)
+- [x] Implement operator precedence climbing algorithm
+- [x] Implement `parsePipe()` - pipe expressions (|>)
+- [x] Implement `parseLogicalOr()` - logical OR (||)
+- [x] Implement `parseLogicalAnd()` - logical AND (&&)
+- [x] Implement `parseEquality()` - equality (==, !=)
+- [x] Implement `parseComparison()` - comparison (<, >, <=, >=)
+- [x] Implement `parseAdditive()` - addition/subtraction (+, -, ++)
+- [x] Implement `parseMultiplicative()` - multiplication/division (*, /, %)
+- [x] Write tests for operator precedence
+- [x] Write tests for associativity
+
+#### Unary & Function Calls - 🔜 PENDING (See Phase 4b)
+- [ ] Implement `parseUnary()` - unary operators (-, !, ~)
 
 #### Function Calls & Lambdas (45 min)
 - [ ] Implement `parseCall()` - function calls with arguments
