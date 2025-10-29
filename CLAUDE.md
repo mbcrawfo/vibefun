@@ -62,16 +62,16 @@ vibefun/
 ├── .claude/          # Project plans, progress tracking, and documentation
 │   └── plans/        # Detailed implementation plans for compiler phases
 ├── src/
-│   ├── types/        # Type definitions (tokens, AST, etc.)
-│   ├── utils/        # Shared utilities (error handling, etc.)
-│   ├── lexer/        # Tokenization
-│   ├── parser/       # AST generation
-│   ├── typechecker/  # Type inference & checking
-│   ├── compiler/     # Transpilation to JS
-│   ├── runtime/      # Runtime library
-│   ├── stdlib/       # Standard library
-│   └── cli/          # Command-line interface
-└── examples/         # Example programs
+│   ├── types/        # Type definitions (tokens, AST, etc.) [✓ Complete]
+│   ├── utils/        # Shared utilities (error handling, etc.) [✓ Complete]
+│   ├── lexer/        # Tokenization [✓ Complete - 354 tests]
+│   ├── parser/       # AST generation [✓ Complete - 310 tests]
+│   ├── typechecker/  # Type inference & checking [TODO]
+│   ├── compiler/     # Transpilation to JS [TODO]
+│   ├── runtime/      # Runtime library [TODO]
+│   ├── stdlib/       # Standard library [TODO]
+│   └── cli/          # Command-line interface [TODO]
+└── examples/         # Example programs [TODO]
 ```
 
 ## Technical Decisions

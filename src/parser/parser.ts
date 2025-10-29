@@ -8,13 +8,17 @@
 import type {
     Declaration,
     Expr,
+    ImportItem,
     Location,
     MatchCase,
     Module,
     Pattern,
     RecordField,
     RecordPatternField,
+    RecordTypeField,
+    TypeDefinition,
     TypeExpr,
+    VariantConstructor,
 } from "../types/index.js";
 import type { Token, TokenType } from "../types/token.js";
 
@@ -197,14 +201,26 @@ export class Parser {
             // Skip
         }
 
-        // Note: Full parsing will be implemented in subsequent phases
-        // For now, we validate that the module is well-formed (empty or only whitespace/comments)
+        // Parse declarations
+        while (!this.isAtEnd()) {
+            // Skip newlines between declarations
+            while (this.match("NEWLINE"));
 
-        // If there are any tokens other than EOF, we need to skip them for now
-        // This demonstrates error handling and synchronization
-        if (!this.isAtEnd()) {
-            // Peek at unexpected token for error message (but don't fail yet)
-            // In later phases, this is where we'll parse imports and declarations
+            if (this.isAtEnd()) {
+                break;
+            }
+
+            const decl = this.parseDeclaration();
+
+            // Separate imports from other declarations
+            if (decl.kind === "ImportDecl") {
+                imports.push(decl);
+            } else {
+                declarations.push(decl);
+            }
+
+            // Skip trailing newlines
+            while (this.match("NEWLINE"));
         }
 
         return {
@@ -1173,11 +1189,591 @@ export class Parser {
     }
 
     // =========================================================================
-    // Type Expression Parsing (Stubs)
+    // Type Expression Parsing
     // =========================================================================
 
+    /**
+     * Parse a type expression (with union support)
+     * Syntax: type ('|' type)*
+     * Note: VariantType is constructed in type declarations, not type expressions
+     */
     parseTypeExpr(): TypeExpr {
-        throw this.error("Not implemented: parseTypeExpr", this.peek().loc);
+        const types: TypeExpr[] = [this.parseFunctionType()];
+
+        // Check for union separators
+        while (this.check("PIPE")) {
+            // Lookahead to check if this is a union separator
+            const nextToken = this.peek(1);
+            if (nextToken.type === "IDENTIFIER" || nextToken.type === "LPAREN" || nextToken.type === "LBRACE") {
+                this.advance(); // consume |
+                types.push(this.parseFunctionType());
+            } else {
+                break; // Not a union separator
+            }
+        }
+
+        if (types.length === 1) {
+            return types[0]!;
+        } else {
+            return {
+                kind: "UnionType",
+                types,
+                loc: types[0]!.loc,
+            };
+        }
+    }
+
+    /**
+     * Parse function type
+     * Syntax: type '->' type  or  (type, type, ...) -> type
+     */
+    private parseFunctionType(): TypeExpr {
+        const left = this.parsePrimaryType();
+
+        // Check for function type arrow
+        if (this.check("ARROW")) {
+            this.advance(); // consume ->
+
+            // Left side becomes parameter(s)
+            const params: TypeExpr[] = left.kind === "UnionType" ? left.types : [left];
+            const return_ = this.parseFunctionType(); // Right-associative
+
+            return {
+                kind: "FunctionType",
+                params,
+                return_,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse primary type (variables, constants, applications, records, parenthesized)
+     */
+    private parsePrimaryType(): TypeExpr {
+        const startLoc = this.peek().loc;
+
+        // Parenthesized type or tuple-style function params: (T) or (T, U, V) -> R
+        if (this.check("LPAREN")) {
+            this.advance(); // consume (
+
+            if (this.check("RPAREN")) {
+                // Unit type: ()
+                this.advance();
+                return { kind: "TypeConst", name: "Unit", loc: startLoc };
+            }
+
+            const types: TypeExpr[] = [];
+            do {
+                types.push(this.parseTypeExpr());
+            } while (this.match("COMMA"));
+
+            this.expect("RPAREN", "Expected ')' after type");
+
+            // If single type, return it; if multiple, return UnionType (will be converted to params if followed by ->)
+            if (types.length === 1) {
+                return types[0]!;
+            } else {
+                return {
+                    kind: "UnionType",
+                    types,
+                    loc: startLoc,
+                };
+            }
+        }
+
+        // Record type: { field: Type, ... }
+        if (this.check("LBRACE")) {
+            this.advance(); // consume {
+
+            const fields: RecordTypeField[] = [];
+
+            if (!this.check("RBRACE")) {
+                do {
+                    const fieldNameToken = this.expect("IDENTIFIER", "Expected field name in record type");
+                    const fieldName = fieldNameToken.value as string;
+
+                    this.expect("COLON", "Expected ':' after field name in record type");
+
+                    const typeExpr = this.parseTypeExpr();
+
+                    fields.push({
+                        name: fieldName,
+                        typeExpr,
+                        loc: fieldNameToken.loc,
+                    });
+                } while (this.match("COMMA"));
+            }
+
+            this.expect("RBRACE", "Expected '}' after record type");
+
+            return { kind: "RecordType", fields, loc: startLoc };
+        }
+
+        // Type variable or type constant
+        if (this.check("IDENTIFIER")) {
+            const token = this.advance();
+            const name = token.value as string;
+
+            // Type application: List<T>, Option<Int>, Map<K, V>
+            if (this.check("LT")) {
+                this.advance(); // consume <
+
+                const args: TypeExpr[] = [];
+                do {
+                    args.push(this.parseTypeExpr());
+                } while (this.match("COMMA"));
+
+                // Handle >> as two > tokens for nested generics
+                if (this.check("GT_GT")) {
+                    // Split >> into > and >
+                    // Consume one > and leave the other for the outer type application
+                    const token = this.advance();
+                    // Insert a synthetic GT token for the outer level
+                    this.tokens.splice(this.current, 0, {
+                        type: "GT",
+                        value: ">",
+                        loc: token.loc,
+                    });
+                } else {
+                    this.expect("GT", "Expected '>' after type arguments");
+                }
+
+                // Constructor is the identifier we just parsed
+                const constructor: TypeExpr = {
+                    kind: "TypeConst",
+                    name,
+                    loc: token.loc,
+                };
+
+                return {
+                    kind: "TypeApp",
+                    constructor,
+                    args,
+                    loc: startLoc,
+                };
+            }
+
+            // Check if constructor with args (for variant types): Some(T)
+            if (this.check("LPAREN")) {
+                this.advance(); // consume (
+
+                const args: TypeExpr[] = [];
+
+                if (!this.check("RPAREN")) {
+                    do {
+                        args.push(this.parseTypeExpr());
+                    } while (this.match("COMMA"));
+                }
+
+                this.expect("RPAREN", "Expected ')' after constructor arguments");
+
+                // This is TypeApp with TypeConst constructor
+                const constructor: TypeExpr = {
+                    kind: "TypeConst",
+                    name,
+                    loc: token.loc,
+                };
+
+                return {
+                    kind: "TypeApp",
+                    constructor,
+                    args,
+                    loc: startLoc,
+                };
+            }
+
+            // Determine if type variable or type constant by case
+            // Type variables: lowercase (a, t, elem)
+            // Type constants: PascalCase (Int, String, List)
+            const isTypeVar = name.length > 0 && name[0]! >= "a" && name[0]! <= "z";
+
+            if (isTypeVar) {
+                return { kind: "TypeVar", name, loc: token.loc };
+            } else {
+                return { kind: "TypeConst", name, loc: token.loc };
+            }
+        }
+
+        throw this.error(
+            "Expected type expression",
+            startLoc,
+            "Expected a type (variable, constant, function type, record type, or parenthesized type)",
+        );
+    }
+
+    // =========================================================================
+    // Declaration Parsing
+    // =========================================================================
+
+    /**
+     * Parse a top-level declaration
+     */
+    private parseDeclaration(): Declaration {
+        // Check for export modifier
+        let exported = false;
+        if (this.check("KEYWORD") && this.peek().value === "export") {
+            exported = true;
+            this.advance(); // consume 'export'
+        }
+
+        // Skip newlines
+        while (this.match("NEWLINE"));
+
+        if (!this.check("KEYWORD")) {
+            throw this.error("Expected declaration keyword", this.peek().loc);
+        }
+
+        const keyword = this.peek().value as string;
+
+        switch (keyword) {
+            case "let":
+                return this.parseLetDecl(exported);
+            case "type":
+                return this.parseTypeDecl(exported);
+            case "external":
+                return this.parseExternalDecl();
+            case "import":
+                return this.parseImportDecl();
+            default:
+                throw this.error(`Unexpected keyword in declaration: ${keyword}`, this.peek().loc);
+        }
+    }
+
+    /**
+     * Parse let declaration
+     * Syntax: let [mut] [rec] pattern [: type] = expr
+     */
+    private parseLetDecl(exported: boolean): Declaration {
+        const startLoc = this.peek().loc;
+        this.advance(); // consume 'let'
+
+        // Check for modifiers
+        let mutable = false;
+        let recursive = false;
+
+        while (this.check("KEYWORD")) {
+            const mod = this.peek().value as string;
+            if (mod === "mut" && !mutable) {
+                mutable = true;
+                this.advance();
+            } else if (mod === "rec" && !recursive) {
+                recursive = true;
+                this.advance();
+            } else {
+                break;
+            }
+        }
+
+        // Parse pattern (left side of =)
+        const pattern = this.parsePattern();
+
+        // Optional type annotation
+        if (this.match("COLON")) {
+            // Skip type annotation for now (will be used by type checker)
+            this.parseTypeExpr();
+        }
+
+        // Expect =
+        this.expect("EQ", "Expected '=' after let pattern");
+
+        // Parse value expression
+        const value = this.parseExpression();
+
+        return {
+            kind: "LetDecl",
+            pattern,
+            value,
+            mutable,
+            recursive,
+            exported,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse type declaration
+     * Syntax: type Name<T, U> = definition
+     */
+    private parseTypeDecl(exported: boolean): Declaration {
+        const startLoc = this.peek().loc;
+        this.advance(); // consume 'type'
+
+        // Parse type name
+        const nameToken = this.expect("IDENTIFIER", "Expected type name");
+        const name = nameToken.value as string;
+
+        // Parse type parameters: <T, U, V>
+        const params: string[] = [];
+        if (this.match("LT")) {
+            do {
+                const paramToken = this.expect("IDENTIFIER", "Expected type parameter");
+                params.push(paramToken.value as string);
+            } while (this.match("COMMA"));
+
+            // Handle >> as two > tokens for nested generics
+            if (this.check("GT_GT")) {
+                const token = this.advance();
+                this.tokens.splice(this.current, 0, {
+                    type: "GT",
+                    value: ">",
+                    loc: token.loc,
+                });
+            } else {
+                this.expect("GT", "Expected '>' after type parameters");
+            }
+        }
+
+        // Expect =
+        this.expect("EQ", "Expected '=' after type name");
+
+        // Parse type definition
+        const definition = this.parseTypeDefinition();
+
+        return {
+            kind: "TypeDecl",
+            name,
+            params,
+            definition,
+            exported,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse type definition (alias, record, or variant)
+     */
+    private parseTypeDefinition(): TypeDefinition {
+        const startLoc = this.peek().loc;
+
+        // Record type: { ... }
+        if (this.check("LBRACE")) {
+            this.advance(); // consume {
+
+            const fields: RecordTypeField[] = [];
+
+            if (!this.check("RBRACE")) {
+                do {
+                    const fieldNameToken = this.expect("IDENTIFIER", "Expected field name");
+                    const fieldName = fieldNameToken.value as string;
+
+                    this.expect("COLON", "Expected ':' after field name");
+
+                    const typeExpr = this.parseTypeExpr();
+
+                    fields.push({
+                        name: fieldName,
+                        typeExpr,
+                        loc: fieldNameToken.loc,
+                    });
+                } while (this.match("COMMA"));
+            }
+
+            this.expect("RBRACE", "Expected '}' after record type fields");
+
+            return {
+                kind: "RecordTypeDef",
+                fields,
+                loc: startLoc,
+            };
+        }
+
+        // Skip newlines after = sign
+        while (this.match("NEWLINE"));
+
+        // Check for optional leading pipe (for multiline variant syntax)
+        // type Result<t, e> =
+        //     | Ok(t)
+        //     | Err(e)
+        if (this.check("PIPE")) {
+            this.advance(); // consume leading |
+            // Skip newlines after pipe
+            while (this.match("NEWLINE"));
+        }
+
+        // Variant or alias - parse first constructor/type
+        const firstType = this.parseFunctionType();
+
+        // Check if this is a variant type (has | separator)
+        if (this.check("PIPE")) {
+            // Variant type: Constructor1(T) | Constructor2(U) | ...
+            const constructors: VariantConstructor[] = [];
+
+            // Process first constructor
+            if (firstType.kind === "TypeApp" && firstType.constructor.kind === "TypeConst") {
+                // Constructor with args: Some(T)
+                constructors.push({
+                    name: (firstType.constructor as Extract<TypeExpr, { kind: "TypeConst" }>).name,
+                    args: firstType.args,
+                    loc: firstType.loc,
+                });
+            } else if (firstType.kind === "TypeConst") {
+                // Nullary constructor: None
+                constructors.push({
+                    name: firstType.name,
+                    args: [],
+                    loc: firstType.loc,
+                });
+            } else {
+                throw this.error("Expected constructor in variant type", firstType.loc);
+            }
+
+            // Parse remaining constructors
+            while (this.match("PIPE")) {
+                // Skip optional newlines
+                while (this.match("NEWLINE"));
+
+                const constrType = this.parseFunctionType();
+
+                if (constrType.kind === "TypeApp" && constrType.constructor.kind === "TypeConst") {
+                    constructors.push({
+                        name: (constrType.constructor as Extract<TypeExpr, { kind: "TypeConst" }>).name,
+                        args: constrType.args,
+                        loc: constrType.loc,
+                    });
+                } else if (constrType.kind === "TypeConst") {
+                    constructors.push({
+                        name: constrType.name,
+                        args: [],
+                        loc: constrType.loc,
+                    });
+                } else {
+                    throw this.error("Expected constructor in variant type", constrType.loc);
+                }
+            }
+
+            return {
+                kind: "VariantTypeDef",
+                constructors,
+                loc: startLoc,
+            };
+        }
+
+        // Type alias: type Alias = OtherType
+        return {
+            kind: "AliasType",
+            typeExpr: firstType,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse external declaration
+     * Syntax: external name: type = "jsName" [from "module"]
+     */
+    private parseExternalDecl(): Declaration {
+        const startLoc = this.peek().loc;
+        this.advance(); // consume 'external'
+
+        // Parse name
+        const nameToken = this.expect("IDENTIFIER", "Expected external name");
+        const name = nameToken.value as string;
+
+        // Expect :
+        this.expect("COLON", "Expected ':' after external name");
+
+        // Parse type
+        const typeExpr = this.parseTypeExpr();
+
+        // Expect =
+        this.expect("EQ", "Expected '=' after external type");
+
+        // Parse JS name (string literal)
+        const jsNameToken = this.expect("STRING_LITERAL", "Expected string literal for JS name");
+        const jsName = jsNameToken.value as string;
+
+        // Optional: from "module"
+        let from: string | undefined;
+        if (this.check("KEYWORD") && this.peek().value === "from") {
+            this.advance(); // consume 'from'
+            const moduleToken = this.expect("STRING_LITERAL", "Expected module name");
+            from = moduleToken.value as string;
+        }
+
+        return {
+            kind: "ExternalDecl",
+            name,
+            typeExpr,
+            jsName,
+            ...(from !== undefined && { from }),
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse import declaration
+     * Syntax: import { name, type T, name as alias } from "module"
+     *         import * as Name from "module"
+     */
+    private parseImportDecl(): Declaration {
+        const startLoc = this.peek().loc;
+        this.advance(); // consume 'import'
+
+        const items: ImportItem[] = [];
+
+        // import * as Name
+        if (this.match("STAR")) {
+            this.expect("KEYWORD", "Expected 'as' after '*'");
+            if (this.peek(-1).value !== "as") {
+                throw this.error("Expected 'as' after '*'", this.peek(-1).loc);
+            }
+
+            const aliasToken = this.expect("IDENTIFIER", "Expected alias name");
+            const alias = aliasToken.value as string;
+
+            items.push({
+                name: "*",
+                alias,
+                isType: false,
+            });
+        }
+        // import { ... }
+        else if (this.match("LBRACE")) {
+            do {
+                // Check for type import
+                let isType = false;
+                if (this.check("KEYWORD") && this.peek().value === "type") {
+                    isType = true;
+                    this.advance();
+                }
+
+                const nameToken = this.expect("IDENTIFIER", "Expected import name");
+                const name = nameToken.value as string;
+
+                // Optional: as alias
+                let alias: string | undefined;
+                if (this.check("KEYWORD") && this.peek().value === "as") {
+                    this.advance(); // consume 'as'
+                    const aliasToken = this.expect("IDENTIFIER", "Expected alias name");
+                    alias = aliasToken.value as string;
+                }
+
+                items.push({ name, ...(alias !== undefined && { alias }), isType });
+            } while (this.match("COMMA"));
+
+            this.expect("RBRACE", "Expected '}' after import items");
+        } else {
+            throw this.error("Expected '{' or '*' after 'import'", this.peek().loc);
+        }
+
+        // Expect from
+        this.expect("KEYWORD", "Expected 'from' after import items");
+        if (this.peek(-1).value !== "from") {
+            throw this.error("Expected 'from' keyword", this.peek(-1).loc);
+        }
+
+        // Parse module path
+        const fromToken = this.expect("STRING_LITERAL", "Expected module path");
+        const from = fromToken.value as string;
+
+        return {
+            kind: "ImportDecl",
+            items,
+            from,
+            loc: startLoc,
+        };
     }
 
     // =========================================================================
