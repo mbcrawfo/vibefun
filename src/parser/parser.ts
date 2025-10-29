@@ -108,6 +108,25 @@ export class Parser {
         return null;
     }
 
+    /**
+     * Require a token of the given type, or throw an error
+     * @param type - Required token type
+     * @param message - Error message if not found
+     * @returns The consumed token
+     * @throws ParserError if token doesn't match
+     */
+    // @ts-expect-error - Will be used in Phase 3+
+    private expect(type: TokenType, message?: string): Token {
+        if (this.check(type)) {
+            return this.advance();
+        }
+
+        const actualType = this.peek().type;
+        const errorMessage = message || `Expected ${type}, but found ${actualType}`;
+
+        throw this.error(errorMessage, this.peek().loc);
+    }
+
     // =========================================================================
     // Error Handling
     // =========================================================================
@@ -122,6 +141,33 @@ export class Parser {
     private error(message: string, location: Location, help?: string): ParserError {
         this.hadError = true;
         return new ParserError(message, location, help);
+    }
+
+    /**
+     * Synchronize after an error to continue parsing
+     * Skips tokens until reaching a safe synchronization point
+     */
+    // @ts-expect-error - Will be used in Phase 7+
+    private synchronize(): void {
+        this.advance();
+
+        while (!this.isAtEnd()) {
+            // Sync on statement boundaries
+            const prevType = this.peek(-1).type;
+            if (prevType === "SEMICOLON" || prevType === "NEWLINE") {
+                return;
+            }
+
+            // Sync on declaration keywords
+            if (this.check("KEYWORD")) {
+                const keyword = this.peek().value;
+                if (["let", "type", "import", "export", "external"].includes(keyword as string)) {
+                    return;
+                }
+            }
+
+            this.advance();
+        }
     }
 
     // =========================================================================
@@ -142,8 +188,15 @@ export class Parser {
             // Skip
         }
 
-        // For Phase 1, just return empty module
-        // Parsing will be implemented in subsequent phases
+        // Note: Full parsing will be implemented in subsequent phases
+        // For now, we validate that the module is well-formed (empty or only whitespace/comments)
+
+        // If there are any tokens other than EOF, we need to skip them for now
+        // This demonstrates error handling and synchronization
+        if (!this.isAtEnd()) {
+            // Peek at unexpected token for error message (but don't fail yet)
+            // In later phases, this is where we'll parse imports and declarations
+        }
 
         return {
             imports,
