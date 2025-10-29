@@ -590,6 +590,284 @@ export class Parser {
     }
 
     /**
+     * Parse lambda or parenthesized expression starting with LPAREN
+     * Handles: () => expr, (x) => expr, (x, y) => expr, or (expr)
+     * Note: LPAREN has already been consumed by caller
+     */
+    private parseLambdaOrParen(startLoc: Location): Expr {
+        // Check for closing paren immediately
+        if (this.check("RPAREN")) {
+            this.advance(); // consume )
+
+            // Check if it's a lambda: () => expr
+            if (this.check("FAT_ARROW")) {
+                this.advance(); // consume =>
+                const body = this.parseExpression();
+                return {
+                    kind: "Lambda",
+                    params: [],
+                    body,
+                    loc: startLoc,
+                };
+            }
+
+            // Otherwise, it's a unit literal
+            return {
+                kind: "UnitLit",
+                loc: startLoc,
+            };
+        }
+
+        // Lookahead to distinguish lambda from parenthesized expression
+        // Lambda: (id) => or (id, id, ...) =>
+        // Paren expr: (expr)
+        //
+        // Strategy: If we see identifier, peek ahead to see if next is ) or ,
+        // - If ), peek ahead again for =>
+        // - If ,, it must be lambda parameters
+        // - Otherwise, it's a parenthesized expression
+
+        if (this.check("IDENTIFIER")) {
+            const nextToken = this.peek(1);
+
+            // Check if it looks like lambda parameters
+            if (nextToken.type === "RPAREN") {
+                // Could be (x) => or (x)
+                // Need to check if there's => after the )
+                const afterParen = this.peek(2);
+                if (afterParen.type === "FAT_ARROW") {
+                    // It's a lambda: (x) => expr
+                    const param = {
+                        kind: "VarPattern" as const,
+                        name: this.advance().value as string,
+                        loc: this.peek(-1).loc,
+                    };
+                    this.expect("RPAREN");
+                    this.expect("FAT_ARROW");
+                    const body = this.parseExpression();
+                    return {
+                        kind: "Lambda",
+                        params: [param],
+                        body,
+                        loc: startLoc,
+                    };
+                } else {
+                    // It's a parenthesized variable: (x)
+                    const name = this.advance().value as string;
+                    const varLoc = this.peek(-1).loc;
+                    this.expect("RPAREN");
+                    return {
+                        kind: "Var",
+                        name,
+                        loc: varLoc,
+                    };
+                }
+            } else if (nextToken.type === "COMMA") {
+                // It's lambda parameters: (x, y, ...) => expr
+                const params: Pattern[] = [];
+                params.push({
+                    kind: "VarPattern",
+                    name: this.advance().value as string,
+                    loc: this.peek(-1).loc,
+                });
+
+                while (this.match("COMMA")) {
+                    const nameToken = this.expect("IDENTIFIER", "Expected parameter name after comma");
+                    params.push({
+                        kind: "VarPattern",
+                        name: nameToken.value as string,
+                        loc: nameToken.loc,
+                    });
+                }
+
+                this.expect("RPAREN", "Expected closing parenthesis after parameters");
+                this.expect("FAT_ARROW", "Expected '=>' after lambda parameters");
+
+                const body = this.parseExpression();
+                return {
+                    kind: "Lambda",
+                    params,
+                    body,
+                    loc: startLoc,
+                };
+            }
+        }
+
+        // Not a lambda, parse as parenthesized expression
+        const expr = this.parseExpression();
+        this.expect("RPAREN", "Expected closing parenthesis");
+        return expr;
+    }
+
+    /**
+     * Parse match expression
+     * Syntax: match expr { | pattern => body | pattern when guard => body ... }
+     * Note: 'match' keyword has already been consumed by caller
+     */
+    private parseMatchExpr(startLoc: Location): Expr {
+        const expr = this.parseExpression();
+
+        this.expect("LBRACE", "Expected '{' after match expression");
+
+        const cases: MatchCase[] = [];
+
+        // Parse match cases
+        // Skip any leading newlines
+        while (this.match("NEWLINE"));
+
+        // First case can optionally start with |
+        this.match("PIPE");
+
+        while (!this.check("RBRACE") && !this.isAtEnd()) {
+            // Parse pattern (full pattern support in Phase 5)
+            const pattern = this.parsePattern();
+
+            // Optional guard: when expr
+            let guard: Expr | undefined;
+            if (this.check("KEYWORD") && this.peek().value === "when") {
+                this.advance(); // consume 'when'
+                // Guard should not consume the => so parse at higher precedence than bitwise OR
+                guard = this.parseBitwiseAnd();
+            }
+
+            // Fat arrow
+            this.expect("FAT_ARROW", "Expected '=>' after match pattern");
+
+            // Body - parse at precedence level higher than bitwise OR (level 6)
+            // This prevents consuming | as bitwise OR when it's actually a case separator
+            // parseBitwiseAnd is level 7, which stops before bitwise OR
+            const body = this.parseBitwiseAnd();
+
+            const matchCase: MatchCase = {
+                pattern,
+                body,
+                loc: pattern.loc,
+            };
+
+            // Only add guard if it exists (exactOptionalPropertyTypes)
+            if (guard !== undefined) {
+                matchCase.guard = guard;
+            }
+
+            cases.push(matchCase);
+
+            // Check for more cases (separated by | or newline)
+            if (this.check("RBRACE")) {
+                break;
+            }
+
+            // Skip optional newlines
+            while (this.match("NEWLINE"));
+
+            // If next is a pipe, consume it as case separator
+            if (this.match("PIPE")) {
+                // Continue to next case
+                continue;
+            } else if (!this.check("RBRACE")) {
+                // No pipe and not end of match - error
+                throw this.error(
+                    "Expected '|' or '}' after match case",
+                    this.peek().loc,
+                    "Match cases should be separated by '|'",
+                );
+            }
+        }
+
+        this.expect("RBRACE", "Expected '}' after match cases");
+
+        return {
+            kind: "Match",
+            expr,
+            cases,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse record construction or update expression
+     * Syntax: { field: value } or { record | field: value }
+     * Note: LBRACE has already been consumed by caller
+     */
+    private parseRecordExpr(startLoc: Location): Expr {
+        // Check for empty record
+        if (this.check("RBRACE")) {
+            this.advance();
+            return {
+                kind: "Record",
+                fields: [],
+                loc: startLoc,
+            };
+        }
+
+        // Check if it's a record update: { record | field: value }
+        // Lookahead: if we see identifier/expression followed by |, it's an update
+        // For simplicity, we'll try to parse first element and check for |
+
+        // Parse first identifier or expression
+        // If followed by PIPE, it's an update
+        // If followed by COLON, it's a field
+
+        // Check if starts with identifier followed by PIPE (update syntax)
+        if (this.check("IDENTIFIER") && this.peek(1).type === "PIPE") {
+            // Record update: { record | field: value, ... }
+            const recordName = this.advance().value as string;
+            const record: Expr = {
+                kind: "Var",
+                name: recordName,
+                loc: this.peek(-1).loc,
+            };
+
+            this.expect("PIPE", "Expected '|' after record in update");
+
+            // Parse update fields
+            const updates: RecordField[] = [];
+            do {
+                const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
+                this.expect("COLON", "Expected ':' after field name");
+                const value = this.parseExpression();
+
+                updates.push({
+                    name: fieldName,
+                    value,
+                    loc: this.peek(-1).loc,
+                });
+            } while (this.match("COMMA"));
+
+            this.expect("RBRACE", "Expected '}' after record update");
+
+            return {
+                kind: "RecordUpdate",
+                record,
+                updates,
+                loc: startLoc,
+            };
+        }
+
+        // Otherwise, it's record construction: { field: value, ... }
+        const fields: RecordField[] = [];
+
+        do {
+            const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
+            this.expect("COLON", "Expected ':' after field name");
+            const value = this.parseExpression();
+
+            fields.push({
+                name: fieldName,
+                value,
+                loc: this.peek(-1).loc,
+            });
+        } while (this.match("COMMA"));
+
+        this.expect("RBRACE", "Expected '}' after record fields");
+
+        return {
+            kind: "Record",
+            fields,
+            loc: startLoc,
+        };
+    }
+
+    /**
      * Parse primary expressions (literals, variables, parenthesized)
      */
     private parsePrimary(): Expr {
@@ -637,109 +915,7 @@ export class Parser {
         if (this.check("LPAREN")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume (
-
-            // Check for closing paren immediately
-            if (this.check("RPAREN")) {
-                this.advance(); // consume )
-
-                // Check if it's a lambda: () => expr
-                if (this.check("FAT_ARROW")) {
-                    this.advance(); // consume =>
-                    const body = this.parseExpression();
-                    return {
-                        kind: "Lambda",
-                        params: [],
-                        body,
-                        loc: startLoc,
-                    };
-                }
-
-                // Otherwise, it's a unit literal
-                return {
-                    kind: "UnitLit",
-                    loc: startLoc,
-                };
-            }
-
-            // Lookahead to distinguish lambda from parenthesized expression
-            // Lambda: (id) => or (id, id, ...) =>
-            // Paren expr: (expr)
-            //
-            // Strategy: If we see identifier, peek ahead to see if next is ) or ,
-            // - If ), peek ahead again for =>
-            // - If ,, it must be lambda parameters
-            // - Otherwise, it's a parenthesized expression
-
-            if (this.check("IDENTIFIER")) {
-                const nextToken = this.peek(1);
-
-                // Check if it looks like lambda parameters
-                if (nextToken.type === "RPAREN") {
-                    // Could be (x) => or (x)
-                    // Need to check if there's => after the )
-                    const afterParen = this.peek(2);
-                    if (afterParen.type === "FAT_ARROW") {
-                        // It's a lambda: (x) => expr
-                        const param = {
-                            kind: "VarPattern" as const,
-                            name: this.advance().value as string,
-                            loc: this.peek(-1).loc,
-                        };
-                        this.expect("RPAREN");
-                        this.expect("FAT_ARROW");
-                        const body = this.parseExpression();
-                        return {
-                            kind: "Lambda",
-                            params: [param],
-                            body,
-                            loc: startLoc,
-                        };
-                    } else {
-                        // It's a parenthesized variable: (x)
-                        const name = this.advance().value as string;
-                        const varLoc = this.peek(-1).loc;
-                        this.expect("RPAREN");
-                        return {
-                            kind: "Var",
-                            name,
-                            loc: varLoc,
-                        };
-                    }
-                } else if (nextToken.type === "COMMA") {
-                    // It's lambda parameters: (x, y, ...) => expr
-                    const params: Pattern[] = [];
-                    params.push({
-                        kind: "VarPattern",
-                        name: this.advance().value as string,
-                        loc: this.peek(-1).loc,
-                    });
-
-                    while (this.match("COMMA")) {
-                        const nameToken = this.expect("IDENTIFIER", "Expected parameter name after comma");
-                        params.push({
-                            kind: "VarPattern",
-                            name: nameToken.value as string,
-                            loc: nameToken.loc,
-                        });
-                    }
-
-                    this.expect("RPAREN", "Expected closing parenthesis after parameters");
-                    this.expect("FAT_ARROW", "Expected '=>' after lambda parameters");
-
-                    const body = this.parseExpression();
-                    return {
-                        kind: "Lambda",
-                        params,
-                        body,
-                        loc: startLoc,
-                    };
-                }
-            }
-
-            // Not a lambda, parse as parenthesized expression
-            const expr = this.parseExpression();
-            this.expect("RPAREN", "Expected closing parenthesis");
-            return expr;
+            return this.parseLambdaOrParen(startLoc);
         }
 
         // If expression: if condition then expr1 else expr2
@@ -776,83 +952,7 @@ export class Parser {
         if (this.check("KEYWORD") && this.peek().value === "match") {
             const startLoc = this.peek().loc;
             this.advance(); // consume 'match'
-
-            const expr = this.parseExpression();
-
-            this.expect("LBRACE", "Expected '{' after match expression");
-
-            const cases: MatchCase[] = [];
-
-            // Parse match cases
-            // Skip any leading newlines
-            while (this.match("NEWLINE"));
-
-            // First case can optionally start with |
-            this.match("PIPE");
-
-            while (!this.check("RBRACE") && !this.isAtEnd()) {
-                // Parse pattern (full pattern support in Phase 5)
-                const pattern = this.parsePattern();
-
-                // Optional guard: when expr
-                let guard: Expr | undefined;
-                if (this.check("KEYWORD") && this.peek().value === "when") {
-                    this.advance(); // consume 'when'
-                    // Guard should not consume the => so parse at higher precedence than bitwise OR
-                    guard = this.parseBitwiseAnd();
-                }
-
-                // Fat arrow
-                this.expect("FAT_ARROW", "Expected '=>' after match pattern");
-
-                // Body - parse at precedence level higher than bitwise OR (level 6)
-                // This prevents consuming | as bitwise OR when it's actually a case separator
-                // parseBitwiseAnd is level 7, which stops before bitwise OR
-                const body = this.parseBitwiseAnd();
-
-                const matchCase: MatchCase = {
-                    pattern,
-                    body,
-                    loc: pattern.loc,
-                };
-
-                // Only add guard if it exists (exactOptionalPropertyTypes)
-                if (guard !== undefined) {
-                    matchCase.guard = guard;
-                }
-
-                cases.push(matchCase);
-
-                // Check for more cases (separated by | or newline)
-                if (this.check("RBRACE")) {
-                    break;
-                }
-
-                // Skip optional newlines
-                while (this.match("NEWLINE"));
-
-                // If next is a pipe, consume it as case separator
-                if (this.match("PIPE")) {
-                    // Continue to next case
-                    continue;
-                } else if (!this.check("RBRACE")) {
-                    // No pipe and not end of match - error
-                    throw this.error(
-                        "Expected '|' or '}' after match case",
-                        this.peek().loc,
-                        "Match cases should be separated by '|'",
-                    );
-                }
-            }
-
-            this.expect("RBRACE", "Expected '}' after match cases");
-
-            return {
-                kind: "Match",
-                expr,
-                cases,
-                loc: startLoc,
-            };
+            return this.parseMatchExpr(startLoc);
         }
 
         // List literal: [1, 2, 3]
@@ -883,83 +983,7 @@ export class Parser {
         if (this.check("LBRACE")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume {
-
-            // Check for empty record
-            if (this.check("RBRACE")) {
-                this.advance();
-                return {
-                    kind: "Record",
-                    fields: [],
-                    loc: startLoc,
-                };
-            }
-
-            // Check if it's a record update: { record | field: value }
-            // Lookahead: if we see identifier/expression followed by |, it's an update
-            // For simplicity, we'll try to parse first element and check for |
-
-            // Parse first identifier or expression
-            // If followed by PIPE, it's an update
-            // If followed by COLON, it's a field
-
-            // Check if starts with identifier followed by PIPE (update syntax)
-            if (this.check("IDENTIFIER") && this.peek(1).type === "PIPE") {
-                // Record update: { record | field: value, ... }
-                const recordName = this.advance().value as string;
-                const record: Expr = {
-                    kind: "Var",
-                    name: recordName,
-                    loc: this.peek(-1).loc,
-                };
-
-                this.expect("PIPE", "Expected '|' after record in update");
-
-                // Parse update fields
-                const updates: RecordField[] = [];
-                do {
-                    const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
-                    this.expect("COLON", "Expected ':' after field name");
-                    const value = this.parseExpression();
-
-                    updates.push({
-                        name: fieldName,
-                        value,
-                        loc: this.peek(-1).loc,
-                    });
-                } while (this.match("COMMA"));
-
-                this.expect("RBRACE", "Expected '}' after record update");
-
-                return {
-                    kind: "RecordUpdate",
-                    record,
-                    updates,
-                    loc: startLoc,
-                };
-            }
-
-            // Otherwise, it's record construction: { field: value, ... }
-            const fields: RecordField[] = [];
-
-            do {
-                const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
-                this.expect("COLON", "Expected ':' after field name");
-                const value = this.parseExpression();
-
-                fields.push({
-                    name: fieldName,
-                    value,
-                    loc: this.peek(-1).loc,
-                });
-            } while (this.match("COMMA"));
-
-            this.expect("RBRACE", "Expected '}' after record fields");
-
-            return {
-                kind: "Record",
-                fields,
-                loc: startLoc,
-            };
+            return this.parseRecordExpr(startLoc);
         }
 
         // Variable (identifier)
