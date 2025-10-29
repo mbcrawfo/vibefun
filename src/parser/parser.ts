@@ -5,7 +5,7 @@
  * Uses recursive descent parsing with operator precedence climbing for expressions.
  */
 
-import type { Declaration, Expr, Location, MatchCase, Module, Pattern, TypeExpr } from "../types/index.js";
+import type { Declaration, Expr, Location, MatchCase, Module, Pattern, RecordField, TypeExpr } from "../types/index.js";
 import type { Token, TokenType } from "../types/token.js";
 
 import { ParserError } from "../utils/index.js";
@@ -520,7 +520,7 @@ export class Parser {
     private parseCall(): Expr {
         let expr = this.parsePrimary();
 
-        // Parse postfix operators (function calls)
+        // Parse postfix operators (function calls, record field access)
         while (true) {
             // Function call: func(arg1, arg2, ...)
             if (this.match("LPAREN")) {
@@ -540,6 +540,18 @@ export class Parser {
                     kind: "App",
                     func: expr,
                     args,
+                    loc: expr.loc,
+                };
+            }
+            // Record field access: record.field
+            else if (this.match("DOT")) {
+                const fieldToken = this.expect("IDENTIFIER", "Expected field name after '.'");
+                const field = fieldToken.value as string;
+
+                expr = {
+                    kind: "RecordAccess",
+                    record: expr,
+                    field,
                     loc: expr.loc,
                 };
             } else {
@@ -832,6 +844,113 @@ export class Parser {
                 kind: "Match",
                 expr,
                 cases,
+                loc: startLoc,
+            };
+        }
+
+        // List literal: [1, 2, 3]
+        if (this.check("LBRACKET")) {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume [
+
+            const elements: Expr[] = [];
+
+            // Check for empty list
+            if (!this.check("RBRACKET")) {
+                // Parse elements
+                do {
+                    elements.push(this.parseExpression());
+                } while (this.match("COMMA"));
+            }
+
+            this.expect("RBRACKET", "Expected closing bracket after list elements");
+
+            return {
+                kind: "List",
+                elements,
+                loc: startLoc,
+            };
+        }
+
+        // Record construction or update: { field: value } or { record | field: value }
+        if (this.check("LBRACE")) {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume {
+
+            // Check for empty record
+            if (this.check("RBRACE")) {
+                this.advance();
+                return {
+                    kind: "Record",
+                    fields: [],
+                    loc: startLoc,
+                };
+            }
+
+            // Check if it's a record update: { record | field: value }
+            // Lookahead: if we see identifier/expression followed by |, it's an update
+            // For simplicity, we'll try to parse first element and check for |
+
+            // Parse first identifier or expression
+            // If followed by PIPE, it's an update
+            // If followed by COLON, it's a field
+
+            // Check if starts with identifier followed by PIPE (update syntax)
+            if (this.check("IDENTIFIER") && this.peek(1).type === "PIPE") {
+                // Record update: { record | field: value, ... }
+                const recordName = this.advance().value as string;
+                const record: Expr = {
+                    kind: "Var",
+                    name: recordName,
+                    loc: this.peek(-1).loc,
+                };
+
+                this.expect("PIPE", "Expected '|' after record in update");
+
+                // Parse update fields
+                const updates: RecordField[] = [];
+                do {
+                    const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
+                    this.expect("COLON", "Expected ':' after field name");
+                    const value = this.parseExpression();
+
+                    updates.push({
+                        name: fieldName,
+                        value,
+                        loc: this.peek(-1).loc,
+                    });
+                } while (this.match("COMMA"));
+
+                this.expect("RBRACE", "Expected '}' after record update");
+
+                return {
+                    kind: "RecordUpdate",
+                    record,
+                    updates,
+                    loc: startLoc,
+                };
+            }
+
+            // Otherwise, it's record construction: { field: value, ... }
+            const fields: RecordField[] = [];
+
+            do {
+                const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
+                this.expect("COLON", "Expected ':' after field name");
+                const value = this.parseExpression();
+
+                fields.push({
+                    name: fieldName,
+                    value,
+                    loc: this.peek(-1).loc,
+                });
+            } while (this.match("COMMA"));
+
+            this.expect("RBRACE", "Expected '}' after record fields");
+
+            return {
+                kind: "Record",
+                fields,
                 loc: startLoc,
             };
         }

@@ -1238,6 +1238,271 @@ describe("Parser - Expressions", () => {
     });
 
     describe("data structures", () => {
-        it.todo("will be added in Phase 4e");
+        describe("lists", () => {
+            it("should parse empty list", () => {
+                const expr = parseExpression("[]");
+
+                expect(expr).toMatchObject({
+                    kind: "List",
+                    elements: [],
+                });
+            });
+
+            it("should parse list with one element", () => {
+                const expr = parseExpression("[1]");
+
+                expect(expr).toMatchObject({
+                    kind: "List",
+                    elements: [{ kind: "IntLit", value: 1 }],
+                });
+            });
+
+            it("should parse list with multiple elements", () => {
+                const expr = parseExpression("[1, 2, 3]");
+
+                expect(expr).toMatchObject({
+                    kind: "List",
+                    elements: [
+                        { kind: "IntLit", value: 1 },
+                        { kind: "IntLit", value: 2 },
+                        { kind: "IntLit", value: 3 },
+                    ],
+                });
+            });
+
+            it("should parse list with expressions", () => {
+                const expr = parseExpression("[a + b, c * d]");
+
+                expect(expr).toMatchObject({
+                    kind: "List",
+                    elements: [
+                        {
+                            kind: "BinOp",
+                            op: "Add",
+                            left: { kind: "Var", name: "a" },
+                            right: { kind: "Var", name: "b" },
+                        },
+                        {
+                            kind: "BinOp",
+                            op: "Multiply",
+                            left: { kind: "Var", name: "c" },
+                            right: { kind: "Var", name: "d" },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse nested lists", () => {
+                const expr = parseExpression("[[1, 2], [3, 4]]");
+
+                expect(expr).toMatchObject({
+                    kind: "List",
+                    elements: [
+                        {
+                            kind: "List",
+                            elements: [
+                                { kind: "IntLit", value: 1 },
+                                { kind: "IntLit", value: 2 },
+                            ],
+                        },
+                        {
+                            kind: "List",
+                            elements: [
+                                { kind: "IntLit", value: 3 },
+                                { kind: "IntLit", value: 4 },
+                            ],
+                        },
+                    ],
+                });
+            });
+        });
+
+        describe("records", () => {
+            it("should parse empty record", () => {
+                const expr = parseExpression("{}");
+
+                expect(expr).toMatchObject({
+                    kind: "Record",
+                    fields: [],
+                });
+            });
+
+            it("should parse record with one field", () => {
+                const expr = parseExpression("{ x: 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Record",
+                    fields: [{ name: "x", value: { kind: "IntLit", value: 1 } }],
+                });
+            });
+
+            it("should parse record with multiple fields", () => {
+                const expr = parseExpression("{ x: 1, y: 2, z: 3 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Record",
+                    fields: [
+                        { name: "x", value: { kind: "IntLit", value: 1 } },
+                        { name: "y", value: { kind: "IntLit", value: 2 } },
+                        { name: "z", value: { kind: "IntLit", value: 3 } },
+                    ],
+                });
+            });
+
+            it("should parse record with expression values", () => {
+                const expr = parseExpression("{ sum: a + b, product: c * d }");
+
+                expect(expr).toMatchObject({
+                    kind: "Record",
+                    fields: [
+                        {
+                            name: "sum",
+                            value: {
+                                kind: "BinOp",
+                                op: "Add",
+                                left: { kind: "Var", name: "a" },
+                                right: { kind: "Var", name: "b" },
+                            },
+                        },
+                        {
+                            name: "product",
+                            value: {
+                                kind: "BinOp",
+                                op: "Multiply",
+                                left: { kind: "Var", name: "c" },
+                                right: { kind: "Var", name: "d" },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse nested records", () => {
+                const expr = parseExpression("{ inner: { x: 1 } }");
+
+                expect(expr).toMatchObject({
+                    kind: "Record",
+                    fields: [
+                        {
+                            name: "inner",
+                            value: {
+                                kind: "Record",
+                                fields: [{ name: "x", value: { kind: "IntLit", value: 1 } }],
+                            },
+                        },
+                    ],
+                });
+            });
+        });
+
+        describe("record access", () => {
+            it("should parse record field access", () => {
+                const expr = parseExpression("record.field");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordAccess",
+                    record: { kind: "Var", name: "record" },
+                    field: "field",
+                });
+            });
+
+            it("should parse chained field access", () => {
+                const expr = parseExpression("record.field1.field2");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordAccess",
+                    record: {
+                        kind: "RecordAccess",
+                        record: { kind: "Var", name: "record" },
+                        field: "field1",
+                    },
+                    field: "field2",
+                });
+            });
+
+            it("should parse field access on record literal", () => {
+                const expr = parseExpression("{ x: 1, y: 2 }.x");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordAccess",
+                    record: {
+                        kind: "Record",
+                        fields: [
+                            { name: "x", value: { kind: "IntLit", value: 1 } },
+                            { name: "y", value: { kind: "IntLit", value: 2 } },
+                        ],
+                    },
+                    field: "x",
+                });
+            });
+
+            it("should parse field access in expressions", () => {
+                const expr = parseExpression("a.x + b.y");
+
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "Add",
+                    left: {
+                        kind: "RecordAccess",
+                        record: { kind: "Var", name: "a" },
+                        field: "x",
+                    },
+                    right: {
+                        kind: "RecordAccess",
+                        record: { kind: "Var", name: "b" },
+                        field: "y",
+                    },
+                });
+            });
+        });
+
+        describe("record update", () => {
+            it("should parse record update with one field", () => {
+                const expr = parseExpression("{ record | x: 10 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "record" },
+                    updates: [{ name: "x", value: { kind: "IntLit", value: 10 } }],
+                });
+            });
+
+            it("should parse record update with multiple fields", () => {
+                const expr = parseExpression("{ record | x: 10, y: 20 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "record" },
+                    updates: [
+                        { name: "x", value: { kind: "IntLit", value: 10 } },
+                        { name: "y", value: { kind: "IntLit", value: 20 } },
+                    ],
+                });
+            });
+
+            it("should parse record update with expressions", () => {
+                const expr = parseExpression("{ point | x: point.x + 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "point" },
+                    updates: [
+                        {
+                            name: "x",
+                            value: {
+                                kind: "BinOp",
+                                op: "Add",
+                                left: {
+                                    kind: "RecordAccess",
+                                    record: { kind: "Var", name: "point" },
+                                    field: "x",
+                                },
+                                right: { kind: "IntLit", value: 1 },
+                            },
+                        },
+                    ],
+                });
+            });
+        });
     });
 });

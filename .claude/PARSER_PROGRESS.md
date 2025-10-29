@@ -418,16 +418,69 @@ This document tracks the implementation progress of the vibefun parser through i
 ## Phase 4e: Data Structures - Records and Lists
 
 **Time Estimate:** 30 minutes
-**Actual Time:** _Not started_
-**Status:** 🔜 Not Started
+**Actual Time:** ~25 minutes
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `parseRecord()` - record construction and access
-- [ ] Parse record field access (dot notation)
-- [ ] Parse record updates with spread
-- [ ] Implement `parseList()` - list literals
-- [ ] Write record tests
-- [ ] Write list tests
+- [x] Implement list literal parsing - `[elem1, elem2, ...]`
+- [x] Implement record construction parsing - `{ field: value }`
+- [x] Implement record update parsing - `{ record | field: value }`
+- [x] Parse record field access (dot notation) - `record.field`
+- [x] Write list tests (5 tests)
+- [x] Write record construction tests (5 tests)
+- [x] Write record access tests (4 tests)
+- [x] Write record update tests (3 tests)
+
+### Deliverables
+- List literal parsing complete
+- Record construction, access, and update parsing complete
+- 17 new data structure tests (5 list + 5 record + 4 access + 3 update)
+- `src/parser/parser.ts` extended with list/record parsing (~970 lines total)
+- `src/parser/expressions.test.ts` (111 tests passing)
+- Added RecordField to type imports
+
+### Acceptance Criteria
+- [x] List literals parse correctly: `[]`, `[1, 2, 3]`, nested lists
+- [x] Record construction works: `{}`, `{ x: 1, y: 2 }`
+- [x] Record field access works: `record.field`, chained access
+- [x] Record updates work: `{ record | field: newValue }`
+- [x] Lookahead correctly distinguishes record construction from update
+- [x] Record access chains properly: `record.field1.field2`
+- [x] All tests passing (514 total: 111 expression tests + 403 existing)
+- [x] All npm run verify checks pass
+
+### Notes
+- List literal syntax: `[elem1, elem2, ...]`
+- Implemented in `parsePrimary()` by checking for LBRACKET token
+- Handles empty lists: `[]`
+- Elements can be arbitrary expressions
+- Elements separated by commas
+
+- Record construction syntax: `{ field1: value1, field2: value2 }`
+- Implemented in `parsePrimary()` by checking for LBRACE token
+- Handles empty records: `{}`
+- Field values can be arbitrary expressions
+- Fields separated by commas
+
+- Record update syntax: `{ record | field: newValue }`
+- Implemented in `parsePrimary()` with lookahead disambiguation
+- Lookahead strategy: Check if identifier is followed by PIPE token
+- This distinguishes `{ record | ... }` from `{ field: ... }`
+- Supports updating multiple fields: `{ record | x: 1, y: 2 }`
+
+- Record field access syntax: `record.field`
+- Implemented in `parseCall()` as a postfix operator (alongside function calls)
+- Uses DOT token followed by IDENTIFIER
+- Supports chaining: `record.field1.field2` parses as `RecordAccess(RecordAccess(record, field1), field2)`
+- Can be applied to any expression: `getRecord().field`
+
+- Test coverage:
+  - Lists: empty, single element, multiple elements, expressions as elements, nested lists
+  - Record construction: empty, single field, multiple fields, expression values, nested records
+  - Record access: simple access, chained access, on literal, in expressions
+  - Record update: single field, multiple fields, with expressions
+
+- No errors encountered during implementation - all tests passed on first run
 
 ---
 
