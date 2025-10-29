@@ -20,7 +20,11 @@ function parseModule(source: string): Module {
 // Helper to get first declaration
 function parseDecl(source: string): Declaration {
     const module = parseModule(source);
-    return module.declarations[0]!;
+    const decl = module.declarations[0];
+    if (!decl) {
+        throw new Error("Expected at least one declaration in parsed module");
+    }
+    return decl;
 }
 
 describe("Parser - Declarations", () => {
@@ -263,7 +267,8 @@ describe("Parser - Declarations", () => {
         it("parses named import", () => {
             const module = parseModule('import { map, filter } from "./list"');
             expect(module.imports).toHaveLength(1);
-            const imp = module.imports[0]!;
+            const imp = module.imports[0];
+            expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
                 items: [
@@ -276,7 +281,8 @@ describe("Parser - Declarations", () => {
 
         it("parses import with alias", () => {
             const module = parseModule('import { map as listMap } from "./list"');
-            const imp = module.imports[0]!;
+            const imp = module.imports[0];
+            expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
                 items: [{ name: "map", alias: "listMap", isType: false }],
@@ -286,7 +292,8 @@ describe("Parser - Declarations", () => {
 
         it("parses import all as namespace", () => {
             const module = parseModule('import * as List from "./list"');
-            const imp = module.imports[0]!;
+            const imp = module.imports[0];
+            expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
                 items: [{ name: "*", alias: "List", isType: false }],
@@ -296,7 +303,8 @@ describe("Parser - Declarations", () => {
 
         it("parses type import", () => {
             const module = parseModule('import { type User, type Post } from "./types"');
-            const imp = module.imports[0]!;
+            const imp = module.imports[0];
+            expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
                 items: [
@@ -309,7 +317,8 @@ describe("Parser - Declarations", () => {
 
         it("parses mixed import", () => {
             const module = parseModule('import { type User, getUser, updateUser } from "./api"');
-            const imp = module.imports[0]!;
+            const imp = module.imports[0];
+            expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
                 items: [
@@ -362,9 +371,12 @@ describe("Parser - Declarations", () => {
             const module = parseModule(source);
             expect(module.imports).toHaveLength(1);
             expect(module.declarations).toHaveLength(3);
-            expect(module.declarations[0]!.kind).toBe("TypeDecl");
-            expect(module.declarations[1]!.kind).toBe("ExternalDecl");
-            expect(module.declarations[2]!.kind).toBe("LetDecl");
+            expect(module.declarations[0]).toBeDefined();
+            expect(module.declarations[0]?.kind).toBe("TypeDecl");
+            expect(module.declarations[1]).toBeDefined();
+            expect(module.declarations[1]?.kind).toBe("ExternalDecl");
+            expect(module.declarations[2]).toBeDefined();
+            expect(module.declarations[2]?.kind).toBe("LetDecl");
         });
     });
 });

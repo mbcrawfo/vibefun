@@ -1016,13 +1016,22 @@ export class Parser {
         }
 
         if (patterns.length === 1) {
-            return patterns[0]!;
+            const pattern = patterns[0];
+            if (!pattern) {
+                throw new ParserError("Internal error: empty patterns array", this.peek().loc);
+            }
+            return pattern;
+        }
+
+        const firstPattern = patterns[0];
+        if (!firstPattern) {
+            throw new ParserError("Internal error: empty patterns array", this.peek().loc);
         }
 
         return {
             kind: "OrPattern",
             patterns,
-            loc: patterns[0]!.loc,
+            loc: firstPattern.loc,
         };
     }
 
@@ -1069,7 +1078,8 @@ export class Parser {
 
             // Constructor pattern: PascalCase identifier followed by (
             // Variable pattern: camelCase identifier (or PascalCase without args)
-            const isPascalCase = name.length > 0 && name[0]! >= "A" && name[0]! <= "Z";
+            const firstChar = name.charAt(0);
+            const isPascalCase = firstChar >= "A" && firstChar <= "Z";
 
             if (isPascalCase && this.check("LPAREN")) {
                 // Constructor pattern with arguments: Constructor(arg1, arg2, ...)
@@ -1213,14 +1223,23 @@ export class Parser {
         }
 
         if (types.length === 1) {
-            return types[0]!;
-        } else {
-            return {
-                kind: "UnionType",
-                types,
-                loc: types[0]!.loc,
-            };
+            const type = types[0];
+            if (!type) {
+                throw new ParserError("Internal error: empty types array", this.peek().loc);
+            }
+            return type;
         }
+
+        const firstType = types[0];
+        if (!firstType) {
+            throw new ParserError("Internal error: empty types array", this.peek().loc);
+        }
+
+        return {
+            kind: "UnionType",
+            types,
+            loc: firstType.loc,
+        };
     }
 
     /**
@@ -1274,14 +1293,18 @@ export class Parser {
 
             // If single type, return it; if multiple, return UnionType (will be converted to params if followed by ->)
             if (types.length === 1) {
-                return types[0]!;
-            } else {
-                return {
-                    kind: "UnionType",
-                    types,
-                    loc: startLoc,
-                };
+                const type = types[0];
+                if (!type) {
+                    throw new ParserError("Internal error: empty types array", this.peek().loc);
+                }
+                return type;
             }
+
+            return {
+                kind: "UnionType",
+                types,
+                loc: startLoc,
+            };
         }
 
         // Record type: { field: Type, ... }
@@ -1388,7 +1411,8 @@ export class Parser {
             // Determine if type variable or type constant by case
             // Type variables: lowercase (a, t, elem)
             // Type constants: PascalCase (Int, String, List)
-            const isTypeVar = name.length > 0 && name[0]! >= "a" && name[0]! <= "z";
+            const firstChar = name.charAt(0);
+            const isTypeVar = firstChar >= "a" && firstChar <= "z";
 
             if (isTypeVar) {
                 return { kind: "TypeVar", name, loc: token.loc };

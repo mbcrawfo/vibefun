@@ -36,7 +36,8 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            const decl = module.declarations[0]!;
+            const decl = module.declarations[0];
+            expect(decl).toBeDefined();
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "add" },
@@ -290,9 +291,12 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(3);
-            expect(module.declarations[0]!.kind).toBe("TypeDecl");
-            expect(module.declarations[1]!.kind).toBe("LetDecl");
-            expect(module.declarations[2]!.kind).toBe("LetDecl");
+            expect(module.declarations[0]).toBeDefined();
+            expect(module.declarations[0]?.kind).toBe("TypeDecl");
+            expect(module.declarations[1]).toBeDefined();
+            expect(module.declarations[1]?.kind).toBe("LetDecl");
+            expect(module.declarations[2]).toBeDefined();
+            expect(module.declarations[2]?.kind).toBe("LetDecl");
         });
 
         it("parses List utilities module", () => {
@@ -388,11 +392,16 @@ describe("Parser - Integration", () => {
 
             expect(module.imports).toHaveLength(2);
             expect(module.declarations).toHaveLength(5);
-            expect(module.declarations[0]!.kind).toBe("TypeDecl");
-            expect(module.declarations[1]!.kind).toBe("ExternalDecl");
-            expect(module.declarations[2]!.kind).toBe("LetDecl");
-            expect(module.declarations[3]!.kind).toBe("LetDecl");
-            expect(module.declarations[4]!.kind).toBe("LetDecl");
+            expect(module.declarations[0]).toBeDefined();
+            expect(module.declarations[0]?.kind).toBe("TypeDecl");
+            expect(module.declarations[1]).toBeDefined();
+            expect(module.declarations[1]?.kind).toBe("ExternalDecl");
+            expect(module.declarations[2]).toBeDefined();
+            expect(module.declarations[2]?.kind).toBe("LetDecl");
+            expect(module.declarations[3]).toBeDefined();
+            expect(module.declarations[3]?.kind).toBe("LetDecl");
+            expect(module.declarations[4]).toBeDefined();
+            expect(module.declarations[4]?.kind).toBe("LetDecl");
         });
     });
 
@@ -439,16 +448,20 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            const decl = module.declarations[0]!;
-            expect(decl.kind).toBe("LetDecl");
+            const decl = module.declarations[0];
+            expect(decl).toBeDefined();
+            expect(decl?.kind).toBe("LetDecl");
             if (decl.kind === "LetDecl" && decl.value.kind === "Lambda") {
                 const body = decl.value.body;
                 expect(body.kind).toBe("Match");
                 if (body.kind === "Match") {
                     expect(body.cases).toHaveLength(3);
-                    expect(body.cases[0]!.pattern.kind).toBe("ConstructorPattern");
-                    expect(body.cases[1]!.pattern.kind).toBe("ConstructorPattern");
-                    expect(body.cases[2]!.pattern.kind).toBe("ConstructorPattern");
+                    expect(body.cases[0]).toBeDefined();
+                    expect(body.cases[0]?.pattern.kind).toBe("ConstructorPattern");
+                    expect(body.cases[1]).toBeDefined();
+                    expect(body.cases[1]?.pattern.kind).toBe("ConstructorPattern");
+                    expect(body.cases[2]).toBeDefined();
+                    expect(body.cases[2]?.pattern.kind).toBe("ConstructorPattern");
                 }
             }
         });
@@ -477,8 +490,9 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            const decl = module.declarations[0]!;
-            expect(decl.kind).toBe("LetDecl");
+            const decl = module.declarations[0];
+            expect(decl).toBeDefined();
+            expect(decl?.kind).toBe("LetDecl");
             if (decl.kind === "LetDecl") {
                 expect(decl.value.kind).toBe("Pipe");
             }
