@@ -115,35 +115,58 @@ This document tracks the implementation progress of the vibefun parser through i
 ## Phase 3: Primary Expressions
 
 **Time Estimate:** 1 hour
-**Actual Time:** _Not started_
-**Status:** 🔜 Not Started
+**Actual Time:** ~30 minutes
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `parsePrimary()` - entry point for primary expressions
-- [ ] Parse integer literals (INT_LITERAL)
-- [ ] Parse float literals (FLOAT_LITERAL)
-- [ ] Parse string literals (STRING_LITERAL)
-- [ ] Parse boolean literals (BOOL_LITERAL)
-- [ ] Parse unit literal `()`
-- [ ] Parse variables (IDENTIFIER)
-- [ ] Parse parenthesized expressions
-- [ ] Write tests for each literal type
-- [ ] Write tests for variables
-- [ ] Write tests for grouping
+- [x] Implement `parsePrimary()` - entry point for primary expressions
+- [x] Parse integer literals (INT_LITERAL)
+- [x] Parse float literals (FLOAT_LITERAL)
+- [x] Parse string literals (STRING_LITERAL)
+- [x] Parse boolean literals (BOOL_LITERAL)
+- [x] Parse unit literal `()`
+- [x] Parse variables (IDENTIFIER)
+- [x] Parse parenthesized expressions
+- [x] Write tests for each literal type
+- [x] Write tests for variables
+- [x] Write tests for grouping
 
 ### Deliverables
 - Primary expression parsing complete
-- `src/parser/expressions.test.ts` started (30+ tests)
+- parseExpression() now functional (calls parsePrimary)
+- parsePrimary() handles all literal types and variables
+- `src/parser/expressions.test.ts` (29 tests passing + 5 todo)
 
 ### Acceptance Criteria
-- [ ] All literal types parse correctly
-- [ ] Variables parse correctly
-- [ ] Parentheses group expressions properly
-- [ ] Location tracking accurate
-- [ ] All tests passing
+- [x] All literal types parse correctly (int, float, string, bool, unit)
+- [x] Variables parse correctly (including unicode identifiers)
+- [x] Parentheses group expressions properly
+- [x] Location tracking accurate (all nodes have loc)
+- [x] All tests passing (435 total: 29 new expression tests + 406 existing)
 
 ### Notes
-_To be filled during implementation_
+- Implemented parseExpression() as entry point (for now, just calls parsePrimary)
+- Implemented parsePrimary() with support for:
+  - Integer literals (including hex 0xFF and binary 0b1010)
+  - Float literals (including scientific notation 1.5e10)
+  - String literals (including escape sequences and multi-line strings)
+  - Boolean literals (true, false)
+  - Unit literal (())
+  - Variables (identifiers with unicode support)
+  - Parenthesized expressions with proper nesting
+- Correctly distinguishes between unit literal () and parenthesized expression (42)
+- Comprehensive test suite with 29 tests covering:
+  - Integer literals (5 tests): positive, zero, large, hex, binary
+  - Float literals (4 tests): decimal, leading zero, scientific notation, negative exponent
+  - String literals (5 tests): simple, empty, escape sequences, unicode, multi-line
+  - Boolean literals (2 tests): true, false
+  - Unit literal (1 test): ()
+  - Variables (4 tests): simple, multi-char, with underscores, unicode
+  - Parenthesized expressions (5 tests): simple, nested, variables, distinction from unit, unclosed error
+  - Error cases (3 tests): unexpected token, empty input, helpful error messages
+- All expression parsing errors include helpful error messages with location
+- Test helper function parseExpression() for cleaner test code
+- 5 todo tests for Phase 4 (operators, calls, lambdas, control flow, data structures)
 
 ---
 

@@ -115,7 +115,6 @@ export class Parser {
      * @returns The consumed token
      * @throws ParserError if token doesn't match
      */
-    // @ts-expect-error - Will be used in Phase 3+
     private expect(type: TokenType, message?: string): Token {
         if (this.check(type)) {
             return this.advance();
@@ -211,11 +210,98 @@ export class Parser {
     // Will be implemented in later phases
 
     // =========================================================================
-    // Expression Parsing (Stubs)
+    // Expression Parsing
     // =========================================================================
 
+    /**
+     * Parse an expression
+     * For Phase 3, this just parses primary expressions
+     * Will be expanded in Phase 4 with operator precedence
+     */
     parseExpression(): Expr {
-        throw this.error("Not implemented: parseExpression", this.peek().loc);
+        return this.parsePrimary();
+    }
+
+    /**
+     * Parse primary expressions (literals, variables, parenthesized)
+     */
+    private parsePrimary(): Expr {
+        // Integer literal
+        if (this.check("INT_LITERAL")) {
+            const token = this.advance();
+            return {
+                kind: "IntLit",
+                value: token.value as number,
+                loc: token.loc,
+            };
+        }
+
+        // Float literal
+        if (this.check("FLOAT_LITERAL")) {
+            const token = this.advance();
+            return {
+                kind: "FloatLit",
+                value: token.value as number,
+                loc: token.loc,
+            };
+        }
+
+        // String literal
+        if (this.check("STRING_LITERAL")) {
+            const token = this.advance();
+            return {
+                kind: "StringLit",
+                value: token.value as string,
+                loc: token.loc,
+            };
+        }
+
+        // Boolean literal
+        if (this.check("BOOL_LITERAL")) {
+            const token = this.advance();
+            return {
+                kind: "BoolLit",
+                value: token.value as boolean,
+                loc: token.loc,
+            };
+        }
+
+        // Unit literal: ()
+        if (this.check("LPAREN")) {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume (
+
+            // Check for closing paren immediately (unit literal)
+            if (this.check("RPAREN")) {
+                this.advance(); // consume )
+                return {
+                    kind: "UnitLit",
+                    loc: startLoc,
+                };
+            }
+
+            // Otherwise, it's a parenthesized expression
+            const expr = this.parseExpression();
+            this.expect("RPAREN", "Expected closing parenthesis");
+            return expr;
+        }
+
+        // Variable (identifier)
+        if (this.check("IDENTIFIER")) {
+            const token = this.advance();
+            return {
+                kind: "Var",
+                name: token.value as string,
+                loc: token.loc,
+            };
+        }
+
+        // If we get here, unexpected token
+        throw this.error(
+            `Unexpected token: ${this.peek().type}`,
+            this.peek().loc,
+            "Expected an expression (literal, variable, or parenthesized expression)",
+        );
     }
 
     // =========================================================================
