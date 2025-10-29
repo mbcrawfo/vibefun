@@ -907,6 +907,24 @@ export class Parser {
             return this.parseMatchExpr(startLoc);
         }
 
+        // Unsafe block: unsafe { expr }
+        if (this.check("KEYWORD") && this.peek().value === "unsafe") {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume 'unsafe'
+
+            this.expect("LBRACE", "Expected '{' after 'unsafe'");
+
+            const expr = this.parseExpression();
+
+            this.expect("RBRACE", "Expected '}' after unsafe expression");
+
+            return {
+                kind: "Unsafe",
+                expr,
+                loc: startLoc,
+            };
+        }
+
         // List literal: [1, 2, 3]
         if (this.check("LBRACKET")) {
             const startLoc = this.peek().loc;

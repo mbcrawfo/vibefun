@@ -1113,6 +1113,103 @@ describe("Parser - Expressions", () => {
         });
     });
 
+    describe("unsafe blocks", () => {
+        it("should parse unsafe block with simple expression", () => {
+            const expr = parseExpression("unsafe { x }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: { kind: "Var", name: "x" },
+            });
+            expect(expr.loc).toBeDefined();
+        });
+
+        it("should parse unsafe block with function call", () => {
+            const expr = parseExpression("unsafe { log(message) }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "App",
+                    func: { kind: "Var", name: "log" },
+                    args: [{ kind: "Var", name: "message" }],
+                },
+            });
+        });
+
+        it("should parse unsafe block with complex expression", () => {
+            const expr = parseExpression("unsafe { x + y * 2 }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "x" },
+                    right: {
+                        kind: "BinOp",
+                        op: "Multiply",
+                        left: { kind: "Var", name: "y" },
+                        right: { kind: "IntLit", value: 2 },
+                    },
+                },
+            });
+        });
+
+        it("should parse nested unsafe blocks", () => {
+            const expr = parseExpression("unsafe { unsafe { x } }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "Unsafe",
+                    expr: { kind: "Var", name: "x" },
+                },
+            });
+        });
+
+        it("should parse unsafe block in larger expression", () => {
+            const expr = parseExpression("unsafe { getValue() } + 10");
+
+            expect(expr).toMatchObject({
+                kind: "BinOp",
+                op: "Add",
+                left: {
+                    kind: "Unsafe",
+                    expr: {
+                        kind: "App",
+                        func: { kind: "Var", name: "getValue" },
+                        args: [],
+                    },
+                },
+                right: { kind: "IntLit", value: 10 },
+            });
+        });
+
+        it("should throw on unsafe without braces", () => {
+            expect(() => parseExpression("unsafe x")).toThrow(ParserError);
+        });
+
+        it("should throw on unclosed unsafe block", () => {
+            expect(() => parseExpression("unsafe { x")).toThrow(ParserError);
+        });
+
+        it("should parse unsafe with record construction", () => {
+            const expr = parseExpression("unsafe { { x: 1, y: 2 } }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "Record",
+                    fields: [
+                        { name: "x", value: { kind: "IntLit", value: 1 } },
+                        { name: "y", value: { kind: "IntLit", value: 2 } },
+                    ],
+                },
+            });
+        });
+    });
+
     describe("control flow", () => {
         describe("if expressions", () => {
             it("should parse if-then-else", () => {
