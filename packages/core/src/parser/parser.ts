@@ -160,7 +160,7 @@ export class Parser {
      * Synchronize after an error to continue parsing
      * Skips tokens until reaching a safe synchronization point
      */
-    // @ts-expect-error - Will be used in Phase 7+
+    // @ts-expect-error - Method reserved for future error recovery
     private synchronize(): void {
         this.advance();
 
@@ -229,11 +229,6 @@ export class Parser {
             loc: startLoc,
         };
     }
-
-    // =========================================================================
-    // Declaration Parsing (Stubs)
-    // =========================================================================
-    // Will be implemented in later phases
 
     // =========================================================================
     // Expression Parsing
@@ -719,7 +714,7 @@ export class Parser {
         this.match("PIPE");
 
         while (!this.check("RBRACE") && !this.isAtEnd()) {
-            // Parse pattern (full pattern support in Phase 5)
+            // Parse pattern
             const pattern = this.parsePattern();
 
             // Optional guard: when expr
