@@ -851,6 +851,51 @@ export class Parser {
     }
 
     /**
+     * Parse block expression
+     * Syntax: { expr; expr; ... result }
+     * Note: LBRACE has already been consumed by caller
+     */
+    private parseBlockExpr(startLoc: Location): Expr {
+        // Already consumed {
+        // Leading newlines already skipped by caller
+
+        const exprs: Expr[] = [];
+
+        // Parse expressions separated by semicolons
+        while (!this.check("RBRACE") && !this.isAtEnd()) {
+            const expr = this.parseExpression();
+            exprs.push(expr);
+
+            // Skip optional newlines after expression
+            while (this.match("NEWLINE"));
+
+            // Check for semicolon or closing brace
+            if (this.check("RBRACE")) {
+                break; // Last expression, no semicolon needed
+            }
+
+            // Require semicolon between expressions
+            this.expect("SEMICOLON", "Expected ';' or '}' after expression in block");
+
+            // Skip newlines after semicolon
+            while (this.match("NEWLINE"));
+
+            // Check if closing brace follows (trailing semicolon case)
+            if (this.check("RBRACE")) {
+                break;
+            }
+        }
+
+        this.expect("RBRACE", "Expected '}' to close block");
+
+        return {
+            kind: "Block",
+            exprs,
+            loc: startLoc,
+        };
+    }
+
+    /**
      * Parse primary expressions (literals, variables, parenthesized)
      */
     private parsePrimary(): Expr {
@@ -980,11 +1025,87 @@ export class Parser {
             };
         }
 
-        // Record construction or update: { field: value } or { record | field: value }
+        // Record construction, update, or block expression: { ... }
         if (this.check("LBRACE")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume {
-            return this.parseRecordExpr(startLoc);
+
+            // Skip leading newlines
+            while (this.match("NEWLINE"));
+
+            // Empty braces - treat as empty record (existing behavior)
+            if (this.check("RBRACE")) {
+                this.advance();
+                return {
+                    kind: "Record",
+                    fields: [],
+                    loc: startLoc,
+                };
+            }
+
+            // Disambiguate: block vs. record
+            // Strategy:
+            // 1. If starts with keyword (let, if, match, unsafe) → block
+            // 2. If identifier followed by PIPE → record update
+            // 3. If identifier followed by COLON → record construction
+            // 4. Parse first expression and check for SEMICOLON → block
+            // 5. Otherwise → error for ambiguous case
+
+            // Check for block starting with keyword
+            if (this.check("KEYWORD")) {
+                const keyword = this.peek().value as string;
+                if (["if", "match", "unsafe"].includes(keyword)) {
+                    return this.parseBlockExpr(startLoc);
+                }
+            }
+
+            // Check for record update: { id | ... }
+            if (this.check("IDENTIFIER") && this.peek(1).type === "PIPE") {
+                return this.parseRecordExpr(startLoc);
+            }
+
+            // Check for record construction: { id : ... }
+            if (this.check("IDENTIFIER") && this.peek(1).type === "COLON") {
+                return this.parseRecordExpr(startLoc);
+            }
+
+            // Need to parse first expression to check for semicolon
+            // Save position for potential rollback
+            const checkpoint = this.current;
+            try {
+                this.parseExpression();
+
+                // Check for semicolon → block
+                if (this.check("SEMICOLON")) {
+                    // Rollback and parse as block
+                    this.current = checkpoint;
+                    return this.parseBlockExpr(startLoc);
+                }
+
+                // Check for closing brace → single expression could be block or ambiguous
+                if (this.check("RBRACE")) {
+                    // Ambiguous case: { expr }
+                    // This could be a record field shorthand OR a single-expression block
+                    // Decision: require semicolon for blocks, so this is an error
+                    throw this.error(
+                        "Ambiguous syntax: single expression in braces",
+                        startLoc,
+                        "Use semicolon for block ({ expr; }) or field:value syntax for record ({ field: value })",
+                    );
+                }
+
+                // If we get here, there's more content but no semicolon
+                // This is likely a malformed record or block
+                throw this.error(
+                    "Expected semicolon, closing brace, or colon",
+                    this.peek().loc,
+                    "Use semicolons to separate statements in blocks, or use field:value syntax for records",
+                );
+            } catch (error) {
+                // If expression parsing failed, restore position and throw
+                this.current = checkpoint;
+                throw error;
+            }
         }
 
         // Variable (identifier)

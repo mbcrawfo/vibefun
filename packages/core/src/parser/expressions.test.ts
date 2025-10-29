@@ -1268,6 +1268,169 @@ describe("Parser - Expressions", () => {
         });
     });
 
+    describe("block expressions", () => {
+        it("should parse block with multiple expressions", () => {
+            const expr = parseExpression("{ 1; 2; 3 }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    { kind: "IntLit", value: 1 },
+                    { kind: "IntLit", value: 2 },
+                    { kind: "IntLit", value: 3 },
+                ],
+            });
+        });
+
+        it("should parse block with trailing semicolon", () => {
+            const expr = parseExpression("{ 1; 2; }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    { kind: "IntLit", value: 1 },
+                    { kind: "IntLit", value: 2 },
+                ],
+            });
+        });
+
+        it("should parse block starting with if", () => {
+            const expr = parseExpression("{ if true then 1 else 2; 3 }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    {
+                        kind: "If",
+                        condition: { kind: "BoolLit", value: true },
+                        then: { kind: "IntLit", value: 1 },
+                        else_: { kind: "IntLit", value: 2 },
+                    },
+                    { kind: "IntLit", value: 3 },
+                ],
+            });
+        });
+
+        it("should parse nested blocks", () => {
+            const expr = parseExpression("{ { 1; 2 }; 3 }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    {
+                        kind: "Block",
+                        exprs: [
+                            { kind: "IntLit", value: 1 },
+                            { kind: "IntLit", value: 2 },
+                        ],
+                    },
+                    { kind: "IntLit", value: 3 },
+                ],
+            });
+        });
+
+        it("should parse block with function calls", () => {
+            const expr = parseExpression("{ print(x); y }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    {
+                        kind: "App",
+                        func: { kind: "Var", name: "print" },
+                        args: [{ kind: "Var", name: "x" }],
+                    },
+                    { kind: "Var", name: "y" },
+                ],
+            });
+        });
+
+        it("should parse block with complex expressions", () => {
+            const expr = parseExpression("{ (x) => x + 1; 10 }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    {
+                        kind: "Lambda",
+                        params: [{ kind: "VarPattern", name: "x" }],
+                        body: {
+                            kind: "BinOp",
+                            op: "Add",
+                        },
+                    },
+                    { kind: "IntLit", value: 10 },
+                ],
+            });
+        });
+
+        it("should parse block in lambda body", () => {
+            const expr = parseExpression("(x) => { x + 1; x }");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x" }],
+                body: {
+                    kind: "Block",
+                    exprs: [
+                        {
+                            kind: "BinOp",
+                            op: "Add",
+                            left: { kind: "Var", name: "x" },
+                            right: { kind: "IntLit", value: 1 },
+                        },
+                        { kind: "Var", name: "x" },
+                    ],
+                },
+            });
+        });
+
+        it("should parse block with match expression", () => {
+            const expr = parseExpression("{ match x { | 1 => a | 2 => b }; c }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [
+                    {
+                        kind: "Match",
+                        expr: { kind: "Var", name: "x" },
+                    },
+                    { kind: "Var", name: "c" },
+                ],
+            });
+        });
+
+        it("should throw on single expression without semicolon", () => {
+            expect(() => parseExpression("{ x }")).toThrow(ParserError);
+            expect(() => parseExpression("{ x }")).toThrow(/Ambiguous syntax/);
+        });
+
+        it("should throw on missing semicolon between expressions", () => {
+            expect(() => parseExpression("{ 1 2 }")).toThrow(ParserError);
+        });
+
+        it("should throw on unclosed block", () => {
+            expect(() => parseExpression("{ 1; 2")).toThrow(ParserError);
+        });
+
+        it("should allow single expression with semicolon", () => {
+            const expr = parseExpression("{ 42; }");
+
+            expect(expr).toMatchObject({
+                kind: "Block",
+                exprs: [{ kind: "IntLit", value: 42 }],
+            });
+        });
+
+        it("should distinguish blocks from records", () => {
+            const block = parseExpression("{ 1; 2 }");
+            const record = parseExpression("{ x: 1 }");
+
+            expect(block.kind).toBe("Block");
+            expect(record.kind).toBe("Record");
+        });
+    });
+
     describe("unsafe blocks", () => {
         it("should parse unsafe block with simple expression", () => {
             const expr = parseExpression("unsafe { x }");
