@@ -648,6 +648,151 @@ export class Lexer {
     }
 
     /**
+     * Read an operator or punctuation token using longest-match algorithm
+     * Handles multi-character operators (e.g., ==, ->, ...)
+     * @returns A token for the operator or punctuation
+     * @throws {LexerError} If an unexpected character is encountered
+     */
+    private readOperatorOrPunctuation(): Token {
+        const start = this.makeLocation();
+        const char = this.peek();
+        const next = this.peek(1);
+        const next2 = this.peek(2);
+
+        // Three-character operators
+        if (char === "." && next === "." && next2 === ".") {
+            this.advance();
+            this.advance();
+            this.advance();
+            return { type: "DOT_DOT_DOT", value: "...", loc: start };
+        }
+
+        // Two-character operators
+        if (char === "=" && next === "=") {
+            this.advance();
+            this.advance();
+            return { type: "EQ_EQ", value: "==", loc: start };
+        }
+        if (char === "!" && next === "=") {
+            this.advance();
+            this.advance();
+            return { type: "BANG_EQ", value: "!=", loc: start };
+        }
+        if (char === "<" && next === "=") {
+            this.advance();
+            this.advance();
+            return { type: "LT_EQ", value: "<=", loc: start };
+        }
+        if (char === ">" && next === "=") {
+            this.advance();
+            this.advance();
+            return { type: "GT_EQ", value: ">=", loc: start };
+        }
+        if (char === "+" && next === "+") {
+            this.advance();
+            this.advance();
+            return { type: "PLUS_PLUS", value: "++", loc: start };
+        }
+        if (char === "|" && next === ">") {
+            this.advance();
+            this.advance();
+            return { type: "PIPE_GT", value: "|>", loc: start };
+        }
+        if (char === ">" && next === ">") {
+            this.advance();
+            this.advance();
+            return { type: "GT_GT", value: ">>", loc: start };
+        }
+        if (char === "<" && next === "<") {
+            this.advance();
+            this.advance();
+            return { type: "LT_LT", value: "<<", loc: start };
+        }
+        if (char === "-" && next === ">") {
+            this.advance();
+            this.advance();
+            return { type: "ARROW", value: "->", loc: start };
+        }
+        if (char === "=" && next === ">") {
+            this.advance();
+            this.advance();
+            return { type: "FAT_ARROW", value: "=>", loc: start };
+        }
+        if (char === ":" && next === "=") {
+            this.advance();
+            this.advance();
+            return { type: "COLON_EQ", value: ":=", loc: start };
+        }
+        if (char === "&" && next === "&") {
+            this.advance();
+            this.advance();
+            return { type: "AMP_AMP", value: "&&", loc: start };
+        }
+        if (char === "|" && next === "|") {
+            this.advance();
+            this.advance();
+            return { type: "PIPE_PIPE", value: "||", loc: start };
+        }
+
+        // Single-character operators and punctuation
+        this.advance();
+
+        switch (char) {
+            case "+":
+                return { type: "PLUS", value: "+", loc: start };
+            case "-":
+                return { type: "MINUS", value: "-", loc: start };
+            case "*":
+                return { type: "STAR", value: "*", loc: start };
+            case "/":
+                return { type: "SLASH", value: "/", loc: start };
+            case "%":
+                return { type: "PERCENT", value: "%", loc: start };
+            case "<":
+                return { type: "LT", value: "<", loc: start };
+            case ">":
+                return { type: "GT", value: ">", loc: start };
+            case "=":
+                return { type: "EQ", value: "=", loc: start };
+            case "!":
+                return { type: "BANG", value: "!", loc: start };
+            case "~":
+                return { type: "TILDE", value: "~", loc: start };
+            case "(":
+                return { type: "LPAREN", value: "(", loc: start };
+            case ")":
+                return { type: "RPAREN", value: ")", loc: start };
+            case "{":
+                return { type: "LBRACE", value: "{", loc: start };
+            case "}":
+                return { type: "RBRACE", value: "}", loc: start };
+            case "[":
+                return { type: "LBRACKET", value: "[", loc: start };
+            case "]":
+                return { type: "RBRACKET", value: "]", loc: start };
+            case ",":
+                return { type: "COMMA", value: ",", loc: start };
+            case ".":
+                return { type: "DOT", value: ".", loc: start };
+            case ":":
+                return { type: "COLON", value: ":", loc: start };
+            case ";":
+                return { type: "SEMICOLON", value: ";", loc: start };
+            case "|":
+                return { type: "PIPE", value: "|", loc: start };
+            case "&":
+                return { type: "AMP", value: "&", loc: start };
+
+            default:
+                throw new LexerError(
+                    `Unexpected character: '${char}'`,
+                    start,
+                    "This character is not valid in vibefun syntax",
+                );
+        }
+    }
+
+    /**
      * Tokenize the entire source code
      * @returns Array of tokens representing the source code
      * @throws {LexerError} If an invalid token is encountered
@@ -692,82 +837,8 @@ export class Lexer {
                 continue;
             }
 
-            // Single-character punctuation and operators
-            const start = this.makeLocation();
-            this.advance();
-
-            switch (char) {
-                case "(":
-                    tokens.push({ type: "LPAREN", value: "(", loc: start });
-                    continue;
-                case ")":
-                    tokens.push({ type: "RPAREN", value: ")", loc: start });
-                    continue;
-                case "{":
-                    tokens.push({ type: "LBRACE", value: "{", loc: start });
-                    continue;
-                case "}":
-                    tokens.push({ type: "RBRACE", value: "}", loc: start });
-                    continue;
-                case "[":
-                    tokens.push({ type: "LBRACKET", value: "[", loc: start });
-                    continue;
-                case "]":
-                    tokens.push({ type: "RBRACKET", value: "]", loc: start });
-                    continue;
-                case ",":
-                    tokens.push({ type: "COMMA", value: ",", loc: start });
-                    continue;
-                case ".":
-                    tokens.push({ type: "DOT", value: ".", loc: start });
-                    continue;
-                case ":":
-                    tokens.push({ type: "COLON", value: ":", loc: start });
-                    continue;
-                case ";":
-                    tokens.push({ type: "SEMICOLON", value: ";", loc: start });
-                    continue;
-                case "+":
-                    tokens.push({ type: "PLUS", value: "+", loc: start });
-                    continue;
-                case "-":
-                    tokens.push({ type: "MINUS", value: "-", loc: start });
-                    continue;
-                case "*":
-                    tokens.push({ type: "STAR", value: "*", loc: start });
-                    continue;
-                case "/":
-                    tokens.push({ type: "SLASH", value: "/", loc: start });
-                    continue;
-                case "%":
-                    tokens.push({ type: "PERCENT", value: "%", loc: start });
-                    continue;
-                case "<":
-                    tokens.push({ type: "LT", value: "<", loc: start });
-                    continue;
-                case ">":
-                    tokens.push({ type: "GT", value: ">", loc: start });
-                    continue;
-                case "=":
-                    tokens.push({ type: "EQ", value: "=", loc: start });
-                    continue;
-                case "!":
-                    tokens.push({ type: "BANG", value: "!", loc: start });
-                    continue;
-                case "~":
-                    tokens.push({ type: "TILDE", value: "~", loc: start });
-                    continue;
-                case "|":
-                    tokens.push({ type: "PIPE", value: "|", loc: start });
-                    continue;
-
-                default:
-                    throw new LexerError(
-                        `Unexpected character: '${char}'`,
-                        start,
-                        "This character is not valid in vibefun syntax",
-                    );
-            }
+            // Operators and punctuation (handles both single and multi-character)
+            tokens.push(this.readOperatorOrPunctuation());
         }
 
         // Add EOF token

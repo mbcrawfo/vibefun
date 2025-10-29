@@ -2,7 +2,7 @@
  * Tests for operator and punctuation parsing
  *
  * Phase 3: Simple Tokens - Single-character punctuation
- * (Multi-character operators will be tested in Phase 7)
+ * Phase 7: Multi-character operators
  */
 
 import { describe, expect, it } from "vitest";
@@ -421,5 +421,355 @@ describe("Lexer - Invalid Characters", () => {
             expect(error).toBeDefined();
             // Error should indicate position
         }
+    });
+});
+
+describe("Lexer - Multi-Character Operators", () => {
+    describe("two-character comparison operators", () => {
+        it("should tokenize ==", () => {
+            const lexer = new Lexer("==", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "EQ_EQ",
+                value: "==",
+            });
+        });
+
+        it("should tokenize !=", () => {
+            const lexer = new Lexer("!=", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "BANG_EQ",
+                value: "!=",
+            });
+        });
+
+        it("should tokenize <=", () => {
+            const lexer = new Lexer("<=", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "LT_EQ",
+                value: "<=",
+            });
+        });
+
+        it("should tokenize >=", () => {
+            const lexer = new Lexer(">=", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "GT_EQ",
+                value: ">=",
+            });
+        });
+    });
+
+    describe("two-character arithmetic operators", () => {
+        it("should tokenize ++", () => {
+            const lexer = new Lexer("++", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "PLUS_PLUS",
+                value: "++",
+            });
+        });
+    });
+
+    describe("two-character shift operators", () => {
+        it("should tokenize >>", () => {
+            const lexer = new Lexer(">>", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "GT_GT",
+                value: ">>",
+            });
+        });
+
+        it("should tokenize <<", () => {
+            const lexer = new Lexer("<<", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "LT_LT",
+                value: "<<",
+            });
+        });
+    });
+
+    describe("two-character arrow operators", () => {
+        it("should tokenize ->", () => {
+            const lexer = new Lexer("->", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "ARROW",
+                value: "->",
+            });
+        });
+
+        it("should tokenize =>", () => {
+            const lexer = new Lexer("=>", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "FAT_ARROW",
+                value: "=>",
+            });
+        });
+    });
+
+    describe("two-character pipe operators", () => {
+        it("should tokenize |>", () => {
+            const lexer = new Lexer("|>", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "PIPE_GT",
+                value: "|>",
+            });
+        });
+    });
+
+    describe("two-character assignment operators", () => {
+        it("should tokenize :=", () => {
+            const lexer = new Lexer(":=", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "COLON_EQ",
+                value: ":=",
+            });
+        });
+    });
+
+    describe("two-character logical operators", () => {
+        it("should tokenize &&", () => {
+            const lexer = new Lexer("&&", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "AMP_AMP",
+                value: "&&",
+            });
+        });
+
+        it("should tokenize ||", () => {
+            const lexer = new Lexer("||", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "PIPE_PIPE",
+                value: "||",
+            });
+        });
+    });
+
+    describe("three-character operators", () => {
+        it("should tokenize ...", () => {
+            const lexer = new Lexer("...", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "DOT_DOT_DOT",
+                value: "...",
+            });
+        });
+    });
+
+    describe("operator disambiguation", () => {
+        it("should distinguish == from = followed by =", () => {
+            const lexer = new Lexer("= =", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("EQ");
+            expect(tokens[1]?.type).toBe("EQ");
+        });
+
+        it("should distinguish != from ! followed by =", () => {
+            const lexer = new Lexer("! =", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("BANG");
+            expect(tokens[1]?.type).toBe("EQ");
+        });
+
+        it("should distinguish -> from - followed by >", () => {
+            const lexer = new Lexer("- >", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("MINUS");
+            expect(tokens[1]?.type).toBe("GT");
+        });
+
+        it("should distinguish => from = followed by >", () => {
+            const lexer = new Lexer("= >", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("EQ");
+            expect(tokens[1]?.type).toBe("GT");
+        });
+
+        it("should distinguish |> from | followed by >", () => {
+            const lexer = new Lexer("| >", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("PIPE");
+            expect(tokens[1]?.type).toBe("GT");
+        });
+
+        it("should distinguish ... from .. followed by .", () => {
+            const lexer = new Lexer(". . .", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("DOT");
+            expect(tokens[1]?.type).toBe("DOT");
+            expect(tokens[2]?.type).toBe("DOT");
+        });
+    });
+
+    describe("operators in expressions", () => {
+        it("should tokenize equality comparison", () => {
+            const lexer = new Lexer("a == b", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "EQ_EQ", "IDENTIFIER", "EOF"]);
+        });
+
+        it("should tokenize inequality comparison", () => {
+            const lexer = new Lexer("a != b", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "BANG_EQ", "IDENTIFIER", "EOF"]);
+        });
+
+        it("should tokenize function type signature", () => {
+            const lexer = new Lexer("Int -> String", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "ARROW", "IDENTIFIER", "EOF"]);
+        });
+
+        it("should tokenize lambda expression", () => {
+            const lexer = new Lexer("x => x + 1", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "FAT_ARROW",
+                "IDENTIFIER",
+                "PLUS",
+                "INT_LITERAL",
+                "EOF",
+            ]);
+        });
+
+        it("should tokenize pipe expression", () => {
+            const lexer = new Lexer("data |> filter |> map", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "PIPE_GT",
+                "IDENTIFIER",
+                "PIPE_GT",
+                "IDENTIFIER",
+                "EOF",
+            ]);
+        });
+
+        it("should tokenize logical and", () => {
+            const lexer = new Lexer("a && b", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "AMP_AMP", "IDENTIFIER", "EOF"]);
+        });
+
+        it("should tokenize logical or", () => {
+            const lexer = new Lexer("a || b", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "PIPE_PIPE", "IDENTIFIER", "EOF"]);
+        });
+
+        it("should tokenize spread operator", () => {
+            const lexer = new Lexer("[...items]", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["LBRACKET", "DOT_DOT_DOT", "IDENTIFIER", "RBRACKET", "EOF"]);
+        });
+    });
+
+    describe("complex expressions", () => {
+        it("should tokenize compound comparison", () => {
+            const lexer = new Lexer("a >= 1 && b <= 10", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "GT_EQ",
+                "INT_LITERAL",
+                "AMP_AMP",
+                "IDENTIFIER",
+                "LT_EQ",
+                "INT_LITERAL",
+                "EOF",
+            ]);
+        });
+
+        it("should tokenize chained arrows", () => {
+            const lexer = new Lexer("a -> b -> c", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "ARROW",
+                "IDENTIFIER",
+                "ARROW",
+                "IDENTIFIER",
+                "EOF",
+            ]);
+        });
+
+        it("should tokenize mixed operators", () => {
+            const lexer = new Lexer("x := y => y + 1", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "COLON_EQ",
+                "IDENTIFIER",
+                "FAT_ARROW",
+                "IDENTIFIER",
+                "PLUS",
+                "INT_LITERAL",
+                "EOF",
+            ]);
+        });
+    });
+
+    describe("location tracking", () => {
+        it("should track location of multi-character operators", () => {
+            const lexer = new Lexer("  ==", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.loc).toMatchObject({
+                line: 1,
+                column: 3,
+            });
+        });
+
+        it("should track location across operators", () => {
+            const lexer = new Lexer("a==b", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.loc.column).toBe(1); // a
+            expect(tokens[1]?.loc.column).toBe(2); // ==
+            expect(tokens[2]?.loc.column).toBe(4); // b
+        });
     });
 });
