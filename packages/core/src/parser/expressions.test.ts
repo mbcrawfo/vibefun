@@ -1113,6 +1113,161 @@ describe("Parser - Expressions", () => {
         });
     });
 
+    describe("type annotations", () => {
+        it("should parse simple type annotation", () => {
+            const expr = parseExpression("x : Int");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: { kind: "Var", name: "x" },
+                typeExpr: { kind: "TypeConst", name: "Int" },
+            });
+        });
+
+        it("should parse type annotation with complex expression", () => {
+            const expr = parseExpression("x + 1 : Int");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "x" },
+                    right: { kind: "IntLit", value: 1 },
+                },
+                typeExpr: { kind: "TypeConst", name: "Int" },
+            });
+        });
+
+        it("should parse type annotation with function type", () => {
+            const expr = parseExpression("f : (Int) -> Int");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: { kind: "Var", name: "f" },
+                typeExpr: {
+                    kind: "FunctionType",
+                    params: [{ kind: "TypeConst", name: "Int" }],
+                    return_: { kind: "TypeConst", name: "Int" },
+                },
+            });
+        });
+
+        it("should parse type annotation with generic type", () => {
+            const expr = parseExpression("list : List<Int>");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: { kind: "Var", name: "list" },
+                typeExpr: {
+                    kind: "TypeApp",
+                    constructor: { kind: "TypeConst", name: "List" },
+                    args: [{ kind: "TypeConst", name: "Int" }],
+                },
+            });
+        });
+
+        it("should parse type annotation with record type", () => {
+            const expr = parseExpression("point : { x: Int, y: Int }");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: { kind: "Var", name: "point" },
+                typeExpr: {
+                    kind: "RecordType",
+                    fields: [
+                        { name: "x", typeExpr: { kind: "TypeConst", name: "Int" } },
+                        { name: "y", typeExpr: { kind: "TypeConst", name: "Int" } },
+                    ],
+                },
+            });
+        });
+
+        it("should parse type annotation on function call", () => {
+            const expr = parseExpression("getValue() : Int");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: {
+                    kind: "App",
+                    func: { kind: "Var", name: "getValue" },
+                    args: [],
+                },
+                typeExpr: { kind: "TypeConst", name: "Int" },
+            });
+        });
+
+        it("should parse type annotation inside lambda body", () => {
+            const expr = parseExpression("(x) => x + 1 : Int");
+
+            // Lambda extends as far right as possible, so type annotation is inside the body
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x" }],
+                body: {
+                    kind: "TypeAnnotation",
+                    expr: {
+                        kind: "BinOp",
+                        op: "Add",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "IntLit", value: 1 },
+                    },
+                    typeExpr: { kind: "TypeConst", name: "Int" },
+                },
+            });
+        });
+
+        it("should parse type annotation on parenthesized lambda", () => {
+            const expr = parseExpression("((x) => x + 1) : (Int) -> Int");
+
+            // Parentheses force the type annotation to wrap the whole lambda
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: {
+                    kind: "Lambda",
+                    params: [{ kind: "VarPattern", name: "x" }],
+                    body: {
+                        kind: "BinOp",
+                        op: "Add",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "IntLit", value: 1 },
+                    },
+                },
+                typeExpr: {
+                    kind: "FunctionType",
+                },
+            });
+        });
+
+        it("should have low precedence (lower than pipe)", () => {
+            const expr = parseExpression("x |> f : Int");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: {
+                    kind: "Pipe",
+                    expr: { kind: "Var", name: "x" },
+                    func: { kind: "Var", name: "f" },
+                },
+                typeExpr: { kind: "TypeConst", name: "Int" },
+            });
+        });
+
+        it("should parse nested type annotations", () => {
+            const expr = parseExpression("(x : Int) : Int");
+
+            expect(expr).toMatchObject({
+                kind: "TypeAnnotation",
+                expr: {
+                    kind: "TypeAnnotation",
+                    expr: { kind: "Var", name: "x" },
+                    typeExpr: { kind: "TypeConst", name: "Int" },
+                },
+                typeExpr: { kind: "TypeConst", name: "Int" },
+            });
+        });
+    });
+
     describe("unsafe blocks", () => {
         it("should parse unsafe block with simple expression", () => {
             const expr = parseExpression("unsafe { x }");

@@ -239,7 +239,38 @@ export class Parser {
      * Entry point for expression parsing with operator precedence
      */
     parseExpression(): Expr {
-        return this.parsePipe();
+        return this.parseTypeAnnotation();
+    }
+
+    /**
+     * Parse type annotation: expr : Type
+     * Precedence level 1 (lowest - only above sequence/statements)
+     */
+    private parseTypeAnnotation(): Expr {
+        const expr = this.parsePipe();
+
+        // Check for type annotation
+        // We need to be careful not to consume : in other contexts (record fields, etc.)
+        // Type annotations are only valid in expression context, not in record construction
+        if (this.check("COLON")) {
+            // Lookahead: if the next token can start a type, it's a type annotation
+            const nextToken = this.peek(1);
+            const canStartType =
+                nextToken.type === "IDENTIFIER" || nextToken.type === "LPAREN" || nextToken.type === "LBRACE";
+
+            if (canStartType) {
+                this.advance(); // consume :
+                const typeExpr = this.parseTypeExpr();
+                return {
+                    kind: "TypeAnnotation",
+                    expr,
+                    typeExpr,
+                    loc: expr.loc,
+                };
+            }
+        }
+
+        return expr;
     }
 
     /**
