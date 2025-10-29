@@ -1035,10 +1035,209 @@ describe("Parser - Expressions", () => {
     });
 
     describe("control flow", () => {
-        it.todo("will be added in Phase 4d");
+        describe("if expressions", () => {
+            it("should parse if-then-else", () => {
+                const expr = parseExpression("if x then 1 else 0");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    condition: { kind: "Var", name: "x" },
+                    then: { kind: "IntLit", value: 1 },
+                    else_: { kind: "IntLit", value: 0 },
+                });
+            });
+
+            it("should parse if with complex condition", () => {
+                const expr = parseExpression("if x > 0 then x else -x");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    condition: {
+                        kind: "BinOp",
+                        op: "GreaterThan",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "IntLit", value: 0 },
+                    },
+                    then: { kind: "Var", name: "x" },
+                    else_: {
+                        kind: "UnaryOp",
+                        op: "Negate",
+                        expr: { kind: "Var", name: "x" },
+                    },
+                });
+            });
+
+            it("should parse nested if expressions", () => {
+                const expr = parseExpression("if a then if b then 1 else 2 else 3");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    condition: { kind: "Var", name: "a" },
+                    then: {
+                        kind: "If",
+                        condition: { kind: "Var", name: "b" },
+                        then: { kind: "IntLit", value: 1 },
+                        else_: { kind: "IntLit", value: 2 },
+                    },
+                    else_: { kind: "IntLit", value: 3 },
+                });
+            });
+
+            it("should parse if with function calls", () => {
+                const expr = parseExpression("if isEmpty(list) then 0 else length(list)");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    condition: {
+                        kind: "App",
+                        func: { kind: "Var", name: "isEmpty" },
+                        args: [{ kind: "Var", name: "list" }],
+                    },
+                    then: { kind: "IntLit", value: 0 },
+                    else_: {
+                        kind: "App",
+                        func: { kind: "Var", name: "length" },
+                        args: [{ kind: "Var", name: "list" }],
+                    },
+                });
+            });
+        });
+
+        describe("match expressions", () => {
+            it("should parse match with single case", () => {
+                const expr = parseExpression("match x { | y => y + 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Match",
+                    expr: { kind: "Var", name: "x" },
+                    cases: [
+                        {
+                            pattern: { kind: "VarPattern", name: "y" },
+                            body: {
+                                kind: "BinOp",
+                                op: "Add",
+                                left: { kind: "Var", name: "y" },
+                                right: { kind: "IntLit", value: 1 },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse match with multiple cases", () => {
+                const expr = parseExpression("match x { | a => 1 | b => 2 | c => 3 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Match",
+                    expr: { kind: "Var", name: "x" },
+                    cases: [
+                        {
+                            pattern: { kind: "VarPattern", name: "a" },
+                            body: { kind: "IntLit", value: 1 },
+                        },
+                        {
+                            pattern: { kind: "VarPattern", name: "b" },
+                            body: { kind: "IntLit", value: 2 },
+                        },
+                        {
+                            pattern: { kind: "VarPattern", name: "c" },
+                            body: { kind: "IntLit", value: 3 },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse match with wildcard pattern", () => {
+                const expr = parseExpression("match x { | _ => 0 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Match",
+                    expr: { kind: "Var", name: "x" },
+                    cases: [
+                        {
+                            pattern: { kind: "WildcardPattern" },
+                            body: { kind: "IntLit", value: 0 },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse match with guard", () => {
+                const expr = parseExpression("match x { | n when n > 0 => n | _ => 0 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Match",
+                    expr: { kind: "Var", name: "x" },
+                    cases: [
+                        {
+                            pattern: { kind: "VarPattern", name: "n" },
+                            guard: {
+                                kind: "BinOp",
+                                op: "GreaterThan",
+                                left: { kind: "Var", name: "n" },
+                                right: { kind: "IntLit", value: 0 },
+                            },
+                            body: { kind: "Var", name: "n" },
+                        },
+                        {
+                            pattern: { kind: "WildcardPattern" },
+                            body: { kind: "IntLit", value: 0 },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse match without leading pipes", () => {
+                const expr = parseExpression("match x { a => 1 | b => 2 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Match",
+                    expr: { kind: "Var", name: "x" },
+                    cases: [
+                        {
+                            pattern: { kind: "VarPattern", name: "a" },
+                            body: { kind: "IntLit", value: 1 },
+                        },
+                        {
+                            pattern: { kind: "VarPattern", name: "b" },
+                            body: { kind: "IntLit", value: 2 },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse match with complex expressions", () => {
+                const expr = parseExpression("match getValue() { | x => x * 2 + 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "Match",
+                    expr: {
+                        kind: "App",
+                        func: { kind: "Var", name: "getValue" },
+                        args: [],
+                    },
+                    cases: [
+                        {
+                            pattern: { kind: "VarPattern", name: "x" },
+                            body: {
+                                kind: "BinOp",
+                                op: "Add",
+                                left: {
+                                    kind: "BinOp",
+                                    op: "Multiply",
+                                    left: { kind: "Var", name: "x" },
+                                    right: { kind: "IntLit", value: 2 },
+                                },
+                                right: { kind: "IntLit", value: 1 },
+                            },
+                        },
+                    ],
+                });
+            });
+        });
     });
 
     describe("data structures", () => {
-        it.todo("will be added in Phase 4");
+        it.todo("will be added in Phase 4e");
     });
 });

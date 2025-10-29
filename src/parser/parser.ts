@@ -5,7 +5,7 @@
  * Uses recursive descent parsing with operator precedence climbing for expressions.
  */
 
-import type { Declaration, Expr, Location, Module, Pattern, TypeExpr } from "../types/index.js";
+import type { Declaration, Expr, Location, MatchCase, Module, Pattern, TypeExpr } from "../types/index.js";
 import type { Token, TokenType } from "../types/token.js";
 
 import { ParserError } from "../utils/index.js";
@@ -702,6 +702,138 @@ export class Parser {
             const expr = this.parseExpression();
             this.expect("RPAREN", "Expected closing parenthesis");
             return expr;
+        }
+
+        // If expression: if condition then expr1 else expr2
+        if (this.check("KEYWORD") && this.peek().value === "if") {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume 'if'
+
+            const condition = this.parseExpression();
+
+            this.expect("KEYWORD", "Expected 'then' after if condition");
+            if (this.peek(-1).value !== "then") {
+                throw this.error("Expected 'then' after if condition", this.peek(-1).loc);
+            }
+
+            const thenExpr = this.parseExpression();
+
+            this.expect("KEYWORD", "Expected 'else' after then expression");
+            if (this.peek(-1).value !== "else") {
+                throw this.error("Expected 'else' after then expression", this.peek(-1).loc);
+            }
+
+            const elseExpr = this.parseExpression();
+
+            return {
+                kind: "If",
+                condition,
+                then: thenExpr,
+                else_: elseExpr,
+                loc: startLoc,
+            };
+        }
+
+        // Match expression: match expr { | pattern => body | pattern when guard => body ... }
+        if (this.check("KEYWORD") && this.peek().value === "match") {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume 'match'
+
+            const expr = this.parseExpression();
+
+            this.expect("LBRACE", "Expected '{' after match expression");
+
+            const cases: MatchCase[] = [];
+
+            // Parse match cases
+            // First case can optionally start with |
+            this.match("PIPE");
+
+            while (!this.check("RBRACE") && !this.isAtEnd()) {
+                // For now, parse simple variable pattern (Phase 5 will add full patterns)
+                // Simple pattern: identifier or wildcard (_)
+                let pattern: Pattern;
+
+                if (this.check("IDENTIFIER")) {
+                    const token = this.advance();
+                    const name = token.value as string;
+
+                    // Check if it's wildcard
+                    if (name === "_") {
+                        pattern = {
+                            kind: "WildcardPattern",
+                            loc: token.loc,
+                        };
+                    } else {
+                        pattern = {
+                            kind: "VarPattern",
+                            name,
+                            loc: token.loc,
+                        };
+                    }
+                } else {
+                    throw this.error("Expected pattern in match case", this.peek().loc);
+                }
+
+                // Optional guard: when expr
+                let guard: Expr | undefined;
+                if (this.check("KEYWORD") && this.peek().value === "when") {
+                    this.advance(); // consume 'when'
+                    // Guard should not consume the => so parse at higher precedence than bitwise OR
+                    guard = this.parseBitwiseAnd();
+                }
+
+                // Fat arrow
+                this.expect("FAT_ARROW", "Expected '=>' after match pattern");
+
+                // Body - parse at precedence level higher than bitwise OR (level 6)
+                // This prevents consuming | as bitwise OR when it's actually a case separator
+                // parseBitwiseAnd is level 7, which stops before bitwise OR
+                const body = this.parseBitwiseAnd();
+
+                const matchCase: MatchCase = {
+                    pattern,
+                    body,
+                    loc: pattern.loc,
+                };
+
+                // Only add guard if it exists (exactOptionalPropertyTypes)
+                if (guard !== undefined) {
+                    matchCase.guard = guard;
+                }
+
+                cases.push(matchCase);
+
+                // Check for more cases (separated by | or newline)
+                if (this.check("RBRACE")) {
+                    break;
+                }
+
+                // Skip optional newlines
+                while (this.match("NEWLINE"));
+
+                // If next is a pipe, consume it as case separator
+                if (this.match("PIPE")) {
+                    // Continue to next case
+                    continue;
+                } else if (!this.check("RBRACE")) {
+                    // No pipe and not end of match - error
+                    throw this.error(
+                        "Expected '|' or '}' after match case",
+                        this.peek().loc,
+                        "Match cases should be separated by '|'",
+                    );
+                }
+            }
+
+            this.expect("RBRACE", "Expected '}' after match cases");
+
+            return {
+                kind: "Match",
+                expr,
+                cases,
+                loc: startLoc,
+            };
         }
 
         // Variable (identifier)

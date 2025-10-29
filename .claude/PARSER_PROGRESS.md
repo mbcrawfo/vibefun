@@ -359,15 +359,59 @@ This document tracks the implementation progress of the vibefun parser through i
 ## Phase 4d: Control Flow - If/Match
 
 **Time Estimate:** 45 minutes
-**Actual Time:** _Not started_
-**Status:** 🔜 Not Started
+**Actual Time:** ~1 hour
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `parseIf()` - if-then-else expressions
-- [ ] Implement `parseMatch()` - match expressions with patterns
-- [ ] Parse match cases with optional guards
-- [ ] Write if-expression tests
-- [ ] Write match-expression tests
+- [x] Implement if-then-else expression parsing
+- [x] Implement match expression parsing
+- [x] Parse match cases with simple patterns (var, wildcard)
+- [x] Parse match cases with optional guards
+- [x] Write if-expression tests (4 tests)
+- [x] Write match-expression tests (7 tests)
+
+### Deliverables
+- If-then-else expression parsing complete
+- Match expression parsing complete (with simple patterns)
+- 11 new control flow tests (4 if + 7 match)
+- `src/parser/parser.ts` extended with if/match parsing (~850 lines total)
+- `src/parser/expressions.test.ts` (94 tests passing + 1 todo)
+
+### Acceptance Criteria
+- [x] If expressions parse correctly: `if cond then expr1 else expr2`
+- [x] Nested if expressions work
+- [x] Match expressions parse correctly: `match expr { | pattern => body }`
+- [x] Match with multiple cases works
+- [x] Match with wildcard pattern (_) works
+- [x] Match with guards (when clauses) works
+- [x] Case bodies parse correctly without consuming case separators
+- [x] All tests passing (497 total: 94 expression tests + 403 existing)
+- [x] All npm run verify checks pass
+
+### Notes
+- If expression syntax: `if condition then thenExpr else elseExpr`
+- Implemented in `parsePrimary()` by checking for "if" keyword
+- Parses condition, then branch, and else branch as full expressions
+- Properly handles nested if expressions
+
+- Match expression syntax: `match expr { | pattern => body | pattern when guard => body }`
+- Implemented in `parsePrimary()` by checking for "match" keyword
+- Patterns for now are simple: VarPattern (identifier) or WildcardPattern (_)
+- Full pattern support will be added in Phase 5
+- Guards are optional with `when` keyword
+- Case bodies parse at `parseBitwiseAnd()` precedence level to avoid consuming `|` separator
+- Important precedence fix: Match case bodies must not consume the `|` that separates cases
+  - Initially tried `parseExpression()` - consumed `|` as bitwise OR
+  - Then tried `parseLogicalAnd()` - still consumed `|` via `parseBitwiseOr()`
+  - Final solution: `parseBitwiseAnd()` which is level 7, higher than bitwise OR (level 6)
+- Case separator is `|` (PIPE token)
+- Optional leading `|` before first case
+- Cases can be separated by newlines and/or pipes
+- Handles exactOptionalPropertyTypes by conditionally adding guard property
+
+- Test coverage:
+  - If: basic, complex condition, nested, with function calls
+  - Match: single case, multiple cases, wildcard, guards, no leading pipes, complex expressions
 
 ---
 
