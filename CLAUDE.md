@@ -57,22 +57,29 @@ The vibefun language design is based on these core principles:
 
 ## Project Structure
 
+The project uses **npm workspaces** to organize code into independently publishable packages:
+
 ```
 vibefun/
-├── .claude/          # Project plans, progress tracking, and documentation
-│   └── plans/        # Detailed implementation plans for compiler phases
-├── src/
-│   ├── types/        # Type definitions (tokens, AST, etc.) [✓ Complete]
-│   ├── utils/        # Shared utilities (error handling, etc.) [✓ Complete]
-│   ├── lexer/        # Tokenization [✓ Complete - 354 tests]
-│   ├── parser/       # AST generation [✓ Complete - 310 tests]
-│   ├── typechecker/  # Type inference & checking [TODO]
-│   ├── compiler/     # Transpilation to JS [TODO]
-│   ├── runtime/      # Runtime library [TODO]
-│   ├── stdlib/       # Standard library [TODO]
-│   └── cli/          # Command-line interface [TODO]
-└── examples/         # Example programs [TODO]
+├── .claude/              # Project plans and documentation
+│   └── plans/            # Implementation plans for compiler phases
+├── packages/
+│   ├── core/             # @vibefun/core - Compiler library
+│   │   └── src/          # Lexer, parser, types, and utilities
+│   ├── cli/              # @vibefun/cli - Command-line interface
+│   │   └── src/          # CLI implementation using commander
+│   └── stdlib/           # @vibefun/stdlib - Standard library
+│       └── src/          # Standard library implementation
+├── examples/             # Example vibefun programs
+├── tsconfig.base.json    # Shared TypeScript configuration
+└── package.json          # Workspace root configuration
 ```
+
+### Workspace Packages
+
+- **@vibefun/core**: The compiler core library containing the lexer, parser, type system, and code generator. Can be imported as a library by other projects.
+- **@vibefun/cli**: The vibefun command-line tool for compiling `.vf` files. Depends on @vibefun/core.
+- **@vibefun/stdlib**: The vibefun standard library providing common functional programming utilities and operations.
 
 ## Technical Decisions
 
@@ -151,15 +158,19 @@ unsafe { log("Hello!") }
 ### Compiler Development Commands
 
 ```bash
-# Build the compiler
+# Build all packages
 npm run build
-npm run build:watch      # Watch mode
+npm run build:watch      # Watch mode (all packages)
+
+# Build specific workspace
+npm run build -w @vibefun/core
+npm run build -w @vibefun/cli
 
 # Quality checks (run after every change)
-npm run check            # Type checking
-npm run lint             # Linting (use lint:fix to auto-fix)
-npm test                 # Run tests
-npm run format           # Format code
+npm run check            # Type checking (all workspaces)
+npm run lint             # Linting (all packages)
+npm test                 # Run tests (all packages)
+npm run format           # Format code (all packages)
 
 # All checks at once
 npm run verify           # Run all checks + format
@@ -169,6 +180,10 @@ npm run verify:ci        # CI version (doesn't modify files)
 npm test                 # Run all tests
 npm run test:watch       # Watch mode
 npm run test:coverage    # With coverage report
+
+# Workspace-specific testing
+npm test -w @vibefun/core
+npm test -w @vibefun/stdlib
 ```
 
 ### Vibefun Language Commands (Future)

@@ -6,14 +6,18 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
     eslint.configs.recommended,
     {
-        files: ['src/**/*.ts'],
+        files: ['packages/*/src/**/*.ts'],
         ignores: ['**/*.test.ts', '**/*.spec.ts'],
         languageOptions: {
             parser: tsparser,
             parserOptions: {
                 ecmaVersion: 2022,
                 sourceType: 'module',
-                project: './tsconfig.json',
+                project: [
+                    './packages/core/tsconfig.json',
+                    './packages/cli/tsconfig.json',
+                    './packages/stdlib/tsconfig.json',
+                ],
             },
         },
         plugins: {
@@ -43,7 +47,7 @@ export default [
         },
     },
     {
-        files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+        files: ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.spec.ts'],
         languageOptions: {
             parser: tsparser,
             parserOptions: {
@@ -72,6 +76,13 @@ export default [
             'no-console': ['warn', { allow: ['warn', 'error'] }],
             'prefer-const': 'error',
             'no-var': 'error',
+        },
+    },
+    {
+        files: ['packages/cli/src/**/*.ts'],
+        rules: {
+            // CLI can use console
+            'no-console': 'off',
         },
     },
     prettierConfig,

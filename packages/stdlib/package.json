@@ -1,0 +1,32 @@
+{
+    "name": "@vibefun/stdlib",
+    "version": "0.1.0",
+    "description": "Vibefun standard library",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "build:watch": "tsc --watch",
+        "check": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest --watch",
+        "clean": "rm -rf dist"
+    },
+    "keywords": [
+        "vibefun",
+        "standard-library",
+        "functional-programming"
+    ],
+    "author": "",
+    "license": "MIT",
+    "engines": {
+        "node": ">=24.10.0"
+    }
+}

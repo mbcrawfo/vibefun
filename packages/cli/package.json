@@ -1,0 +1,33 @@
+{
+    "name": "@vibefun/cli",
+    "version": "0.1.0",
+    "description": "Vibefun command-line interface",
+    "type": "module",
+    "bin": {
+        "vibefun": "./dist/index.js"
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "build:watch": "tsc --watch",
+        "check": "tsc --noEmit",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "keywords": [
+        "vibefun",
+        "cli",
+        "compiler",
+        "functional-programming"
+    ],
+    "author": "",
+    "license": "MIT",
+    "engines": {
+        "node": ">=24.10.0"
+    },
+    "dependencies": {
+        "@vibefun/core": "*",
+        "commander": "12.1.0"
+    }
+}

@@ -1,0 +1,35 @@
+{
+    "name": "@vibefun/core",
+    "version": "0.1.0",
+    "description": "Vibefun compiler core - lexer, parser, and type system",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "build:watch": "tsc --watch",
+        "check": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest --watch",
+        "test:coverage": "vitest --coverage",
+        "clean": "rm -rf dist"
+    },
+    "keywords": [
+        "vibefun",
+        "compiler",
+        "lexer",
+        "parser",
+        "functional-programming"
+    ],
+    "author": "",
+    "license": "MIT",
+    "engines": {
+        "node": ">=24.10.0"
+    }
+}
