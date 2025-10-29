@@ -470,13 +470,12 @@ export class Parser {
      * Precedence level 12
      */
     private parseMultiplicative(): Expr {
-        let left = this.parsePrimary(); // For now, directly to primary
-        // Will add unary operators in Phase 4b
+        let left = this.parseUnary();
 
         while (this.match("STAR", "SLASH", "PERCENT")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "STAR" ? "Multiply" : opToken.type === "SLASH" ? "Divide" : "Modulo";
-            const right = this.parsePrimary();
+            const right = this.parseUnary();
             left = {
                 kind: "BinOp",
                 op,
@@ -487,6 +486,69 @@ export class Parser {
         }
 
         return left;
+    }
+
+    /**
+     * Parse unary operators: -, !, ~
+     * Precedence level 13 (higher than binary operators)
+     */
+    private parseUnary(): Expr {
+        // Check for unary operators
+        if (this.match("MINUS", "BANG", "TILDE")) {
+            const opToken = this.peek(-1);
+            const startLoc = opToken.loc;
+            const expr = this.parseUnary(); // Right-associative (unary operators can stack)
+
+            const op = opToken.type === "MINUS" ? "Negate" : opToken.type === "BANG" ? "LogicalNot" : "BitwiseNot";
+
+            return {
+                kind: "UnaryOp",
+                op,
+                expr,
+                loc: startLoc,
+            };
+        }
+
+        // No unary operator, continue to postfix (calls)
+        return this.parseCall();
+    }
+
+    /**
+     * Parse function calls and postfix operators
+     * Precedence level 14 (highest - postfix)
+     */
+    private parseCall(): Expr {
+        let expr = this.parsePrimary();
+
+        // Parse postfix operators (function calls)
+        while (true) {
+            // Function call: func(arg1, arg2, ...)
+            if (this.match("LPAREN")) {
+                const args: Expr[] = [];
+
+                // Check for empty argument list
+                if (!this.check("RPAREN")) {
+                    // Parse arguments
+                    do {
+                        args.push(this.parseExpression());
+                    } while (this.match("COMMA"));
+                }
+
+                this.expect("RPAREN", "Expected closing parenthesis after function arguments");
+
+                expr = {
+                    kind: "App",
+                    func: expr,
+                    args,
+                    loc: expr.loc,
+                };
+            } else {
+                // No more postfix operators
+                break;
+            }
+        }
+
+        return expr;
     }
 
     /**

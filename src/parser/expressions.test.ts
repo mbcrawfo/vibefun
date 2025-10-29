@@ -667,12 +667,220 @@ describe("Parser - Expressions", () => {
         });
     });
 
+    describe("unary operators", () => {
+        it("should parse negation", () => {
+            const expr = parseExpression("-5");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "Negate",
+                expr: { kind: "IntLit", value: 5 },
+            });
+        });
+
+        it("should parse logical not", () => {
+            const expr = parseExpression("!true");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "LogicalNot",
+                expr: { kind: "BoolLit", value: true },
+            });
+        });
+
+        it("should parse bitwise not", () => {
+            const expr = parseExpression("~x");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "BitwiseNot",
+                expr: { kind: "Var", name: "x" },
+            });
+        });
+
+        it("should handle stacked unary operators", () => {
+            const expr = parseExpression("--5");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "Negate",
+                expr: {
+                    kind: "UnaryOp",
+                    op: "Negate",
+                    expr: { kind: "IntLit", value: 5 },
+                },
+            });
+        });
+
+        it("should handle mixed unary operators", () => {
+            const expr = parseExpression("-!x");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "Negate",
+                expr: {
+                    kind: "UnaryOp",
+                    op: "LogicalNot",
+                    expr: { kind: "Var", name: "x" },
+                },
+            });
+        });
+
+        it("should bind unary tighter than binary", () => {
+            const expr = parseExpression("-a + b");
+
+            expect(expr).toMatchObject({
+                kind: "BinOp",
+                op: "Add",
+                left: {
+                    kind: "UnaryOp",
+                    op: "Negate",
+                    expr: { kind: "Var", name: "a" },
+                },
+                right: { kind: "Var", name: "b" },
+            });
+        });
+
+        it("should allow parentheses to override precedence", () => {
+            const expr = parseExpression("-(a + b)");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "Negate",
+                expr: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "a" },
+                    right: { kind: "Var", name: "b" },
+                },
+            });
+        });
+    });
+
     describe("function calls", () => {
-        it.todo("will be added in Phase 4");
+        it("should parse function call with no arguments", () => {
+            const expr = parseExpression("foo()");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: { kind: "Var", name: "foo" },
+                args: [],
+            });
+        });
+
+        it("should parse function call with one argument", () => {
+            const expr = parseExpression("foo(42)");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: { kind: "Var", name: "foo" },
+                args: [{ kind: "IntLit", value: 42 }],
+            });
+        });
+
+        it("should parse function call with multiple arguments", () => {
+            const expr = parseExpression("foo(1, 2, 3)");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: { kind: "Var", name: "foo" },
+                args: [
+                    { kind: "IntLit", value: 1 },
+                    { kind: "IntLit", value: 2 },
+                    { kind: "IntLit", value: 3 },
+                ],
+            });
+        });
+
+        it("should parse curried function calls", () => {
+            const expr = parseExpression("foo(1)(2)");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: {
+                    kind: "App",
+                    func: { kind: "Var", name: "foo" },
+                    args: [{ kind: "IntLit", value: 1 }],
+                },
+                args: [{ kind: "IntLit", value: 2 }],
+            });
+        });
+
+        it("should parse function call with expression arguments", () => {
+            const expr = parseExpression("foo(a + b, c * d)");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: { kind: "Var", name: "foo" },
+                args: [
+                    {
+                        kind: "BinOp",
+                        op: "Add",
+                        left: { kind: "Var", name: "a" },
+                        right: { kind: "Var", name: "b" },
+                    },
+                    {
+                        kind: "BinOp",
+                        op: "Multiply",
+                        left: { kind: "Var", name: "c" },
+                        right: { kind: "Var", name: "d" },
+                    },
+                ],
+            });
+        });
+
+        it("should bind call tighter than unary", () => {
+            const expr = parseExpression("-foo(x)");
+
+            expect(expr).toMatchObject({
+                kind: "UnaryOp",
+                op: "Negate",
+                expr: {
+                    kind: "App",
+                    func: { kind: "Var", name: "foo" },
+                    args: [{ kind: "Var", name: "x" }],
+                },
+            });
+        });
+
+        it("should bind call tighter than binary", () => {
+            const expr = parseExpression("foo(x) + bar(y)");
+
+            expect(expr).toMatchObject({
+                kind: "BinOp",
+                op: "Add",
+                left: {
+                    kind: "App",
+                    func: { kind: "Var", name: "foo" },
+                    args: [{ kind: "Var", name: "x" }],
+                },
+                right: {
+                    kind: "App",
+                    func: { kind: "Var", name: "bar" },
+                    args: [{ kind: "Var", name: "y" }],
+                },
+            });
+        });
+
+        it("should parse nested function calls in arguments", () => {
+            const expr = parseExpression("foo(bar(x))");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: { kind: "Var", name: "foo" },
+                args: [
+                    {
+                        kind: "App",
+                        func: { kind: "Var", name: "bar" },
+                        args: [{ kind: "Var", name: "x" }],
+                    },
+                ],
+            });
+        });
     });
 
     describe("lambda expressions", () => {
-        it.todo("will be added in Phase 4");
+        it.todo("will be added in Phase 4c");
     });
 
     describe("control flow", () => {

@@ -239,15 +239,57 @@ This document tracks the implementation progress of the vibefun parser through i
 ## Phase 4b: Unary Operators and Function Calls
 
 **Time Estimate:** 1 hour
-**Actual Time:** _Not started_
-**Status:** 🔜 Not Started
+**Actual Time:** ~45 minutes
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `parseUnary()` - unary operators (-, !, ~)
-- [ ] Implement `parseCall()` - function calls with arguments
-- [ ] Handle curried functions
-- [ ] Write unary operator tests
-- [ ] Write function call tests
+- [x] Implement `parseUnary()` - unary operators (-, !, ~)
+- [x] Implement `parseCall()` - function calls with arguments
+- [x] Handle curried functions
+- [x] Write unary operator tests
+- [x] Write function call tests
+
+### Deliverables
+- Unary operator parsing complete (precedence level 13)
+- Function call parsing complete (precedence level 14 - highest)
+- 15 new expression tests (7 unary + 8 function call tests)
+- `src/parser/parser.ts` extended with parseUnary() and parseCall() (~550 lines total)
+- `src/parser/expressions.test.ts` (75 tests passing + 3 todo)
+
+### Acceptance Criteria
+- [x] All unary operators parse correctly (-, !, ~)
+- [x] Unary operators can stack (e.g., --, -!)
+- [x] Unary operators bind tighter than binary operators
+- [x] Function calls parse with 0, 1, or multiple arguments
+- [x] Curried function calls work correctly (e.g., foo(1)(2))
+- [x] Function calls bind tighter than unary operators
+- [x] All tests passing (478 total: 75 expression tests + 403 existing)
+- [x] All npm run verify checks pass
+
+### Notes
+- Implemented parseUnary() handling three unary operators:
+  - `-` → Negate
+  - `!` → LogicalNot
+  - `~` → BitwiseNot
+- Unary operators are right-associative (stack: -- becomes Negate(Negate(x)))
+- Precedence level 13 (higher than all binary operators)
+- Implemented parseCall() for function application:
+  - Handles empty argument lists: `foo()`
+  - Handles single/multiple arguments: `foo(1, 2, 3)`
+  - Arguments can be arbitrary expressions
+  - Curried calls work naturally: `foo(1)(2)` parses as App(App(foo, 1), 2)
+- Precedence level 14 (highest - postfix operators)
+- Updated parseMultiplicative() to call parseUnary() instead of parsePrimary()
+- Call chain: Binary ops → parseUnary() → parseCall() → parsePrimary()
+- Test coverage:
+  - Unary operators: negation, logical not, bitwise not
+  - Stacked unary operators: --, -!
+  - Precedence: unary vs binary, parentheses override
+  - Function calls: no args, single arg, multiple args
+  - Curried calls: foo(1)(2)
+  - Complex arguments: foo(a + b, c * d)
+  - Precedence: calls vs unary, calls vs binary
+  - Nested calls: foo(bar(x))
 
 ---
 
