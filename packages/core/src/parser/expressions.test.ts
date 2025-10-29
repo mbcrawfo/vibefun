@@ -460,6 +460,133 @@ describe("Parser - Expressions", () => {
                     right: { kind: "Var", name: "value" },
                 });
             });
+
+            it("should parse forward composition", () => {
+                const expr = parseExpression("f >> g");
+
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "ForwardCompose",
+                    left: { kind: "Var", name: "f" },
+                    right: { kind: "Var", name: "g" },
+                });
+            });
+
+            it("should parse backward composition", () => {
+                const expr = parseExpression("f << g");
+
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "BackwardCompose",
+                    left: { kind: "Var", name: "f" },
+                    right: { kind: "Var", name: "g" },
+                });
+            });
+
+            it("should parse chained forward composition", () => {
+                const expr = parseExpression("f >> g >> h");
+
+                // Should parse as (f >> g) >> h (left-associative)
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "ForwardCompose",
+                    left: {
+                        kind: "BinOp",
+                        op: "ForwardCompose",
+                        left: { kind: "Var", name: "f" },
+                        right: { kind: "Var", name: "g" },
+                    },
+                    right: { kind: "Var", name: "h" },
+                });
+            });
+
+            it("should parse chained backward composition", () => {
+                const expr = parseExpression("f << g << h");
+
+                // Should parse as (f << g) << h (left-associative)
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "BackwardCompose",
+                    left: {
+                        kind: "BinOp",
+                        op: "BackwardCompose",
+                        left: { kind: "Var", name: "f" },
+                        right: { kind: "Var", name: "g" },
+                    },
+                    right: { kind: "Var", name: "h" },
+                });
+            });
+
+            it("should parse mixed composition operators", () => {
+                const expr = parseExpression("f >> g << h");
+
+                // Should parse as (f >> g) << h (left-associative, same precedence)
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "BackwardCompose",
+                    left: {
+                        kind: "BinOp",
+                        op: "ForwardCompose",
+                        left: { kind: "Var", name: "f" },
+                        right: { kind: "Var", name: "g" },
+                    },
+                    right: { kind: "Var", name: "h" },
+                });
+            });
+
+            it("should respect composition precedence with arithmetic", () => {
+                const expr = parseExpression("x + 1 >> f");
+
+                // Should parse as (x + 1) >> f (arithmetic binds tighter)
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "ForwardCompose",
+                    left: {
+                        kind: "BinOp",
+                        op: "Add",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "IntLit", value: 1 },
+                    },
+                    right: { kind: "Var", name: "f" },
+                });
+            });
+
+            it("should respect composition precedence with logical operators", () => {
+                const expr = parseExpression("f >> g && h >> k");
+
+                // Should parse as (f >> g) && (h >> k) (composition binds tighter than logical)
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "LogicalAnd",
+                    left: {
+                        kind: "BinOp",
+                        op: "ForwardCompose",
+                        left: { kind: "Var", name: "f" },
+                        right: { kind: "Var", name: "g" },
+                    },
+                    right: {
+                        kind: "BinOp",
+                        op: "ForwardCompose",
+                        left: { kind: "Var", name: "h" },
+                        right: { kind: "Var", name: "k" },
+                    },
+                });
+            });
+
+            it("should parse composition with function calls", () => {
+                const expr = parseExpression("parse() >> validate");
+
+                expect(expr).toMatchObject({
+                    kind: "BinOp",
+                    op: "ForwardCompose",
+                    left: {
+                        kind: "App",
+                        func: { kind: "Var", name: "parse" },
+                        args: [],
+                    },
+                    right: { kind: "Var", name: "validate" },
+                });
+            });
         });
 
         describe("precedence", () => {

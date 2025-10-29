@@ -373,7 +373,7 @@ export class Parser {
      * Precedence level 9
      */
     private parseComparison(): Expr {
-        let left = this.parseAdditive();
+        let left = this.parseComposition();
 
         while (this.match("LT", "LT_EQ", "GT", "GT_EQ")) {
             const opToken = this.peek(-1);
@@ -385,6 +385,29 @@ export class Parser {
                       : opToken.type === "GT"
                         ? "GreaterThan"
                         : "GreaterEqual";
+            const right = this.parseComposition();
+            left = {
+                kind: "BinOp",
+                op,
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse function composition: f >> g (forward) or f << g (backward)
+     * Precedence level 10 (between comparison and additive)
+     */
+    private parseComposition(): Expr {
+        let left = this.parseAdditive();
+
+        while (this.match("GT_GT", "LT_LT")) {
+            const opToken = this.peek(-1);
+            const op = opToken.type === "GT_GT" ? "ForwardCompose" : "BackwardCompose";
             const right = this.parseAdditive();
             left = {
                 kind: "BinOp",
