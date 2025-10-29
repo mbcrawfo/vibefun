@@ -84,18 +84,12 @@ type Operator =
     | '==' | '!=' | '<' | '>' | '<=' | '>='
     // Logical
     | '&&' | '||' | '!'
-    // Bitwise
-    | '&' | '|' | '~' | '<<' | '>>'
     // String
-    | '++'
-    // Pipe and composition
-    | '|>' | '>>' | '<<'
+    | '&'
+    // Pipe
+    | '|>'
     // Special
-    | '::' | '...' | '->' | '=>' | '=' | ':='
-
-// Note: Some operators like >> and << have multiple meanings based on context
-// >> can be right shift (bitwise) or forward composition (functional)
-// << can be left shift (bitwise) or backward composition (functional)
+    | '|' | '::' | '...' | '->' | '=>' | '=' | ':='
 
 type Location = {
     file: string

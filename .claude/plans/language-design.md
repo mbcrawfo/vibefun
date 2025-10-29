@@ -49,7 +49,7 @@ let add: (Int, Int) -> Int = (x, y) => x + y
 
 // Multi-line body
 let greet = (name) => {
-    let message = "Hello, " ++ name
+    let message = "Hello, " &name
     message
 }
 
@@ -139,7 +139,7 @@ let older = { ...person, age: 31 }
 
 // Pattern matching in function parameters
 let greetPerson = ({ name, age }) =>
-    "Hello " ++ name ++ ", you are " ++ String.fromInt(age)
+    "Hello " &name &", you are " &String.fromInt(age)
 ```
 
 ### Variants (Sum Types)
@@ -162,8 +162,8 @@ let unwrap = (opt) => match opt {
 }
 
 let handleResult = (result) => match result {
-    | Ok(value) => "Success: " ++ String.fromInt(value)
-    | Err(error) => "Error: " ++ error
+    | Ok(value) => "Success: " &String.fromInt(value)
+    | Err(error) => "Error: " &error
 }
 ```
 
@@ -237,9 +237,9 @@ let classify = (n) => match n {
 
 // Nested patterns
 let processResult = (result) => match result {
-    | Ok(Some(value)) => "Got value: " ++ String.fromInt(value)
+    | Ok(Some(value)) => "Got value: " &String.fromInt(value)
     | Ok(None) => "Got None"
-    | Err(msg) => "Error: " ++ msg
+    | Err(msg) => "Error: " &msg
 }
 
 // List patterns
@@ -275,7 +275,7 @@ external type Response = {
 
 // Convert between vibefun and JS types
 let fetchUser = (id) => unsafe {
-    let url = "https://api.example.com/users/" ++ String.fromInt(id)
+    let url = "https://api.example.com/users/" &String.fromInt(id)
     fetch(url)
 }
 ```
@@ -317,7 +317,7 @@ Result.isErr: <T, E>(Result<T, E>) -> Bool
 
 ```vibefun
 String.length: (String) -> Int
-String.concat: (String, String) -> String  // Also available as ++
+String.concat: (String, String) -> String  // Also available as &
 String.toUpperCase: (String) -> String
 String.toLowerCase: (String) -> String
 String.trim: (String) -> String

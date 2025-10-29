@@ -340,7 +340,7 @@ describe("Parser - Expressions", () => {
             });
 
             it("should parse string concatenation", () => {
-                const expr = parseExpression('"hello" ++ "world"');
+                const expr = parseExpression('"hello" & "world"');
 
                 expect(expr).toMatchObject({
                     kind: "BinOp",
@@ -425,44 +425,6 @@ describe("Parser - Expressions", () => {
                 expect(expr).toMatchObject({
                     kind: "BinOp",
                     op: "LogicalOr",
-                });
-            });
-        });
-
-        describe("bitwise", () => {
-            it("should parse bitwise AND", () => {
-                const expr = parseExpression("5 & 3");
-
-                expect(expr).toMatchObject({
-                    kind: "BinOp",
-                    op: "BitwiseAnd",
-                });
-            });
-
-            it("should parse bitwise OR", () => {
-                const expr = parseExpression("5 | 3");
-
-                expect(expr).toMatchObject({
-                    kind: "BinOp",
-                    op: "BitwiseOr",
-                });
-            });
-
-            it("should parse left shift", () => {
-                const expr = parseExpression("1 << 3");
-
-                expect(expr).toMatchObject({
-                    kind: "BinOp",
-                    op: "LeftShift",
-                });
-            });
-
-            it("should parse right shift", () => {
-                const expr = parseExpression("8 >> 2");
-
-                expect(expr).toMatchObject({
-                    kind: "BinOp",
-                    op: "RightShift",
                 });
             });
         });
@@ -685,16 +647,6 @@ describe("Parser - Expressions", () => {
                 kind: "UnaryOp",
                 op: "LogicalNot",
                 expr: { kind: "BoolLit", value: true },
-            });
-        });
-
-        it("should parse bitwise not", () => {
-            const expr = parseExpression("~x");
-
-            expect(expr).toMatchObject({
-                kind: "UnaryOp",
-                op: "BitwiseNot",
-                expr: { kind: "Var", name: "x" },
             });
         });
 

@@ -229,8 +229,8 @@ String <: Int | String
 
 // Use requires discrimination:
 let process = (x: Int | String) => match x {
-    | n: Int => "number: " ++ String.fromInt(n)
-    | s: String => "string: " ++ s
+    | n: Int => "number: " &String.fromInt(n)
+    | s: String => "string: " &s
 }
 ```
 
@@ -247,7 +247,7 @@ match x {
         n + 1
     | s: String =>
         // In this branch, x has type String
-        s ++ "!"
+        s &"!"
 }
 ```
 

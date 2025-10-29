@@ -240,20 +240,10 @@ It can span multiple lines.
 !     Logical NOT
 ```
 
-#### Bitwise Operators
-
-```
-&     Bitwise AND
-|     Bitwise OR
-~     Bitwise NOT
-<<    Left shift
->>    Right shift
-```
-
 #### String Operators
 
 ```
-++    String concatenation
+&     String concatenation
 ```
 
 #### Special Operators
@@ -315,7 +305,7 @@ Unicode text strings (JavaScript `string`).
 
 ```vibefun
 let name: String = "Alice"
-let greeting = "Hello, " ++ name
+let greeting = "Hello, " &name
 ```
 
 #### Bool
@@ -598,7 +588,7 @@ map([1, 2, 3], double) // Higher-order function
 1 + 2                  // Arithmetic
 x == y                 // Comparison
 true && false          // Logical
-"hello" ++ " world"    // String concatenation
+"hello" &" world"    // String concatenation
 ```
 
 ### If Expressions
@@ -621,7 +611,7 @@ Pattern matching with exhaustiveness checking.
 
 ```vibefun
 let describe = (opt) => match opt {
-    | Some(x) => "got " ++ String.fromInt(x)
+    | Some(x) => "got " &String.fromInt(x)
     | None => "nothing"
 }
 ```
@@ -699,7 +689,7 @@ let add: (Int, Int) -> Int = (x, y) => x + y
 
 // Multi-line body
 let greet = (name) => {
-    let message = "Hello, " ++ name
+    let message = "Hello, " &name
     console_log(message)
     message
 }
@@ -851,20 +841,20 @@ let firstTwo = (list) => match list {
 
 ```vibefun
 let greetPerson = (person) => match person {
-    | { name, age } => "Hello " ++ name ++ ", age " ++ String.fromInt(age)
+    | { name, age } => "Hello " &name &", age " &String.fromInt(age)
 }
 
 // Or in function parameters
-let greet = ({ name }) => "Hello " ++ name
+let greet = ({ name }) => "Hello " &name
 ```
 
 ### Nested Patterns
 
 ```vibefun
 let process = (result) => match result {
-    | Ok(Some(value)) => "got " ++ String.fromInt(value)
+    | Ok(Some(value)) => "got " &String.fromInt(value)
     | Ok(None) => "got nothing"
-    | Err(msg) => "error: " ++ msg
+    | Err(msg) => "error: " &msg
 }
 ```
 
@@ -1009,7 +999,7 @@ let debug = (msg) => unsafe {
 }
 
 let fetchUser = (id) => unsafe {
-    let url = "https://api.example.com/users/" ++ String.fromInt(id)
+    let url = "https://api.example.com/users/" &String.fromInt(id)
     fetch(url)
 }
 ```
@@ -1065,8 +1055,8 @@ let divide = (a, b) =>
 
 let result = divide(10, 2)
 match result {
-    | Ok(value) => "Result: " ++ String.fromInt(value)
-    | Err(msg) => "Error: " ++ msg
+    | Ok(value) => "Result: " &String.fromInt(value)
+    | Err(msg) => "Error: " &msg
 }
 ```
 
@@ -1160,7 +1150,7 @@ Result.unwrapOr: <T, E>(Result<T, E>, T) -> T
 
 ```vibefun
 String.length: (String) -> Int
-String.concat: (String, String) -> String  // Also ++
+String.concat: (String, String) -> String  // Also &
 String.toUpperCase: (String) -> String
 String.toLowerCase: (String) -> String
 String.trim: (String) -> String
@@ -1362,24 +1352,19 @@ pattern when guard
 | `()`       | 14         | Left          | Function call            |
 | `[]`       | 14         | Left          | List indexing            |
 | `!`        | 13         | Right         | Dereference/Logical NOT  |
-| `~`        | 13         | Right         | Bitwise NOT              |
 | `-`        | 13         | Right         | Unary minus              |
 | `*`        | 12         | Left          | Multiplication           |
 | `/`        | 12         | Left          | Division                 |
 | `%`        | 12         | Left          | Modulo                   |
 | `+`        | 11         | Left          | Addition                 |
 | `-`        | 11         | Left          | Subtraction              |
-| `++`       | 11         | Right         | String concatenation     |
-| `<<`       | 10         | Left          | Left shift / Composition |
-| `>>`       | 10         | Left          | Right shift / Composition|
+| `&`        | 11         | Left          | String concatenation     |
 | `<`        | 9          | Left          | Less than                |
 | `<=`       | 9          | Left          | Less than or equal       |
 | `>`        | 9          | Left          | Greater than             |
 | `>=`       | 9          | Left          | Greater than or equal    |
 | `==`       | 8          | Left          | Equal                    |
 | `!=`       | 8          | Left          | Not equal                |
-| `&`        | 7          | Left          | Bitwise AND              |
-| `|`        | 6          | Left          | Bitwise OR               |
 | `&&`       | 5          | Left          | Logical AND              |
 | `||`       | 4          | Left          | Logical OR               |
 | `::`       | 3          | Right         | List cons                |

@@ -183,12 +183,9 @@ This document tracks the implementation progress of the vibefun parser through i
 - [x] Implement `parseCons()` - list cons (::)
 - [x] Implement `parseLogicalOr()` - logical OR (||)
 - [x] Implement `parseLogicalAnd()` - logical AND (&&)
-- [x] Implement `parseBitwiseOr()` - bitwise OR (|)
-- [x] Implement `parseBitwiseAnd()` - bitwise AND (&)
 - [x] Implement `parseEquality()` - equality (==, !=)
 - [x] Implement `parseComparison()` - comparison (<, >, <=, >=)
-- [x] Implement `parseShift()` - bitwise shift (<<, >>)
-- [x] Implement `parseAdditive()` - addition/subtraction (+, -, ++)
+- [x] Implement `parseAdditive()` - addition/subtraction (+, -, &)
 - [x] Implement `parseMultiplicative()` - multiplication/division (*, /, %)
 - [x] Write tests for all binary operators
 - [x] Write tests for operator precedence
@@ -213,23 +210,20 @@ This document tracks the implementation progress of the vibefun parser through i
 - Implemented 10 precedence-level parsing functions using precedence climbing algorithm
 - Precedence levels (highest to lowest for binary ops):
   - Level 12: Multiplicative (*, /, %)
-  - Level 11: Additive (+, -, ++)
-  - Level 10: Shift (<<, >>)
+  - Level 11: Additive (+, -, &)
   - Level 9: Comparison (<, <=, >, >=)
   - Level 8: Equality (==, !=)
-  - Level 7: Bitwise AND (&)
-  - Level 6: Bitwise OR (|)
   - Level 5: Logical AND (&&)
   - Level 4: Logical OR (||)
   - Level 3: List cons (::) - right-associative
-  - Level 1: Reference assignment (:=) - right-associative
   - Level 2: Pipe (|>) - left-associative
+  - Level 1: Reference assignment (:=) - right-associative
 - Right-associative operators: ::, :=
 - Left-associative operators: all others
 - Special nodes: Pipe (not BinOp), ListCons (not BinOp)
 - Bug found and fixed: Lexer was tokenizing :: as two COLON tokens instead of one COLON_COLON token
 - Added comprehensive tests covering:
-  - All binary operators (arithmetic, comparison, logical, bitwise, special)
+  - All binary operators (arithmetic, comparison, logical, special)
   - Precedence rules (5 tests verifying correct precedence)
   - Associativity (4 tests for left/right associativity)
   - Parentheses overriding precedence (1 test)
@@ -267,10 +261,9 @@ This document tracks the implementation progress of the vibefun parser through i
 - [x] All npm run verify checks pass
 
 ### Notes
-- Implemented parseUnary() handling three unary operators:
+- Implemented parseUnary() handling two unary operators:
   - `-` → Negate
   - `!` → LogicalNot
-  - `~` → BitwiseNot
 - Unary operators are right-associative (stack: -- becomes Negate(Negate(x)))
 - Precedence level 13 (higher than all binary operators)
 - Implemented parseCall() for function application:
@@ -282,7 +275,7 @@ This document tracks the implementation progress of the vibefun parser through i
 - Updated parseMultiplicative() to call parseUnary() instead of parsePrimary()
 - Call chain: Binary ops → parseUnary() → parseCall() → parsePrimary()
 - Test coverage:
-  - Unary operators: negation, logical not, bitwise not
+  - Unary operators: negation, logical not
   - Stacked unary operators: --, -!
   - Precedence: unary vs binary, parentheses override
   - Function calls: no args, single arg, multiple args
@@ -399,11 +392,8 @@ This document tracks the implementation progress of the vibefun parser through i
 - Patterns for now are simple: VarPattern (identifier) or WildcardPattern (_)
 - Full pattern support will be added in Phase 5
 - Guards are optional with `when` keyword
-- Case bodies parse at `parseBitwiseAnd()` precedence level to avoid consuming `|` separator
-- Important precedence fix: Match case bodies must not consume the `|` that separates cases
-  - Initially tried `parseExpression()` - consumed `|` as bitwise OR
-  - Then tried `parseLogicalAnd()` - still consumed `|` via `parseBitwiseOr()`
-  - Final solution: `parseBitwiseAnd()` which is level 7, higher than bitwise OR (level 6)
+- Case bodies parse at `parseLogicalAnd()` precedence level to avoid consuming `|` separator
+- Important: Match case bodies must not consume the `|` that separates cases
 - Case separator is `|` (PIPE token)
 - Optional leading `|` before first case
 - Cases can be separated by newlines and/or pipes
@@ -501,7 +491,7 @@ This document tracks the implementation progress of the vibefun parser through i
 - [x] Implement `parseLogicalAnd()` - logical AND (&&)
 - [x] Implement `parseEquality()` - equality (==, !=)
 - [x] Implement `parseComparison()` - comparison (<, >, <=, >=)
-- [x] Implement `parseAdditive()` - addition/subtraction (+, -, ++)
+- [x] Implement `parseAdditive()` - addition/subtraction (+, -, &)
 - [x] Implement `parseMultiplicative()` - multiplication/division (*, /, %)
 - [x] Write tests for operator precedence
 - [x] Write tests for associativity

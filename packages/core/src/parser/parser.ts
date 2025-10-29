@@ -329,55 +329,13 @@ export class Parser {
      * Precedence level 5
      */
     private parseLogicalAnd(): Expr {
-        let left = this.parseBitwiseOr();
-
-        while (this.match("AMP_AMP")) {
-            const right = this.parseBitwiseOr();
-            left = {
-                kind: "BinOp",
-                op: "LogicalAnd",
-                left,
-                right,
-                loc: left.loc,
-            };
-        }
-
-        return left;
-    }
-
-    /**
-     * Parse bitwise OR: expr | expr
-     * Precedence level 6
-     */
-    private parseBitwiseOr(): Expr {
-        let left = this.parseBitwiseAnd();
-
-        while (this.match("PIPE")) {
-            const right = this.parseBitwiseAnd();
-            left = {
-                kind: "BinOp",
-                op: "BitwiseOr",
-                left,
-                right,
-                loc: left.loc,
-            };
-        }
-
-        return left;
-    }
-
-    /**
-     * Parse bitwise AND: expr & expr
-     * Precedence level 7
-     */
-    private parseBitwiseAnd(): Expr {
         let left = this.parseEquality();
 
-        while (this.match("AMP")) {
+        while (this.match("AMP_AMP")) {
             const right = this.parseEquality();
             left = {
                 kind: "BinOp",
-                op: "BitwiseAnd",
+                op: "LogicalAnd",
                 left,
                 right,
                 loc: left.loc,
@@ -415,7 +373,7 @@ export class Parser {
      * Precedence level 9
      */
     private parseComparison(): Expr {
-        let left = this.parseShift();
+        let left = this.parseAdditive();
 
         while (this.match("LT", "LT_EQ", "GT", "GT_EQ")) {
             const opToken = this.peek(-1);
@@ -427,29 +385,6 @@ export class Parser {
                       : opToken.type === "GT"
                         ? "GreaterThan"
                         : "GreaterEqual";
-            const right = this.parseShift();
-            left = {
-                kind: "BinOp",
-                op,
-                left,
-                right,
-                loc: left.loc,
-            };
-        }
-
-        return left;
-    }
-
-    /**
-     * Parse shift: <<, >>
-     * Precedence level 10
-     */
-    private parseShift(): Expr {
-        let left = this.parseAdditive();
-
-        while (this.match("LT_LT", "GT_GT")) {
-            const opToken = this.peek(-1);
-            const op = opToken.type === "LT_LT" ? "LeftShift" : "RightShift";
             const right = this.parseAdditive();
             left = {
                 kind: "BinOp",
@@ -464,13 +399,13 @@ export class Parser {
     }
 
     /**
-     * Parse additive: +, -, ++
+     * Parse additive: +, -, &
      * Precedence level 11
      */
     private parseAdditive(): Expr {
         let left = this.parseMultiplicative();
 
-        while (this.match("PLUS", "MINUS", "PLUS_PLUS")) {
+        while (this.match("PLUS", "MINUS", "AMP")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "PLUS" ? "Add" : opToken.type === "MINUS" ? "Subtract" : "Concat";
             const right = this.parseMultiplicative();
@@ -510,17 +445,17 @@ export class Parser {
     }
 
     /**
-     * Parse unary operators: -, !, ~
+     * Parse unary operators: -, !
      * Precedence level 13 (higher than binary operators)
      */
     private parseUnary(): Expr {
         // Check for unary operators
-        if (this.match("MINUS", "BANG", "TILDE")) {
+        if (this.match("MINUS", "BANG")) {
             const opToken = this.peek(-1);
             const startLoc = opToken.loc;
             const expr = this.parseUnary(); // Right-associative (unary operators can stack)
 
-            const op = opToken.type === "MINUS" ? "Negate" : opToken.type === "BANG" ? "LogicalNot" : "BitwiseNot";
+            const op = opToken.type === "MINUS" ? "Negate" : "LogicalNot";
 
             return {
                 kind: "UnaryOp",
@@ -721,17 +656,16 @@ export class Parser {
             let guard: Expr | undefined;
             if (this.check("KEYWORD") && this.peek().value === "when") {
                 this.advance(); // consume 'when'
-                // Guard should not consume the => so parse at higher precedence than bitwise OR
-                guard = this.parseBitwiseAnd();
+                // Guard should not consume the |> pipe operator or | case separator
+                guard = this.parseLogicalAnd();
             }
 
             // Fat arrow
             this.expect("FAT_ARROW", "Expected '=>' after match pattern");
 
-            // Body - parse at precedence level higher than bitwise OR (level 6)
-            // This prevents consuming | as bitwise OR when it's actually a case separator
-            // parseBitwiseAnd is level 7, which stops before bitwise OR
-            const body = this.parseBitwiseAnd();
+            // Body - parse at precedence level that avoids consuming | as a separator
+            // parseLogicalAnd stops before any operators that use PIPE token
+            const body = this.parseLogicalAnd();
 
             const matchCase: MatchCase = {
                 pattern,

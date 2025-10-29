@@ -467,14 +467,14 @@ describe("Lexer - Multi-Character Operators", () => {
         });
     });
 
-    describe("two-character arithmetic operators", () => {
-        it("should tokenize ++", () => {
-            const lexer = new Lexer("++", "test.vf");
+    describe("string concatenation operator", () => {
+        it("should tokenize &", () => {
+            const lexer = new Lexer("&", "test.vf");
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "PLUS_PLUS",
-                value: "++",
+                type: "AMP",
+                value: "&",
             });
         });
     });

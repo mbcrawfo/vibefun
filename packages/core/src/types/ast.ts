@@ -114,11 +114,6 @@ export type BinaryOp =
     // Logical
     | "LogicalAnd"
     | "LogicalOr"
-    // Bitwise
-    | "BitwiseAnd"
-    | "BitwiseOr"
-    | "LeftShift"
-    | "RightShift"
     // String
     | "Concat"
     // List
@@ -135,7 +130,6 @@ export type BinaryOp =
 export type UnaryOp =
     | "Negate" // -x
     | "LogicalNot" // !x
-    | "BitwiseNot" // ~x
     | "Deref"; // !x (in ref context)
 
 // =============================================================================

@@ -45,7 +45,6 @@ export type Token =
     | { type: "STAR"; value: string; loc: Location }
     | { type: "SLASH"; value: string; loc: Location }
     | { type: "PERCENT"; value: string; loc: Location }
-    | { type: "PLUS_PLUS"; value: string; loc: Location }
 
     // Operators - Comparison
     | { type: "EQ_EQ"; value: string; loc: Location }
@@ -60,7 +59,7 @@ export type Token =
     | { type: "PIPE_PIPE"; value: string; loc: Location }
     | { type: "BANG"; value: string; loc: Location }
 
-    // Operators - Bitwise
+    // Operators - String
     | { type: "AMP"; value: string; loc: Location }
 
     // Operators - Pipe and Composition

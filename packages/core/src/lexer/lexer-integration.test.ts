@@ -319,7 +319,7 @@ let main = () => {
         |> filter(x => x > 2)
         |> map(x => x * 2)
 
-    log("Result: " ++ toString(result))
+    log("Result: " & toString(result))
 }`;
             const lexer = new Lexer(code, "test.vf");
             const tokens = lexer.tokenize();

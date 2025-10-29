@@ -729,11 +729,6 @@ export class Lexer {
             this.advance();
             return { type: "GT_EQ", value: ">=", loc: start };
         }
-        if (char === "+" && next === "+") {
-            this.advance();
-            this.advance();
-            return { type: "PLUS_PLUS", value: "++", loc: start };
-        }
         if (char === "|" && next === ">") {
             this.advance();
             this.advance();

@@ -36,14 +36,11 @@ This document provides a detailed implementation plan for the vibefun parser - t
 | Level | Operators | Associativity | Description |
 |-------|-----------|---------------|-------------|
 | 14 | `.` `()` `[]` | Left | Field access, calls, indexing |
-| 13 | `!` `~` `-` (unary) | Right | Logical/bitwise NOT, negation |
+| 13 | `!` `-` (unary) | Right | Logical NOT, negation |
 | 12 | `*` `/` `%` | Left | Multiplicative |
-| 11 | `+` `-` `++` | Left/Right | Additive, concatenation |
-| 10 | `<<` `>>` | Left | Shift / Composition |
+| 11 | `+` `-` `&` | Left | Additive, string concatenation |
 | 9 | `<` `<=` `>` `>=` | Left | Comparison |
 | 8 | `==` `!=` | Left | Equality |
-| 7 | `&` | Left | Bitwise AND |
-| 6 | `|` | Left | Bitwise OR |
 | 5 | `&&` | Left | Logical AND |
 | 4 | `||` | Left | Logical OR |
 | 3 | `::` | Right | List cons |
@@ -238,8 +235,6 @@ type BinaryOp =
     | 'Equal' | 'NotEqual' | 'LessThan' | 'LessEqual' | 'GreaterThan' | 'GreaterEqual'
     // Logical
     | 'LogicalAnd' | 'LogicalOr'
-    // Bitwise
-    | 'BitwiseAnd' | 'BitwiseOr' | 'LeftShift' | 'RightShift'
     // String
     | 'Concat'
     // List
@@ -252,7 +247,6 @@ type BinaryOp =
 type UnaryOp =
     | 'Negate'       // -x
     | 'LogicalNot'   // !x
-    | 'BitwiseNot'   // ~x
     | 'Deref'        // !x (in ref context)
 ```
 
