@@ -880,11 +880,162 @@ describe("Parser - Expressions", () => {
     });
 
     describe("lambda expressions", () => {
-        it.todo("will be added in Phase 4c");
+        it("should parse lambda with no parameters", () => {
+            const expr = parseExpression("() => 42");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [],
+                body: { kind: "IntLit", value: 42 },
+            });
+        });
+
+        it("should parse lambda with one parameter", () => {
+            const expr = parseExpression("(x) => x + 1");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x" }],
+                body: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "x" },
+                    right: { kind: "IntLit", value: 1 },
+                },
+            });
+        });
+
+        it("should parse lambda with multiple parameters", () => {
+            const expr = parseExpression("(x, y) => x + y");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [
+                    { kind: "VarPattern", name: "x" },
+                    { kind: "VarPattern", name: "y" },
+                ],
+                body: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "x" },
+                    right: { kind: "Var", name: "y" },
+                },
+            });
+        });
+
+        it("should parse lambda with complex body", () => {
+            const expr = parseExpression("(x, y, z) => x * y + z");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [
+                    { kind: "VarPattern", name: "x" },
+                    { kind: "VarPattern", name: "y" },
+                    { kind: "VarPattern", name: "z" },
+                ],
+                body: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: {
+                        kind: "BinOp",
+                        op: "Multiply",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "Var", name: "y" },
+                    },
+                    right: { kind: "Var", name: "z" },
+                },
+            });
+        });
+
+        it("should parse nested lambdas", () => {
+            const expr = parseExpression("(x) => (y) => x + y");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x" }],
+                body: {
+                    kind: "Lambda",
+                    params: [{ kind: "VarPattern", name: "y" }],
+                    body: {
+                        kind: "BinOp",
+                        op: "Add",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "Var", name: "y" },
+                    },
+                },
+            });
+        });
+
+        it("should parse lambda as function argument", () => {
+            const expr = parseExpression("map((x) => x * 2, list)");
+
+            expect(expr).toMatchObject({
+                kind: "App",
+                func: { kind: "Var", name: "map" },
+                args: [
+                    {
+                        kind: "Lambda",
+                        params: [{ kind: "VarPattern", name: "x" }],
+                        body: {
+                            kind: "BinOp",
+                            op: "Multiply",
+                            left: { kind: "Var", name: "x" },
+                            right: { kind: "IntLit", value: 2 },
+                        },
+                    },
+                    { kind: "Var", name: "list" },
+                ],
+            });
+        });
+
+        it("should parse lambda with function call in body", () => {
+            const expr = parseExpression("(x) => foo(x)");
+
+            expect(expr).toMatchObject({
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x" }],
+                body: {
+                    kind: "App",
+                    func: { kind: "Var", name: "foo" },
+                    args: [{ kind: "Var", name: "x" }],
+                },
+            });
+        });
+
+        it("should distinguish lambda from parenthesized variable", () => {
+            const lambdaExpr = parseExpression("(x) => x");
+            const parenExpr = parseExpression("(x)");
+
+            expect(lambdaExpr).toMatchObject({
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x" }],
+                body: { kind: "Var", name: "x" },
+            });
+
+            expect(parenExpr).toMatchObject({
+                kind: "Var",
+                name: "x",
+            });
+        });
+
+        it("should distinguish lambda from unit literal", () => {
+            const lambdaExpr = parseExpression("() => 42");
+            const unitExpr = parseExpression("()");
+
+            expect(lambdaExpr).toMatchObject({
+                kind: "Lambda",
+                params: [],
+                body: { kind: "IntLit", value: 42 },
+            });
+
+            expect(unitExpr).toMatchObject({
+                kind: "UnitLit",
+            });
+        });
     });
 
     describe("control flow", () => {
-        it.todo("will be added in Phase 4");
+        it.todo("will be added in Phase 4d");
     });
 
     describe("data structures", () => {

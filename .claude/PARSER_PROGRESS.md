@@ -296,14 +296,63 @@ This document tracks the implementation progress of the vibefun parser through i
 ## Phase 4c: Lambda Expressions
 
 **Time Estimate:** 45 minutes
-**Actual Time:** _Not started_
-**Status:** 🔜 Not Started
+**Actual Time:** ~40 minutes
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `parseLambda()` - lambda expressions
-- [ ] Parse lambda parameters (patterns)
-- [ ] Parse lambda body
-- [ ] Write lambda tests
+- [x] Implement lambda expression parsing
+- [x] Parse lambda parameters (simple variable patterns)
+- [x] Parse lambda body
+- [x] Write lambda tests
+- [x] Distinguish lambdas from parenthesized expressions
+
+### Deliverables
+- Lambda expression parsing complete
+- 9 new lambda expression tests
+- `src/parser/parser.ts` extended with lambda parsing (~650 lines total)
+- `src/parser/expressions.test.ts` (84 tests passing + 2 todo)
+
+### Acceptance Criteria
+- [x] Lambdas with no parameters parse correctly: `() => 42`
+- [x] Lambdas with one parameter parse correctly: `(x) => x + 1`
+- [x] Lambdas with multiple parameters parse correctly: `(x, y) => x + y`
+- [x] Lambda body can be any expression
+- [x] Nested lambdas work: `(x) => (y) => x + y`
+- [x] Lambdas work as function arguments: `map((x) => x * 2, list)`
+- [x] Correctly distinguishes `(x) => x` (lambda) from `(x)` (parenthesized var)
+- [x] Correctly distinguishes `() => 42` (lambda) from `()` (unit literal)
+- [x] All tests passing (487 total: 84 expression tests + 403 existing)
+- [x] All npm run verify checks pass
+
+### Notes
+- Lambda syntax: `(param1, param2, ...) => body`
+- Implemented as part of `parsePrimary()` with lookahead to distinguish from parenthesized expressions
+- Uses lookahead strategy to determine if `(` starts a lambda or parenthesized expression:
+  - `() =>` → lambda with no params
+  - `(x) =>` → lambda with one param
+  - `(x, y) =>` → lambda with multiple params
+  - `(x)` → parenthesized variable
+  - `(x + y)` → parenthesized expression
+- Lookahead logic:
+  - When seeing `(`, check first token inside
+  - If `RPAREN` immediately: check for `=>` after to distinguish `() =>` from `()`
+  - If `IDENTIFIER`:
+    - Peek at next token after identifier
+    - If `)`, peek further for `=>` to distinguish `(x) =>` from `(x)`
+    - If `,`, it's lambda params `(x, y, ...)`
+    - Otherwise, parse as parenthesized expression
+  - Otherwise, parse as parenthesized expression
+- For now, lambda parameters are simple VarPattern (identifiers only)
+- Full pattern support will be added in Phase 5
+- Test coverage:
+  - No parameters: `() => 42`
+  - Single parameter: `(x) => x + 1`
+  - Multiple parameters: `(x, y) => x + y`
+  - Complex body: `(x, y, z) => x * y + z`
+  - Nested lambdas: `(x) => (y) => x + y`
+  - As function argument: `map((x) => x * 2, list)`
+  - With function call in body: `(x) => foo(x)`
+  - Distinction tests: lambda vs parenthesized var, lambda vs unit literal
 
 ---
 

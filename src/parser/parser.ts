@@ -595,21 +595,110 @@ export class Parser {
             };
         }
 
-        // Unit literal: ()
+        // Lambda, unit literal, or parenthesized expression
         if (this.check("LPAREN")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume (
 
-            // Check for closing paren immediately (unit literal)
+            // Check for closing paren immediately
             if (this.check("RPAREN")) {
                 this.advance(); // consume )
+
+                // Check if it's a lambda: () => expr
+                if (this.check("FAT_ARROW")) {
+                    this.advance(); // consume =>
+                    const body = this.parseExpression();
+                    return {
+                        kind: "Lambda",
+                        params: [],
+                        body,
+                        loc: startLoc,
+                    };
+                }
+
+                // Otherwise, it's a unit literal
                 return {
                     kind: "UnitLit",
                     loc: startLoc,
                 };
             }
 
-            // Otherwise, it's a parenthesized expression
+            // Lookahead to distinguish lambda from parenthesized expression
+            // Lambda: (id) => or (id, id, ...) =>
+            // Paren expr: (expr)
+            //
+            // Strategy: If we see identifier, peek ahead to see if next is ) or ,
+            // - If ), peek ahead again for =>
+            // - If ,, it must be lambda parameters
+            // - Otherwise, it's a parenthesized expression
+
+            if (this.check("IDENTIFIER")) {
+                const nextToken = this.peek(1);
+
+                // Check if it looks like lambda parameters
+                if (nextToken.type === "RPAREN") {
+                    // Could be (x) => or (x)
+                    // Need to check if there's => after the )
+                    const afterParen = this.peek(2);
+                    if (afterParen.type === "FAT_ARROW") {
+                        // It's a lambda: (x) => expr
+                        const param = {
+                            kind: "VarPattern" as const,
+                            name: this.advance().value as string,
+                            loc: this.peek(-1).loc,
+                        };
+                        this.expect("RPAREN");
+                        this.expect("FAT_ARROW");
+                        const body = this.parseExpression();
+                        return {
+                            kind: "Lambda",
+                            params: [param],
+                            body,
+                            loc: startLoc,
+                        };
+                    } else {
+                        // It's a parenthesized variable: (x)
+                        const name = this.advance().value as string;
+                        const varLoc = this.peek(-1).loc;
+                        this.expect("RPAREN");
+                        return {
+                            kind: "Var",
+                            name,
+                            loc: varLoc,
+                        };
+                    }
+                } else if (nextToken.type === "COMMA") {
+                    // It's lambda parameters: (x, y, ...) => expr
+                    const params: Pattern[] = [];
+                    params.push({
+                        kind: "VarPattern",
+                        name: this.advance().value as string,
+                        loc: this.peek(-1).loc,
+                    });
+
+                    while (this.match("COMMA")) {
+                        const nameToken = this.expect("IDENTIFIER", "Expected parameter name after comma");
+                        params.push({
+                            kind: "VarPattern",
+                            name: nameToken.value as string,
+                            loc: nameToken.loc,
+                        });
+                    }
+
+                    this.expect("RPAREN", "Expected closing parenthesis after parameters");
+                    this.expect("FAT_ARROW", "Expected '=>' after lambda parameters");
+
+                    const body = this.parseExpression();
+                    return {
+                        kind: "Lambda",
+                        params,
+                        body,
+                        loc: startLoc,
+                    };
+                }
+            }
+
+            // Not a lambda, parse as parenthesized expression
             const expr = this.parseExpression();
             this.expect("RPAREN", "Expected closing parenthesis");
             return expr;
