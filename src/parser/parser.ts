@@ -5,7 +5,17 @@
  * Uses recursive descent parsing with operator precedence climbing for expressions.
  */
 
-import type { Declaration, Expr, Location, MatchCase, Module, Pattern, RecordField, TypeExpr } from "../types/index.js";
+import type {
+    Declaration,
+    Expr,
+    Location,
+    MatchCase,
+    Module,
+    Pattern,
+    RecordField,
+    RecordPatternField,
+    TypeExpr,
+} from "../types/index.js";
 import type { Token, TokenType } from "../types/token.js";
 
 import { ParserError } from "../utils/index.js";
@@ -758,34 +768,15 @@ export class Parser {
             const cases: MatchCase[] = [];
 
             // Parse match cases
+            // Skip any leading newlines
+            while (this.match("NEWLINE"));
+
             // First case can optionally start with |
             this.match("PIPE");
 
             while (!this.check("RBRACE") && !this.isAtEnd()) {
-                // For now, parse simple variable pattern (Phase 5 will add full patterns)
-                // Simple pattern: identifier or wildcard (_)
-                let pattern: Pattern;
-
-                if (this.check("IDENTIFIER")) {
-                    const token = this.advance();
-                    const name = token.value as string;
-
-                    // Check if it's wildcard
-                    if (name === "_") {
-                        pattern = {
-                            kind: "WildcardPattern",
-                            loc: token.loc,
-                        };
-                    } else {
-                        pattern = {
-                            kind: "VarPattern",
-                            name,
-                            loc: token.loc,
-                        };
-                    }
-                } else {
-                    throw this.error("Expected pattern in match case", this.peek().loc);
-                }
+                // Parse pattern (full pattern support in Phase 5)
+                const pattern = this.parsePattern();
 
                 // Optional guard: when expr
                 let guard: Expr | undefined;
@@ -974,11 +965,211 @@ export class Parser {
     }
 
     // =========================================================================
-    // Pattern Parsing (Stubs)
+    // Pattern Parsing
     // =========================================================================
 
+    /**
+     * Parse a pattern (with or-pattern support)
+     * Syntax: pattern ('|' pattern)*
+     */
     parsePattern(): Pattern {
-        throw this.error("Not implemented: parsePattern", this.peek().loc);
+        const patterns: Pattern[] = [this.parsePrimaryPattern()];
+
+        // Or patterns: pattern1 | pattern2 | pattern3
+        // Need to be careful not to consume case separators in match expressions
+        // The caller (match expression) will handle case separators
+        while (this.check("PIPE")) {
+            // Lookahead to distinguish or-pattern from case separator
+            // If next token after PIPE can start a pattern, it's an or-pattern
+            // Otherwise, it's a case separator (let match handle it)
+            const nextToken = this.peek(1);
+            if (
+                nextToken.type === "IDENTIFIER" ||
+                nextToken.type === "INT_LITERAL" ||
+                nextToken.type === "FLOAT_LITERAL" ||
+                nextToken.type === "STRING_LITERAL" ||
+                nextToken.type === "KEYWORD" ||
+                nextToken.type === "LBRACE" ||
+                nextToken.type === "LBRACKET"
+            ) {
+                this.advance(); // consume |
+                patterns.push(this.parsePrimaryPattern());
+            } else {
+                break; // Not an or-pattern, stop
+            }
+        }
+
+        if (patterns.length === 1) {
+            return patterns[0]!;
+        }
+
+        return {
+            kind: "OrPattern",
+            patterns,
+            loc: patterns[0]!.loc,
+        };
+    }
+
+    /**
+     * Parse a primary pattern (non-or)
+     */
+    private parsePrimaryPattern(): Pattern {
+        const startLoc = this.peek().loc;
+
+        // Wildcard pattern: _
+        if (this.check("IDENTIFIER") && this.peek().value === "_") {
+            this.advance();
+            return { kind: "WildcardPattern", loc: startLoc };
+        }
+
+        // Literal patterns: numbers, strings, booleans, null
+        if (this.check("INT_LITERAL") || this.check("FLOAT_LITERAL")) {
+            const token = this.advance();
+            const literal = token.value as number;
+            return { kind: "LiteralPattern", literal, loc: startLoc };
+        }
+
+        if (this.check("STRING_LITERAL")) {
+            const token = this.advance();
+            const literal = token.value as string;
+            return { kind: "LiteralPattern", literal, loc: startLoc };
+        }
+
+        if (this.check("BOOL_LITERAL")) {
+            const token = this.advance();
+            const literal = token.value as boolean;
+            return { kind: "LiteralPattern", literal, loc: startLoc };
+        }
+
+        // Constructor pattern or variable pattern
+        if (this.check("IDENTIFIER")) {
+            const nameToken = this.advance();
+            const name = nameToken.value as string;
+
+            // Check for null literal
+            if (name === "null") {
+                return { kind: "LiteralPattern", literal: null, loc: startLoc };
+            }
+
+            // Constructor pattern: PascalCase identifier followed by (
+            // Variable pattern: camelCase identifier (or PascalCase without args)
+            const isPascalCase = name.length > 0 && name[0]! >= "A" && name[0]! <= "Z";
+
+            if (isPascalCase && this.check("LPAREN")) {
+                // Constructor pattern with arguments: Constructor(arg1, arg2, ...)
+                this.advance(); // consume (
+
+                const args: Pattern[] = [];
+
+                if (!this.check("RPAREN")) {
+                    do {
+                        args.push(this.parsePattern());
+                    } while (this.match("COMMA"));
+                }
+
+                this.expect("RPAREN", "Expected ')' after constructor pattern arguments");
+
+                return {
+                    kind: "ConstructorPattern",
+                    constructor: name,
+                    args,
+                    loc: startLoc,
+                };
+            }
+
+            // Variable pattern (including PascalCase without args - treated as variable)
+            return { kind: "VarPattern", name, loc: startLoc };
+        }
+
+        // Record pattern: { field1, field2: pattern, ... }
+        if (this.check("LBRACE")) {
+            this.advance(); // consume {
+
+            const fields: RecordPatternField[] = [];
+
+            if (!this.check("RBRACE")) {
+                do {
+                    const fieldNameToken = this.expect("IDENTIFIER", "Expected field name in record pattern");
+                    const fieldName = fieldNameToken.value as string;
+
+                    // Check for field rename: { field: pattern }
+                    if (this.match("COLON")) {
+                        const pattern = this.parsePattern();
+                        fields.push({
+                            name: fieldName,
+                            pattern,
+                            loc: fieldNameToken.loc,
+                        });
+                    } else {
+                        // Field binding: { field } is shorthand for { field: field }
+                        fields.push({
+                            name: fieldName,
+                            pattern: { kind: "VarPattern", name: fieldName, loc: fieldNameToken.loc },
+                            loc: fieldNameToken.loc,
+                        });
+                    }
+                } while (this.match("COMMA"));
+            }
+
+            this.expect("RBRACE", "Expected '}' after record pattern");
+
+            return { kind: "RecordPattern", fields, loc: startLoc };
+        }
+
+        // List pattern: [elem1, elem2, ...rest]
+        if (this.check("LBRACKET")) {
+            this.advance(); // consume [
+
+            const elements: Pattern[] = [];
+            let rest: Pattern | undefined;
+
+            if (!this.check("RBRACKET")) {
+                while (true) {
+                    // Check for rest pattern: ...rest or ..._
+                    if (this.check("DOT_DOT_DOT")) {
+                        this.advance(); // consume ...
+
+                        // Parse rest pattern (can be variable or wildcard)
+                        rest = this.parsePrimaryPattern();
+
+                        // Rest must be the last element
+                        break;
+                    }
+
+                    elements.push(this.parsePattern());
+
+                    if (!this.match("COMMA")) {
+                        break;
+                    }
+                }
+            }
+
+            this.expect("RBRACKET", "Expected ']' after list pattern");
+
+            const listPattern: {
+                kind: "ListPattern";
+                elements: Pattern[];
+                rest?: Pattern;
+                loc: Location;
+            } = {
+                kind: "ListPattern",
+                elements,
+                loc: startLoc,
+            };
+
+            // Only add rest if it exists (exactOptionalPropertyTypes)
+            if (rest !== undefined) {
+                listPattern.rest = rest;
+            }
+
+            return listPattern;
+        }
+
+        throw this.error(
+            "Expected pattern",
+            startLoc,
+            "Expected a pattern (variable, wildcard, literal, constructor, record, or list)",
+        );
     }
 
     // =========================================================================

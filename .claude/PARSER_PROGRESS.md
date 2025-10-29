@@ -563,39 +563,83 @@ _To be filled during implementation_
 ## Phase 5: Patterns
 
 **Time Estimate:** 1.5 hours
-**Actual Time:** _Not started_
-**Status:** 🔜 Not Started
+**Actual Time:** ~1 hour
+**Status:** ✅ Done
 
 ### Tasks
-- [ ] Implement `parsePattern()` - main pattern parser
-- [ ] Parse variable patterns (identifiers)
-- [ ] Parse wildcard pattern (_)
-- [ ] Parse literal patterns (numbers, strings, bools)
-- [ ] Implement `parseConstructorPattern()` - variant constructors
-- [ ] Handle nested constructor patterns
-- [ ] Implement `parseRecordPattern()` - record destructuring
-- [ ] Implement `parseListPattern()` - list destructuring
-- [ ] Parse list patterns with rest (...rest)
-- [ ] Implement or patterns (pattern1 | pattern2)
-- [ ] Write tests for each pattern type
-- [ ] Write tests for nested patterns
-- [ ] Write tests for pattern edge cases
+- [x] Implement `parsePattern()` - main pattern parser with or-pattern support
+- [x] Implement `parsePrimaryPattern()` - all non-or patterns
+- [x] Parse variable patterns (identifiers)
+- [x] Parse wildcard pattern (_)
+- [x] Parse literal patterns (numbers, strings, bools, null)
+- [x] Implement constructor patterns - PascalCase with args
+- [x] Handle nested constructor patterns
+- [x] Implement record patterns - record destructuring with field bindings and renames
+- [x] Implement list patterns - list destructuring with elements
+- [x] Parse list patterns with rest (...rest and ..._)
+- [x] Implement or patterns (pattern1 | pattern2)
+- [x] Update match expressions to use new parsePattern()
+- [x] Write tests for each pattern type (41 tests total)
+- [x] Write tests for nested patterns
+- [x] Write tests in match expressions
+- [x] Add RecordPatternField to imports
 
 ### Deliverables
-- All pattern types implemented
-- Support for nested patterns
-- `src/parser/patterns.test.ts` complete (50+ tests)
+- All 7 pattern types fully implemented (VarPattern, WildcardPattern, LiteralPattern, ConstructorPattern, RecordPattern, ListPattern, OrPattern)
+- Support for deeply nested patterns
+- Match expressions now support full pattern matching
+- `src/parser/patterns.test.ts` complete (41 tests passing)
+- `src/parser/parser.ts` extended with ~210 lines of pattern parsing (~1190 lines total)
 
 ### Acceptance Criteria
-- [ ] All pattern types parse correctly
-- [ ] Constructor patterns support nesting
-- [ ] Record patterns support field renaming
-- [ ] List patterns support rest elements
-- [ ] Or patterns work correctly
-- [ ] All tests passing
+- [x] All pattern types parse correctly
+- [x] Constructor patterns support nesting and PascalCase detection
+- [x] Record patterns support field renaming and shorthand bindings
+- [x] List patterns support rest elements with DOT_DOT_DOT token
+- [x] Or patterns work with lookahead to distinguish from case separators
+- [x] Literal patterns handle all literal types (int, float, string, bool, null)
+- [x] All tests passing (555 total: 41 pattern tests + 514 existing)
+- [x] All npm run verify checks pass
 
 ### Notes
-_To be filled during implementation_
+**Pattern Types Implemented:**
+1. **VarPattern** - Simple variable binding (e.g., `x`, `name`)
+2. **WildcardPattern** - Underscore wildcard (e.g., `_`)
+3. **LiteralPattern** - Literal values (e.g., `42`, `"hello"`, `true`, `null`)
+4. **ConstructorPattern** - Variant constructors (e.g., `Some(x)`, `Point(x, y)`)
+5. **RecordPattern** - Record destructuring (e.g., `{ x, y: newY }`)
+6. **ListPattern** - List destructuring (e.g., `[x, y, ...rest]`)
+7. **OrPattern** - Multiple alternatives (e.g., `"pending" | "loading"`)
+
+**Implementation Strategy:**
+- Two-level parsing: `parsePattern()` handles or-patterns, `parsePrimaryPattern()` handles everything else
+- Or-pattern lookahead: Checks if PIPE token is followed by pattern-starting tokens
+- Constructor detection: Uses PascalCase check (first char A-Z) + LPAREN lookahead
+- Rest pattern: Uses DOT_DOT_DOT token (not three DOT tokens)
+- Literal handling: BOOL_LITERAL for true/false, IDENTIFIER for null
+- Record field shorthand: `{ x }` expands to `{ x: x }` (VarPattern)
+- Match integration: Updated match expression parsing to call `parsePattern()` instead of inline parsing
+
+**Token Fixes:**
+- Fixed true/false: Changed from KEYWORD to BOOL_LITERAL tokens
+- Fixed null: Handled as IDENTIFIER with value "null"
+- Fixed rest: Changed from three DOT tokens to DOT_DOT_DOT token
+- Fixed newlines: Added newline skipping after LBRACE in match expressions
+
+**Test Coverage (41 tests):**
+- Simple patterns: 8 tests (var, wildcard, int, float, string, true, false, null)
+- Constructor patterns: 7 tests (no args, one arg, multiple args, nested, wildcard arg, literal arg, PascalCase without parens)
+- Record patterns: 7 tests (empty, single field, multiple fields, rename, mixed, nested, wildcard)
+- List patterns: 9 tests (empty, single, multiple, rest, wildcard rest, only rest, literals, constructors, nested)
+- Or patterns: 5 tests (two alternatives, three alternatives, literals, strings, constructors)
+- Match expressions: 5 tests (literal patterns, constructor patterns, list patterns, record patterns, or patterns)
+
+**Technical Details:**
+- Used non-null assertions (!) for TypeScript strict mode
+- exactOptionalPropertyTypes handled for optional rest field
+- PascalCase detection with bounds checking
+- Recursive pattern parsing for nested patterns
+- Lookahead for or-patterns vs case separators
 
 ---
 
