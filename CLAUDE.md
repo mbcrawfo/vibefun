@@ -225,6 +225,6 @@ vibefun run src/main.vf            # Compile and run
 - **[.claude/plans/compiler-architecture.md](./.claude/plans/compiler-architecture.md)** - Compiler pipeline design
 - **[.claude/plans/lexer-implementation.md](./.claude/plans/lexer-implementation.md)** - Detailed lexer implementation plan
 
-### Development Resources
-- **[.claude/CODING_STANDARDS.md](./.claude/CODING_STANDARDS.md)** - Project coding standards and conventions
-- **[.claude/DOCUMENTATION_RULES.md](./.claude/DOCUMENTATION_RULES.md)** - Rules for maintaining CLAUDE.md
+# Additional Instructions
+- Documentation Rules @.claude/DOCUMENTATION_RULES.md
+- Coding Standards @.claude/CODING_STANDARDS.md
