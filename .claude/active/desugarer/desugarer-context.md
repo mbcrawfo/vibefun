@@ -107,11 +107,17 @@ This document captures key context, files, and design decisions for the desugare
 3. Pipe operator
 4. Function composition
 5. List literals
-6. List cons operator
-7. Record updates
-8. If-then-else
-9. Or-patterns
-10. Module-level
+6. List spread in expressions
+7. List cons operator
+8. List patterns
+9. Record updates (pipe syntax only)
+10. If-then-else
+11. Or-patterns
+12. Mutable references (pass through)
+13. Type annotations (pass through)
+14. Unsafe blocks (desugar contents)
+15. External blocks (to multiple externals)
+16. Module-level
 
 **Rationale:**
 - Complete desugaring phase before type checker work
@@ -161,6 +167,8 @@ After desugaring, Core AST contains only:
 ❌ Pipe operator: `a |> f |> g`
 ❌ Composition: `f >> g`, `f << g`
 ❌ List literals: `[1, 2, 3]`
+❌ List spread in expressions: `[1, ...xs, 2]`
+❌ List patterns: `[x, ...rest]` (desugared to Cons patterns)
 ❌ Cons operator: `x :: xs`
 ❌ Record updates: `{ record | field: value }`
 ❌ Block expressions: `{ stmt1; stmt2; expr }`
@@ -180,10 +188,16 @@ Quick reference for each transformation:
 | `a \|> f \|> g` | `g(f(a))` | Medium |
 | `f >> g` | `(x) => g(f(x))` | Medium |
 | `[1, 2, 3]` | `Cons(1, Cons(2, Cons(3, Nil)))` | Low |
+| `[1, ...xs, 2]` | `Cons(1, concat(xs, Cons(2, Nil)))` | Medium |
 | `x :: xs` | `Cons(x, xs)` | Low |
+| `[x, ...rest]` (pattern) | `Cons(x, rest)` (pattern) | Low |
 | `{ r \| f: v }` | `{ ...r, f: v }` (spread) | Medium |
 | `if c then a else b` | `match c { true => a \| false => b }` | Low |
 | `"a" \| "b" => x` | `"a" => x; "b" => x` | Medium |
+| `let mut x = ...` | Pass through (preserve mutability) | Low |
+| `(expr : Type)` | Pass through (preserve annotation) | Low |
+| `unsafe { ... }` | Desugar contents, keep boundary | Low |
+| `external { ... }` | Multiple separate externals | Low |
 
 ---
 
@@ -430,13 +444,11 @@ export { DesugarError } from './desugarer.js';
 
 **Future Refinement:** May need to revisit during type checker integration if we need explicit field listing.
 
-### 2. List Pattern Desugaring Decision
+### 2. List Pattern Desugaring Decision ✅ RESOLVED
 
-**Question:** Should `[x, ...rest]` patterns be kept or desugared to Cons patterns?
+**Decision:** Desugar `[x, ...rest]` patterns to `CoreVariantPattern("Cons", [x, rest])` for uniformity.
 
-**Current Decision:** Keep as `CoreListPattern` for clarity and natural code generation.
-
-**Alternative:** Desugar to `CoreVariantPattern("Cons", [x, rest])` if type checker needs uniformity.
+**Rationale:** Type checker and code generator only need to handle variant patterns. Simpler and more consistent Core AST.
 
 ### 3. Source Location for Generated Code
 
@@ -534,6 +546,43 @@ Keep commits focused and atomic.
 
 ---
 
+## Resolved Design Questions
+
+### List Spread in Expressions ✅
+
+**Decision:** Support list spread in expressions (`[1, ...xs, 2]`)
+
+**Implementation:**
+- Add spread support to List AST node
+- Desugar to cons chains with concat for multiple segments
+- Simple spread at end just uses the spread value as tail
+
+### Record Update Syntax ✅
+
+**Decision:** Only support pipe syntax `{ record | field: value }`
+
+**Rationale:**
+- Single, clear syntax
+- Remove spread syntax `{ ...record, field: value }` from spec
+- Simpler parser and desugarer
+
+### Mutable References ✅
+
+**Decision:** Include as pass-through transformations in initial implementation
+
+**Handling:**
+- `Let` with `mutable: true` → `CoreLet` with `mutable: true`
+- `RefAssign` and `Deref` operators preserved in Core AST
+- Type checker needs mutability information
+
+### External Blocks ✅
+
+**Decision:** Desugar to multiple individual `CoreExternal` declarations
+
+**Rationale:** Simpler Core AST, easier for type checker to process
+
+---
+
 ## Questions & Answers
 
 ### Q: Why separate Core AST instead of reusing same types?
@@ -558,4 +607,4 @@ Keep commits focused and atomic.
 
 ---
 
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-10-29 (Updated with gap analysis resolutions)

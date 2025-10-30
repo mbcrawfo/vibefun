@@ -9,7 +9,7 @@ This document tracks implementation progress for the desugarer phase.
 
 ## Overall Progress
 
-**Phases Completed:** 0 / 12 (0%)
+**Phases Completed:** 0 / 17 (0%)
 
 **Status Legend:**
 - 🔜 Not Started
@@ -295,7 +295,104 @@ npm test packages/core/src/desugarer/lists.test.ts
 
 ---
 
-## Phase 8: Record Update 🔜
+## Phase 8: List Spread in Expressions 🔜
+
+**Status:** 🔜 Not Started
+**Estimated Time:** 2 hours
+
+### Tasks
+
+- [ ] Update `List` AST type to support spread elements
+- [ ] Update parser to handle spread syntax in list expressions
+- [ ] Implement list spread desugaring in `desugar()`
+- [ ] Handle spread at end: `[1, 2, ...rest]` → `Cons(1, Cons(2, rest))`
+- [ ] Handle spread at beginning: `[...xs, 1]` → needs concat
+- [ ] Handle multiple spreads: `[...xs, 1, ...ys]` → needs concat
+- [ ] Handle single spread: `[...xs]` → just `xs`
+- [ ] Use `concat` stdlib function for multi-segment lists
+- [ ] Recursively desugar list elements and spread expressions
+- [ ] Preserve source locations
+- [ ] Add tests to `packages/core/src/desugarer/lists.test.ts`
+- [ ] Test spread at end
+- [ ] Test spread at beginning
+- [ ] Test multiple spreads
+- [ ] Test single spread
+- [ ] Test nested lists with spreads
+- [ ] Test complex expressions in spreads
+
+### Example
+
+```vibefun
+// Input:
+[1, 2, ...rest]
+
+// Output:
+Cons(1, Cons(2, rest))
+
+// Input:
+[...xs, 1, ...ys]
+
+// Output:
+concat(xs, Cons(1, concat(ys, Nil)))
+```
+
+### Verification
+
+```bash
+npm test packages/core/src/desugarer/lists.test.ts
+```
+
+---
+
+## Phase 9: List Pattern Desugaring 🔜
+
+**Status:** 🔜 Not Started
+**Estimated Time:** 2 hours
+
+### Tasks
+
+- [ ] Implement list pattern desugaring in `desugarPattern()`
+- [ ] Handle empty list pattern: `[]` → `Nil`
+- [ ] Handle single element: `[x]` → `Cons(x, Nil)`
+- [ ] Handle multiple elements: `[x, y, z]` → nested Cons ending in Nil
+- [ ] Handle rest pattern: `[x, ...rest]` → `Cons(x, rest)`
+- [ ] Handle just rest: `[...rest]` → `rest` (variable pattern)
+- [ ] Recursively desugar nested patterns
+- [ ] Preserve source locations
+- [ ] Add tests to `packages/core/src/desugarer/patterns.test.ts`
+- [ ] Test empty list pattern
+- [ ] Test single element pattern
+- [ ] Test multi-element pattern
+- [ ] Test pattern with rest
+- [ ] Test just rest pattern
+- [ ] Test nested list patterns
+- [ ] Test complex nested patterns (e.g., `[[x, y], z]`)
+
+### Example
+
+```vibefun
+// Input:
+match list {
+    | [] => 0
+    | [x, ...rest] => x + sum(rest)
+}
+
+// Output (Core AST):
+match list {
+    | Nil => 0
+    | Cons(x, rest) => x + sum(rest)
+}
+```
+
+### Verification
+
+```bash
+npm test packages/core/src/desugarer/patterns.test.ts
+```
+
+---
+
+## Phase 10: Record Update 🔜
 
 **Status:** 🔜 Not Started
 **Estimated Time:** 2 hours
@@ -337,7 +434,7 @@ npm test packages/core/src/desugarer/records.test.ts
 
 ---
 
-## Phase 9: If-Then-Else 🔜
+## Phase 11: If-Then-Else 🔜
 
 **Status:** 🔜 Not Started
 **Estimated Time:** 1.5 hours
@@ -382,7 +479,7 @@ npm test packages/core/src/desugarer/conditionals.test.ts
 
 ---
 
-## Phase 10: Or-Pattern Expansion 🔜
+## Phase 12: Or-Pattern Expansion 🔜
 
 **Status:** 🔜 Not Started
 **Estimated Time:** 2 hours
@@ -432,7 +529,88 @@ npm test packages/core/src/desugarer/patterns.test.ts
 
 ---
 
-## Phase 11: Module-Level Desugaring 🔜
+## Phase 13: Pass-Through Transformations 🔜
+
+**Status:** 🔜 Not Started
+**Estimated Time:** 2 hours
+
+### Tasks
+
+#### Mutable References
+- [ ] Implement pass-through for `Let` with `mutable: true`
+- [ ] Implement pass-through for `RefAssign` operator
+- [ ] Implement pass-through for `Deref` unary operator
+- [ ] Desugar operands while preserving operators
+- [ ] Add tests for mutable let bindings
+- [ ] Add tests for reference assignment
+- [ ] Add tests for dereference
+
+#### Type Annotations
+- [ ] Implement pass-through for `TypeAnnotation` expressions
+- [ ] Desugar annotated expression, preserve type
+- [ ] Add tests for simple type annotations
+- [ ] Add tests for complex nested annotations
+- [ ] Add tests for annotations on desugared expressions
+
+#### Unsafe Blocks
+- [ ] Implement `Unsafe` expression handling
+- [ ] Desugar inner expression (may be block, if, etc.)
+- [ ] Wrap in `CoreUnsafe` node
+- [ ] Preserve unsafe boundary location
+- [ ] Add tests for unsafe with simple expressions
+- [ ] Add tests for unsafe with blocks
+- [ ] Add tests for unsafe with complex expressions
+- [ ] Add tests for nested unsafe blocks
+
+#### External Blocks
+- [ ] Implement `ExternalBlock` declaration handling
+- [ ] Extract individual external declarations
+- [ ] Create separate `CoreExternal` for each
+- [ ] Preserve types and JavaScript paths
+- [ ] Maintain declaration order
+- [ ] Add tests for external blocks
+- [ ] Add tests for single external in block
+- [ ] Add tests for multiple externals in block
+- [ ] Add tests for external blocks with overloaded functions
+
+### Example
+
+```vibefun
+// Mutable References - Pass Through
+let mut x = ref(42)
+x := 50
+!x
+
+// Type Annotations - Pass Through (desugar expr)
+(x + y : Int)
+
+// Unsafe Blocks - Desugar contents
+unsafe {
+    let x = jsCall()
+    x + 1
+}
+// Becomes:
+CoreUnsafe(let x = jsCall() in (x + 1))
+
+// External Blocks - Expand to multiple
+external {
+    log: (String) -> Unit = "console.log"
+    warn: (String) -> Unit = "console.warn"
+}
+// Becomes:
+CoreExternal("log", ...)
+CoreExternal("warn", ...)
+```
+
+### Verification
+
+```bash
+npm test -w @vibefun/core
+```
+
+---
+
+## Phase 14: Module-Level Desugaring 🔜
 
 **Status:** 🔜 Not Started
 **Estimated Time:** 1.5 hours
@@ -464,7 +642,7 @@ npm test -w @vibefun/core
 
 ---
 
-## Phase 12: Integration & Documentation 🔜
+## Phase 15: Integration & Documentation 🔜
 
 **Status:** 🔜 Not Started
 **Estimated Time:** 3 hours
@@ -558,13 +736,16 @@ _(Document any deviations from the original plan)_
 | Phase 5: Pipes | 1.5h | - | 🔜 |
 | Phase 6: Composition | 2h | - | 🔜 |
 | Phase 7: Lists | 1.5h | - | 🔜 |
-| Phase 8: Records | 2h | - | 🔜 |
-| Phase 9: If-Else | 1.5h | - | 🔜 |
-| Phase 10: Or-Patterns | 2h | - | 🔜 |
-| Phase 11: Modules | 1.5h | - | 🔜 |
-| Phase 12: Integration | 3h | - | 🔜 |
-| **TOTAL** | **22-25h** | **-** | **0%** |
+| Phase 8: List Spread | 2h | - | 🔜 |
+| Phase 9: List Patterns | 2h | - | 🔜 |
+| Phase 10: Records | 2h | - | 🔜 |
+| Phase 11: If-Else | 1.5h | - | 🔜 |
+| Phase 12: Or-Patterns | 2h | - | 🔜 |
+| Phase 13: Pass-Through | 2h | - | 🔜 |
+| Phase 14: Modules | 1.5h | - | 🔜 |
+| Phase 15: Integration | 3h | - | 🔜 |
+| **TOTAL** | **28-31h** | **-** | **0%** |
 
 ---
 
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-10-29 (Updated with gap analysis resolutions)

@@ -64,11 +64,17 @@ Source Code → Lexer → Parser → **DESUGARER** → Type Checker → Code Gen
 3. Pipe operator → function application
 4. Function composition → lambda wrapping
 5. List literals → Cons/Nil constructors
-6. List cons operator → Cons constructor
-7. Record updates → inline field copying
-8. If-then-else → match on boolean
-9. Or-patterns → multiple match cases
-10. Module-level desugaring
+6. List spread in expressions → nested cons operations
+7. List cons operator → Cons constructor
+8. List patterns → Cons/Nil patterns
+9. Record updates → inline field copying (pipe syntax only)
+10. If-then-else → match on boolean
+11. Or-patterns → multiple match cases
+12. Mutable references → pass through
+13. Type annotations → pass through
+14. Unsafe blocks → desugar contents, preserve boundary
+15. External blocks → multiple external declarations
+16. Module-level desugaring
 
 ---
 
@@ -135,10 +141,11 @@ type CorePattern =
     | CoreLitPattern
     | CoreVariantPattern   // Constructor patterns (including Cons, Nil)
     | CoreRecordPattern
-    | CoreListPattern      // [x, ...rest] syntax preserved
 ```
 
-**Note:** `OrPattern` is eliminated - expanded to multiple match arms.
+**Note:**
+- `OrPattern` is eliminated - expanded to multiple match arms
+- `ListPattern` (`[x, ...rest]`) is desugared to `CoreVariantPattern("Cons", [x, rest])` for uniformity
 
 ### Core Declaration Types (CoreDeclaration)
 
@@ -227,15 +234,22 @@ data |> filter(pred) |> map(transform) |> sum
 
 **Core AST:**
 ```vibefun
-sum(map(filter(data, pred), transform))
+sum(map(transform)(filter(pred)(data)))
 ```
+
+**Explanation:**
+- `data |> filter(pred)` becomes `filter(pred)(data)` (curried application)
+- Result pipes to `map(transform)`, becomes `map(transform)(filter(pred)(data))`
+- Final result pipes to `sum`, becomes `sum(map(transform)(filter(pred)(data)))`
 
 **Algorithm:**
 1. Collect all expressions in pipe chain (left to right)
 2. Build nested `CoreApp` nodes **right to left**
-3. First expression is the data, rest are functions
-4. Each function application: `f(previous_result)`
+3. First expression is the data, rest are partially applied functions
+4. Each stage: Apply previous result to next function
 5. Recursively desugar each stage
+
+**Note:** Functions in vibefun are curried, so `filter(pred)` returns a function awaiting the list argument.
 
 **Edge Cases:**
 - Single pipe → Simple function application
@@ -329,7 +343,42 @@ Cons(Cons(1, Cons(2, Nil)), Cons(Cons(3, Cons(4, Nil)), Nil))
 
 ---
 
-### 6. List Cons Operator → Cons Constructor
+### 6. List Spread in Expressions → Nested Cons
+
+**Surface Syntax:**
+```vibefun
+[1, 2, ...rest]
+[x, ...map(f, xs), y]
+```
+
+**Core AST:**
+```vibefun
+Cons(1, Cons(2, rest))
+Cons(x, concat(map(f, xs), Cons(y, Nil)))
+```
+
+**Algorithm:**
+1. Separate elements into segments: regular elements and spread expressions
+2. For each segment:
+   - Regular elements: Build Cons chain as in list literal desugaring
+   - Spread expressions: Use as-is (will be a list value)
+3. Concatenate segments using `concat` function from stdlib
+4. If no spreads, use simple Cons chain (same as list literal)
+
+**Edge Cases:**
+- Single spread with no other elements: `[...xs]` → just `xs`
+- Spread at end: `[1, 2, ...rest]` → `Cons(1, Cons(2, rest))`
+- Spread at beginning: `[...xs, 1, 2]` → `concat(xs, Cons(1, Cons(2, Nil)))`
+- Multiple spreads: `[...xs, 1, ...ys]` → `concat(xs, Cons(1, concat(ys, Nil)))`
+- Empty list with spread: Not valid syntax
+
+**Source Location:** Use list literal location
+
+**Note:** This requires `concat` function from stdlib for multiple segments.
+
+---
+
+### 7. List Cons Operator → Cons Constructor
 
 **Surface Syntax:**
 ```vibefun
@@ -357,7 +406,52 @@ Cons(1, Cons(2, Cons(3, Nil)))
 
 ---
 
-### 7. Record Update → Inline Field Copying
+### 8. List Patterns → Cons/Nil Patterns
+
+**Surface Syntax:**
+```vibefun
+match list {
+    | [] => 0
+    | [x] => x
+    | [x, ...rest] => x + sum(rest)
+}
+```
+
+**Core AST:**
+```vibefun
+match list {
+    | Nil => 0
+    | Cons(x, Nil) => x
+    | Cons(x, rest) => x + sum(rest)
+}
+```
+
+**Algorithm:**
+1. For `[]` pattern → `CoreVariantPattern("Nil", [])`
+2. For `[p1, p2, ..., pN]` without rest → Nested Cons patterns ending in Nil:
+   - `Cons(p1, Cons(p2, ... Cons(pN, Nil)))`
+3. For `[p1, p2, ..., pN, ...rest]` with rest → Nested Cons patterns ending in rest:
+   - `Cons(p1, Cons(p2, ... Cons(pN, rest)))`
+4. Recursively desugar nested patterns (e.g., `[Some(x), ...]`)
+
+**Edge Cases:**
+- Empty list pattern: `[]` → `Nil`
+- Single element: `[x]` → `Cons(x, Nil)`
+- Just rest: `[...rest]` → `rest` (variable pattern)
+- Nested patterns: `[[x, y], z]` → Desugar outer then inner
+
+**Source Location:** Use original list pattern location
+
+**Rationale:** Uniform pattern representation. Type checker and code generator only need to handle variant patterns.
+
+---
+
+### 9. Record Update → Inline Field Copying
+
+**Supported Syntax:**
+Only pipe syntax is supported: `{ record | field: value }`
+
+**Note:** Spread syntax `{ ...record, field: value }` is NOT supported (removed from spec).
 
 **Surface Syntax:**
 ```vibefun
@@ -414,7 +508,7 @@ CoreRecord([
 
 ---
 
-### 8. If-Then-Else → Match on Boolean
+### 10. If-Then-Else → Match on Boolean
 
 **Surface Syntax:**
 ```vibefun
@@ -446,7 +540,7 @@ match condition {
 
 ---
 
-### 9. Or-Patterns → Multiple Match Cases
+### 11. Or-Patterns → Multiple Match Cases
 
 **Surface Syntax:**
 ```vibefun
@@ -492,7 +586,118 @@ match x {
 
 ---
 
-### 10. Module-Level Desugaring
+### 12. Mutable References → Pass Through
+
+**Surface Syntax:**
+```vibefun
+let mut x = ref(42)
+x := 50
+!x
+```
+
+**Core AST:**
+```vibefun
+// Same - no transformation needed
+let mut x = ref(42)
+x := 50
+!x
+```
+
+**Algorithm:**
+1. `Let` bindings with `mutable: true` → `CoreLet` with `mutable: true`
+2. `RefAssign` operator → `CoreBinOp("RefAssign", ...)`
+3. `Deref` operator → `CoreUnaryOp("Deref", ...)`
+4. Desugar operands but preserve operators
+
+**Rationale:** Mutable reference semantics are core language features, not sugar. Type checker needs to track mutability.
+
+**Source Location:** Preserve original locations
+
+---
+
+### 13. Type Annotations → Pass Through
+
+**Surface Syntax:**
+```vibefun
+(x : Int)
+(f(x) : String)
+```
+
+**Core AST:**
+```vibefun
+// Same structure
+CoreTypeAnnotation(x, Int)
+CoreTypeAnnotation(CoreApp(f, x), String)
+```
+
+**Algorithm:**
+1. Preserve `TypeAnnotation` nodes in Core AST
+2. Desugar the annotated expression
+3. Keep type unchanged (type checker will validate)
+
+**Rationale:** Type annotations are essential for type checking. Cannot be eliminated.
+
+**Source Location:** Preserve annotation location
+
+---
+
+### 14. Unsafe Blocks → Desugar Contents, Preserve Boundary
+
+**Surface Syntax:**
+```vibefun
+unsafe {
+    let x = jsFunction()
+    x + 1
+}
+```
+
+**Core AST:**
+```vibefun
+CoreUnsafe(
+    let x = jsFunction() in (x + 1)
+)
+```
+
+**Algorithm:**
+1. Preserve `Unsafe` boundary in Core AST
+2. Desugar the inner expression (may be block, if-then-else, etc.)
+3. Wrap desugared expression in `CoreUnsafe`
+
+**Rationale:** Unsafe boundaries are semantic markers for type checker. Inner expressions still need desugaring.
+
+**Source Location:** Preserve unsafe block location
+
+---
+
+### 15. External Blocks → Multiple External Declarations
+
+**Surface Syntax:**
+```vibefun
+external {
+    log: (String) -> Unit = "console.log"
+    warn: (String) -> Unit = "console.warn"
+}
+```
+
+**Core AST:**
+```vibefun
+CoreExternal("log", Type, "console.log")
+CoreExternal("warn", Type, "console.warn")
+```
+
+**Algorithm:**
+1. Extract each declaration from external block
+2. Create separate `CoreExternal` declaration for each
+3. Preserve types and JavaScript paths
+4. Maintain declaration order
+
+**Rationale:** Simpler Core AST. Type checker processes individual externals.
+
+**Source Location:** Use individual declaration locations
+
+---
+
+### 16. Module-Level Desugaring
 
 **Algorithm:**
 1. Process module declarations in order
@@ -811,29 +1016,53 @@ const desugared: CoreVariant = {
 
 ---
 
-## Open Questions
+## Resolved Design Questions
 
-### 1. Record Update Type Information
+### 1. Record Update Syntax ✅
+
+**Question:** Support pipe syntax `{ r | f: v }`, spread syntax `{ ...r, f: v }`, or both?
+
+**Decision:** Only pipe syntax `{ record | field: value }` is supported. Spread syntax removed from spec.
+
+**Rationale:** Single, clear syntax. Less parser complexity. JavaScript spread handled at code generation.
+
+### 2. List Pattern Desugaring ✅
+
+**Question:** Should `[x, ...rest]` patterns be desugared to cons patterns?
+
+**Decision:** YES - Desugar to `CoreVariantPattern("Cons", [x, rest])` for uniformity.
+
+**Rationale:** Type checker and code generator only need to handle variant patterns. Simpler Core AST.
+
+### 3. Mutable References ✅
+
+**Question:** Include mutable references in desugaring phase or defer?
+
+**Decision:** Include in initial implementation as pass-through transformations.
+
+**Rationale:** They're in the AST and spec. Pass-through is simple. Type checker needs them.
+
+### 4. List Spread in Expressions ✅
+
+**Question:** Support list spread in expression context (e.g., `[1, ...xs, 2]`)?
+
+**Decision:** YES - Add to AST and desugar to cons chains with concat for multiple segments.
+
+**Rationale:** Spec mentions it. Natural feature. Can be desugared to concat operations.
+
+### 5. Exhaustiveness Checking
+
+**Question:** Should desugarer validate pattern match exhaustiveness?
+
+**Decision:** No, leave to type checker. Desugarer is pure transformation.
+
+### 6. Record Update Type Information
 
 **Question:** Do we need type information to fully desugar record updates?
 
 **Current Decision:** Start without type info, generate spread semantics. Revisit during type checker integration if needed.
 
 **Alternative:** Defer record update desugaring to type checker phase where types are known.
-
-### 2. Exhaustiveness Checking
-
-**Question:** Should desugarer validate pattern match exhaustiveness?
-
-**Decision:** No, leave to type checker. Desugarer is pure transformation.
-
-### 3. List Pattern Desugaring
-
-**Question:** Should `[x, ...rest]` patterns be desugared to cons patterns?
-
-**Current Decision:** Keep as `CoreListPattern` in Core AST for clarity. Code generator can handle it naturally.
-
-**Alternative:** Desugar to nested `CoreVariantPattern("Cons", ...)` if type checker prefers uniform patterns.
 
 ---
 
@@ -877,4 +1106,4 @@ Implementation is complete when:
 
 ---
 
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-10-29 (Updated with gap analysis resolutions)
