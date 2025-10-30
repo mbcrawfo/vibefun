@@ -1008,6 +1008,93 @@ export external from "react" {
 }
 ```
 
+#### Overloaded External Functions
+
+Many JavaScript APIs have functions with multiple signatures (overloading). Vibefun supports declaring multiple external signatures for the same JavaScript function:
+
+```vibefun
+// Multiple separate declarations for the same JS function
+external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+// Or grouped in an external block
+external {
+    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
+    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+}
+
+// With module imports
+external from "node:timers" {
+    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
+    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+}
+```
+
+**Overload Resolution:**
+
+The compiler automatically selects the correct overload based on the number of arguments at the call site:
+
+```vibefun
+unsafe {
+    // Calls first overload: (String) -> Promise<Response>
+    fetch("https://api.example.com/users")
+
+    // Calls second overload: (String, RequestInit) -> Promise<Response>
+    fetch("https://api.example.com/users", { method: "POST" })
+
+    // Calls first setTimeout overload
+    setTimeout(callback, 1000)
+
+    // Calls second setTimeout overload
+    setTimeout(callback, 1000, extraArg)
+}
+```
+
+**Restrictions:**
+
+- Only `external` functions can be overloaded (not pure Vibefun functions)
+- All overloads must map to the same JavaScript function name
+- All overloads must have the same `from` module (if specified)
+- All overloads must be function types
+- Overloads are resolved by argument count (arity)
+
+**Error Messages:**
+
+Clear errors when no overload matches or the call is ambiguous:
+
+```vibefun
+external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+unsafe {
+    fetch()  // Error: No matching signature for 'fetch'
+             // Expected 1 or 2 arguments, but got 0
+
+    fetch("url", options, extra)  // Error: No matching signature for 'fetch'
+                                   // Expected 1 or 2 arguments, but got 3
+}
+```
+
+**When to Use Overloading:**
+
+Overloading is designed for JavaScript interop where the underlying JS function has multiple signatures. For pure Vibefun code, prefer pattern matching or different function names:
+
+```vibefun
+// Instead of overloading (not supported for pure Vibefun):
+// let process = (x: Int) => ...
+// let process = (x: String) => ...
+
+// Use pattern matching:
+let process = (x) => match x {
+    | n: Int => n * 2
+    | s: String => s & s
+}
+
+// Or use different names:
+let processInt = (n: Int) => n * 2
+let processString = (s: String) => s & s
+```
+
 #### External Type Declarations
 
 Declare the shape of JavaScript objects within external blocks:

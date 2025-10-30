@@ -1,0 +1,153 @@
+// External Function Overloading Example
+//
+// This example demonstrates how to declare and use overloaded external functions
+// for JavaScript interop. Many JavaScript APIs have functions with multiple
+// signatures, and vibefun supports declaring all of them.
+
+// ============================================================================
+// Example 1: fetch API
+// ============================================================================
+
+// The browser fetch API has two common signatures:
+// - fetch(url): simple GET request
+// - fetch(url, options): customizable request
+
+type RequestInit = { method: String, headers: JsObject, body: String }
+type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<JsObject> }
+
+// Declare both overloads
+external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+// Usage
+let getUser = (id: Int) => unsafe {
+    // Uses first overload (simple GET)
+    let url = "https://api.example.com/users/" & String.fromInt(id)
+    fetch(url)
+}
+
+let createUser = (userData: String) => unsafe {
+    // Uses second overload (with options)
+    let options = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: userData
+    }
+    fetch("https://api.example.com/users", options)
+}
+
+// ============================================================================
+// Example 2: setTimeout (with external block)
+// ============================================================================
+
+// setTimeout can take 2 or 3+ arguments
+
+type TimeoutId = JsObject
+
+external from "node:timers" {
+    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
+    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+    clearTimeout: (TimeoutId) -> Unit = "clearTimeout"
+}
+
+let delayedLog = (msg: String, ms: Int) => unsafe {
+    // Uses first setTimeout overload (2 arguments)
+    setTimeout(() => console_log(msg), ms)
+}
+
+let delayedLogWithArg = (ms: Int, arg: Any) => unsafe {
+    // Uses second setTimeout overload (3 arguments)
+    setTimeout(() => console_log("Timer fired"), ms, arg)
+}
+
+// ============================================================================
+// Example 3: parseInt
+// ============================================================================
+
+// parseInt can take 1 or 2 arguments
+
+external parseInt: (String) -> Int = "parseInt"
+external parseInt: (String, Int) -> Int = "parseInt"
+
+let parseDecimal = (s: String) => unsafe {
+    // Uses first overload (defaults to base 10)
+    parseInt(s)
+}
+
+let parseWithRadix = (s: String, radix: Int) => unsafe {
+    // Uses second overload (explicit radix)
+    parseInt(s, radix)
+}
+
+let parseHex = (s: String) => unsafe {
+    // Parse as hexadecimal (base 16)
+    parseInt(s, 16)
+}
+
+// ============================================================================
+// Example 4: addEventListener (complex overloading)
+// ============================================================================
+
+type EventListener = (JsObject) -> Unit
+type EventOptions = { capture: Bool, passive: Bool, once: Bool }
+
+external {
+    // Simple listener (no options)
+    addEventListener: (String, EventListener) -> Unit = "addEventListener"
+
+    // With capture boolean
+    addEventListener: (String, EventListener, Bool) -> Unit = "addEventListener"
+
+    // With full options object
+    addEventListener: (String, EventListener, EventOptions) -> Unit = "addEventListener"
+}
+
+let setupClickHandler = (handler: EventListener) => unsafe {
+    // Uses first overload (no options)
+    addEventListener("click", handler)
+}
+
+let setupClickHandlerCapture = (handler: EventListener) => unsafe {
+    // Uses second overload (with capture boolean)
+    addEventListener("click", handler, true)
+}
+
+let setupClickHandlerAdvanced = (handler: EventListener) => unsafe {
+    // Uses third overload (with full options)
+    let options = { capture: false, passive: true, once: false }
+    addEventListener("click", handler, options)
+}
+
+// ============================================================================
+// What happens with errors?
+// ============================================================================
+
+// If you call with wrong number of arguments:
+//
+// let badFetch = unsafe {
+//     fetch()  // ERROR: No matching signature for 'fetch'
+//              // Expected 1 or 2 arguments, but got 0
+// }
+
+// If you call with too many arguments:
+//
+// let badFetch2 = unsafe {
+//     fetch("url", options, extra, args)  // ERROR: No matching signature
+// }
+
+// ============================================================================
+// Alternative: Use pattern matching for pure Vibefun code
+// ============================================================================
+
+// For pure Vibefun functions (not externals), use pattern matching instead:
+
+type Input = UrlOnly(String) | UrlWithOptions(String, RequestInit)
+
+let makeRequest = (input: Input) => match input {
+    | UrlOnly(url) => unsafe { fetch(url) }
+    | UrlWithOptions(url, opts) => unsafe { fetch(url, opts) }
+}
+
+// Usage
+let request1 = makeRequest(UrlOnly("https://api.example.com"))
+let request2 = makeRequest(UrlWithOptions("https://api.example.com", postOptions))

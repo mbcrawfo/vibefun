@@ -106,6 +106,16 @@ vibefun/
 - **Variants as objects**: `{ tag: 'Constructor', args: [...] }`
 - **Source maps**: For debugging in JavaScript context
 
+### External Function Overloading
+- **Scope**: Only `external` declarations can be overloaded (not pure vibefun functions)
+- **Purpose**: Enables natural JavaScript interop for APIs with multiple signatures (e.g., `fetch`, `setTimeout`)
+- **Resolution**: Compile-time resolution based on argument count (arity)
+- **Validation**: All overloads must map to the same JavaScript function and module
+- **Type system**: Scoped to externals only - no impact on Hindley-Milner inference for pure vibefun code
+- **Alternative**: Pure vibefun code uses pattern matching or different function names instead of overloading
+
+See `vibefun-spec.md` (JavaScript Interop → Overloaded External Functions) for complete details.
+
 ### Dependencies (Planned)
 
 Development:
