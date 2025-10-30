@@ -8,9 +8,11 @@
  * [x, ...rest] => Cons(x, rest)
  */
 
-import { describe, it, expect } from "vitest";
+import type { Location, Pattern } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
 import { desugarPattern, FreshVarGen } from "./desugarer.js";
-import type { Pattern, Location } from "../types/ast.js";
 
 const testLoc: Location = {
     file: "test.vf",

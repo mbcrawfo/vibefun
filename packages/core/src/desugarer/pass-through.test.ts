@@ -8,9 +8,11 @@
  * - External blocks (expand to multiple declarations)
  */
 
-import { describe, it, expect } from "vitest";
+import type { Declaration, Expr, Location, Module } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
 import { desugar, desugarDecl, desugarModule, FreshVarGen } from "./desugarer.js";
-import type { Expr, Declaration, Module, Location } from "../types/ast.js";
 
 const testLoc: Location = {
     file: "test.vf",

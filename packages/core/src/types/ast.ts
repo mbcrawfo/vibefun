@@ -20,6 +20,11 @@ export type Location = {
     offset: number;
 };
 
+/**
+ * List element - either a regular expression or a spread element
+ */
+export type ListElement = { kind: "Element"; expr: Expr } | { kind: "Spread"; expr: Expr };
+
 // =============================================================================
 // Expressions
 // =============================================================================
@@ -61,7 +66,7 @@ export type Expr =
           loc: Location;
       }
     // Lists
-    | { kind: "List"; elements: Expr[]; loc: Location }
+    | { kind: "List"; elements: ListElement[]; loc: Location }
     | { kind: "ListCons"; head: Expr; tail: Expr; loc: Location }
     // Operators
     | { kind: "BinOp"; op: BinaryOp; left: Expr; right: Expr; loc: Location }

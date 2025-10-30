@@ -5,9 +5,11 @@
  * Each test exercises 2+ transformations in combination.
  */
 
-import { describe, it, expect } from "vitest";
+import type { Expr, Location, Module } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
 import { desugar, desugarModule, FreshVarGen } from "./desugarer.js";
-import type { Expr, Module, Location } from "../types/ast.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -15,6 +17,9 @@ const testLoc: Location = {
     column: 1,
     offset: 0,
 };
+
+// Helper to wrap expressions in Element for new ListElement format
+const elem = (expr: Expr) => ({ kind: "Element" as const, expr });
 
 describe("Integration - Blocks + Lambdas", () => {
     it("should desugar block containing curried lambda", () => {
@@ -77,9 +82,9 @@ describe("Integration - Pipes + Lists", () => {
             expr: {
                 kind: "List",
                 elements: [
-                    { kind: "IntLit", value: 1, loc: testLoc },
-                    { kind: "IntLit", value: 2, loc: testLoc },
-                    { kind: "IntLit", value: 3, loc: testLoc },
+                    elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                    elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                    elem({ kind: "IntLit", value: 3, loc: testLoc }),
                 ],
                 loc: testLoc,
             },
@@ -105,9 +110,9 @@ describe("Integration - Pipes + Lists", () => {
                 expr: {
                     kind: "List",
                     elements: [
-                        { kind: "IntLit", value: 1, loc: testLoc },
-                        { kind: "IntLit", value: 2, loc: testLoc },
-                        { kind: "IntLit", value: 3, loc: testLoc },
+                        elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                        elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                        elem({ kind: "IntLit", value: 3, loc: testLoc }),
                     ],
                     loc: testLoc,
                 },
@@ -352,9 +357,9 @@ describe("Integration - Complete Programs", () => {
                     {
                         kind: "List",
                         elements: [
-                            { kind: "IntLit", value: 1, loc: testLoc },
-                            { kind: "IntLit", value: 2, loc: testLoc },
-                            { kind: "IntLit", value: 3, loc: testLoc },
+                            elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                            elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                            elem({ kind: "IntLit", value: 3, loc: testLoc }),
                         ],
                         loc: testLoc,
                     },
@@ -392,11 +397,11 @@ describe("Integration - Complete Programs", () => {
                     expr: {
                         kind: "List",
                         elements: [
-                            { kind: "IntLit", value: 1, loc: testLoc },
-                            { kind: "IntLit", value: 2, loc: testLoc },
-                            { kind: "IntLit", value: 3, loc: testLoc },
-                            { kind: "IntLit", value: 4, loc: testLoc },
-                            { kind: "IntLit", value: 5, loc: testLoc },
+                            elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                            elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                            elem({ kind: "IntLit", value: 3, loc: testLoc }),
+                            elem({ kind: "IntLit", value: 4, loc: testLoc }),
+                            elem({ kind: "IntLit", value: 5, loc: testLoc }),
                         ],
                         loc: testLoc,
                     },

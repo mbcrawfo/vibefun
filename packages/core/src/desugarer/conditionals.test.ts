@@ -5,9 +5,11 @@
  * if cond then a else b => match cond { | true => a | false => b }
  */
 
-import { describe, it, expect } from "vitest";
-import { desugar, FreshVarGen } from "./desugarer.js";
 import type { Expr, Location } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
+import { desugar, FreshVarGen } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",

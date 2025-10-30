@@ -5,9 +5,11 @@
  * (x, y, z) => expr => (x) => (y) => (z) => expr
  */
 
-import { describe, it, expect } from "vitest";
-import { desugar, DesugarError, FreshVarGen } from "./desugarer.js";
 import type { Expr, Location } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
+import { desugar, DesugarError, FreshVarGen } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",

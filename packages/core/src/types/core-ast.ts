@@ -43,6 +43,7 @@ export type CoreExpr =
     // Data Structures
     | CoreRecord
     | CoreRecordAccess
+    | CoreRecordUpdate
     | CoreVariant
     // Operations - NO pipes or composition
     | CoreBinOp
@@ -182,6 +183,20 @@ export type CoreRecordAccess = {
     kind: "CoreRecordAccess";
     record: CoreExpr;
     field: string;
+    loc: Location;
+};
+
+/**
+ * Record update - creates a new record with updated fields
+ * Syntax: { record | field1: value1, field2: value2 }
+ *
+ * Semantics: Functional update - creates new record copying all fields from base record
+ * and overriding specified fields with new values.
+ */
+export type CoreRecordUpdate = {
+    kind: "CoreRecordUpdate";
+    record: CoreExpr;
+    updates: CoreRecordField[];
     loc: Location;
 };
 
@@ -444,12 +459,7 @@ export type CoreUnionType = {
 /**
  * Core declaration AST nodes
  */
-export type CoreDeclaration =
-    | CoreLetDecl
-    | CoreTypeDecl
-    | CoreExternalDecl
-    | CoreExternalTypeDecl
-    | CoreImportDecl;
+export type CoreDeclaration = CoreLetDecl | CoreTypeDecl | CoreExternalDecl | CoreExternalTypeDecl | CoreImportDecl;
 
 /**
  * Let declaration at module level
@@ -479,10 +489,7 @@ export type CoreTypeDecl = {
 /**
  * Type definition body
  */
-export type CoreTypeDefinition =
-    | CoreAliasType
-    | CoreRecordTypeDef
-    | CoreVariantTypeDef;
+export type CoreTypeDefinition = CoreAliasType | CoreRecordTypeDef | CoreVariantTypeDef;
 
 /**
  * Type alias

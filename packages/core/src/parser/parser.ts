@@ -1007,13 +1007,14 @@ export class Parser {
             const startLoc = this.peek().loc;
             this.advance(); // consume [
 
-            const elements: Expr[] = [];
+            const elements: { kind: "Element"; expr: Expr }[] = [];
 
             // Check for empty list
             if (!this.check("RBRACKET")) {
                 // Parse elements
                 do {
-                    elements.push(this.parseExpression());
+                    const expr = this.parseExpression();
+                    elements.push({ kind: "Element", expr });
                 } while (this.match("COMMA"));
             }
 

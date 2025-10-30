@@ -5,9 +5,11 @@
  * { let x = 1; let y = 2; x + y } => let x = 1 in (let y = 2 in (x + y))
  */
 
-import { describe, it, expect } from "vitest";
-import { desugar, DesugarError, FreshVarGen } from "./desugarer.js";
 import type { Expr, Location } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
+import { desugar, DesugarError, FreshVarGen } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -401,9 +403,7 @@ describe("Block Desugaring - Error Cases", () => {
         };
 
         expect(() => desugar(block)).toThrow(DesugarError);
-        expect(() => desugar(block)).toThrow(
-            "Non-let expression in block (except final expression)",
-        );
+        expect(() => desugar(block)).toThrow("Non-let expression in block (except final expression)");
     });
 
     it("should throw error for non-let in middle of three-expr block", () => {

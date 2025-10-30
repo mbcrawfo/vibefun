@@ -2,9 +2,11 @@
  * Tests for the desugarer foundation
  */
 
-import { describe, it, expect } from "vitest";
-import { desugar, desugarPattern, desugarModule, DesugarError, FreshVarGen } from "./desugarer.js";
-import type { Expr, Pattern, Module, Location } from "../types/ast.js";
+import type { Expr, Location, Module, Pattern } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
+import { desugar, DesugarError, desugarModule, desugarPattern, FreshVarGen } from "./desugarer.js";
 
 // Helper to create test location
 const testLoc: Location = {

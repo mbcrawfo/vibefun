@@ -5,9 +5,11 @@
  * Cons operator: x :: xs => Cons(x, xs)
  */
 
-import { describe, it, expect } from "vitest";
-import { desugar, FreshVarGen } from "./desugarer.js";
 import type { Expr, Location } from "../types/ast.js";
+
+import { describe, expect, it } from "vitest";
+
+import { desugar, FreshVarGen } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -15,6 +17,9 @@ const testLoc: Location = {
     column: 1,
     offset: 0,
 };
+
+// Helper to wrap expressions in Element for new ListElement format
+const elem = (expr: Expr) => ({ kind: "Element" as const, expr });
 
 describe("List Literals - Empty List", () => {
     it("should desugar empty list to Nil", () => {
@@ -36,7 +41,7 @@ describe("List Literals - Single Element", () => {
     it("should desugar single element list", () => {
         const list: Expr = {
             kind: "List",
-            elements: [{ kind: "IntLit", value: 42, loc: testLoc }],
+            elements: [{ kind: "Element", expr: { kind: "IntLit", value: 42, loc: testLoc } }],
             loc: testLoc,
         };
 
@@ -59,7 +64,7 @@ describe("List Literals - Single Element", () => {
     it("should desugar single string element", () => {
         const list: Expr = {
             kind: "List",
-            elements: [{ kind: "StringLit", value: "hello", loc: testLoc }],
+            elements: [elem({ kind: "StringLit", value: "hello", loc: testLoc })],
             loc: testLoc,
         };
 
@@ -76,8 +81,8 @@ describe("List Literals - Two Elements", () => {
         const list: Expr = {
             kind: "List",
             elements: [
-                { kind: "IntLit", value: 1, loc: testLoc },
-                { kind: "IntLit", value: 2, loc: testLoc },
+                elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                elem({ kind: "IntLit", value: 2, loc: testLoc }),
             ],
             loc: testLoc,
         };
@@ -109,9 +114,9 @@ describe("List Literals - Multiple Elements", () => {
         const list: Expr = {
             kind: "List",
             elements: [
-                { kind: "IntLit", value: 1, loc: testLoc },
-                { kind: "IntLit", value: 2, loc: testLoc },
-                { kind: "IntLit", value: 3, loc: testLoc },
+                elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                elem({ kind: "IntLit", value: 3, loc: testLoc }),
             ],
             loc: testLoc,
         };
@@ -139,11 +144,11 @@ describe("List Literals - Multiple Elements", () => {
         const list: Expr = {
             kind: "List",
             elements: [
-                { kind: "IntLit", value: 1, loc: testLoc },
-                { kind: "IntLit", value: 2, loc: testLoc },
-                { kind: "IntLit", value: 3, loc: testLoc },
-                { kind: "IntLit", value: 4, loc: testLoc },
-                { kind: "IntLit", value: 5, loc: testLoc },
+                elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                elem({ kind: "IntLit", value: 3, loc: testLoc }),
+                elem({ kind: "IntLit", value: 4, loc: testLoc }),
+                elem({ kind: "IntLit", value: 5, loc: testLoc }),
             ],
             loc: testLoc,
         };
@@ -170,22 +175,22 @@ describe("List Literals - Nested Lists", () => {
         const list: Expr = {
             kind: "List",
             elements: [
-                {
+                elem({
                     kind: "List",
                     elements: [
-                        { kind: "IntLit", value: 1, loc: testLoc },
-                        { kind: "IntLit", value: 2, loc: testLoc },
+                        elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                        elem({ kind: "IntLit", value: 2, loc: testLoc }),
                     ],
                     loc: testLoc,
-                },
-                {
+                }),
+                elem({
                     kind: "List",
                     elements: [
-                        { kind: "IntLit", value: 3, loc: testLoc },
-                        { kind: "IntLit", value: 4, loc: testLoc },
+                        elem({ kind: "IntLit", value: 3, loc: testLoc }),
+                        elem({ kind: "IntLit", value: 4, loc: testLoc }),
                     ],
                     loc: testLoc,
-                },
+                }),
             ],
             loc: testLoc,
         };
@@ -209,21 +214,21 @@ describe("List Literals - Complex Elements", () => {
         const list: Expr = {
             kind: "List",
             elements: [
-                {
+                elem({
                     kind: "BinOp",
                     op: "Add",
                     left: { kind: "Var", name: "x", loc: testLoc },
                     right: { kind: "IntLit", value: 1, loc: testLoc },
                     loc: testLoc,
-                },
-                {
+                }),
+                elem({
                     kind: "BinOp",
                     op: "Multiply",
                     left: { kind: "Var", name: "y", loc: testLoc },
                     right: { kind: "IntLit", value: 2, loc: testLoc },
                     loc: testLoc,
-                },
-                { kind: "Var", name: "z", loc: testLoc },
+                }),
+                elem({ kind: "Var", name: "z", loc: testLoc }),
             ],
             loc: testLoc,
         };
@@ -242,7 +247,7 @@ describe("List Literals - Complex Elements", () => {
         const list: Expr = {
             kind: "List",
             elements: [
-                {
+                elem({
                     kind: "Lambda",
                     params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
                     body: {
@@ -253,8 +258,8 @@ describe("List Literals - Complex Elements", () => {
                         loc: testLoc,
                     },
                     loc: testLoc,
-                },
-                {
+                }),
+                elem({
                     kind: "Lambda",
                     params: [{ kind: "VarPattern", name: "y", loc: testLoc }],
                     body: {
@@ -265,7 +270,7 @@ describe("List Literals - Complex Elements", () => {
                         loc: testLoc,
                     },
                     loc: testLoc,
-                },
+                }),
             ],
             loc: testLoc,
         };
@@ -390,7 +395,7 @@ describe("List Desugaring - Source Locations", () => {
 
         const list: Expr = {
             kind: "List",
-            elements: [{ kind: "IntLit", value: 1, loc: testLoc }],
+            elements: [{ kind: "Element", expr: { kind: "IntLit", value: 1, loc: testLoc } }],
             loc: listLoc,
         };
 

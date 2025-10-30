@@ -1747,7 +1747,7 @@ describe("Parser - Expressions", () => {
 
                 expect(expr).toMatchObject({
                     kind: "List",
-                    elements: [{ kind: "IntLit", value: 1 }],
+                    elements: [{ kind: "Element", expr: { kind: "IntLit", value: 1 } }],
                 });
             });
 
@@ -1757,9 +1757,9 @@ describe("Parser - Expressions", () => {
                 expect(expr).toMatchObject({
                     kind: "List",
                     elements: [
-                        { kind: "IntLit", value: 1 },
-                        { kind: "IntLit", value: 2 },
-                        { kind: "IntLit", value: 3 },
+                        { kind: "Element", expr: { kind: "IntLit", value: 1 } },
+                        { kind: "Element", expr: { kind: "IntLit", value: 2 } },
+                        { kind: "Element", expr: { kind: "IntLit", value: 3 } },
                     ],
                 });
             });
@@ -1771,16 +1771,22 @@ describe("Parser - Expressions", () => {
                     kind: "List",
                     elements: [
                         {
-                            kind: "BinOp",
-                            op: "Add",
-                            left: { kind: "Var", name: "a" },
-                            right: { kind: "Var", name: "b" },
+                            kind: "Element",
+                            expr: {
+                                kind: "BinOp",
+                                op: "Add",
+                                left: { kind: "Var", name: "a" },
+                                right: { kind: "Var", name: "b" },
+                            },
                         },
                         {
-                            kind: "BinOp",
-                            op: "Multiply",
-                            left: { kind: "Var", name: "c" },
-                            right: { kind: "Var", name: "d" },
+                            kind: "Element",
+                            expr: {
+                                kind: "BinOp",
+                                op: "Multiply",
+                                left: { kind: "Var", name: "c" },
+                                right: { kind: "Var", name: "d" },
+                            },
                         },
                     ],
                 });
@@ -1793,18 +1799,24 @@ describe("Parser - Expressions", () => {
                     kind: "List",
                     elements: [
                         {
-                            kind: "List",
-                            elements: [
-                                { kind: "IntLit", value: 1 },
-                                { kind: "IntLit", value: 2 },
-                            ],
+                            kind: "Element",
+                            expr: {
+                                kind: "List",
+                                elements: [
+                                    { kind: "Element", expr: { kind: "IntLit", value: 1 } },
+                                    { kind: "Element", expr: { kind: "IntLit", value: 2 } },
+                                ],
+                            },
                         },
                         {
-                            kind: "List",
-                            elements: [
-                                { kind: "IntLit", value: 3 },
-                                { kind: "IntLit", value: 4 },
-                            ],
+                            kind: "Element",
+                            expr: {
+                                kind: "List",
+                                elements: [
+                                    { kind: "Element", expr: { kind: "IntLit", value: 3 } },
+                                    { kind: "Element", expr: { kind: "IntLit", value: 4 } },
+                                ],
+                            },
                         },
                     ],
                 });

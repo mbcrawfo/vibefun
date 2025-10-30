@@ -18,21 +18,14 @@
  * - External blocks → Multiple external declarations
  */
 
+import type { BinaryOp, Declaration, Expr, ListElement, Location, Module, Pattern } from "../types/ast.js";
 import type {
-    Expr,
-    Pattern,
-    Declaration,
-    Module,
-    Location,
-    BinaryOp,
-} from "../types/ast.js";
-import type {
-    CoreExpr,
-    CorePattern,
     CoreDeclaration,
-    CoreModule,
+    CoreExpr,
     CoreImportDecl,
     CoreImportItem,
+    CoreModule,
+    CorePattern,
 } from "../types/core-ast.js";
 
 /**
@@ -107,11 +100,7 @@ export class FreshVarGen {
 function desugarBlock(exprs: Expr[], loc: Location, gen: FreshVarGen): CoreExpr {
     // Empty block is an error
     if (exprs.length === 0) {
-        throw new DesugarError(
-            "Empty block expression",
-            loc,
-            "Block must contain at least one expression",
-        );
+        throw new DesugarError("Empty block expression", loc, "Block must contain at least one expression");
     }
 
     // Single expression - just desugar it
@@ -177,19 +166,10 @@ function desugarBlock(exprs: Expr[], loc: Location, gen: FreshVarGen): CoreExpr 
  * // Input: (x, y, z) => x + y + z
  * // Output: (x) => (y) => (z) => x + y + z
  */
-function curryLambda(
-    params: Pattern[],
-    body: Expr,
-    loc: Location,
-    gen: FreshVarGen,
-): CoreExpr {
+function curryLambda(params: Pattern[], body: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
     // Zero parameters shouldn't happen (parser should catch this)
     if (params.length === 0) {
-        throw new DesugarError(
-            "Lambda with zero parameters",
-            loc,
-            "Lambdas must have at least one parameter",
-        );
+        throw new DesugarError("Lambda with zero parameters", loc, "Lambdas must have at least one parameter");
     }
 
     // Single parameter - just desugar
@@ -340,9 +320,9 @@ function desugarComposition(
 }
 
 /**
- * Desugar a list literal into Cons/Nil chain
+ * Desugar a list literal into Cons/Nil chain or concat operations
  *
- * @param elements - List elements
+ * @param elements - List elements (may include spread elements)
  * @param loc - Location of the list literal
  * @param gen - Fresh variable generator
  * @returns Desugared core expression
@@ -350,8 +330,16 @@ function desugarComposition(
  * @example
  * // Input: [1, 2, 3]
  * // Output: Cons(1, Cons(2, Cons(3, Nil)))
+ *
+ * @example
+ * // Input: [1, 2, ...rest]
+ * // Output: Cons(1, Cons(2, rest))
+ *
+ * @example
+ * // Input: [...xs, 1, ...ys]
+ * // Output: concat(xs, Cons(1, ys))
  */
-function desugarListLiteral(elements: Expr[], loc: Location, gen: FreshVarGen): CoreExpr {
+function desugarListLiteral(elements: ListElement[], loc: Location, gen: FreshVarGen): CoreExpr {
     // Empty list -> Nil
     if (elements.length === 0) {
         return {
@@ -362,8 +350,56 @@ function desugarListLiteral(elements: Expr[], loc: Location, gen: FreshVarGen): 
         };
     }
 
-    // Non-empty list -> fold right to build Cons chain
-    // Start with Nil as the tail
+    // Check if there are any spreads
+    const hasSpread = elements.some((elem) => elem.kind === "Spread");
+
+    if (!hasSpread) {
+        // No spreads - simple case: build Cons chain
+        return buildConsChain(elements as { kind: "Element"; expr: Expr }[], loc, gen);
+    }
+
+    // Has spreads - check if it's the optimizable case: only spread at end
+    const lastElem = elements[elements.length - 1];
+    const hasOnlyEndSpread =
+        lastElem?.kind === "Spread" && elements.slice(0, -1).every((elem) => elem.kind === "Element");
+
+    if (hasOnlyEndSpread && lastElem) {
+        // Optimizable case: [1, 2, ...rest] -> Cons(1, Cons(2, rest))
+        const regularElements = elements.slice(0, -1) as { kind: "Element"; expr: Expr }[];
+        const spreadExpr = desugar((lastElem as { kind: "Spread"; expr: Expr }).expr, gen);
+
+        if (regularElements.length === 0) {
+            // Just [...rest] -> rest
+            return spreadExpr;
+        }
+
+        // Build Cons chain with spread as tail
+        let result = spreadExpr;
+        for (let i = regularElements.length - 1; i >= 0; i--) {
+            const elem = regularElements[i];
+            if (!elem) {
+                throw new DesugarError(`List has undefined element at index ${i}`, loc);
+            }
+
+            result = {
+                kind: "CoreVariant",
+                constructor: "Cons",
+                args: [desugar(elem.expr, gen), result],
+                loc,
+            };
+        }
+
+        return result;
+    }
+
+    // Complex case with spreads not at end - use concat
+    return desugarListWithConcats(elements, loc, gen);
+}
+
+/**
+ * Build a simple Cons chain from regular elements
+ */
+function buildConsChain(elements: { kind: "Element"; expr: Expr }[], loc: Location, gen: FreshVarGen): CoreExpr {
     let result: CoreExpr = {
         kind: "CoreVariant",
         constructor: "Nil",
@@ -371,17 +407,89 @@ function desugarListLiteral(elements: Expr[], loc: Location, gen: FreshVarGen): 
         loc,
     };
 
-    // Work backwards through elements to build nested Cons
     for (let i = elements.length - 1; i >= 0; i--) {
-        const element = elements[i];
-        if (!element) {
+        const elem = elements[i];
+        if (!elem) {
             throw new DesugarError(`List has undefined element at index ${i}`, loc);
         }
 
         result = {
             kind: "CoreVariant",
             constructor: "Cons",
-            args: [desugar(element, gen), result],
+            args: [desugar(elem.expr, gen), result],
+            loc,
+        };
+    }
+
+    return result;
+}
+
+/**
+ * Desugar list with spreads using concat
+ *
+ * Groups elements into segments separated by spreads, then concat them together.
+ */
+function desugarListWithConcats(elements: ListElement[], loc: Location, gen: FreshVarGen): CoreExpr {
+    // Group elements into segments
+    const segments: CoreExpr[] = [];
+    let currentSegment: { kind: "Element"; expr: Expr }[] = [];
+
+    for (const elem of elements) {
+        if (elem.kind === "Element") {
+            currentSegment.push(elem);
+        } else {
+            // Spread element
+            // First, flush current segment if not empty
+            if (currentSegment.length > 0) {
+                segments.push(buildConsChain(currentSegment, loc, gen));
+                currentSegment = [];
+            }
+            // Add the spread expression directly
+            segments.push(desugar(elem.expr, gen));
+        }
+    }
+
+    // Flush final segment
+    if (currentSegment.length > 0) {
+        segments.push(buildConsChain(currentSegment, loc, gen));
+    }
+
+    if (segments.length === 0) {
+        // Empty list
+        return {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    if (segments.length === 1) {
+        // Single segment
+        const segment = segments[0];
+        if (!segment) {
+            throw new DesugarError("Empty segment in list", loc);
+        }
+        return segment;
+    }
+
+    // Multiple segments - concat them together from right to left
+    let result = segments[segments.length - 1];
+    if (!result) {
+        throw new DesugarError("Empty final segment", loc);
+    }
+
+    for (let i = segments.length - 2; i >= 0; i--) {
+        const segment = segments[i];
+        if (!segment) {
+            throw new DesugarError(`Empty segment at index ${i}`, loc);
+        }
+
+        // concat(segment, result)
+        result = {
+            kind: "CoreApp",
+            func: { kind: "CoreVar", name: "concat", loc },
+            args: [segment, result],
             loc,
         };
     }
@@ -556,14 +664,18 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Record update - will implement later
+        // Record update - desugar to CoreRecordUpdate
         case "RecordUpdate":
-            // TODO: Implement record update desugaring
-            throw new DesugarError(
-                "Record update desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 10",
-            );
+            return {
+                kind: "CoreRecordUpdate",
+                record: desugar(expr.record, gen),
+                updates: expr.updates.map((field) => ({
+                    name: field.name,
+                    value: desugar(field.value, gen),
+                    loc: field.loc,
+                })),
+                loc: expr.loc,
+            };
 
         // List literals - desugar to Cons/Nil
         case "List":
@@ -629,13 +741,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
 /**
  * Desugar a binary operation
  */
-function desugarBinOp(
-    op: BinaryOp,
-    left: Expr,
-    right: Expr,
-    loc: Location,
-    gen: FreshVarGen,
-): CoreExpr {
+function desugarBinOp(op: BinaryOp, left: Expr, right: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
     // Handle composition operators specially
     if (op === "ForwardCompose" || op === "BackwardCompose") {
         return desugarComposition(op, left, right, loc, gen);
@@ -817,10 +923,7 @@ function desugarTypeExpr(typeExpr: any): any {
  * @param gen - Fresh variable generator
  * @returns Desugared core declaration(s)
  */
-export function desugarDecl(
-    decl: Declaration,
-    gen: FreshVarGen,
-): CoreDeclaration | CoreDeclaration[] {
+export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaration | CoreDeclaration[] {
     switch (decl.kind) {
         case "LetDecl":
             return {
