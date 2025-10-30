@@ -620,17 +620,7 @@ describe("Desugarer - Module", () => {
 });
 
 describe("Desugarer - Error Handling", () => {
-    it("should throw error for unimplemented lambda desugaring", () => {
-        const expr: Expr = {
-            kind: "Lambda",
-            params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
-            body: { kind: "Var", name: "x", loc: testLoc },
-            loc: testLoc,
-        };
-
-        expect(() => desugar(expr)).toThrow(DesugarError);
-        expect(() => desugar(expr)).toThrow("Lambda desugaring not yet implemented");
-    });
+    // Lambda currying is now implemented - see lambdas.test.ts
 
     it("should throw error for unimplemented if desugaring", () => {
         const expr: Expr = {

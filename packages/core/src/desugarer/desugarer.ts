@@ -165,6 +165,66 @@ function desugarBlock(exprs: Expr[], loc: Location, gen: FreshVarGen): CoreExpr 
 }
 
 /**
+ * Curry a multi-parameter lambda into nested single-parameter lambdas
+ *
+ * @param params - List of parameters
+ * @param body - Lambda body
+ * @param loc - Location of the lambda
+ * @param gen - Fresh variable generator
+ * @returns Desugared core lambda
+ *
+ * @example
+ * // Input: (x, y, z) => x + y + z
+ * // Output: (x) => (y) => (z) => x + y + z
+ */
+function curryLambda(
+    params: Pattern[],
+    body: Expr,
+    loc: Location,
+    gen: FreshVarGen,
+): CoreExpr {
+    // Zero parameters shouldn't happen (parser should catch this)
+    if (params.length === 0) {
+        throw new DesugarError(
+            "Lambda with zero parameters",
+            loc,
+            "Lambdas must have at least one parameter",
+        );
+    }
+
+    // Single parameter - just desugar
+    if (params.length === 1) {
+        const param = params[0];
+        if (!param) {
+            throw new DesugarError("Lambda has undefined parameter", loc);
+        }
+        return {
+            kind: "CoreLambda",
+            param: desugarPattern(param, gen),
+            body: desugar(body, gen),
+            loc,
+        };
+    }
+
+    // Multiple parameters - curry
+    // Build nested lambdas from left to right
+    const firstParam = params[0];
+    if (!firstParam) {
+        throw new DesugarError("Lambda has undefined first parameter", loc);
+    }
+
+    // The body of the first lambda is another lambda with remaining parameters
+    const innerLambda = curryLambda(params.slice(1), body, loc, gen);
+
+    return {
+        kind: "CoreLambda",
+        param: desugarPattern(firstParam, gen),
+        body: innerLambda,
+        loc,
+    };
+}
+
+/**
  * Desugar a surface expression to a core expression
  *
  * @param expr - Surface expression to desugar
@@ -234,14 +294,9 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Lambdas - will implement currying later
+        // Lambdas - curry multi-parameter lambdas
         case "Lambda":
-            // TODO: Implement lambda currying
-            throw new DesugarError(
-                "Lambda desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 4",
-            );
+            return curryLambda(expr.params, expr.body, expr.loc, gen);
 
         // Function application - desugar function and arguments
         case "App":
