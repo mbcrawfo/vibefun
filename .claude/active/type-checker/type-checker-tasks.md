@@ -252,9 +252,9 @@
 
 ### Commit
 
-- [ ] Committed as: TBD
-- [ ] Commit hash: TBD
-- [ ] Files changed: TBD
+- [x] Committed as: `feat(typechecker): implement Phase 2.5 foundations - Syntactic Value Restriction`
+- [x] Commit hash: 8199f1b
+- [x] Files changed: 3 files, 377 insertions(+), 22 deletions(-)
 
 ---
 
