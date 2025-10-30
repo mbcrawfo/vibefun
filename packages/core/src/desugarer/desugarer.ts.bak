@@ -32,6 +32,7 @@ import type {
     VariantConstructor,
 } from "../types/ast.js";
 import type {
+    CoreBinaryOp,
     CoreDeclaration,
     CoreExpr,
     CoreExternalDecl,
@@ -46,21 +47,21 @@ import type {
     CoreVariantConstructor,
 } from "../types/core-ast.js";
 
-import { buildConsChain as buildConsChainImpl } from "./buildConsChain.js";
-import { curryLambda as curryLambdaImpl } from "./curryLambda.js";
-import { desugarBinOp as desugarBinOpImpl } from "./desugarBinOp.js";
-import { desugarBlock as desugarBlockImpl } from "./desugarBlock.js";
-import { desugarComposition as desugarCompositionImpl } from "./desugarComposition.js";
 import { DesugarError } from "./DesugarError.js";
-import { desugarListLiteral as desugarListLiteralImpl } from "./desugarListLiteral.js";
-import { desugarListPattern as desugarListPatternImpl } from "./desugarListPattern.js";
-import { desugarListWithConcats as desugarListWithConcatsImpl } from "./desugarListWithConcats.js";
-import { desugarPipe as desugarPipeImpl } from "./desugarPipe.js";
-import { desugarRecordTypeField as desugarRecordTypeFieldImpl } from "./desugarRecordTypeField.js";
-import { desugarTypeDefinition as desugarTypeDefinitionImpl } from "./desugarTypeDefinition.js";
-import { desugarTypeExpr as desugarTypeExprImpl } from "./desugarTypeExpr.js";
-import { desugarVariantConstructor as desugarVariantConstructorImpl } from "./desugarVariantConstructor.js";
 import { FreshVarGen } from "./FreshVarGen.js";
+import { desugarPipe as desugarPipeImpl } from "./desugarPipe.js";
+import { buildConsChain as buildConsChainImpl } from "./buildConsChain.js";
+import { desugarRecordTypeField as desugarRecordTypeFieldImpl } from "./desugarRecordTypeField.js";
+import { desugarVariantConstructor as desugarVariantConstructorImpl } from "./desugarVariantConstructor.js";
+import { desugarBlock as desugarBlockImpl } from "./desugarBlock.js";
+import { curryLambda as curryLambdaImpl } from "./curryLambda.js";
+import { desugarComposition as desugarCompositionImpl } from "./desugarComposition.js";
+import { desugarListLiteral as desugarListLiteralImpl } from "./desugarListLiteral.js";
+import { desugarListWithConcats as desugarListWithConcatsImpl } from "./desugarListWithConcats.js";
+import { desugarListPattern as desugarListPatternImpl } from "./desugarListPattern.js";
+import { desugarBinOp as desugarBinOpImpl } from "./desugarBinOp.js";
+import { desugarTypeExpr as desugarTypeExprImpl } from "./desugarTypeExpr.js";
+import { desugarTypeDefinition as desugarTypeDefinitionImpl } from "./desugarTypeDefinition.js";
 
 // Re-export for backwards compatibility
 export { DesugarError, FreshVarGen };
@@ -136,7 +137,71 @@ function buildConsChain(elements: { kind: "Element"; expr: Expr }[], loc: Locati
  * Groups elements into segments separated by spreads, then concat them together.
  */
 function desugarListWithConcats(elements: ListElement[], loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarListWithConcatsImpl(elements, loc, gen, desugar, buildConsChain);
+    // Group elements into segments
+    const segments: CoreExpr[] = [];
+    let currentSegment: { kind: "Element"; expr: Expr }[] = [];
+
+    for (const elem of elements) {
+        if (elem.kind === "Element") {
+            currentSegment.push(elem);
+        } else {
+            // Spread element
+            // First, flush current segment if not empty
+            if (currentSegment.length > 0) {
+                segments.push(buildConsChain(currentSegment, loc, gen));
+                currentSegment = [];
+            }
+            // Add the spread expression directly
+            segments.push(desugar(elem.expr, gen));
+        }
+    }
+
+    // Flush final segment
+    if (currentSegment.length > 0) {
+        segments.push(buildConsChain(currentSegment, loc, gen));
+    }
+
+    if (segments.length === 0) {
+        // Empty list
+        return {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    if (segments.length === 1) {
+        // Single segment
+        const segment = segments[0];
+        if (!segment) {
+            throw new DesugarError("Empty segment in list", loc);
+        }
+        return segment;
+    }
+
+    // Multiple segments - concat them together from right to left
+    let result = segments[segments.length - 1];
+    if (!result) {
+        throw new DesugarError("Empty final segment", loc);
+    }
+
+    for (let i = segments.length - 2; i >= 0; i--) {
+        const segment = segments[i];
+        if (!segment) {
+            throw new DesugarError(`Empty segment at index ${i}`, loc);
+        }
+
+        // concat(segment, result)
+        result = {
+            kind: "CoreApp",
+            func: { kind: "CoreVar", name: "concat", loc },
+            args: [segment, result],
+            loc,
+        };
+    }
+
+    return result;
 }
 
 /**
@@ -384,7 +449,29 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
  * Desugar a binary operation
  */
 function desugarBinOp(op: BinaryOp, left: Expr, right: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarBinOpImpl(op, left, right, loc, gen, desugar, desugarComposition);
+    // Handle composition operators specially
+    if (op === "ForwardCompose" || op === "BackwardCompose") {
+        return desugarComposition(op, left, right, loc, gen);
+    }
+
+    // Cons operator is handled in the ListCons case above
+    // If we get here with Cons, it shouldn't happen
+    if (op === "Cons") {
+        throw new DesugarError(
+            "Cons operator should be handled by ListCons expression",
+            loc,
+            "This may indicate a parser bug",
+        );
+    }
+
+    // All other binary operators are preserved
+    return {
+        kind: "CoreBinOp",
+        op: op as CoreBinaryOp, // Type assertion safe - we excluded composition and cons
+        left: desugar(left, gen),
+        right: desugar(right, gen),
+        loc,
+    };
 }
 
 /**
@@ -407,7 +494,52 @@ function desugarListPattern(
     loc: Location,
     gen: FreshVarGen,
 ): CorePattern {
-    return desugarListPatternImpl(elements, rest, loc, gen, desugarPattern);
+    // Empty list pattern: []
+    if (elements.length === 0 && !rest) {
+        return {
+            kind: "CoreVariantPattern",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    // Just rest pattern: [...rest]
+    if (elements.length === 0 && rest) {
+        return desugarPattern(rest, gen);
+    }
+
+    // Build Cons patterns from right to left
+    // Start with either rest pattern or Nil
+    let tailPattern: CorePattern;
+
+    if (rest) {
+        tailPattern = desugarPattern(rest, gen);
+    } else {
+        tailPattern = {
+            kind: "CoreVariantPattern",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    // Work backwards through elements to build nested Cons patterns
+    for (let i = elements.length - 1; i >= 0; i--) {
+        const element = elements[i];
+        if (!element) {
+            throw new DesugarError(`List pattern has undefined element at index ${i}`, loc);
+        }
+
+        tailPattern = {
+            kind: "CoreVariantPattern",
+            constructor: "Cons",
+            args: [desugarPattern(element, gen), tailPattern],
+            loc,
+        };
+    }
+
+    return tailPattern;
 }
 
 /**
@@ -489,7 +621,58 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
  * @returns Core type expression
  */
 function desugarTypeExpr(typeExpr: TypeExpr): CoreTypeExpr {
-    return desugarTypeExprImpl(typeExpr, desugarRecordTypeField, desugarVariantConstructor);
+    switch (typeExpr.kind) {
+        case "TypeVar":
+            return {
+                kind: "CoreTypeVar",
+                name: typeExpr.name,
+                loc: typeExpr.loc,
+            };
+
+        case "TypeConst":
+            return {
+                kind: "CoreTypeConst",
+                name: typeExpr.name,
+                loc: typeExpr.loc,
+            };
+
+        case "TypeApp":
+            return {
+                kind: "CoreTypeApp",
+                constructor: desugarTypeExpr(typeExpr.constructor),
+                args: typeExpr.args.map(desugarTypeExpr),
+                loc: typeExpr.loc,
+            };
+
+        case "FunctionType":
+            return {
+                kind: "CoreFunctionType",
+                params: typeExpr.params.map(desugarTypeExpr),
+                return_: desugarTypeExpr(typeExpr.return_),
+                loc: typeExpr.loc,
+            };
+
+        case "RecordType":
+            return {
+                kind: "CoreRecordType",
+                fields: typeExpr.fields.map(desugarRecordTypeField),
+                loc: typeExpr.loc,
+            };
+
+        case "VariantType":
+            return {
+                kind: "CoreVariantType",
+                constructors: typeExpr.constructors.map(desugarVariantConstructor),
+                loc: typeExpr.loc,
+            };
+
+        case "UnionType":
+            return {
+                kind: "CoreUnionType",
+                types: typeExpr.types.map(desugarTypeExpr),
+                loc: typeExpr.loc,
+            };
+    }
 }
 
 /**
@@ -628,7 +811,28 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
  * @returns Core type definition
  */
 function desugarTypeDefinition(def: TypeDefinition): CoreTypeDefinition {
-    return desugarTypeDefinitionImpl(def, desugarTypeExpr, desugarRecordTypeField, desugarVariantConstructor);
+    switch (def.kind) {
+        case "AliasType":
+            return {
+                kind: "CoreAliasType",
+                typeExpr: desugarTypeExpr(def.typeExpr),
+                loc: def.loc,
+            };
+
+        case "RecordTypeDef":
+            return {
+                kind: "CoreRecordTypeDef",
+                fields: def.fields.map(desugarRecordTypeField),
+                loc: def.loc,
+            };
+
+        case "VariantTypeDef":
+            return {
+                kind: "CoreVariantTypeDef",
+                constructors: def.constructors.map(desugarVariantConstructor),
+                loc: def.loc,
+            };
+    }
 }
 
 /**
