@@ -254,6 +254,92 @@ function desugarPipe(data: Expr, func: Expr, loc: Location, gen: FreshVarGen): C
 }
 
 /**
+ * Desugar function composition operators
+ *
+ * @param op - ForwardCompose (>>) or BackwardCompose (<<)
+ * @param left - Left function
+ * @param right - Right function
+ * @param loc - Location of the composition expression
+ * @param gen - Fresh variable generator
+ * @returns Desugared core expression
+ *
+ * @example
+ * // Forward: f >> g => (x) => g(f(x))
+ * // Backward: f << g => (x) => f(g(x))
+ */
+function desugarComposition(
+    op: "ForwardCompose" | "BackwardCompose",
+    left: Expr,
+    right: Expr,
+    loc: Location,
+    gen: FreshVarGen,
+): CoreExpr {
+    // Generate fresh parameter name for the composed function
+    const paramName = gen.fresh("composed");
+    const paramPattern: CorePattern = {
+        kind: "CoreVarPattern",
+        name: paramName,
+        loc,
+    };
+
+    // Create parameter reference
+    const paramVar: CoreExpr = {
+        kind: "CoreVar",
+        name: paramName,
+        loc,
+    };
+
+    // Desugar both functions
+    const desugaredLeft = desugar(left, gen);
+    const desugaredRight = desugar(right, gen);
+
+    // Build application chain based on composition direction
+    let body: CoreExpr;
+
+    if (op === "ForwardCompose") {
+        // f >> g => (x) => g(f(x))
+        // Apply left function first, then right
+        const leftApp: CoreExpr = {
+            kind: "CoreApp",
+            func: desugaredLeft,
+            args: [paramVar],
+            loc,
+        };
+
+        body = {
+            kind: "CoreApp",
+            func: desugaredRight,
+            args: [leftApp],
+            loc,
+        };
+    } else {
+        // f << g => (x) => f(g(x))
+        // Apply right function first, then left
+        const rightApp: CoreExpr = {
+            kind: "CoreApp",
+            func: desugaredRight,
+            args: [paramVar],
+            loc,
+        };
+
+        body = {
+            kind: "CoreApp",
+            func: desugaredLeft,
+            args: [rightApp],
+            loc,
+        };
+    }
+
+    // Wrap in lambda
+    return {
+        kind: "CoreLambda",
+        param: paramPattern,
+        body,
+        loc,
+    };
+}
+
+/**
  * Desugar a surface expression to a core expression
  *
  * @param expr - Surface expression to desugar
@@ -472,12 +558,7 @@ function desugarBinOp(
 ): CoreExpr {
     // Handle composition operators specially
     if (op === "ForwardCompose" || op === "BackwardCompose") {
-        // TODO: Implement composition desugaring
-        throw new DesugarError(
-            "Function composition desugaring not yet implemented",
-            loc,
-            "This will be implemented in Phase 6",
-        );
+        return desugarComposition(op, left, right, loc, gen);
     }
 
     // Cons operator is not a binary op in Core AST - it's a variant
