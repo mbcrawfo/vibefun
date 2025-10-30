@@ -966,6 +966,8 @@ Vibefun provides explicit, type-safe JavaScript interop through the FFI (Foreign
 
 The `external` keyword declares JavaScript values with their types.
 
+#### Single External Declarations
+
 ```vibefun
 // Declare JS function
 external console_log: (String) -> Unit = "console.log"
@@ -975,18 +977,84 @@ external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"
 
 // JS constants
 external process_env: JsObject = "process.env" from "process"
+
+// Exported external (can be imported by other modules)
+export external myHelper: (Int) -> String = "helper"
 ```
 
-### External Types
+#### External Blocks
+
+When wrapping JavaScript libraries, use external blocks to declare multiple bindings at once:
 
 ```vibefun
-// Declare shape of JS objects
-external type Response = {
-    ok: Bool,
-    status: Int,
-    json: () -> Promise<Json>,
-    text: () -> Promise<String>
+// Simple external block
+external {
+    log: (String) -> Unit = "console.log"
+    error: (String) -> Unit = "console.error"
+    warn: (String) -> Unit = "console.warn"
 }
+
+// External block with module import
+external from "node-fetch" {
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+    Headers: Type = "Headers"
+    Request: Type = "Request"
+}
+
+// Exported external block
+export external from "react" {
+    useState: (a) -> (a, (a) -> Unit) = "useState"
+    useEffect: ((Unit) -> Unit, List<a>) -> Unit = "useEffect"
+}
+```
+
+#### External Type Declarations
+
+Declare the shape of JavaScript objects within external blocks:
+
+```vibefun
+external {
+    // Declare types for JS objects
+    type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<Json> }
+    type RequestInit = { method: String, headers: JsObject }
+
+    // Then declare functions that use those types
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+}
+
+// Or separately
+external from "node-fetch" {
+    type Response = { ok: Bool, status: Int }
+    type Headers = { append: (String, String) -> Unit }
+
+    fetch: (String) -> Promise<Response> = "fetch"
+    Headers: Type = "Headers"
+}
+```
+
+**Syntax Summary:**
+
+```vibefun
+// Single declaration
+external name: Type = "jsName" [from "module"]
+
+// Simple block
+external {
+    name1: Type1 = "jsName1"
+    name2: Type2 = "jsName2"
+    type TypeName = { ... }
+}
+
+// Block with module import
+external from "module" {
+    name: Type = "jsName"
+    type TypeName = { ... }
+}
+
+// Exported (applies to both single and blocks)
+export external name: Type = "jsName"
+export external { ... }
+export external from "module" { ... }
 ```
 
 ### Unsafe Blocks

@@ -8,6 +8,7 @@
 import type {
     Declaration,
     Expr,
+    ExternalBlockItem,
     ImportItem,
     Location,
     MatchCase,
@@ -1604,7 +1605,7 @@ export class Parser {
             case "type":
                 return this.parseTypeDecl(exported);
             case "external":
-                return this.parseExternalDecl();
+                return this.parseExternalDeclOrBlock(exported);
             case "import":
                 return this.parseImportDecl();
             default:
@@ -1830,13 +1831,42 @@ export class Parser {
     }
 
     /**
-     * Parse external declaration
+     * Parse external declaration or block
      * Syntax: external name: type = "jsName" [from "module"]
+     *         external { ... }
+     *         external from "module" { ... }
      */
-    private parseExternalDecl(): Declaration {
+    private parseExternalDeclOrBlock(exported: boolean): Declaration {
         const startLoc = this.peek().loc;
         this.advance(); // consume 'external'
 
+        // Check for block syntax
+        if (this.check("LBRACE")) {
+            this.advance(); // consume '{'
+            return this.parseExternalBlock(exported, startLoc, undefined);
+        }
+
+        // Check for "from" clause before block
+        if (this.check("KEYWORD") && this.peek().value === "from") {
+            this.advance(); // consume 'from'
+            const moduleToken = this.expect("STRING_LITERAL", "Expected module name after 'from'");
+            const from = moduleToken.value as string;
+
+            // Must be followed by block
+            this.expect("LBRACE", "Expected '{' after 'from \"module\"'");
+            return this.parseExternalBlock(exported, startLoc, from);
+        }
+
+        // Single external declaration
+        return this.parseExternalDecl(exported, startLoc);
+    }
+
+    /**
+     * Parse single external declaration
+     * Syntax: name: type = "jsName" [from "module"]
+     * Note: 'external' keyword already consumed by caller
+     */
+    private parseExternalDecl(exported: boolean, startLoc: Location): Declaration {
         // Parse name
         const nameToken = this.expect("IDENTIFIER", "Expected external name");
         const name = nameToken.value as string;
@@ -1868,6 +1898,102 @@ export class Parser {
             typeExpr,
             jsName,
             ...(from !== undefined && { from }),
+            exported,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse external block
+     * Syntax: item1, item2, ...
+     * Note: '{' already consumed by caller, this parses items until '}'
+     */
+    private parseExternalBlock(exported: boolean, startLoc: Location, from: string | undefined): Declaration {
+        // '{' already consumed by caller, parse items until '}'
+
+        const items: ExternalBlockItem[] = [];
+
+        // Skip leading newlines
+        while (this.match("NEWLINE"));
+
+        // Parse items until we hit }
+        while (!this.check("RBRACE") && !this.isAtEnd()) {
+            // Skip newlines between items
+            while (this.match("NEWLINE"));
+
+            if (this.check("RBRACE")) break;
+
+            // Parse item (value or type)
+            const item = this.parseExternalBlockItem();
+            items.push(item);
+
+            // Newlines act as separators (like record syntax)
+            while (this.match("NEWLINE"));
+        }
+
+        this.expect("RBRACE", "Expected '}' after external block");
+
+        return {
+            kind: "ExternalBlock",
+            items,
+            ...(from !== undefined && { from }),
+            exported,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse external block item (value or type)
+     * Syntax: name: type = "jsName"
+     *         type Name = TypeExpr
+     */
+    private parseExternalBlockItem(): ExternalBlockItem {
+        const startLoc = this.peek().loc;
+
+        // Check for "type" keyword (external type)
+        if (this.check("KEYWORD") && this.peek().value === "type") {
+            this.advance(); // consume 'type'
+
+            // Parse type name
+            const nameToken = this.expect("IDENTIFIER", "Expected type name");
+            const name = nameToken.value as string;
+
+            // Expect =
+            this.expect("EQ", "Expected '=' after type name");
+
+            // Parse type expression
+            const typeExpr = this.parseTypeExpr();
+
+            return {
+                kind: "ExternalType",
+                name,
+                typeExpr,
+                loc: startLoc,
+            };
+        }
+
+        // External value: name: type = "jsName"
+        const nameToken = this.expect("IDENTIFIER", "Expected name");
+        const name = nameToken.value as string;
+
+        // Expect :
+        this.expect("COLON", "Expected ':' after name");
+
+        // Parse type
+        const typeExpr = this.parseTypeExpr();
+
+        // Expect =
+        this.expect("EQ", "Expected '=' after type");
+
+        // Parse JS name (string literal)
+        const jsNameToken = this.expect("STRING_LITERAL", "Expected string literal for JS name");
+        const jsName = jsNameToken.value as string;
+
+        return {
+            kind: "ExternalValue",
+            name,
+            typeExpr,
+            jsName,
             loc: startLoc,
         };
     }

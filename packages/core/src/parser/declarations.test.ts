@@ -261,6 +261,167 @@ describe("Parser - Declarations", () => {
                 jsName: "Array.prototype.map",
             });
         });
+
+        it("parses exported external", () => {
+            const decl = parseDecl('export external log: (String) -> Unit = "console.log"');
+            expect(decl).toMatchObject({
+                kind: "ExternalDecl",
+                name: "log",
+                exported: true,
+            });
+        });
+    });
+
+    describe("external blocks", () => {
+        it("parses simple external block", () => {
+            const decl = parseDecl(`external {
+                log: (String) -> Unit = "console.log"
+                error: (String) -> Unit = "console.error"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(2);
+            expect(decl.items[0]).toMatchObject({
+                kind: "ExternalValue",
+                name: "log",
+                jsName: "console.log",
+            });
+            expect(decl.items[1]).toMatchObject({
+                kind: "ExternalValue",
+                name: "error",
+                jsName: "console.error",
+            });
+            expect(decl.from).toBeUndefined();
+            expect(decl.exported).toBe(false);
+        });
+
+        it("parses external block with from clause", () => {
+            const decl = parseDecl(`external from "node-fetch" {
+                fetch: (String) -> Promise = "fetch"
+                Headers: Type = "Headers"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(2);
+            expect(decl.from).toBe("node-fetch");
+            expect(decl.exported).toBe(false);
+        });
+
+        it("parses exported external block", () => {
+            const decl = parseDecl(`export external {
+                log: (String) -> Unit = "console.log"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.exported).toBe(true);
+            expect(decl.items).toHaveLength(1);
+        });
+
+        it("parses external block with type declarations", () => {
+            const decl = parseDecl(`external {
+                type Response = { ok: Bool, status: Int }
+                fetch: (String) -> Promise = "fetch"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(2);
+
+            // First item is a type
+            expect(decl.items[0]).toMatchObject({
+                kind: "ExternalType",
+                name: "Response",
+                typeExpr: {
+                    kind: "RecordType",
+                    fields: [
+                        { name: "ok", typeExpr: { kind: "TypeConst", name: "Bool" } },
+                        { name: "status", typeExpr: { kind: "TypeConst", name: "Int" } },
+                    ],
+                },
+            });
+
+            // Second item is a value
+            expect(decl.items[1]).toMatchObject({
+                kind: "ExternalValue",
+                name: "fetch",
+                jsName: "fetch",
+            });
+        });
+
+        it("parses exported external block with from clause", () => {
+            const decl = parseDecl(`export external from "react" {
+                useState: (a) -> (a, (a) -> Unit) = "useState"
+                useEffect: ((Unit) -> Unit) -> Unit = "useEffect"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.exported).toBe(true);
+            expect(decl.from).toBe("react");
+            expect(decl.items).toHaveLength(2);
+        });
+
+        it("parses empty external block", () => {
+            const decl = parseDecl("external {}");
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(0);
+        });
+
+        it("parses external block with single item", () => {
+            const decl = parseDecl(`external {
+                log: (String) -> Unit = "console.log"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(1);
+            expect(decl.items[0]).toMatchObject({
+                kind: "ExternalValue",
+                name: "log",
+            });
+        });
+
+        it("parses external block with complex types", () => {
+            const decl = parseDecl(`external {
+                map: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map"
+                filter: (List<a>, (a) -> Bool) -> List<a> = "Array.prototype.filter"
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(2);
+            expect(decl.items[0]).toMatchObject({
+                kind: "ExternalValue",
+                name: "map",
+                typeExpr: { kind: "FunctionType" },
+            });
+        });
+
+        it("handles inline formatting in external blocks", () => {
+            const decl = parseDecl('external { log: (String) -> Unit = "console.log" }');
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(1);
+        });
+
+        it("parses external block with only type declarations", () => {
+            const decl = parseDecl(`external {
+                type Request = { url: String, method: String }
+                type Response = { status: Int, body: String }
+            }`);
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(2);
+            expect(decl.items[0].kind).toBe("ExternalType");
+            expect(decl.items[1].kind).toBe("ExternalType");
+        });
     });
 
     describe("imports", () => {

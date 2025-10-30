@@ -221,6 +221,24 @@ export type VariantConstructor = {
 // =============================================================================
 
 /**
+ * Items that can appear inside external blocks
+ */
+export type ExternalBlockItem =
+    | {
+          kind: "ExternalValue";
+          name: string;
+          typeExpr: TypeExpr;
+          jsName: string;
+          loc: Location;
+      }
+    | {
+          kind: "ExternalType";
+          name: string;
+          typeExpr: TypeExpr;
+          loc: Location;
+      };
+
+/**
  * Declaration AST nodes
  */
 export type Declaration =
@@ -247,6 +265,21 @@ export type Declaration =
           typeExpr: TypeExpr;
           jsName: string;
           from?: string;
+          exported: boolean;
+          loc: Location;
+      }
+    | {
+          kind: "ExternalTypeDecl";
+          name: string;
+          typeExpr: TypeExpr;
+          exported: boolean;
+          loc: Location;
+      }
+    | {
+          kind: "ExternalBlock";
+          items: ExternalBlockItem[];
+          from?: string;
+          exported: boolean;
           loc: Location;
       }
     | { kind: "ImportDecl"; items: ImportItem[]; from: string; loc: Location };
