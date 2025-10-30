@@ -112,13 +112,14 @@ Multi-line comments support nesting:
 
 ### Keywords
 
-Vibefun has 16 reserved keywords:
+Vibefun has 17 reserved keywords:
 
 ```
 let       mut       type      if
 then      else      match     when
-rec       import    export    external
-unsafe    from      as        ref
+rec       and       import    export
+external  unsafe    from      as
+ref
 ```
 
 Additional reserved for future use:
@@ -279,6 +280,17 @@ It can span multiple lines.
 
 Vibefun uses a Hindley-Milner type system extended with generics, union types, and records. Type inference minimizes the need for annotations while maintaining strong static typing.
 
+### Type System Design
+
+Vibefun's type system is based on **Algorithm W** with several modern extensions:
+
+- **Constraint-based inference**: Generates and solves type constraints for flexible, modular type checking
+- **Type variable scoping with levels**: Prevents type variables from escaping their scope (Standard ML approach)
+- **Width subtyping for records**: Records with extra fields are subtypes (duck-typing-like flexibility)
+- **Nominal typing for variants**: Variant types require exact name matching
+- **Let-polymorphism**: Automatic generalization and instantiation of polymorphic types
+- **Syntactic value restriction**: Only syntactic values can be generalized (prevents unsound polymorphism)
+
 ### Primitive Types
 
 #### Int
@@ -394,9 +406,9 @@ let age = person.age         // 30
 let older = { ...person, age: 31 }  // Creates new record
 ```
 
-#### Structural Typing
+#### Structural Typing with Width Subtyping
 
-Records use structural typing: two record types with the same fields are compatible.
+Records use **structural typing with width subtyping**: two record types with the same fields are compatible, and records with **extra fields** are subtypes of records with fewer fields.
 
 ```vibefun
 type Point2D = { x: Int, y: Int }
@@ -404,7 +416,19 @@ type Vector2D = { x: Int, y: Int }
 
 let p: Point2D = { x: 1, y: 2 }
 let v: Vector2D = p  // OK - same structure
+
+// Width subtyping: records with extra fields accepted
+let point3D = { x: 1, y: 2, z: 3 }
+let point2D: Point2D = point3D  // OK - has x and y (z ignored)
+
+// Functions accept "at least these fields"
+let getX = (p: { x: Int }) => p.x
+
+getX({ x: 1, y: 2 })        // OK - has x (and extra y)
+getX({ x: 5, y: 10, z: 15 }) // OK - has x (extra fields ignored)
 ```
+
+This provides **duck-typing-like flexibility** with compile-time safety: functions can work with any record that has "at least" the required fields.
 
 ### Variant Types
 
@@ -446,6 +470,33 @@ None: <T>Option<T>
 Circle: (Float) -> Shape
 Rectangle: (Float, Float) -> Shape
 ```
+
+#### Nominal Typing for Variants
+
+Variants use **nominal typing**: two variant types are compatible **only if they have the same type name**, even if they have identical constructors.
+
+```vibefun
+type Status = Pending | Active | Complete
+type State = Pending | Active | Complete
+
+let status: Status = Pending
+let state: State = status  // ERROR: Status ≠ State
+
+// Even though constructors are identical, these are different types
+```
+
+This prevents accidental mixing of semantically different types:
+
+```vibefun
+type HttpStatus = Ok | NotFound | ServerError
+type DatabaseStatus = Ok | NotFound | ServerError
+
+// These are DIFFERENT types - cannot be mixed
+let httpStatus: HttpStatus = Ok
+let dbStatus: DatabaseStatus = httpStatus  // ERROR: different types
+```
+
+**Rationale**: Nominal typing for variants provides type safety by preventing confusion between types that happen to have the same structure but represent different concepts.
 
 ### Generics (Parametric Polymorphism)
 
@@ -723,6 +774,32 @@ let rec length = (list) => match list {
     | [_, ...rest] => 1 + length(rest)
 }
 ```
+
+### Mutually Recursive Functions
+
+Use the `and` keyword to define mutually recursive functions (OCaml/F# style):
+
+```vibefun
+let rec isEven = (n) =>
+    if n == 0 then true
+    else isOdd(n - 1)
+and isOdd = (n) =>
+    if n == 0 then false
+    else isEven(n - 1)
+
+// Three-way mutual recursion
+let rec parseExpr = (tokens) =>
+    // ... can call parseTerm and parseFactor
+    parseTerm(tokens)
+and parseTerm = (tokens) =>
+    // ... can call parseExpr and parseFactor
+    parseExpr(tokens)
+and parseFactor = (tokens) =>
+    // ... can call parseExpr and parseTerm
+    parseTerm(tokens)
+```
+
+The `and` keyword explicitly declares a mutually recursive group. All functions in the group can reference each other.
 
 ### Higher-Order Functions
 
@@ -1458,6 +1535,7 @@ pattern when guard
 | `match`    | Pattern matching                  |
 | `when`     | Pattern guard                     |
 | `rec`      | Recursive function                |
+| `and`      | Mutually recursive functions      |
 | `import`   | Import from module                |
 | `export`   | Export declaration                |
 | `external` | External JS declaration           |

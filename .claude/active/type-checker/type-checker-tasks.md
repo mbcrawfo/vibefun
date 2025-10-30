@@ -1,14 +1,14 @@
 # Type Checker Implementation Tasks
 
 **Created:** 2025-10-30
-**Last Updated:** 2025-10-30
+**Last Updated:** 2025-10-30 (Synchronized with Final Plan)
 **Status:** Not Started
 
 ## Progress Overview
 
-- **Phases Completed:** 0/10 (0%)
+- **Phases Completed:** 0/11 (0%) [Added Phase 4b]
 - **Current Phase:** Phase 1 (Type Representation & Unification)
-- **Tests Written:** 28 (existing), Target: 200+
+- **Tests Written:** 28 (existing), Target: 275+
 
 ---
 
@@ -25,6 +25,8 @@
   - [ ] Create type variable helpers (fresh, isFree, etc.)
   - [ ] Implement type equality checks
   - [ ] Add typeToString() for readable formatting
+  - [ ] Add Never type support (bottom type, unifies with everything)
+  - [ ] Add Ref<T> type constructor (for mutable references)
   - [ ] Export all type utilities
 
 - [ ] Create `packages/core/src/typechecker/unify.ts`
@@ -63,7 +65,9 @@
   - [ ] Test substitution application
   - [ ] Test substitution composition
   - [ ] Test unification failure cases
-  - [ ] **Target:** 20+ tests total
+  - [ ] Test Never type unification (always succeeds)
+  - [ ] Test Ref<T> type unification
+  - [ ] **Target:** 25+ tests total
 
 ### Quality Checks
 
@@ -90,6 +94,7 @@
     - [ ] String: Const("String")
     - [ ] Bool: Const("Bool")
     - [ ] Unit: Const("Unit")
+    - [ ] Never: Const("Never") - bottom type for panic
   - [ ] Define List<T> variant type
     - [ ] Cons constructor: (T, List<T>) -> List<T>
     - [ ] Nil constructor: () -> List<T>
@@ -99,12 +104,16 @@
   - [ ] Define Result<T, E> variant type
     - [ ] Ok constructor: (T) -> Result<T, E>
     - [ ] Err constructor: (E) -> Result<T, E>
-  - [ ] Define standard library function signatures
-    - [ ] List.map, filter, fold, length, head, tail, etc.
-    - [ ] Option.map, flatMap, getOrElse, isSome, isNone
-    - [ ] Result.map, mapErr, flatMap, isOk, isErr
-    - [ ] String functions (length, concat, etc.)
-    - [ ] Int/Float functions (toString, abs, etc.)
+  - [ ] Define **17 core stdlib function signatures** (Phase 2 subset):
+    - [ ] **List (4)**: map, filter, fold, length
+    - [ ] **Option (3)**: map, flatMap, getOrElse
+    - [ ] **Result (3)**: map, flatMap, isOk
+    - [ ] **String (3)**: length, concat, fromInt
+    - [ ] **Int (2)**: toString, toFloat
+    - [ ] **Float (2)**: toString, toInt
+    - [ ] *(Remaining 29 stdlib functions deferred to Phase 7)*
+  - [ ] Add panic function: panic: (String) -> Never
+  - [ ] Add ref constructor: ref: forall a. (a) -> Ref<a>
   - [ ] Export getBuiltinEnv() function
 
 - [ ] Modify `packages/core/src/typechecker/environment.ts`
@@ -141,6 +150,68 @@
 
 ---
 
+## Phase 2.5: Mutable References & Value Restriction
+
+**Status:** 🔜 Not Started
+**Estimated:** 5-7 hours
+**Actual:** _TBD_
+
+### Implementation Tasks
+
+- [ ] Extend `packages/core/src/typechecker/types.ts`
+  - [ ] Add Ref<T> type constructor (if not done in Phase 1)
+  - [ ] Implement isSyntacticValue() predicate:
+    - [ ] Returns true for: CoreVar, CoreLambda, literals, CoreVariant
+    - [ ] Returns false for: CoreApp, CoreMatch, CoreLet, etc.
+  - [ ] Export isSyntacticValue function
+
+- [ ] Extend `packages/core/src/typechecker/builtins.ts`
+  - [ ] Add ref constructor (if not done in Phase 2)
+  - [ ] Ensure type: ref: forall a. (a) -> Ref<a>
+
+- [ ] Extend `packages/core/src/typechecker/infer.ts` (will be created in Phase 3)
+  - [ ] Implement RefAssign operator type checking:
+    - [ ] Left operand must be Ref<T>
+    - [ ] Right operand must be T
+    - [ ] Result type: Unit
+  - [ ] Implement Deref operator type checking:
+    - [ ] Operand must be Ref<T>
+    - [ ] Result type: T
+  - [ ] Update generalization to use isSyntacticValue():
+    - [ ] Only generalize if isSyntacticValue(expr) returns true
+    - [ ] Non-values cannot be generalized (prevents unsound polymorphism)
+
+### Testing Tasks
+
+- [ ] Extend `packages/core/src/typechecker/infer.test.ts` (will be created)
+  - [ ] Test Ref<T> type construction
+  - [ ] Test ref constructor: ref(42) has type Ref<Int>
+  - [ ] Test reference assignment: r := 5
+  - [ ] Test dereferencing: !r
+  - [ ] Test assignment to non-ref fails
+  - [ ] Test dereferencing non-ref fails
+  - [ ] Test syntactic value restriction:
+    - [ ] Variables can be generalized
+    - [ ] Lambdas can be generalized
+    - [ ] Literals can be generalized
+    - [ ] Constructors can be generalized
+    - [ ] Function applications cannot be generalized
+    - [ ] Match expressions cannot be generalized
+    - [ ] ref(None) requires type annotation
+  - [ ] Test mutable let bindings with `mutable: true` flag
+  - [ ] Test recursive flag handling
+  - [ ] **Target:** 25+ tests
+
+### Quality Checks
+
+- [ ] `npm run check` passes
+- [ ] `npm run lint` passes
+- [ ] `npm test` passes
+- [ ] `npm run format` applied
+- [ ] Test coverage ≥90%
+
+---
+
 ## Phase 3: Core Type Inference (Algorithm W - Basics)
 
 **Status:** 🔜 Not Started
@@ -149,13 +220,24 @@
 
 ### Implementation Tasks
 
+- [ ] Create `packages/core/src/typechecker/constraints.ts`
+  - [ ] Define Constraint data structure:
+    - [ ] Equality constraint: `{ kind: "Equality"; t1: Type; t2: Type; loc: Location }`
+    - [ ] Instance constraint: `{ kind: "Instance"; scheme: TypeScheme; type: Type; loc: Location }`
+  - [ ] Implement constraint solver:
+    - [ ] `solveConstraints(constraints: Constraint[]): Substitution`
+    - [ ] Apply unification for equality constraints
+    - [ ] Handle instantiation constraints
+  - [ ] Export solver and constraint types
+
 - [ ] Create `packages/core/src/typechecker/infer.ts`
   - [ ] Define InferenceContext class/type
     - [ ] Type environment (TypeEnv)
     - [ ] Fresh type variable counter
     - [ ] Current substitution
-  - [ ] Implement fresh type variable generation
-  - [ ] Build main inferExpr() function
+    - [ ] Current level (for type variable scoping)
+  - [ ] Implement fresh type variable generation (with levels)
+  - [ ] Build main inferExpr() function (constraint generation)
   - [ ] Implement literal inference
     - [ ] CoreIntLit → Int
     - [ ] CoreFloatLit → Float
@@ -235,27 +317,31 @@
 ### Implementation Tasks
 
 - [ ] Extend `packages/core/src/typechecker/infer.ts`
-  - [ ] Implement generalization function
+  - [ ] Implement **level-based generalization** function
     - [ ] Find free type variables in type
     - [ ] Find free type variables in environment
-    - [ ] Quantify vars free in type but not in env
-    - [ ] Return TypeScheme with quantified vars
+    - [ ] **Filter out variables with level > current level** (escape check)
+    - [ ] Quantify vars free in type but not in env, at current level or deeper
+    - [ ] **Apply syntactic value restriction**: use isSyntacticValue()
+    - [ ] Only generalize if expression is a syntactic value
+    - [ ] Return TypeScheme with quantified vars (or monomorphic if non-value)
   - [ ] Implement instantiation function
     - [ ] Take TypeScheme
-    - [ ] Create fresh type vars for quantified vars
+    - [ ] Create fresh type vars for quantified vars (at current level)
     - [ ] Substitute in type
     - [ ] Return instantiated Type
   - [ ] Implement let-binding inference
-    - [ ] CoreLet → infer binding value type
-    - [ ] Generalize value type to scheme
-    - [ ] Add binding to environment
+    - [ ] CoreLet → check `recursive: boolean` flag
+    - [ ] If recursive, add binding to env BEFORE inferring value
+    - [ ] Infer binding value type
+    - [ ] Generalize value type to scheme (with value restriction)
+    - [ ] Add binding to environment (or update if recursive)
     - [ ] Infer body expression
     - [ ] Return body type
-  - [ ] Handle recursive bindings
-    - [ ] Add binding name to env before inferring value
-    - [ ] Use type variable initially
-    - [ ] Unify after inference
-  - [ ] Consider mutually recursive functions (optional)
+  - [ ] Handle `mutable: boolean` flag
+    - [ ] Check flag in CoreLet/CoreLetDecl
+    - [ ] Apply value restriction appropriately
+  - [ ] Consider mutually recursive functions (deferred decision)
 
 ### Testing Tasks
 
@@ -269,13 +355,75 @@
   - [ ] Test multiple uses of polymorphic function
   - [ ] Test let-bound function returns different types
   - [ ] Test nested let-bindings
-  - [ ] Test recursive functions
+  - [ ] **Test type variable scoping with levels**:
+    - [ ] Nested let-bindings with shadowing work correctly
+    - [ ] Type variables don't escape their scope
+    - [ ] `let f = () => ref(None)` fails (type var would escape)
+    - [ ] Inner scopes can't leak variables to outer scopes
+  - [ ] Test recursive functions with `recursive: true`:
     - [ ] Factorial
     - [ ] Fibonacci
     - [ ] List length
-  - [ ] Test recursive function needs annotation (edge case)
+  - [ ] Test recursive flag enables self-reference
+  - [ ] Test non-recursive function without flag
+  - [ ] Test syntactic value restriction:
+    - [ ] Function applications cannot be generalized
+    - [ ] ref(None) requires type annotation
+    - [ ] Lambdas can be generalized
   - [ ] Test shadowing (inner let overrides outer)
-  - [ ] Test mutually recursive functions (if supported)
+  - [ ] Test mutable flag handling
+  - [ ] **Target:** 30+ tests (added scoping tests)
+
+### Quality Checks
+
+- [ ] `npm run check` passes
+- [ ] `npm run lint` passes
+- [ ] `npm test` passes
+- [ ] `npm run format` applied
+- [ ] Test coverage ≥90%
+
+---
+
+## Phase 4b: Mutually Recursive Functions
+
+**Status:** 🔜 Not Started
+**Estimated:** 4-5 hours
+**Actual:** _TBD_
+
+**Prerequisites:** Parser must support `and` keyword in `let rec ... and ...` syntax
+
+### Implementation Tasks
+
+- [ ] **Parser changes** (if not already updated)
+  - [ ] Add `and` as keyword
+  - [ ] Parse `let rec f = expr1 and g = expr2 and h = expr3`
+  - [ ] Generate CoreLet with list of mutually recursive bindings
+  - [ ] Update Core AST if needed to support mutual groups
+
+- [ ] Extend `packages/core/src/typechecker/infer.ts`
+  - [ ] Detect mutually recursive binding groups (bindings with `and`)
+  - [ ] For each mutual group:
+    - [ ] Bind all names with fresh type variables BEFORE inferring values
+    - [ ] Increment level
+    - [ ] Infer each value expression
+    - [ ] Unify inferred types with placeholder types
+    - [ ] Generalize all bindings together
+    - [ ] Add all bindings to environment
+  - [ ] Handle single recursion (existing `rec`) as before
+  - [ ] Ensure proper level management for mutual groups
+
+### Testing Tasks
+
+- [ ] Extend `packages/core/src/typechecker/infer.test.ts`
+  - [ ] Test simple mutual recursion: isEven/isOdd
+  - [ ] Test three-way mutual recursion
+  - [ ] Test mutually recursive functions with different types
+  - [ ] Test mutually recursive functions with polymorphic types
+  - [ ] Test mixing mutual recursion with regular recursion
+  - [ ] Test error: Undefined function in mutual group
+  - [ ] Test error: Type mismatch in mutual group
+  - [ ] Test mutual recursion with level tracking
+  - [ ] Test mutual group with type annotations
   - [ ] **Target:** 20+ tests
 
 ### Quality Checks
@@ -291,12 +439,17 @@
 ## Phase 5: Algebraic Data Types
 
 **Status:** 🔜 Not Started
-**Estimated:** 5-6 hours
+**Estimated:** 6-7 hours
 **Actual:** _TBD_
 
 ### Implementation Tasks
 
-- [ ] Extend `packages/core/src/typechecker/infer.ts`
+- [ ] Extend `packages/core/src/typechecker/infer.ts` and `environment.ts`
+  - [ ] Handle CoreExternalTypeDecl:
+    - [ ] Register external types as type aliases in environment
+    - [ ] Structure: { name, typeExpr, exported }
+    - [ ] Convert CoreTypeExpr to Type
+    - [ ] Add to type environment
   - [ ] Implement record construction inference
     - [ ] CoreRecord → infer all field types
     - [ ] Create record type with field map
@@ -312,6 +465,11 @@
     - [ ] Check fields exist in base record
     - [ ] Create new record type with updated fields
     - [ ] Return new record type
+  - [ ] **Implement width subtyping for records:**
+    - [ ] When checking record type compatibility, allow extra fields
+    - [ ] Record with MORE fields can be used where fewer expected
+    - [ ] Function expecting `{x: Int}` accepts `{x: Int, y: Int}`
+    - [ ] Update unification to support width subtyping
   - [ ] Implement variant construction inference
     - [ ] CoreVariant → look up constructor in environment
     - [ ] Instantiate generic type parameters (fresh vars)
@@ -334,7 +492,15 @@
   - [ ] Test missing field access (error)
   - [ ] Test record update
   - [ ] Test record update with wrong field (error)
-  - [ ] Test structural typing (same fields = same type)
+  - [ ] **Test width subtyping for records**:
+    - [ ] Record with extra fields accepted where fewer expected
+    - [ ] Function expecting `{x: Int}` accepts `{x: Int, y: Int}`
+    - [ ] Duck-typing-like behavior (compile-time)
+    - [ ] Width subtyping with function parameters
+  - [ ] **Test nominal typing for variants**:
+    - [ ] `type A = X | Y` and `type B = X | Y` are DIFFERENT types
+    - [ ] Cannot mix different variant types (error)
+    - [ ] Same structure doesn't mean same type for variants
   - [ ] Test variant construction (Some, None, Cons, Nil)
   - [ ] Test List construction: Cons(1, Cons(2, Nil))
   - [ ] Test Option construction: Some(42), None
@@ -343,7 +509,7 @@
   - [ ] Test nested generics: Option<List<Int>>
   - [ ] Test variant with wrong payload type (error)
   - [ ] Test mixing different list types (error)
-  - [ ] **Target:** 25+ tests
+  - [ ] **Target:** 35+ tests (added width subtyping & nominal tests)
 
 ### Quality Checks
 
@@ -432,7 +598,7 @@
 
 ---
 
-## Phase 7: Advanced Features
+## Phase 7: Advanced Features & Stdlib Completion
 
 **Status:** 🔜 Not Started
 **Estimated:** 4-5 hours
@@ -440,11 +606,20 @@
 
 ### Implementation Tasks
 
+- [ ] Complete standard library (29 remaining functions)
+  - [ ] **List (5 more)**: foldRight, head, tail, reverse, concat, flatten
+  - [ ] **Option (3 more)**: isSome, isNone, unwrap
+  - [ ] **Result (4 more)**: mapErr, isErr, unwrap, unwrapOr
+  - [ ] **String (10 more)**: toUpperCase, toLowerCase, trim, split, contains, startsWith, endsWith, fromFloat, toInt, toFloat
+  - [ ] **Int (3 more)**: abs, max, min
+  - [ ] **Float (4 more)**: round, floor, ceil, abs (toInt already in core)
+
 - [ ] Extend `packages/core/src/typechecker/infer.ts`
   - [ ] Implement union type support
     - [ ] Union type creation
     - [ ] Union type inference
-    - [ ] Type narrowing (if needed)
+    - [ ] **Variant-based narrowing only** (Some/None, Ok/Err)
+    - [ ] Document that primitive unions (Int | String) cannot be narrowed
   - [ ] Validate type annotations
     - [ ] When CoreTypeAnnotation present
     - [ ] Convert annotation to Type
@@ -468,8 +643,8 @@
 ### Testing Tasks
 
 - [ ] Extend `packages/core/src/typechecker/infer.test.ts`
-  - [ ] Test union types (Int | String)
-  - [ ] Test literal unions ("pending" | "active")
+  - [ ] Test all 29 remaining stdlib functions work correctly
+  - [ ] Test union types for variants (Option | Result)
   - [ ] Test type annotation validation (matching)
   - [ ] Test type annotation mismatch (error)
   - [ ] Test overloaded external resolution
@@ -481,7 +656,8 @@
   - [ ] Test empty list handling
   - [ ] Test ambiguous recursion (error without annotation)
   - [ ] Test ambiguous recursion (ok with annotation)
-  - [ ] **Target:** 20+ tests
+  - [ ] Test Never type with panic function
+  - [ ] **Target:** 20+ tests (removed literal type tests)
 
 ### Quality Checks
 
@@ -582,15 +758,17 @@
   - [ ] Implement main typeCheck() function
     - [ ] Input: CoreModule (from desugarer)
     - [ ] Build type environment from declarations
-    - [ ] Add built-in types and functions
+    - [ ] Add all 46 built-in types and functions (from Phase 2 + 7)
     - [ ] Type check each top-level declaration:
       - [ ] Type definitions (variants, records)
-      - [ ] Let bindings
-      - [ ] External declarations
+      - [ ] External type declarations (CoreExternalTypeDecl)
+      - [ ] Let bindings (with mutable and recursive support)
+      - [ ] External declarations (with overload support)
     - [ ] Attach inferred types to AST nodes
     - [ ] Return TypedModule
   - [ ] Handle top-level declarations
-    - [ ] Process type definitions first
+    - [ ] Process type definitions first (two-pass for recursion)
+    - [ ] Process external type declarations
     - [ ] Then process let bindings and externals
     - [ ] Build full environment
   - [ ] Attach types to AST nodes
@@ -627,22 +805,27 @@
   - [ ] Test external functions:
     - [ ] Single externals
     - [ ] Overloaded externals
+  - [ ] Test external type declarations work end-to-end
   - [ ] Test complete programs:
-    - [ ] Fibonacci function
-    - [ ] Factorial function
+    - [ ] Fibonacci function (recursive flag)
+    - [ ] Factorial function (recursive flag)
     - [ ] List filter and map composition
     - [ ] Tree traversal (if defined)
+  - [ ] Test mutable references end-to-end
+  - [ ] Test syntactic value restriction enforced
+  - [ ] Test all 46 stdlib functions accessible and working
+  - [ ] Test pattern guards work correctly
   - [ ] Test integration with desugarer:
     - [ ] Parse → Desugar → Type Check pipeline
     - [ ] Verify desugared constructs type check correctly
   - [ ] Test error cases end-to-end
-  - [ ] **Target:** 25+ integration tests
+  - [ ] **Target:** 30+ integration tests
 
 ### Quality Checks
 
 - [ ] `npm run check` passes
 - [ ] `npm run lint` passes
-- [ ] `npm test` passes (ALL tests: 200+)
+- [ ] `npm test` passes (ALL tests: 230+)
 - [ ] `npm run format` applied
 - [ ] Test coverage ≥90%
 
@@ -720,10 +903,31 @@
 
 ## Final Summary
 
-**Total Phases:** 10
-**Total Tasks:** ~150+
-**Total Tests:** 200+
+**Total Phases:** 11 (added Phase 4b for mutually recursive functions)
+**Total Tasks:** ~185+
+**Total Tests:** 275+
+**Key Features:**
+- Full Hindley-Milner type inference with **constraint-based Algorithm W**
+- **Type variable scoping with levels** (Standard ML approach)
+- **Mutually recursive functions** with `and` keyword (OCaml/F# style)
+- **Width subtyping for records** (duck-typing-like flexibility)
+- **Nominal typing for variants** (exact name matching)
+- Mutable references with full syntactic value restriction
+- Pattern matching with exhaustiveness checking and guards
+- Recursive functions with explicit flag support
+- External type declarations (CoreExternalTypeDecl)
+- 46 standard library functions (17 core + 29 additional)
+- Overloaded external function resolution
+- Never type for non-returning functions (panic)
+- Comprehensive error messages with suggestions
+
 **Status:** Ready to begin Phase 1
+
+**Known Limitations:**
+- Literal types NOT supported (requires parser changes)
+- Primitive union narrowing NOT supported (no pattern type annotations)
+- Module import verification deferred (trusts imports)
+- Promise is external type (not built-in)
 
 ---
 
@@ -735,3 +939,4 @@
 - Record actual time spent vs estimates
 - Note any deviations from plan or issues encountered
 - Keep "Last Updated" timestamp current
+- All decisions documented in type-checker-plan.md Appendix

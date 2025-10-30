@@ -1,7 +1,7 @@
 # Type Checker Implementation Context
 
 **Created:** 2025-10-30
-**Last Updated:** 2025-10-30
+**Last Updated:** 2025-10-30 (Final - All Decisions Incorporated)
 
 ## Purpose
 
@@ -447,37 +447,379 @@ Test complete programs combining multiple features:
 - Mutually recursive functions
 - Generic variant constructors (Nil, None)
 
-## Design Decisions to Make During Implementation
+## Design Decisions Made
 
-### Open Questions
+**Updated:** 2025-10-30 (After plan review, Core AST analysis, and final design decisions)
 
-1. **Empty List Type:**
-   - How to handle `[]` without context?
-   - Require annotation, or use type variable?
+### 1. What's Desugared vs Core AST
 
-2. **Recursive Function Annotations:**
-   - Always require annotation?
-   - Or try to infer with fixed-point?
+**Decision:** Type checker only handles Core AST constructs. The following are desugared:
+- Multi-parameter lambdas → curried single-param
+- Pipe operator (`|>`) → function applications
+- Composition (`>>`, `<<`) → lambda compositions
+- If-then-else → match on boolean
+- Block expressions → nested let bindings
+- List literals/cons (`::`) → Cons/Nil variants
+- Or-patterns → multiple match cases
+- Record update spread → explicit field copying
 
-3. **Type Error Recovery:**
-   - Stop at first error?
-   - Or continue and report multiple errors?
+**Rationale:** Simplifies type checker, reduces duplication. Desugarer already handles this.
 
-4. **Mutually Recursive Functions:**
-   - Support in Phase 4?
-   - Or defer to later?
+**Reference:** Core AST documentation (`packages/core/src/types/core-ast.ts`)
 
-5. **Source Maps:**
-   - Attach to typed AST?
-   - Or keep separate?
+### 2. Mutable References with Full Syntactic Value Restriction
 
-6. **Type Schemes in AST:**
-   - Attach inferred TypeScheme to nodes?
-   - Or just concrete instantiated Type?
+**Decision:** Full support for mutable references with full syntactic value restriction
 
-### Decisions Made (To Be Updated)
+**Implementation:**
+- Add `Ref<T>` type constructor
+- `RefAssign` operator (`:=`): requires `Ref<T>` on left, `T` on right, returns `Unit`
+- `Deref` operator (`!`): requires `Ref<T>`, returns `T`
+- **Full syntactic value restriction**: Only syntactic values can be generalized
+  - Syntactic values: variables, lambdas, literals, constructors
+  - Non-values: function applications, match expressions, etc.
+- Prevents unsound polymorphism with effects and mutable state
+- Aligns with OCaml/SML semantics
 
-_This section will be updated as decisions are made during implementation._
+**Rationale:**
+- Core language feature for pragmatic functional programming
+- Full value restriction is more principled and future-proof
+- Automatically handles any future effect system
+- Matches "similar to OCaml" philosophy
+
+**Phase:** Added as Phase 2.5 (5-7 hours, 25+ tests)
+
+### 3. Operator Type Checking Strategy
+
+**Decision:** Type-directed specialization (no overloading)
+
+**Arithmetic operators (`+`, `-`, `*`, `/`, `%`):**
+- Both operands must unify to same type
+- Type must be Int or Float (checked after unification)
+- Result is same type as operands
+- Cannot mix Int and Float (require explicit conversion)
+
+**Rationale:** Simple, no need for type classes. Avoids overload complexity.
+
+**Alternative considered:** Ad-hoc overloading (rejected - more complex, not in spec)
+
+### 4. Empty Collections (Nil, None)
+
+**Decision:** Fresh type variables with standard Hindley-Milner behavior
+
+**Strategy:**
+- `Nil` gets instantiated as `List<'a>` where `'a` is fresh
+- `None` gets instantiated as `Option<'a>` where `'a` is fresh
+- Type variable unified with context or generalized
+
+**Example:**
+```vibefun
+let empty = Nil              // Type: forall a. List<a>
+let list = [None, Some(42)]  // Type: List<Option<Int>>
+                              // None's 'a unified with Int
+```
+
+**Rationale:** Standard ML behavior. Inference handles this naturally.
+
+### 5. Pattern Guards
+
+**Decision:** Full support in type checker (present in Core AST)
+
+**Implementation:**
+- CoreMatchCase has optional `guard: CoreExpr`
+- Guard must type check as `Bool`
+- Pattern bindings are in scope for guard
+- Guard evaluated after pattern matches
+
+**Rationale:** Present in Core AST, required by language spec.
+
+**Phase:** Added to Phase 6 (included in 7-9 hour estimate)
+
+### 6. Recursive Type Definitions
+
+**Decision:** Two-pass approach for type definitions
+
+**Strategy:**
+- **First pass:** Add type constructors to environment
+- **Second pass:** Check type definitions
+- Supports self-recursive types (`List<T> = Cons(T, List<T>) | Nil`)
+- Supports mutually recursive types (`Tree`/`Forest`)
+
+**Rationale:** Standard approach, handles all recursion cases.
+
+**Phase:** Integrated into Phase 5 (6-7 hours)
+
+### 7. Never Type
+
+**Decision:** Add Never type as bottom type
+
+**Implementation:**
+- `Never` type in Type ADT
+- Unifies with any type (always succeeds)
+- Used for `panic: (String) -> Never`
+- Enables type-safe non-returning functions
+
+**Rationale:** Present in spec, semantically correct, enables panic.
+
+**Phase:** Added to Phase 1 and Phase 2
+
+### 8. Error Strategy
+
+**Decision:** Stop at first error initially
+
+**Strategy:**
+- Throw TypeCheckerError on first type error
+- No error recovery in initial implementation
+- Can enhance later to collect multiple errors (Phase 11)
+
+**Rationale:** Simpler to implement, get working sooner. Error recovery is complex.
+
+**Future:** Can add multiple error collection as enhancement.
+
+### 9. Module System
+
+**Decision:** Trust imports, infer exports, disallow cycles (initial)
+
+**Strategy:**
+- **Imports:** Trust declared types (don't load/verify modules yet)
+- **Exports:** Infer types and attach to declarations
+- **Cycles:** Disallow cyclic imports (error if detected)
+- **Re-exports:** Type check transitively
+
+**Rationale:** Simple, gets type checker working. Module loading can be added later.
+
+**Future:** Load and verify imported modules for full soundness.
+
+### 10. Literal Types (FINAL DECISION)
+
+**Decision:** NOT SUPPORTED - Documented as known limitation
+
+**Investigation Results:**
+- Parser CANNOT parse literal type syntax like `type Status = "pending" | "active"`
+- No `TypeLiteral` variant in Surface AST or Core AST
+- Spec shows literal types but implementation doesn't support them
+- This is a **spec-implementation gap**
+
+**Workaround:**
+- Use variants instead: `type Status = Pending | Active | Complete`
+
+**Future Enhancement:**
+- Requires updates to: lexer, parser, AST, desugarer, AND type checker
+- Outside type checker scope
+
+**Rationale:** Cannot implement without parser changes. Document limitation and provide workaround.
+
+**Phase:** Removed from Phase 7 implementation tasks
+
+### 11. Mutually Recursive Functions (FINALIZED)
+
+**Decision:** Supported with `and` keyword (OCaml/F# style)
+
+**Syntax:** `let rec f = ... and g = ...`
+
+**Strategy:**
+- Parser must support `and` keyword
+- Bind all names with fresh type variables BEFORE inferring any values
+- Infer types for entire mutual group together
+- Generalize all bindings at end of group
+- Type checker handles mutual groups in Phase 4b
+
+**Rationale:** Explicit syntax makes intent clear, follows well-understood precedent from OCaml/F#.
+
+**Phase:** Added Phase 4b (4-5 hours, 20+ tests)
+
+### 19. Algorithm W Approach (FINALIZED)
+
+**Decision:** Constraint-based (lazy) inference
+
+**Strategy:**
+- Generate constraints during AST traversal
+- Solve constraints after generation
+- More flexible than direct unification
+
+**Rationale:** Better for future features (type classes, GADTs), better error messages possible, more modular.
+
+**Phase:** Affects Phase 3 - adds constraint solver
+
+### 20. Type Variable Scoping with Levels (FINALIZED)
+
+**Decision:** Standard ML approach with lexical levels
+
+**Strategy:**
+- Track level for each type variable
+- Increment level when entering let-bindings
+- Generalize only variables at current level or deeper
+- Filter out variables with level > current level (escape check)
+
+**Rationale:** Sound, prevents type variable escape, aligns with OCaml/SML semantics.
+
+**Example that fails:** `let f = () => ref(None)` where type var would escape
+
+**Phase:** Integrated into Phase 1 (type vars have levels) and Phase 4 (level-based generalization)
+
+### 21. Width Subtyping for Records (FINALIZED)
+
+**Decision:** Width subtyping (permissive) - records with extra fields are subtypes
+
+**Rule:** `{x: Int, y: Int, z: Int} <: {x: Int, y: Int}` is valid
+
+**Strategy:**
+- When checking record type compatibility, allow extra fields
+- Record with MORE fields can be used where fewer expected
+- Duck-typing-like flexibility with compile-time safety
+
+**Rationale:** Provides flexibility similar to structural typing in TypeScript, allows functions to accept "at least these fields"
+
+**Phase:** Integrated into Phase 5 unification
+
+### 22. Nominal Typing for Variants (FINALIZED)
+
+**Decision:** Nominal typing - exact type name matching required
+
+**Rule:** `type A = X | Y` ≠ `type B = X | Y` (different types)
+
+**Strategy:**
+- Check type name equality for variant types
+- Two variant types with same constructors are DIFFERENT if names differ
+- Prevents accidental mixing
+
+**Rationale:** Most sound approach, prevents confusion between semantically different types, standard ML-family behavior
+
+**Phase:** Integrated into Phase 5 variant type checking
+
+### 12. Type Schemes in AST
+
+**Decision:** Attach instantiated Type to expression nodes
+
+**Strategy:**
+- Each CoreExpr gets `inferredType: Type` field
+- Type is the instantiated type (not scheme)
+- Type schemes stored in environment for let-bound values
+
+**Rationale:** Simpler for code generator. Schemes only needed during type checking.
+
+### 13. Source Maps
+
+**Decision:** Preserve Location information, source maps in later phase
+
+**Strategy:**
+- All AST nodes have Location information
+- Type checker preserves locations
+- Source map generation handled by code generator
+
+**Rationale:** Type checker doesn't need source maps. Locations sufficient for errors.
+
+### 14. Recursive Flag in Let-Bindings (FINAL)
+
+**Decision:** Use `recursive: boolean` flag in CoreLet/CoreLetDecl
+
+**Investigation Results:**
+- Core AST has `recursive: boolean` field in both CoreLet and CoreLetDecl
+- When `recursive === true`, bind name in environment BEFORE type checking value
+- Enables self-referential functions (factorial, fibonacci, etc.)
+
+**Implementation:**
+- Check flag during let-binding inference
+- If recursive, add binding to env with fresh type var before inferring value
+- After inference, unify and generalize
+
+**Rationale:** Present in Core AST. Required for recursive functions.
+
+**Phase:** Integrated into Phase 4
+
+### 15. External Type Declarations (FINAL)
+
+**Decision:** Full support for CoreExternalTypeDecl
+
+**Investigation Results:**
+- Core AST has `CoreExternalTypeDecl` with `name`, `typeExpr`, `exported` fields
+- Desugarer expands external blocks into individual external type declarations
+- Represent JavaScript types imported into vibefun's type system
+
+**Implementation:**
+- Register external types as type aliases in environment
+- Convert CoreTypeExpr to internal Type representation
+- Make available for use in type annotations
+
+**Rationale:** Present in Core AST. Required for JavaScript interop.
+
+**Phase:** Integrated into Phase 5
+
+### 16. Standard Library Phasing Strategy (FINAL)
+
+**Decision:** 17 core functions in Phase 2, remaining 29 in Phase 7
+
+**Phase 2 Core (17 functions):**
+- List: map, filter, fold, length (4)
+- Option: map, flatMap, getOrElse (3)
+- Result: map, flatMap, isOk (3)
+- String: length, concat, fromInt (3)
+- Int: toString, toFloat (2)
+- Float: toString, toInt (2)
+
+**Phase 7 Complete (29 functions):**
+- List: foldRight, head, tail, reverse, concat, flatten (5)
+- Option: isSome, isNone, unwrap (3)
+- Result: mapErr, isErr, unwrap, unwrapOr (4)
+- String: toUpperCase, toLowerCase, trim, split, contains, startsWith, endsWith, fromFloat, toInt, toFloat (10)
+- Int: abs, max, min (3)
+- Float: round, floor, ceil, abs (4)
+
+**Rationale:** Keeps Phase 2 focused on essentials, allows faster progress to core inference.
+
+### 17. Union Type Narrowing (FINAL)
+
+**Decision:** Variant-based narrowing only
+
+**Investigation Results:**
+- Pattern type annotations (`| n: Int =>`) do NOT exist in language syntax
+- Not in Surface AST or Core AST
+- Cannot discriminate primitive unions (Int | String) without syntax extensions
+
+**Supported:**
+- Variant unions work fine: Option, Result, custom variants
+- Pattern matching on constructors narrows types naturally
+
+**Not Supported:**
+- Primitive unions (Int | String) cannot be narrowed
+- Would require type-testing patterns or pattern type annotations
+
+**Workaround:** Use variant wrappers for discrimination
+
+**Rationale:** Cannot implement without language syntax extensions.
+
+**Phase:** Clarified in Phase 7 documentation
+
+### 18. Promise Type Handling (FINAL)
+
+**Decision:** External type (user declares when needed)
+
+**Approach:**
+```vibefun
+external {
+    type Promise<T> = { then: ((T) -> Unit) -> Promise<Unit> }
+    fetch: (String) -> Promise<Response> = "fetch"
+}
+```
+
+**Not Built-in:** Avoids premature async/await design decisions
+
+**Rationale:** Most pragmatic approach. Let users define Promise structure for their use case.
+
+**Future:** May become built-in if async/await added to language
+
+## Open Questions (Remaining)
+
+These will be resolved during implementation:
+
+1. ~~**Mutually recursive functions**~~: **RESOLVED** - Supported with `and` keyword (Phase 4b)
+2. ~~**Algorithm approach**~~: **RESOLVED** - Constraint-based (lazy)
+3. ~~**Type variable scoping**~~: **RESOLVED** - Standard ML levels
+4. ~~**Record subtyping**~~: **RESOLVED** - Width subtyping (permissive)
+5. ~~**Variant typing**~~: **RESOLVED** - Nominal (exact name matching)
+6. **Exhaustiveness warnings:** Just error or also warn for unreachable patterns? (Phase 6) - To be decided during implementation
+
+**All major design decisions have been finalized!**
 
 ## Integration Points
 
@@ -488,6 +830,9 @@ _This section will be updated as decisions are made during implementation._
 - Single-parameter curried lambdas
 - Match expressions (no if-then-else)
 - Or-patterns already expanded
+- **CoreExternalTypeDecl present** for external type declarations
+- **Pattern type annotations NOT present** (not in language syntax)
+- **Literal types NOT present** (parser doesn't support them)
 
 ### Output: Typed Core AST
 
@@ -501,6 +846,38 @@ _This section will be updated as decisions are made during implementation._
 - Can use type information for optimizations
 - Constant folding, dead code elimination
 - Type-directed optimizations
+
+## Known Limitations
+
+These features are NOT supported in the initial type checker implementation:
+
+### 1. Literal Types ❌
+- **Issue**: Parser does not support literal type syntax like `type Status = "pending" | "active"`
+- **Workaround**: Use variants: `type Status = Pending | Active | Complete`
+- **Future**: Requires parser, AST, desugarer, and type checker changes
+
+### 2. Primitive Union Narrowing ❌
+- **Issue**: Cannot discriminate primitive unions like `Int | String` in pattern matching
+- **Reason**: Pattern type annotations don't exist in language
+- **Supported**: Variant unions work (Option, Result, custom variants)
+- **Workaround**: Use variant wrappers
+- **Future**: Requires language syntax extension for type-testing patterns
+
+### 3. Pattern Type Annotations ❌
+- **Issue**: Syntax like `match x { | n: Int => ... }` not supported
+- **Reason**: Not in Surface AST or Core AST
+- **Impact**: Limits union type narrowing
+- **Future**: Requires parser and AST changes
+
+### 4. Promise as Built-in Type ℹ️
+- **Approach**: Promise is external type (user declares when needed)
+- **Reason**: Avoids premature async/await design
+- **Future**: May become built-in if async/await added
+
+### 5. Module Import Verification ⚠️
+- **Current**: Trust imported types without verification
+- **Impact**: Cannot detect if imported type doesn't exist or mismatches
+- **Future**: Load and verify imported modules for full soundness
 
 ## Performance Considerations
 
@@ -539,7 +916,21 @@ For initial implementation: **focus on correctness over performance**.
 
 - All existing tests (28) must continue passing
 - Each new phase adds tests incrementally
+- **Total target: 275+ tests** (updated from 230+)
+- **Total phases: 11** (added Phase 4b for mutually recursive functions)
 - Focus on quality: no `any` types, comprehensive tests
 - Follow functional style where appropriate
 - Use classes for stateful components (InferenceContext, etc.)
-- Update this document with decisions made during implementation
+- **All major design decisions finalized** - see decisions 1-22 above
+- Known limitations documented - see Known Limitations section
+- Update this document with any additional decisions made during implementation
+
+## Final Design Decisions Summary (2025-10-30)
+
+1. ✅ **Constraint-based inference** (lazy approach)
+2. ✅ **Type variable scoping with levels** (Standard ML)
+3. ✅ **Mutually recursive functions** with `and` keyword (OCaml/F# style)
+4. ✅ **Width subtyping for records** (duck-typing-like)
+5. ✅ **Nominal typing for variants** (exact name matching)
+
+These decisions are final and implementation should proceed based on them.
