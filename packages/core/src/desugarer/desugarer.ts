@@ -340,6 +340,56 @@ function desugarComposition(
 }
 
 /**
+ * Desugar a list literal into Cons/Nil chain
+ *
+ * @param elements - List elements
+ * @param loc - Location of the list literal
+ * @param gen - Fresh variable generator
+ * @returns Desugared core expression
+ *
+ * @example
+ * // Input: [1, 2, 3]
+ * // Output: Cons(1, Cons(2, Cons(3, Nil)))
+ */
+function desugarListLiteral(elements: Expr[], loc: Location, gen: FreshVarGen): CoreExpr {
+    // Empty list -> Nil
+    if (elements.length === 0) {
+        return {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    // Non-empty list -> fold right to build Cons chain
+    // Start with Nil as the tail
+    let result: CoreExpr = {
+        kind: "CoreVariant",
+        constructor: "Nil",
+        args: [],
+        loc,
+    };
+
+    // Work backwards through elements to build nested Cons
+    for (let i = elements.length - 1; i >= 0; i--) {
+        const element = elements[i];
+        if (!element) {
+            throw new DesugarError(`List has undefined element at index ${i}`, loc);
+        }
+
+        result = {
+            kind: "CoreVariant",
+            constructor: "Cons",
+            args: [desugar(element, gen), result],
+            loc,
+        };
+    }
+
+    return result;
+}
+
+/**
  * Desugar a surface expression to a core expression
  *
  * @param expr - Surface expression to desugar
@@ -480,23 +530,18 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 "This will be implemented in Phase 10",
             );
 
-        // List literals - will desugar to Cons/Nil
+        // List literals - desugar to Cons/Nil
         case "List":
-            // TODO: Implement list literal desugaring
-            throw new DesugarError(
-                "List literal desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 7",
-            );
+            return desugarListLiteral(expr.elements, expr.loc, gen);
 
-        // List cons operator - will desugar to Cons variant
+        // List cons operator - desugar to Cons variant
         case "ListCons":
-            // TODO: Implement list cons desugaring
-            throw new DesugarError(
-                "List cons desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 7",
-            );
+            return {
+                kind: "CoreVariant",
+                constructor: "Cons",
+                args: [desugar(expr.head, gen), desugar(expr.tail, gen)],
+                loc: expr.loc,
+            };
 
         // Binary operations
         case "BinOp":
@@ -561,13 +606,13 @@ function desugarBinOp(
         return desugarComposition(op, left, right, loc, gen);
     }
 
-    // Cons operator is not a binary op in Core AST - it's a variant
+    // Cons operator is handled in the ListCons case above
+    // If we get here with Cons, it shouldn't happen
     if (op === "Cons") {
-        // TODO: Implement cons desugaring
         throw new DesugarError(
-            "Cons operator desugaring not yet implemented",
+            "Cons operator should be handled by ListCons expression",
             loc,
-            "This will be implemented in Phase 7",
+            "This may indicate a parser bug",
         );
     }
 

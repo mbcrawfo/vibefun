@@ -636,14 +636,5 @@ describe("Desugarer - Error Handling", () => {
 
     // Block desugaring is now implemented - see blocks.test.ts
     // Pipe desugaring is now implemented - see pipes.test.ts
-
-    it("should throw error for unimplemented list desugaring", () => {
-        const expr: Expr = {
-            kind: "List",
-            elements: [{ kind: "IntLit", value: 1, loc: testLoc }],
-            loc: testLoc,
-        };
-
-        expect(() => desugar(expr)).toThrow(DesugarError);
-    });
+    // List desugaring is now implemented - see lists.test.ts
 });
