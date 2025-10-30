@@ -10,6 +10,7 @@ import type { Type, TypeEnv, TypeScheme } from "../types/environment.js";
 import type { Substitution } from "./unify.js";
 
 import { TypeError } from "../utils/error.js";
+import { checkExhaustiveness, checkPattern } from "./patterns.js";
 import {
     appType,
     constType,
@@ -215,11 +216,7 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
 
         // Not yet implemented
         case "CoreMatch":
-            throw new TypeError(
-                `Type inference for ${expr.kind} not yet implemented`,
-                expr.loc,
-                `This feature will be implemented in Phase 6`,
-            );
+            return inferMatch(ctx, expr);
     }
 }
 
@@ -1051,6 +1048,100 @@ function inferUnsafe(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
     // Simply infer the type of the inner expression
     // The "unsafe" designation is more of a marker for code generation and documentation
     return inferExpr(ctx, expr.expr);
+}
+
+/**
+ * Infer the type of a match expression
+ *
+ * Steps:
+ * 1. Infer the type of the scrutinee (matched expression)
+ * 2. For each case:
+ *    a. Check the pattern against scrutinee type
+ *    b. Extend environment with pattern bindings
+ *    c. Infer the body type
+ * 3. Check exhaustiveness
+ * 4. Unify all case body types
+ * 5. Return unified result type
+ */
+function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreMatch" }>): InferResult {
+    // Infer scrutinee type
+    const scrutineeResult = inferExpr(ctx, expr.expr);
+    let currentCtx: InferenceContext = { ...ctx, subst: scrutineeResult.subst };
+    const scrutineeType = applySubst(currentCtx.subst, scrutineeResult.type);
+
+    // Check exhaustiveness
+    const patterns = expr.cases.map((c) => c.pattern);
+    const missingCases = checkExhaustiveness(currentCtx.env, patterns, scrutineeType);
+    if (missingCases.length > 0) {
+        throw new TypeError(`Non-exhaustive pattern match`, expr.loc, `Missing cases: ${missingCases.join(", ")}`);
+    }
+
+    // Infer type of each case
+    let resultType: Type | null = null;
+
+    for (const matchCase of expr.cases) {
+        // Check pattern against scrutinee type
+        const patternResult = checkPattern(currentCtx.env, matchCase.pattern, scrutineeType, currentCtx.subst);
+        currentCtx = { ...currentCtx, subst: patternResult.subst };
+
+        // Extend environment with pattern bindings
+        const caseEnv: TypeEnv = {
+            values: new Map(currentCtx.env.values),
+            types: currentCtx.env.types,
+        };
+
+        for (const [name, type] of patternResult.bindings) {
+            caseEnv.values.set(name, {
+                kind: "Value",
+                scheme: { vars: [], type },
+                loc: matchCase.loc,
+            });
+        }
+
+        // If there's a guard, check it and ensure it's Bool
+        if (matchCase.guard) {
+            const guardCtx: InferenceContext = {
+                ...currentCtx,
+                env: caseEnv,
+            };
+            const guardResult = inferExpr(guardCtx, matchCase.guard);
+            currentCtx = { ...currentCtx, subst: guardResult.subst };
+
+            // Unify guard type with Bool
+            const guardUnifySubst = unify(applySubst(guardResult.subst, guardResult.type), primitiveTypes.Bool);
+            currentCtx.subst = composeSubst(guardUnifySubst, currentCtx.subst);
+        }
+
+        // Infer body type with extended environment
+        const bodyCtx: InferenceContext = {
+            ...currentCtx,
+            env: caseEnv,
+        };
+        const bodyResult = inferExpr(bodyCtx, matchCase.body);
+        currentCtx = { ...currentCtx, subst: bodyResult.subst };
+
+        // Unify with result type (first case sets it, others must match)
+        if (resultType === null) {
+            resultType = bodyResult.type;
+        } else {
+            const unifySubst = unify(
+                applySubst(currentCtx.subst, resultType),
+                applySubst(currentCtx.subst, bodyResult.type),
+            );
+            currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
+            resultType = applySubst(currentCtx.subst, resultType);
+        }
+    }
+
+    // Return unified result type
+    if (resultType === null) {
+        throw new TypeError(`Match expression has no cases`, expr.loc, `Add at least one match case`);
+    }
+
+    return {
+        type: applySubst(currentCtx.subst, resultType),
+        subst: currentCtx.subst,
+    };
 }
 
 /**
