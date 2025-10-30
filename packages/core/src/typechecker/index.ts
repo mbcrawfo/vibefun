@@ -7,3 +7,4 @@
 
 export * from "./environment.js";
 export * from "./resolver.js";
+export * from "./errors.js";

@@ -91,8 +91,10 @@ export type Type =
     | { type: "Fun"; params: Type[]; return: Type } // Function type
     | { type: "App"; constructor: Type; args: Type[] } // Type application (List<Int>)
     | { type: "Record"; fields: Map<string, Type> } // Record type
-    | { type: "Variant"; constructors: Map<string, Type[]> } // Variant type
-    | { type: "Union"; types: Type[] }; // Union type
+    | { type: "Variant"; name?: string; constructors: Map<string, Type[]> } // Variant type
+    | { type: "Union"; types: Type[] } // Union type
+    | { type: "Ref"; inner: Type } // Reference type (for mutable references)
+    | { type: "Never" }; // Never type (bottom type, for functions that don't return)
 
 /**
  * Type binding in the type environment

@@ -92,6 +92,13 @@ export function applySubst(subst: Substitution, type: Type): Type {
                 type: "Union",
                 types: type.types.map((t) => applySubst(subst, t)),
             };
+        case "Ref":
+            return {
+                type: "Ref",
+                inner: applySubst(subst, type.inner),
+            };
+        case "Never":
+            return type;
     }
 }
 
@@ -147,6 +154,10 @@ export function occursIn(id: number, type: Type): boolean {
             return Array.from(type.constructors.values()).some((paramTypes) => paramTypes.some((t) => occursIn(id, t)));
         case "Union":
             return type.types.some((t) => occursIn(id, t));
+        case "Ref":
+            return occursIn(id, type.inner);
+        case "Never":
+            return false;
     }
 }
 
@@ -346,6 +357,13 @@ function updateLevels(type: Type, maxLevel: number): Type {
                 type: "Union",
                 types: type.types.map((t) => updateLevels(t, maxLevel)),
             };
+        case "Ref":
+            return {
+                type: "Ref",
+                inner: updateLevels(type.inner, maxLevel),
+            };
+        case "Never":
+            return type;
     }
 }
 

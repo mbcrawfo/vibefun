@@ -139,6 +139,15 @@ function substituteTypeVars(type: Type, mapping: Map<number, Type>): Type {
                 type: "Union",
                 types: type.types.map((t) => substituteTypeVars(t, mapping)),
             };
+
+        case "Ref":
+            return {
+                type: "Ref",
+                inner: substituteTypeVars(type.inner, mapping),
+            };
+
+        case "Never":
+            return type;
     }
 }
 

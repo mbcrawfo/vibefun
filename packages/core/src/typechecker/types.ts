@@ -378,6 +378,12 @@ export function typeEquals(t1: Type, t2: Type): boolean {
                 return type2 !== undefined && typeEquals(type1, type2);
             });
         }
+        case "Ref": {
+            const r2 = t2 as Type & { type: "Ref" };
+            return typeEquals(t1.inner, r2.inner);
+        }
+        case "Never":
+            return true; // Never types are always equal
     }
 }
 
@@ -425,6 +431,10 @@ export function typeToString(t: Type): string {
         }
         case "Union":
             return t.types.map(typeToString).join(" | ");
+        case "Ref":
+            return `Ref<${typeToString(t.inner)}>`;
+        case "Never":
+            return "Never";
     }
 }
 
