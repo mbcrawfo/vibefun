@@ -20,21 +20,19 @@ These directives guide all development work on the vibefun project:
 
 1. **Coding Standards**: Before writing any code, review `.claude/CODING_STANDARDS.md` to understand the project's coding conventions, naming patterns, and best practices.
 
-2. **Detailed Planning**: Always create detailed plans before implementing changes. Use `.claude/plans/` to document plans for future reference.
+2. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
 
-3. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
+3. **Type Safety**: All code must be written in TypeScript using appropriate types. The use of `any` is **strictly prohibited**.
 
-4. **Type Safety**: All code must be written in TypeScript using appropriate types. The use of `any` is **strictly prohibited**.
+4. **Functional Style**: Prefer functional programming style in TypeScript code. Use pure functions, immutability, and composition where possible. Classes may be used when practical (e.g., for lexers, parsers, or stateful components).
 
-5. **Functional Style**: Prefer functional programming style in TypeScript code. Use pure functions, immutability, and composition where possible. Classes may be used when practical (e.g., for lexers, parsers, or stateful components).
-
-6. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
+5. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
    - Unit tests for individual functions/components
    - Integration tests for module interactions
    - Edge cases and error conditions
    - Type checking validation
 
-7. **Quality Checks**: After implementing any changes, always run the following in order:
+6. **Quality Checks**: After implementing any changes, always run the following in order:
    - `npm run check` - Type checking
    - `npm run lint` - Linting
    - `npm test` - Tests
@@ -43,6 +41,8 @@ These directives guide all development work on the vibefun project:
    Or use the convenience command: `npm run verify` (runs all checks)
 
 ### Starting Large Tasks
+
+Do not worry about time estimates during planning.
 
 When exiting plan mode with an accepted plan:
 
