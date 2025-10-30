@@ -278,6 +278,11 @@ src/
     └── index.ts           # Public exports
 ```
 
+## File Size
+
+- Aim for files under 500 lines
+- Break helper classes/functions out into their own files
+
 ## Documentation
 
 - Use JSDoc for public APIs
