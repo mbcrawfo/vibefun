@@ -195,17 +195,30 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         case "CoreLet":
             return inferLet(ctx, expr);
 
-        // Other cases to be implemented in later phases
-        case "CoreMatch":
+        // Records
         case "CoreRecord":
+            return inferRecord(ctx, expr);
+
         case "CoreRecordAccess":
+            return inferRecordAccess(ctx, expr);
+
         case "CoreRecordUpdate":
+            return inferRecordUpdate(ctx, expr);
+
+        // Variants
         case "CoreVariant":
+            return inferVariant(ctx, expr);
+
+        // Unsafe blocks
         case "CoreUnsafe":
+            return inferUnsafe(ctx, expr);
+
+        // Not yet implemented
+        case "CoreMatch":
             throw new TypeError(
                 `Type inference for ${expr.kind} not yet implemented`,
                 expr.loc,
-                `This feature will be implemented in a later phase`,
+                `This feature will be implemented in Phase 6`,
             );
     }
 }
@@ -774,6 +787,270 @@ function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLe
     };
 
     return inferExpr(bodyCtx, expr.body);
+}
+
+/**
+ * Infer the type of a record construction
+ *
+ * Creates a record type with the types of all fields.
+ *
+ * @param ctx - The inference context
+ * @param expr - The record construction expression
+ * @returns The inferred type and updated substitution
+ */
+function inferRecord(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecord" }>): InferResult {
+    let currentCtx = ctx;
+    const fieldTypes = new Map<string, Type>();
+
+    // Infer the type of each field
+    for (const field of expr.fields) {
+        const fieldResult = inferExpr(currentCtx, field.value);
+        currentCtx = { ...currentCtx, subst: fieldResult.subst };
+        fieldTypes.set(field.name, fieldResult.type);
+    }
+
+    // Create the record type
+    const recordType: Type = {
+        type: "Record",
+        fields: fieldTypes,
+    };
+
+    return { type: recordType, subst: currentCtx.subst };
+}
+
+/**
+ * Infer the type of a record field access
+ *
+ * Checks that the record has the requested field and returns its type.
+ *
+ * @param ctx - The inference context
+ * @param expr - The record access expression
+ * @returns The inferred type and updated substitution
+ */
+function inferRecordAccess(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecordAccess" }>): InferResult {
+    // Infer the type of the record expression
+    const recordResult = inferExpr(ctx, expr.record);
+    const recordType = applySubst(recordResult.subst, recordResult.type);
+
+    // Check that it's a record type
+    if (recordType.type !== "Record") {
+        throw new TypeError(
+            `Cannot access field '${expr.field}' on non-record type`,
+            expr.loc,
+            `Expected a record type, but got ${typeToString(recordType)}`,
+        );
+    }
+
+    // Look up the field
+    const fieldType = recordType.fields.get(expr.field);
+    if (!fieldType) {
+        const availableFields = Array.from(recordType.fields.keys()).join(", ");
+        throw new TypeError(
+            `Record does not have field '${expr.field}'`,
+            expr.loc,
+            `Available fields: ${availableFields || "(none)"}`,
+        );
+    }
+
+    return { type: fieldType, subst: recordResult.subst };
+}
+
+/**
+ * Infer the type of a record update
+ *
+ * Creates a new record type with updated fields.
+ *
+ * @param ctx - The inference context
+ * @param expr - The record update expression
+ * @returns The inferred type and updated substitution
+ */
+function inferRecordUpdate(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecordUpdate" }>): InferResult {
+    // Infer the type of the base record
+    const recordResult = inferExpr(ctx, expr.record);
+    let currentCtx: InferenceContext = { ...ctx, subst: recordResult.subst };
+    const recordType = applySubst(recordResult.subst, recordResult.type);
+
+    // Check that it's a record type
+    if (recordType.type !== "Record") {
+        throw new TypeError(
+            `Cannot update fields on non-record type`,
+            expr.loc,
+            `Expected a record type, but got ${typeToString(recordType)}`,
+        );
+    }
+
+    // Create a new field map with updates
+    const newFields = new Map(recordType.fields);
+
+    // Infer and check each update
+    for (const update of expr.updates) {
+        // Check that the field exists in the original record
+        if (!recordType.fields.has(update.name)) {
+            const availableFields = Array.from(recordType.fields.keys()).join(", ");
+            throw new TypeError(
+                `Cannot update non-existent field '${update.name}'`,
+                update.loc,
+                `Available fields: ${availableFields || "(none)"}`,
+            );
+        }
+
+        // Infer the type of the update value
+        const updateResult = inferExpr(currentCtx, update.value);
+        currentCtx = { ...currentCtx, subst: updateResult.subst };
+
+        // Get the expected field type (after applying current substitution)
+        const originalFieldType = recordType.fields.get(update.name);
+        if (!originalFieldType) {
+            throw new Error(`Field ${update.name} unexpectedly missing from record type`);
+        }
+        const expectedType = applySubst(currentCtx.subst, originalFieldType);
+        const actualType = updateResult.type;
+
+        // Unify the update value type with the field type
+        try {
+            const unifySubst = unify(actualType, expectedType);
+            currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw error;
+            }
+            throw new TypeError(
+                `Type mismatch in record update for field '${update.name}'`,
+                update.loc,
+                `Expected ${typeToString(expectedType)}, but got ${typeToString(actualType)}`,
+            );
+        }
+
+        // Update the field in the new map
+        newFields.set(update.name, applySubst(currentCtx.subst, actualType));
+    }
+
+    // Create the updated record type
+    const updatedRecordType: Type = {
+        type: "Record",
+        fields: newFields,
+    };
+
+    return { type: updatedRecordType, subst: currentCtx.subst };
+}
+
+/**
+ * Infer the type of a variant construction
+ *
+ * Looks up the constructor in the environment, instantiates its type,
+ * and checks the arguments.
+ *
+ * @param ctx - The inference context
+ * @param expr - The variant construction expression
+ * @returns The inferred type and updated substitution
+ */
+function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreVariant" }>): InferResult {
+    // Look up the constructor in the environment
+    const binding = ctx.env.values.get(expr.constructor);
+
+    if (!binding) {
+        throw new TypeError(
+            `Undefined variant constructor '${expr.constructor}'`,
+            expr.loc,
+            `Constructor '${expr.constructor}' is not in scope`,
+        );
+    }
+
+    // Get the constructor's type scheme
+    let scheme: TypeScheme;
+    if (binding.kind === "Value" || binding.kind === "External") {
+        scheme = binding.scheme;
+    } else {
+        throw new TypeError(
+            `Overloaded external '${expr.constructor}' not supported as variant constructor`,
+            expr.loc,
+            `Variant constructors cannot be overloaded`,
+        );
+    }
+
+    // Instantiate the type scheme
+    const constructorType = instantiate(scheme, ctx.level);
+
+    // Check if constructor is a function type (expects arguments)
+    if (constructorType.type === "Fun") {
+        // Constructor expects arguments
+
+        // Check that the number of arguments matches
+        if (expr.args.length !== constructorType.params.length) {
+            throw new TypeError(
+                `Constructor '${expr.constructor}' expects ${constructorType.params.length} arguments, but got ${expr.args.length}`,
+                expr.loc,
+                `Argument count mismatch`,
+            );
+        }
+    } else {
+        // Constructor takes no arguments (e.g., None, Nil)
+
+        // Check that we're not trying to pass arguments
+        if (expr.args.length > 0) {
+            throw new TypeError(
+                `Constructor '${expr.constructor}' expects no arguments, but got ${expr.args.length}`,
+                expr.loc,
+                `Cannot apply arguments to nullary constructor`,
+            );
+        }
+
+        // Return the constructor type directly
+        return { type: constructorType, subst: ctx.subst };
+    }
+
+    // Infer the type of each argument and unify with the expected parameter type
+    let currentCtx: InferenceContext = ctx;
+    for (let i = 0; i < expr.args.length; i++) {
+        const arg = expr.args[i];
+        const expectedType = constructorType.params[i];
+
+        if (!arg || !expectedType) {
+            throw new Error(`Missing argument or parameter at index ${i}`);
+        }
+
+        // Infer argument type
+        const argResult = inferExpr(currentCtx, arg);
+        currentCtx = { ...currentCtx, subst: argResult.subst };
+
+        // Apply current substitution to expected type
+        const expectedTypeSubst = applySubst(currentCtx.subst, expectedType);
+
+        // Unify argument type with expected type
+        try {
+            const unifySubst = unify(argResult.type, expectedTypeSubst);
+            currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw error;
+            }
+            throw new TypeError(
+                `Type mismatch in argument ${i + 1} to constructor '${expr.constructor}'`,
+                arg.loc,
+                `Expected ${typeToString(expectedTypeSubst)}, but got ${typeToString(argResult.type)}`,
+            );
+        }
+    }
+
+    // Return the constructor's return type
+    const resultType = applySubst(currentCtx.subst, constructorType.return);
+    return { type: resultType, subst: currentCtx.subst };
+}
+
+/**
+ * Infer the type of an unsafe block
+ *
+ * Unsafe blocks allow arbitrary expressions but still type check them.
+ * The "unsafe" designation marks boundaries where external/untrusted code interacts.
+ *
+ * @param ctx - The inference context
+ * @param expr - The unsafe block expression
+ * @returns The inferred type and updated substitution
+ */
+function inferUnsafe(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreUnsafe" }>): InferResult {
+    // Simply infer the type of the inner expression
+    // The "unsafe" designation is more of a marker for code generation and documentation
+    return inferExpr(ctx, expr.expr);
 }
 
 /**

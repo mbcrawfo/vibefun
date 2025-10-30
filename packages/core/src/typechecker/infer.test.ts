@@ -10,12 +10,18 @@ import type {
     CoreIntLit,
     CoreLambda,
     CoreLet,
+    CoreRecord,
+    CoreRecordAccess,
+    CoreRecordField,
+    CoreRecordUpdate,
     CoreStringLit,
     CoreTypeAnnotation,
     CoreTypeConst,
     CoreUnaryOp,
     CoreUnitLit,
+    CoreUnsafe,
     CoreVar,
+    CoreVariant,
     CoreVarPattern,
 } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
@@ -868,5 +874,517 @@ describe("Type Inference - Value Restriction", () => {
         const refScheme = refBinding?.kind === "Value" ? refBinding.scheme : null;
         expect(refScheme).toBeDefined();
         expect(refScheme?.vars.length).toBeGreaterThan(0); // Should be polymorphic
+    });
+});
+
+describe("Type Inference - Records", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should infer type for empty record", () => {
+        // {}
+        const expr: CoreRecord = {
+            kind: "CoreRecord",
+            fields: [],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type.type).toBe("Record");
+        if (result.type.type === "Record") {
+            expect(result.type.fields.size).toBe(0);
+        }
+    });
+
+    it("should infer type for simple record", () => {
+        // { x: 42, y: "hello" }
+        const xField: CoreRecordField = {
+            name: "x",
+            value: { kind: "CoreIntLit", value: 42, loc: testLoc },
+            loc: testLoc,
+        };
+        const yField: CoreRecordField = {
+            name: "y",
+            value: { kind: "CoreStringLit", value: "hello", loc: testLoc },
+            loc: testLoc,
+        };
+        const expr: CoreRecord = {
+            kind: "CoreRecord",
+            fields: [xField, yField],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type.type).toBe("Record");
+        if (result.type.type === "Record") {
+            expect(result.type.fields.size).toBe(2);
+            expect(result.type.fields.get("x")).toEqual(primitiveTypes.Int);
+            expect(result.type.fields.get("y")).toEqual(primitiveTypes.String);
+        }
+    });
+
+    it("should infer type for record field access", () => {
+        // Given r : { x: Int, y: String }, r.x should have type Int
+        const env = createTestEnv();
+
+        const recordType: Type = {
+            type: "Record",
+            fields: new Map([
+                ["x", primitiveTypes.Int],
+                ["y", primitiveTypes.String],
+            ]),
+        };
+        env.values.set("r", {
+            kind: "Value",
+            scheme: { vars: [], type: recordType },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        // r.x
+        const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+        const expr: CoreRecordAccess = {
+            kind: "CoreRecordAccess",
+            record: rVar,
+            field: "x",
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+
+    it("should reject accessing non-existent field", () => {
+        // Given r : { x: Int }, r.z should fail
+        const env = createTestEnv();
+
+        const recordType: Type = {
+            type: "Record",
+            fields: new Map([["x", primitiveTypes.Int]]),
+        };
+        env.values.set("r", {
+            kind: "Value",
+            scheme: { vars: [], type: recordType },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        // r.z
+        const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+        const expr: CoreRecordAccess = {
+            kind: "CoreRecordAccess",
+            record: rVar,
+            field: "z",
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+    });
+
+    it("should reject accessing field on non-record", () => {
+        // Given x : Int, x.field should fail
+        const env = createTestEnv();
+
+        env.values.set("x", {
+            kind: "Value",
+            scheme: { vars: [], type: primitiveTypes.Int },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        // x.field
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const expr: CoreRecordAccess = {
+            kind: "CoreRecordAccess",
+            record: xVar,
+            field: "field",
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+    });
+
+    it("should infer type for record update", () => {
+        // Given r : { x: Int, y: String }, { r with x = 100 } should have type { x: Int, y: String }
+        const env = createTestEnv();
+
+        const recordType: Type = {
+            type: "Record",
+            fields: new Map([
+                ["x", primitiveTypes.Int],
+                ["y", primitiveTypes.String],
+            ]),
+        };
+        env.values.set("r", {
+            kind: "Value",
+            scheme: { vars: [], type: recordType },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        // { r with x = 100 }
+        const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+        const updateField: CoreRecordField = {
+            name: "x",
+            value: { kind: "CoreIntLit", value: 100, loc: testLoc },
+            loc: testLoc,
+        };
+        const expr: CoreRecordUpdate = {
+            kind: "CoreRecordUpdate",
+            record: rVar,
+            updates: [updateField],
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type.type).toBe("Record");
+        if (result.type.type === "Record") {
+            expect(result.type.fields.size).toBe(2);
+            expect(result.type.fields.get("x")).toEqual(primitiveTypes.Int);
+            expect(result.type.fields.get("y")).toEqual(primitiveTypes.String);
+        }
+    });
+
+    it("should reject updating non-existent field", () => {
+        // Given r : { x: Int }, { r with z = 42 } should fail
+        const env = createTestEnv();
+
+        const recordType: Type = {
+            type: "Record",
+            fields: new Map([["x", primitiveTypes.Int]]),
+        };
+        env.values.set("r", {
+            kind: "Value",
+            scheme: { vars: [], type: recordType },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        // { r with z = 42 }
+        const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+        const updateField: CoreRecordField = {
+            name: "z",
+            value: { kind: "CoreIntLit", value: 42, loc: testLoc },
+            loc: testLoc,
+        };
+        const expr: CoreRecordUpdate = {
+            kind: "CoreRecordUpdate",
+            record: rVar,
+            updates: [updateField],
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+    });
+
+    it("should reject type mismatch in record update", () => {
+        // Given r : { x: Int }, { r with x = "hello" } should fail
+        const env = createTestEnv();
+
+        const recordType: Type = {
+            type: "Record",
+            fields: new Map([["x", primitiveTypes.Int]]),
+        };
+        env.values.set("r", {
+            kind: "Value",
+            scheme: { vars: [], type: recordType },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        // { r with x = "hello" }
+        const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+        const updateField: CoreRecordField = {
+            name: "x",
+            value: { kind: "CoreStringLit", value: "hello", loc: testLoc },
+            loc: testLoc,
+        };
+        const expr: CoreRecordUpdate = {
+            kind: "CoreRecordUpdate",
+            record: rVar,
+            updates: [updateField],
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+    });
+});
+
+describe("Type Inference - Variants", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should infer type for None constructor", () => {
+        // None (no arguments)
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "None",
+            args: [],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        // Should have type Option<'a> where 'a is a fresh type variable
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("Option");
+            }
+        }
+    });
+
+    it("should infer type for Some constructor", () => {
+        // Some(42)
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Some",
+            args: [intLit],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        // Should have type Option<Int>
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("Option");
+            }
+            expect(result.type.args[0]).toEqual(primitiveTypes.Int);
+        }
+    });
+
+    it("should infer type for Nil constructor", () => {
+        // Nil
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        // Should have type List<'a>
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("List");
+            }
+        }
+    });
+
+    it("should infer type for Cons constructor", () => {
+        // Cons(1, Nil)
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const nil: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc: testLoc,
+        };
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Cons",
+            args: [intLit, nil],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        // Should have type List<Int>
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("List");
+            }
+            expect(result.type.args[0]).toEqual(primitiveTypes.Int);
+        }
+    });
+
+    it("should infer type for Ok constructor", () => {
+        // Ok(42)
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Ok",
+            args: [intLit],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        // Should have type Result<Int, 'e>
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("Result");
+            }
+            expect(result.type.args[0]).toEqual(primitiveTypes.Int);
+            // Second argument should be a type variable
+            expect(result.type.args[1]?.type).toBe("Var");
+        }
+    });
+
+    it("should reject undefined constructor", () => {
+        // UndefinedConstructor()
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "UndefinedConstructor",
+            args: [],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+    });
+
+    it("should reject wrong number of arguments to constructor", () => {
+        // Some() - Some expects 1 argument
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Some",
+            args: [],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+    });
+
+    it("should work with polymorphic constructors", () => {
+        // Cons("hello", Nil) works because Cons is polymorphic
+        // Cons: ∀'a. ('a, List<'a>) -> List<'a>
+        // So Cons("hello", Nil) has type List<String>
+        const strLit: CoreStringLit = { kind: "CoreStringLit", value: "hello", loc: testLoc };
+        const nil: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc: testLoc,
+        };
+        const expr: CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Cons",
+            args: [strLit, nil],
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("List");
+            }
+            expect(result.type.args[0]).toEqual(primitiveTypes.String);
+        }
+    });
+});
+
+describe("Type Inference - Unsafe Blocks", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should infer type for unsafe block", () => {
+        // unsafe { 42 }
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const expr: CoreUnsafe = {
+            kind: "CoreUnsafe",
+            expr: intLit,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+
+    it("should type check expression inside unsafe block", () => {
+        // unsafe { x + y } where x: Int
+        const env = createTestEnv();
+        env.values.set("x", {
+            kind: "Value",
+            scheme: { vars: [], type: primitiveTypes.Int },
+            loc: testLoc,
+        });
+        env.values.set("y", {
+            kind: "Value",
+            scheme: { vars: [], type: primitiveTypes.Int },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const yVar: CoreVar = { kind: "CoreVar", name: "y", loc: testLoc };
+        const add: CoreBinOp = {
+            kind: "CoreBinOp",
+            op: "Add",
+            left: xVar,
+            right: yVar,
+            loc: testLoc,
+        };
+        const expr: CoreUnsafe = {
+            kind: "CoreUnsafe",
+            expr: add,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Int);
     });
 });
