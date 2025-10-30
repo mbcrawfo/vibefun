@@ -86,7 +86,7 @@ export type TypeScheme = {
  * unification and inference.
  */
 export type Type =
-    | { type: "Var"; id: number } // Type variable (for inference)
+    | { type: "Var"; id: number; level: number } // Type variable (for inference with scoping)
     | { type: "Const"; name: string } // Type constant (Int, String, etc.)
     | { type: "Fun"; params: Type[]; return: Type } // Function type
     | { type: "App"; constructor: Type; args: Type[] } // Type application (List<Int>)
