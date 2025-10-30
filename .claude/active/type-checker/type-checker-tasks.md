@@ -576,8 +576,8 @@
 ### Commit
 
 - [x] Committed as: `feat(typechecker): implement Phase 5 - Algebraic Data Types`
-- [x] Commit hash: _TBD_ (to be added after commit)
-- [x] Files changed: 2 files
+- [x] Commit hash: d132884
+- [x] Files changed: 3 files, 873 insertions(+), 77 deletions(-)
 - [x] Includes: inferRecord, inferRecordAccess, inferRecordUpdate, inferVariant, inferUnsafe (254 lines), 18 new tests (513 lines)
 
 ---
