@@ -437,10 +437,10 @@
 
 ### Commit
 
-- [ ] To be committed as: `feat(typechecker): implement Phase 4 - Let-Bindings & Polymorphism with RefAssign/Deref`
-- [ ] Commit hash: _TBD_
-- [ ] Files changed: 2 files (infer.ts extended with ~200 lines, infer.test.ts extended with ~350 lines)
-- [ ] Includes: generalization with value restriction, let-binding inference, RefAssign/Deref operators, 11 new tests
+- [x] Committed as: `feat(typechecker): implement Phase 4 - Let-Bindings & Polymorphism`
+- [x] Commit hash: 1791c8b
+- [x] Files changed: 3 files, 592 insertions(+), 27 deletions(-)
+- [x] Includes: generalization with value restriction, let-binding inference, RefAssign/Deref operators, 11 new tests
 
 ---
 
