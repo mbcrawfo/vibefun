@@ -57,7 +57,13 @@ function monoScheme(type: Type): TypeScheme {
  * This includes:
  * - Primitive types (Int, Float, String, Bool, Unit, Never)
  * - Standard library types (List<T>, Option<T>, Result<T,E>)
- * - Standard library functions (17 core functions)
+ * - Standard library functions (46 total: 17 core + 29 additional)
+ *   - List: map, filter, fold, length, foldRight, head, tail, reverse, concat
+ *   - Option: map, flatMap, getOrElse, isSome, isNone, unwrap
+ *   - Result: map, flatMap, isOk, mapErr, isErr, unwrap, unwrapOr
+ *   - String: length, concat, fromInt, toUpperCase, toLowerCase, trim, split, contains, startsWith, endsWith, fromFloat, toInt, toFloat
+ *   - Int: toString, toFloat, abs, max, min
+ *   - Float: toString, toInt, round, floor, ceil, abs
  * - Special functions (panic, ref)
  *
  * @returns Map of name to type scheme
@@ -233,7 +239,165 @@ export function getBuiltinEnv(): Map<string, TypeScheme> {
     // Float.toInt: (Float) -> Int
     env.set("Float.toInt", monoScheme(funType([primitiveTypes.Float], primitiveTypes.Int)));
 
-    // Special functions
+    // ==================== Phase 7: Additional Standard Library Functions (29 functions) ====================
+
+    // List functions (5 more)
+    const tVar14 = freshTypeVar();
+    const tVar14Id = isTypeVar(tVar14) ? tVar14.id : 0;
+    const uVar4 = freshTypeVar();
+    const uVar4Id = isTypeVar(uVar4) ? uVar4.id : 0;
+    const tVar15 = freshTypeVar();
+    const tVar15Id = isTypeVar(tVar15) ? tVar15.id : 0;
+    const tVar16 = freshTypeVar();
+    const tVar16Id = isTypeVar(tVar16) ? tVar16.id : 0;
+    const tVar17 = freshTypeVar();
+    const tVar17Id = isTypeVar(tVar17) ? tVar17.id : 0;
+    const tVar18 = freshTypeVar();
+    const tVar18Id = isTypeVar(tVar18) ? tVar18.id : 0;
+
+    // List.foldRight: ((T, U) -> U, U, List<T>) -> U
+    env.set(
+        "List.foldRight",
+        polyScheme([tVar14Id, uVar4Id], funType([funType([tVar14, uVar4], uVar4), uVar4, listType(tVar14)], uVar4)),
+    );
+
+    // List.head: (List<T>) -> Option<T>
+    env.set("List.head", polyScheme([tVar15Id], funType([listType(tVar15)], optionType(tVar15))));
+
+    // List.tail: (List<T>) -> Option<List<T>>
+    env.set("List.tail", polyScheme([tVar16Id], funType([listType(tVar16)], optionType(listType(tVar16)))));
+
+    // List.reverse: (List<T>) -> List<T>
+    env.set("List.reverse", polyScheme([tVar17Id], funType([listType(tVar17)], listType(tVar17))));
+
+    // List.concat: (List<T>, List<T>) -> List<T>
+    env.set("List.concat", polyScheme([tVar18Id], funType([listType(tVar18), listType(tVar18)], listType(tVar18))));
+
+    // Option functions (3 more)
+    const tVar19 = freshTypeVar();
+    const tVar19Id = isTypeVar(tVar19) ? tVar19.id : 0;
+    const tVar20 = freshTypeVar();
+    const tVar20Id = isTypeVar(tVar20) ? tVar20.id : 0;
+    const tVar21 = freshTypeVar();
+    const tVar21Id = isTypeVar(tVar21) ? tVar21.id : 0;
+
+    // Option.isSome: (Option<T>) -> Bool
+    env.set("Option.isSome", polyScheme([tVar19Id], funType([optionType(tVar19)], primitiveTypes.Bool)));
+
+    // Option.isNone: (Option<T>) -> Bool
+    env.set("Option.isNone", polyScheme([tVar20Id], funType([optionType(tVar20)], primitiveTypes.Bool)));
+
+    // Option.unwrap: (Option<T>) -> T
+    env.set("Option.unwrap", polyScheme([tVar21Id], funType([optionType(tVar21)], tVar21)));
+
+    // Result functions (4 more)
+    const tVar22 = freshTypeVar();
+    const tVar22Id = isTypeVar(tVar22) ? tVar22.id : 0;
+    const eVar5 = freshTypeVar();
+    const eVar5Id = isTypeVar(eVar5) ? eVar5.id : 0;
+    const fVar = freshTypeVar();
+    const fVarId = isTypeVar(fVar) ? fVar.id : 0;
+    const tVar23 = freshTypeVar();
+    const tVar23Id = isTypeVar(tVar23) ? tVar23.id : 0;
+    const eVar6 = freshTypeVar();
+    const eVar6Id = isTypeVar(eVar6) ? eVar6.id : 0;
+    const tVar24 = freshTypeVar();
+    const tVar24Id = isTypeVar(tVar24) ? tVar24.id : 0;
+    const eVar7 = freshTypeVar();
+    const eVar7Id = isTypeVar(eVar7) ? eVar7.id : 0;
+    const tVar25 = freshTypeVar();
+    const tVar25Id = isTypeVar(tVar25) ? tVar25.id : 0;
+    const eVar8 = freshTypeVar();
+    const eVar8Id = isTypeVar(eVar8) ? eVar8.id : 0;
+
+    // Result.mapErr: ((E) -> F, Result<T, E>) -> Result<T, F>
+    env.set(
+        "Result.mapErr",
+        polyScheme(
+            [tVar22Id, eVar5Id, fVarId],
+            funType([funType([eVar5], fVar), resultType(tVar22, eVar5)], resultType(tVar22, fVar)),
+        ),
+    );
+
+    // Result.isErr: (Result<T, E>) -> Bool
+    env.set("Result.isErr", polyScheme([tVar23Id, eVar6Id], funType([resultType(tVar23, eVar6)], primitiveTypes.Bool)));
+
+    // Result.unwrap: (Result<T, E>) -> T
+    env.set("Result.unwrap", polyScheme([tVar24Id, eVar7Id], funType([resultType(tVar24, eVar7)], tVar24)));
+
+    // Result.unwrapOr: (T, Result<T, E>) -> T
+    env.set("Result.unwrapOr", polyScheme([tVar25Id, eVar8Id], funType([tVar25, resultType(tVar25, eVar8)], tVar25)));
+
+    // String functions (10 more)
+
+    // String.toUpperCase: (String) -> String
+    env.set("String.toUpperCase", monoScheme(funType([primitiveTypes.String], primitiveTypes.String)));
+
+    // String.toLowerCase: (String) -> String
+    env.set("String.toLowerCase", monoScheme(funType([primitiveTypes.String], primitiveTypes.String)));
+
+    // String.trim: (String) -> String
+    env.set("String.trim", monoScheme(funType([primitiveTypes.String], primitiveTypes.String)));
+
+    // String.split: (String, String) -> List<String>
+    env.set(
+        "String.split",
+        monoScheme(funType([primitiveTypes.String, primitiveTypes.String], listType(primitiveTypes.String))),
+    );
+
+    // String.contains: (String, String) -> Bool
+    env.set(
+        "String.contains",
+        monoScheme(funType([primitiveTypes.String, primitiveTypes.String], primitiveTypes.Bool)),
+    );
+
+    // String.startsWith: (String, String) -> Bool
+    env.set(
+        "String.startsWith",
+        monoScheme(funType([primitiveTypes.String, primitiveTypes.String], primitiveTypes.Bool)),
+    );
+
+    // String.endsWith: (String, String) -> Bool
+    env.set(
+        "String.endsWith",
+        monoScheme(funType([primitiveTypes.String, primitiveTypes.String], primitiveTypes.Bool)),
+    );
+
+    // String.fromFloat: (Float) -> String
+    env.set("String.fromFloat", monoScheme(funType([primitiveTypes.Float], primitiveTypes.String)));
+
+    // String.toInt: (String) -> Option<Int>
+    env.set("String.toInt", monoScheme(funType([primitiveTypes.String], optionType(primitiveTypes.Int))));
+
+    // String.toFloat: (String) -> Option<Float>
+    env.set("String.toFloat", monoScheme(funType([primitiveTypes.String], optionType(primitiveTypes.Float))));
+
+    // Int functions (3 more)
+
+    // Int.abs: (Int) -> Int
+    env.set("Int.abs", monoScheme(funType([primitiveTypes.Int], primitiveTypes.Int)));
+
+    // Int.max: (Int, Int) -> Int
+    env.set("Int.max", monoScheme(funType([primitiveTypes.Int, primitiveTypes.Int], primitiveTypes.Int)));
+
+    // Int.min: (Int, Int) -> Int
+    env.set("Int.min", monoScheme(funType([primitiveTypes.Int, primitiveTypes.Int], primitiveTypes.Int)));
+
+    // Float functions (4 more)
+
+    // Float.round: (Float) -> Int
+    env.set("Float.round", monoScheme(funType([primitiveTypes.Float], primitiveTypes.Int)));
+
+    // Float.floor: (Float) -> Int
+    env.set("Float.floor", monoScheme(funType([primitiveTypes.Float], primitiveTypes.Int)));
+
+    // Float.ceil: (Float) -> Int
+    env.set("Float.ceil", monoScheme(funType([primitiveTypes.Float], primitiveTypes.Int)));
+
+    // Float.abs: (Float) -> Float
+    env.set("Float.abs", monoScheme(funType([primitiveTypes.Float], primitiveTypes.Float)));
+
+    // ==================== Special functions ====================
 
     // panic: (String) -> Never
     env.set("panic", monoScheme(funType([primitiveTypes.String], primitiveTypes.Never)));

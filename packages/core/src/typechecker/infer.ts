@@ -1178,9 +1178,42 @@ function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
         }
 
         case "CoreTypeVar":
-        case "CoreRecordType":
+            // Type variables in type expressions are not supported yet
+            // These would require generics/parametric types in user-defined types
+            throw new TypeError(
+                `Type variables are not yet supported in type annotations`,
+                typeExpr.loc,
+                `Type variable '${typeExpr.name}' cannot be used here`,
+            );
+
+        case "CoreRecordType": {
+            // Convert record type: { field1: Type1, field2: Type2 }
+            const fields = new Map<string, Type>();
+            for (const field of typeExpr.fields) {
+                fields.set(field.name, convertTypeExpr(field.typeExpr));
+            }
+            return {
+                type: "Record",
+                fields,
+            };
+        }
+
         case "CoreVariantType":
-        case "CoreUnionType":
-            throw new Error(`Type expression ${typeExpr.kind} conversion not yet implemented`);
+            // Variant types in annotations are not fully supported
+            // Users should reference named types instead
+            throw new TypeError(
+                `Inline variant types are not supported in type annotations`,
+                typeExpr.loc,
+                `Define a named variant type with 'type' declaration instead`,
+            );
+
+        case "CoreUnionType": {
+            // Convert union type: Type1 | Type2 | Type3
+            const types = typeExpr.types.map(convertTypeExpr);
+            return {
+                type: "Union",
+                types,
+            };
+        }
     }
 }

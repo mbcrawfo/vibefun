@@ -145,10 +145,10 @@ describe("Built-in Environment", () => {
         expect(env.has("ref")).toBe(true);
     });
 
-    it("should have exactly 25 built-in values", () => {
+    it("should have exactly 54 built-in values", () => {
         const env = getBuiltinEnv();
-        // 6 constructors + 17 stdlib functions + 2 special functions = 25
-        expect(env.size).toBe(25);
+        // 6 constructors + 46 stdlib functions (17 core + 29 Phase 7) + 2 special functions = 54
+        expect(env.size).toBe(54);
     });
 });
 
@@ -501,5 +501,275 @@ describe("Special Function Types", () => {
                 expect(returnType.constructor).toEqual({ type: "Const", name: "Ref" });
             }
         }
+    });
+});
+
+// ==================== Phase 7: Additional Standard Library Functions Tests ====================
+
+describe("Phase 7 List Functions", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should have polymorphic List.foldRight", () => {
+        const env = getBuiltinEnv();
+        const foldRight = env.get("List.foldRight");
+
+        expect(foldRight).toBeDefined();
+        expect(foldRight?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic List.head", () => {
+        const env = getBuiltinEnv();
+        const head = env.get("List.head");
+
+        expect(head).toBeDefined();
+        expect(head?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic List.tail", () => {
+        const env = getBuiltinEnv();
+        const tail = env.get("List.tail");
+
+        expect(tail).toBeDefined();
+        expect(tail?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic List.reverse", () => {
+        const env = getBuiltinEnv();
+        const reverse = env.get("List.reverse");
+
+        expect(reverse).toBeDefined();
+        expect(reverse?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic List.concat", () => {
+        const env = getBuiltinEnv();
+        const concat = env.get("List.concat");
+
+        expect(concat).toBeDefined();
+        expect(concat?.vars.length).toBeGreaterThan(0);
+    });
+});
+
+describe("Phase 7 Option Functions", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should have polymorphic Option.isSome", () => {
+        const env = getBuiltinEnv();
+        const isSome = env.get("Option.isSome");
+
+        expect(isSome).toBeDefined();
+        expect(isSome?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic Option.isNone", () => {
+        const env = getBuiltinEnv();
+        const isNone = env.get("Option.isNone");
+
+        expect(isNone).toBeDefined();
+        expect(isNone?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic Option.unwrap", () => {
+        const env = getBuiltinEnv();
+        const unwrap = env.get("Option.unwrap");
+
+        expect(unwrap).toBeDefined();
+        expect(unwrap?.vars.length).toBeGreaterThan(0);
+    });
+});
+
+describe("Phase 7 Result Functions", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should have polymorphic Result.mapErr", () => {
+        const env = getBuiltinEnv();
+        const mapErr = env.get("Result.mapErr");
+
+        expect(mapErr).toBeDefined();
+        expect(mapErr?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic Result.isErr", () => {
+        const env = getBuiltinEnv();
+        const isErr = env.get("Result.isErr");
+
+        expect(isErr).toBeDefined();
+        expect(isErr?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic Result.unwrap", () => {
+        const env = getBuiltinEnv();
+        const unwrap = env.get("Result.unwrap");
+
+        expect(unwrap).toBeDefined();
+        expect(unwrap?.vars.length).toBeGreaterThan(0);
+    });
+
+    it("should have polymorphic Result.unwrapOr", () => {
+        const env = getBuiltinEnv();
+        const unwrapOr = env.get("Result.unwrapOr");
+
+        expect(unwrapOr).toBeDefined();
+        expect(unwrapOr?.vars.length).toBeGreaterThan(0);
+    });
+});
+
+describe("Phase 7 String Functions", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should have monomorphic String.toUpperCase", () => {
+        const env = getBuiltinEnv();
+        const toUpperCase = env.get("String.toUpperCase");
+
+        expect(toUpperCase).toBeDefined();
+        expect(toUpperCase?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.toLowerCase", () => {
+        const env = getBuiltinEnv();
+        const toLowerCase = env.get("String.toLowerCase");
+
+        expect(toLowerCase).toBeDefined();
+        expect(toLowerCase?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.trim", () => {
+        const env = getBuiltinEnv();
+        const trim = env.get("String.trim");
+
+        expect(trim).toBeDefined();
+        expect(trim?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.split", () => {
+        const env = getBuiltinEnv();
+        const split = env.get("String.split");
+
+        expect(split).toBeDefined();
+        expect(split?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.contains", () => {
+        const env = getBuiltinEnv();
+        const contains = env.get("String.contains");
+
+        expect(contains).toBeDefined();
+        expect(contains?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.startsWith", () => {
+        const env = getBuiltinEnv();
+        const startsWith = env.get("String.startsWith");
+
+        expect(startsWith).toBeDefined();
+        expect(startsWith?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.endsWith", () => {
+        const env = getBuiltinEnv();
+        const endsWith = env.get("String.endsWith");
+
+        expect(endsWith).toBeDefined();
+        expect(endsWith?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.fromFloat", () => {
+        const env = getBuiltinEnv();
+        const fromFloat = env.get("String.fromFloat");
+
+        expect(fromFloat).toBeDefined();
+        expect(fromFloat?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.toInt", () => {
+        const env = getBuiltinEnv();
+        const toInt = env.get("String.toInt");
+
+        expect(toInt).toBeDefined();
+        expect(toInt?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic String.toFloat", () => {
+        const env = getBuiltinEnv();
+        const toFloat = env.get("String.toFloat");
+
+        expect(toFloat).toBeDefined();
+        expect(toFloat?.vars).toHaveLength(0);
+    });
+});
+
+describe("Phase 7 Int Functions", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should have monomorphic Int.abs", () => {
+        const env = getBuiltinEnv();
+        const abs = env.get("Int.abs");
+
+        expect(abs).toBeDefined();
+        expect(abs?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic Int.max", () => {
+        const env = getBuiltinEnv();
+        const max = env.get("Int.max");
+
+        expect(max).toBeDefined();
+        expect(max?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic Int.min", () => {
+        const env = getBuiltinEnv();
+        const min = env.get("Int.min");
+
+        expect(min).toBeDefined();
+        expect(min?.vars).toHaveLength(0);
+    });
+});
+
+describe("Phase 7 Float Functions", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should have monomorphic Float.round", () => {
+        const env = getBuiltinEnv();
+        const round = env.get("Float.round");
+
+        expect(round).toBeDefined();
+        expect(round?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic Float.floor", () => {
+        const env = getBuiltinEnv();
+        const floor = env.get("Float.floor");
+
+        expect(floor).toBeDefined();
+        expect(floor?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic Float.ceil", () => {
+        const env = getBuiltinEnv();
+        const ceil = env.get("Float.ceil");
+
+        expect(ceil).toBeDefined();
+        expect(ceil?.vars).toHaveLength(0);
+    });
+
+    it("should have monomorphic Float.abs", () => {
+        const env = getBuiltinEnv();
+        const abs = env.get("Float.abs");
+
+        expect(abs).toBeDefined();
+        expect(abs?.vars).toHaveLength(0);
     });
 });

@@ -1903,3 +1903,98 @@ describe("Type Inference - Match Expressions", () => {
         expect(result.type).toEqual(primitiveTypes.Int);
     });
 });
+
+// ==================== Phase 7: Advanced Features Tests ====================
+
+describe("Phase 7 - Type Annotations", () => {
+    let ctx: InferenceContext;
+
+    beforeEach(() => {
+        resetTypeVarCounter();
+        const env = createTestEnv();
+        ctx = createContext(env);
+    });
+
+    it("should convert record type annotations", () => {
+        // ({ x: 42, y: 100 }: { x: Int, y: Int })
+        const expr: CoreTypeAnnotation = {
+            kind: "CoreTypeAnnotation",
+            expr: {
+                kind: "CoreRecord",
+                fields: [
+                    { name: "x", value: { kind: "CoreIntLit", value: 42, loc: testLoc }, loc: testLoc },
+                    { name: "y", value: { kind: "CoreIntLit", value: 100, loc: testLoc }, loc: testLoc },
+                ],
+                loc: testLoc,
+            },
+            typeExpr: {
+                kind: "CoreRecordType",
+                fields: [
+                    {
+                        name: "x",
+                        typeExpr: { kind: "CoreTypeConst", name: "Int", loc: testLoc },
+                        loc: testLoc,
+                    },
+                    {
+                        name: "y",
+                        typeExpr: { kind: "CoreTypeConst", name: "Int", loc: testLoc },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type.type).toBe("Record");
+        if (result.type.type === "Record") {
+            expect(result.type.fields.get("x")).toEqual(primitiveTypes.Int);
+            expect(result.type.fields.get("y")).toEqual(primitiveTypes.Int);
+        }
+    });
+
+    it("should error on type variable in annotation", () => {
+        // (42: 'a) - type variables not supported in annotations
+        const expr: CoreTypeAnnotation = {
+            kind: "CoreTypeAnnotation",
+            expr: { kind: "CoreIntLit", value: 42, loc: testLoc },
+            typeExpr: {
+                kind: "CoreTypeVar",
+                name: "a",
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow("Type variables are not yet supported");
+    });
+
+    it("should error on inline variant type in annotation", () => {
+        // (42: Some(Int) | None) - inline variants not supported
+        const expr: CoreTypeAnnotation = {
+            kind: "CoreTypeAnnotation",
+            expr: { kind: "CoreIntLit", value: 42, loc: testLoc },
+            typeExpr: {
+                kind: "CoreVariantType",
+                constructors: [
+                    {
+                        name: "Some",
+                        args: [{ kind: "CoreTypeConst", name: "Int", loc: testLoc }],
+                        loc: testLoc,
+                    },
+                    {
+                        name: "None",
+                        args: [],
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow("Inline variant types are not supported");
+    });
+});
