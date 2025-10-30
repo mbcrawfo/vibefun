@@ -151,7 +151,7 @@ describe("Type Annotations", () => {
         const expr: Expr = {
             kind: "TypeAnnotation",
             expr: { kind: "IntLit", value: 42, loc: testLoc },
-            typeExpr: { kind: "TypeConstructor", name: "Int", args: [], loc: testLoc },
+            typeExpr: { kind: "TypeConst", name: "Int", loc: testLoc },
             loc: testLoc,
         };
 
@@ -159,7 +159,7 @@ describe("Type Annotations", () => {
 
         expect(result.kind).toBe("CoreTypeAnnotation");
         expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
-        expect((result as CoreExpr).typeExpr.kind).toBe("CoreTypeConstructor");
+        expect((result as CoreExpr).typeExpr.kind).toBe("CoreTypeConst");
     });
 
     it("should desugar complex expression with type annotation", () => {
@@ -173,7 +173,7 @@ describe("Type Annotations", () => {
                 right: { kind: "Var", name: "y", loc: testLoc },
                 loc: testLoc,
             },
-            typeExpr: { kind: "TypeConstructor", name: "Int", args: [], loc: testLoc },
+            typeExpr: { kind: "TypeConst", name: "Int", loc: testLoc },
             loc: testLoc,
         };
 
@@ -202,7 +202,7 @@ describe("Type Annotations", () => {
                 },
                 loc: testLoc,
             },
-            typeExpr: { kind: "TypeConstructor", name: "Int", args: [], loc: testLoc },
+            typeExpr: { kind: "TypeConst", name: "Int", loc: testLoc },
             loc: testLoc,
         };
 
@@ -315,7 +315,7 @@ describe("External Blocks", () => {
                 {
                     kind: "ExternalValue",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     loc: testLoc,
                 },
@@ -346,14 +346,14 @@ describe("External Blocks", () => {
                 {
                     kind: "ExternalValue",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     loc: testLoc,
                 },
                 {
                     kind: "ExternalValue",
                     name: "warn",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.warn",
                     loc: testLoc,
                 },
@@ -382,13 +382,13 @@ describe("External Blocks", () => {
                 {
                     kind: "ExternalType",
                     name: "Foo",
-                    typeExpr: { kind: "TypeConstructor", name: "external", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "external", loc: testLoc },
                     loc: testLoc,
                 },
                 {
                     kind: "ExternalType",
                     name: "Bar",
-                    typeExpr: { kind: "TypeConstructor", name: "external", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "external", loc: testLoc },
                     loc: testLoc,
                 },
             ],
@@ -419,20 +419,20 @@ describe("External Blocks", () => {
                 {
                     kind: "ExternalValue",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     loc: testLoc,
                 },
                 {
                     kind: "ExternalType",
                     name: "Logger",
-                    typeExpr: { kind: "TypeConstructor", name: "external", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "external", loc: testLoc },
                     loc: testLoc,
                 },
                 {
                     kind: "ExternalValue",
                     name: "warn",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.warn",
                     loc: testLoc,
                 },
@@ -459,7 +459,7 @@ describe("External Blocks", () => {
                 {
                     kind: "ExternalValue",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     loc: testLoc,
                 },
@@ -510,14 +510,14 @@ describe("Pass-Through - Integration", () => {
                         {
                             kind: "ExternalValue",
                             name: "log",
-                            typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                            typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                             jsName: "console.log",
                             loc: testLoc,
                         },
                         {
                             kind: "ExternalValue",
                             name: "warn",
-                            typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                            typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                             jsName: "console.warn",
                             loc: testLoc,
                         },

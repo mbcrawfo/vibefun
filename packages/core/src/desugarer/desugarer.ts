@@ -26,8 +26,10 @@ import type {
     Location,
     Module,
     Pattern,
+    RecordTypeField,
     TypeDefinition,
     TypeExpr,
+    VariantConstructor,
 } from "../types/ast.js";
 import type {
     CoreBinaryOp,
@@ -39,8 +41,10 @@ import type {
     CoreMatchCase,
     CoreModule,
     CorePattern,
+    CoreRecordTypeField,
     CoreTypeDefinition,
     CoreTypeExpr,
+    CoreVariantConstructor,
 } from "../types/core-ast.js";
 
 /**
@@ -919,16 +923,90 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
 }
 
 /**
- * Desugar a type expression (pass through - no desugaring needed)
+ * Desugar a type expression
+ *
+ * Type expressions are structurally similar between surface and core AST,
+ * but we need to properly transform the kind names and recursively process
+ * nested type expressions.
+ *
+ * @param typeExpr - Surface type expression
+ * @returns Core type expression
  */
 function desugarTypeExpr(typeExpr: TypeExpr): CoreTypeExpr {
-    // Type expressions don't need desugaring - they're the same in Core AST
-    // Just change the kind names to Core* variants
-    const coreTypeExpr: Record<string, unknown> = { ...typeExpr };
-    if (coreTypeExpr["kind"]) {
-        coreTypeExpr["kind"] = `Core${coreTypeExpr["kind"] as string}`;
+    switch (typeExpr.kind) {
+        case "TypeVar":
+            return {
+                kind: "CoreTypeVar",
+                name: typeExpr.name,
+                loc: typeExpr.loc,
+            };
+
+        case "TypeConst":
+            return {
+                kind: "CoreTypeConst",
+                name: typeExpr.name,
+                loc: typeExpr.loc,
+            };
+
+        case "TypeApp":
+            return {
+                kind: "CoreTypeApp",
+                constructor: desugarTypeExpr(typeExpr.constructor),
+                args: typeExpr.args.map(desugarTypeExpr),
+                loc: typeExpr.loc,
+            };
+
+        case "FunctionType":
+            return {
+                kind: "CoreFunctionType",
+                params: typeExpr.params.map(desugarTypeExpr),
+                return_: desugarTypeExpr(typeExpr.return_),
+                loc: typeExpr.loc,
+            };
+
+        case "RecordType":
+            return {
+                kind: "CoreRecordType",
+                fields: typeExpr.fields.map(desugarRecordTypeField),
+                loc: typeExpr.loc,
+            };
+
+        case "VariantType":
+            return {
+                kind: "CoreVariantType",
+                constructors: typeExpr.constructors.map(desugarVariantConstructor),
+                loc: typeExpr.loc,
+            };
+
+        case "UnionType":
+            return {
+                kind: "CoreUnionType",
+                types: typeExpr.types.map(desugarTypeExpr),
+                loc: typeExpr.loc,
+            };
     }
-    return coreTypeExpr as unknown as CoreTypeExpr;
+}
+
+/**
+ * Desugar a record type field
+ */
+function desugarRecordTypeField(field: RecordTypeField): CoreRecordTypeField {
+    return {
+        name: field.name,
+        typeExpr: desugarTypeExpr(field.typeExpr),
+        loc: field.loc,
+    };
+}
+
+/**
+ * Desugar a variant constructor
+ */
+function desugarVariantConstructor(ctor: VariantConstructor): CoreVariantConstructor {
+    return {
+        name: ctor.name,
+        args: ctor.args.map(desugarTypeExpr),
+        loc: ctor.loc,
+    };
 }
 
 /**
@@ -1043,14 +1121,38 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
 }
 
 /**
- * Desugar a type definition (pass through - no desugaring needed)
+ * Desugar a type definition
+ *
+ * Type definitions are structurally similar between surface and core AST,
+ * but we need to properly transform the kind names and recursively process
+ * nested type expressions.
+ *
+ * @param def - Surface type definition
+ * @returns Core type definition
  */
 function desugarTypeDefinition(def: TypeDefinition): CoreTypeDefinition {
-    const coreDef: Record<string, unknown> = { ...def };
-    if (coreDef["kind"]) {
-        coreDef["kind"] = `Core${coreDef["kind"] as string}`;
+    switch (def.kind) {
+        case "AliasType":
+            return {
+                kind: "CoreAliasType",
+                typeExpr: desugarTypeExpr(def.typeExpr),
+                loc: def.loc,
+            };
+
+        case "RecordTypeDef":
+            return {
+                kind: "CoreRecordTypeDef",
+                fields: def.fields.map(desugarRecordTypeField),
+                loc: def.loc,
+            };
+
+        case "VariantTypeDef":
+            return {
+                kind: "CoreVariantTypeDef",
+                constructors: def.constructors.map(desugarVariantConstructor),
+                loc: def.loc,
+            };
     }
-    return coreDef as unknown as CoreTypeDefinition;
 }
 
 /**
