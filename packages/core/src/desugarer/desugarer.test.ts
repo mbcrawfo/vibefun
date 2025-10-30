@@ -644,15 +644,7 @@ describe("Desugarer - Error Handling", () => {
         expect(() => desugar(expr)).toThrow(DesugarError);
     });
 
-    it("should throw error for unimplemented block desugaring", () => {
-        const expr: Expr = {
-            kind: "Block",
-            exprs: [{ kind: "IntLit", value: 42, loc: testLoc }],
-            loc: testLoc,
-        };
-
-        expect(() => desugar(expr)).toThrow(DesugarError);
-    });
+    // Block desugaring is now implemented - see blocks.test.ts
 
     it("should throw error for unimplemented pipe desugaring", () => {
         const expr: Expr = {

@@ -93,6 +93,78 @@ export class FreshVarGen {
 }
 
 /**
+ * Desugar a block expression into nested let bindings
+ *
+ * @param exprs - List of expressions in the block
+ * @param loc - Location of the block expression
+ * @param gen - Fresh variable generator
+ * @returns Desugared core expression
+ *
+ * @example
+ * // Input: { let x = 10; let y = 20; x + y }
+ * // Output: let x = 10 in (let y = 20 in (x + y))
+ */
+function desugarBlock(exprs: Expr[], loc: Location, gen: FreshVarGen): CoreExpr {
+    // Empty block is an error
+    if (exprs.length === 0) {
+        throw new DesugarError(
+            "Empty block expression",
+            loc,
+            "Block must contain at least one expression",
+        );
+    }
+
+    // Single expression - just desugar it
+    if (exprs.length === 1) {
+        const singleExpr = exprs[0];
+        if (!singleExpr) {
+            throw new DesugarError("Block has undefined expression", loc);
+        }
+        return desugar(singleExpr, gen);
+    }
+
+    // Multiple expressions - build nested let bindings
+    // All expressions except the last should be Let bindings
+    const lastExpr = exprs[exprs.length - 1];
+    if (!lastExpr) {
+        throw new DesugarError("Block has undefined last expression", loc);
+    }
+
+    // Process expressions right-to-left to build nested structure
+    let result = desugar(lastExpr, gen);
+
+    // Work backwards through all but the last expression
+    for (let i = exprs.length - 2; i >= 0; i--) {
+        const expr = exprs[i];
+        if (!expr) {
+            throw new DesugarError(`Block has undefined expression at index ${i}`, loc);
+        }
+
+        // Each expression should be a Let binding
+        if (expr.kind !== "Let") {
+            throw new DesugarError(
+                "Non-let expression in block (except final expression)",
+                expr.loc,
+                "All expressions in a block except the last must be let bindings",
+            );
+        }
+
+        // Wrap the result in a let binding
+        result = {
+            kind: "CoreLet",
+            pattern: desugarPattern(expr.pattern, gen),
+            value: desugar(expr.value, gen),
+            body: result,
+            mutable: expr.mutable,
+            recursive: expr.recursive,
+            loc: expr.loc,
+        };
+    }
+
+    return result;
+}
+
+/**
  * Desugar a surface expression to a core expression
  *
  * @param expr - Surface expression to desugar
@@ -278,14 +350,9 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 "This will be implemented in Phase 5",
             );
 
-        // Block expressions - will desugar to nested lets
+        // Block expressions - desugar to nested lets
         case "Block":
-            // TODO: Implement block desugaring
-            throw new DesugarError(
-                "Block expression desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 3",
-            );
+            return desugarBlock(expr.exprs, expr.loc, gen);
 
         // Type annotation - preserve, desugar inner expression
         case "TypeAnnotation":
