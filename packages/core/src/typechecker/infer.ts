@@ -10,7 +10,16 @@ import type { Type, TypeEnv, TypeScheme } from "../types/environment.js";
 import type { Substitution } from "./unify.js";
 
 import { TypeError } from "../utils/error.js";
-import { constType, freshTypeVar, funType, primitiveTypes, typeToString } from "./types.js";
+import {
+    appType,
+    constType,
+    freeTypeVarsAtLevel,
+    freshTypeVar,
+    funType,
+    isSyntacticValue,
+    primitiveTypes,
+    typeToString,
+} from "./types.js";
 import { applySubst, composeSubst, emptySubst, unify } from "./unify.js";
 
 /**
@@ -182,8 +191,11 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         case "CoreTypeAnnotation":
             return inferTypeAnnotation(ctx, expr);
 
-        // Other cases to be implemented in later phases
+        // Let bindings
         case "CoreLet":
+            return inferLet(ctx, expr);
+
+        // Other cases to be implemented in later phases
         case "CoreMatch":
         case "CoreRecord":
         case "CoreRecordAccess":
@@ -365,6 +377,39 @@ function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Core
     const leftType = applySubst(currentSubst, leftResult.type);
     const rightType = rightResult.type;
 
+    // Special handling for RefAssign: (Ref<T>, T) -> Unit
+    if (expr.op === "RefAssign") {
+        try {
+            // Left operand must be Ref<T>
+            const elemType = freshTypeVar(ctx.level);
+            const refType = appType(constType("Ref"), [elemType]);
+
+            // Unify left with Ref<T>
+            const leftUnify = unify(leftType, refType);
+            const subst1 = composeSubst(leftUnify, currentSubst);
+
+            // Apply substitution to get the actual element type
+            const actualElemType = applySubst(subst1, elemType);
+            const rightTypeSubst = applySubst(subst1, rightType);
+
+            // Unify right with T
+            const rightUnify = unify(rightTypeSubst, actualElemType);
+            const finalSubst = composeSubst(rightUnify, subst1);
+
+            // Result is Unit
+            return { type: primitiveTypes.Unit, subst: finalSubst };
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw error;
+            }
+            throw new TypeError(
+                `Type error in reference assignment`,
+                expr.loc,
+                `Expected (Ref<T>, T) -> Unit, but got ${typeToString(leftType)} := ${typeToString(rightType)}`,
+            );
+        }
+    }
+
     // Determine expected types and result type based on operator
     const { paramType, resultType } = getBinOpTypes(expr.op);
 
@@ -475,6 +520,33 @@ function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Co
     // Infer operand type
     const operandResult = inferExpr(ctx, expr.expr);
 
+    // Special handling for Deref: Ref<T> -> T
+    if (expr.op === "Deref") {
+        try {
+            // Operand must be Ref<T>
+            const elemType = freshTypeVar(ctx.level);
+            const refType = appType(constType("Ref"), [elemType]);
+
+            // Unify operand with Ref<T>
+            const unifySubst = unify(operandResult.type, refType);
+            const finalSubst = composeSubst(unifySubst, operandResult.subst);
+
+            // Apply substitution to get the actual element type
+            const resultType = applySubst(finalSubst, elemType);
+
+            return { type: resultType, subst: finalSubst };
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw error;
+            }
+            throw new TypeError(
+                `Type error in dereference`,
+                expr.expr.loc,
+                `Expected Ref<T>, but got ${typeToString(operandResult.type)}`,
+            );
+        }
+    }
+
     const { paramType, resultType } = getUnaryOpTypes(expr.op);
 
     // Unify operand type with expected parameter type
@@ -569,6 +641,139 @@ function inferTypeAnnotation(
             `Expected ${typeToString(annotationType)}, but expression has type ${typeToString(exprResult.type)}`,
         );
     }
+}
+
+/**
+ * Generalize a type to a type scheme
+ *
+ * Quantifies over all type variables at the current level, respecting
+ * the value restriction for sound polymorphism with mutable references.
+ *
+ * @param ctx - The inference context
+ * @param type - The type to generalize
+ * @param expr - The expression being generalized (for value restriction)
+ * @returns A type scheme with quantified variables
+ */
+function generalize(ctx: InferenceContext, type: Type, expr: CoreExpr): TypeScheme {
+    // Apply current substitution to the type
+    const finalType = applySubst(ctx.subst, type);
+
+    // Find all free type variables at the current level
+    const freeVarsSet = freeTypeVarsAtLevel(finalType, ctx.level);
+    const freeVars = Array.from(freeVarsSet);
+
+    // Value restriction: only generalize if the expression is a syntactic value
+    // This prevents unsound generalization of mutable references
+    // For example: let x = ref None should have type Ref<'a option>, not ∀'a. Ref<'a option>
+    if (isSyntacticValue(expr)) {
+        return { vars: freeVars, type: finalType };
+    } else {
+        // Not a syntactic value - don't generalize (monomorphic)
+        return { vars: [], type: finalType };
+    }
+}
+
+/**
+ * Infer the type of a let-binding
+ *
+ * Handles let-polymorphism with generalization, supporting both
+ * recursive and non-recursive bindings.
+ *
+ * @param ctx - The inference context
+ * @param expr - The let expression
+ * @returns The inferred type and updated substitution
+ */
+function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>): InferResult {
+    // For simplicity, we only handle variable patterns in Phase 4
+    if (expr.pattern.kind !== "CoreVarPattern") {
+        throw new TypeError(
+            `Pattern matching in let-bindings not yet supported`,
+            expr.loc,
+            `Only simple variable patterns are supported in this phase`,
+        );
+    }
+
+    const varName = expr.pattern.name;
+
+    // Mutable bindings are not supported yet (Phase 2.5 completion)
+    if (expr.mutable) {
+        throw new TypeError(
+            `Mutable let-bindings not yet supported`,
+            expr.loc,
+            `Mutable bindings will be fully supported after Phase 2.5 completion`,
+        );
+    }
+
+    // Create new context with increased level for generalization
+    const newLevel = ctx.level + 1;
+    let valueCtx: InferenceContext = { ...ctx, level: newLevel };
+
+    // Track temp type for recursive bindings
+    let tempType: Type | null = null;
+
+    // Handle recursive bindings
+    if (expr.recursive) {
+        // For recursive bindings, add a temporary binding with a fresh type variable
+        tempType = freshTypeVar(newLevel);
+        const tempScheme: TypeScheme = { vars: [], type: tempType };
+
+        const newEnv: TypeEnv = {
+            types: ctx.env.types,
+            values: new Map(ctx.env.values),
+        };
+        newEnv.values.set(varName, {
+            kind: "Value",
+            scheme: tempScheme,
+            loc: expr.loc,
+        });
+
+        valueCtx = { ...valueCtx, env: newEnv };
+    }
+
+    // Infer the type of the value
+    const valueResult = inferExpr(valueCtx, expr.value);
+    valueCtx = { ...valueCtx, subst: valueResult.subst };
+
+    // For recursive bindings, unify the inferred type with the temporary type variable
+    if (expr.recursive && tempType) {
+        try {
+            const tempTypeSubst = applySubst(valueResult.subst, tempType);
+            const unifySubst = unify(tempTypeSubst, valueResult.type);
+            valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw error;
+            }
+            throw new TypeError(
+                `Type mismatch in recursive binding`,
+                expr.loc,
+                `The type of '${varName}' is inconsistent with its usage`,
+            );
+        }
+    }
+
+    // Generalize the type of the value
+    const valueScheme = generalize(valueCtx, valueResult.type, expr.value);
+
+    // Add the binding to the environment
+    const newEnv: TypeEnv = {
+        types: ctx.env.types,
+        values: new Map(ctx.env.values),
+    };
+    newEnv.values.set(varName, {
+        kind: "Value",
+        scheme: valueScheme,
+        loc: expr.loc,
+    });
+
+    // Infer the type of the body with the updated environment
+    const bodyCtx: InferenceContext = {
+        env: newEnv,
+        subst: valueCtx.subst,
+        level: ctx.level, // Back to the original level
+    };
+
+    return inferExpr(bodyCtx, expr.body);
 }
 
 /**
