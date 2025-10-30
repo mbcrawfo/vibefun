@@ -668,8 +668,8 @@
 ### Commit
 
 - [x] Committed as: `feat(typechecker): implement Phase 6 - Pattern Matching`
-- [x] Commit hash: _TBD_ (to be added after commit)
-- [x] Files changed: 4 files
+- [x] Commit hash: a225e44
+- [x] Files changed: 5 files, 1699 insertions(+), 69 deletions(-)
 - [x] Includes: patterns.ts (401 lines), inferMatch (91 lines), patterns.test.ts (605 lines), infer.test.ts (507 lines added)
 
 ### Known Limitations
