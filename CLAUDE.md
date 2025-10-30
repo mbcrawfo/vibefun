@@ -135,6 +135,20 @@ vibefun/
 
 See `vibefun-spec.md` (JavaScript Interop → Overloaded External Functions) for complete details.
 
+### Type Checker Implementation
+- **Algorithm**: Constraint-based Hindley-Milner inference (Algorithm W)
+- **Type variable scoping**: Level-based approach (Standard ML style) to prevent type variable escape
+- **Polymorphism**: Let-polymorphism with full syntactic value restriction (OCaml/SML semantics)
+- **Mutable references**: `Ref<T>` type with RefAssign (`:=`) and Deref (`!`) operators
+- **Records**: Width subtyping (permissive - extra fields allowed)
+- **Variants**: Nominal typing (exact name matching required)
+- **Pattern matching**: Exhaustiveness checking with matrix-based algorithm
+- **Mutual recursion**: Supported via `let rec f = ... and g = ...` syntax
+- **Built-ins**: 46 standard library functions (List, Option, Result, String, Int, Float modules)
+- **Error reporting**: Type mismatch, undefined variables, non-exhaustive patterns with helpful suggestions
+
+See `.claude/active/type-checker/` for detailed implementation documentation.
+
 ## Quick Language Reference
 
 ### File Extension
