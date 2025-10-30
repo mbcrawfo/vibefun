@@ -500,12 +500,28 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Match - desugar expression and cases
+        // Match - desugar expression and cases, expanding or-patterns
         case "Match":
             return {
                 kind: "CoreMatch",
                 expr: desugar(expr.expr, gen),
-                cases: expr.cases.map((matchCase) => {
+                cases: expr.cases.flatMap((matchCase) => {
+                    // If pattern is OrPattern, expand into multiple cases
+                    if (matchCase.pattern.kind === "OrPattern") {
+                        return matchCase.pattern.patterns.map((altPattern) => {
+                            const coreCase: any = {
+                                pattern: desugarPattern(altPattern, gen),
+                                body: desugar(matchCase.body, gen),
+                                loc: matchCase.loc,
+                            };
+                            if (matchCase.guard) {
+                                coreCase.guard = desugar(matchCase.guard, gen);
+                            }
+                            return coreCase;
+                        });
+                    }
+
+                    // Regular pattern - just desugar normally
                     const coreCase: any = {
                         pattern: desugarPattern(matchCase.pattern, gen),
                         body: desugar(matchCase.body, gen),
@@ -514,7 +530,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                     if (matchCase.guard) {
                         coreCase.guard = desugar(matchCase.guard, gen);
                     }
-                    return coreCase;
+                    return [coreCase];
                 }),
                 loc: expr.loc,
             };
@@ -765,11 +781,11 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
             return desugarListPattern(pattern.elements, pattern.rest, pattern.loc, gen);
 
         case "OrPattern":
-            // TODO: Implement or-pattern expansion
+            // Or-patterns should be expanded at the Match level before reaching here
             throw new DesugarError(
-                "Or-pattern desugaring not yet implemented",
+                "Or-pattern should have been expanded at match level",
                 pattern.loc,
-                "This will be implemented in Phase 12",
+                "This is an internal compiler error - or-patterns must be expanded before pattern desugaring",
             );
 
         default:

@@ -1,7 +1,7 @@
 # Desugarer Implementation Tasks
 
 **Created:** 2025-10-29
-**Last Updated:** 2025-10-29 (Phase 11 complete)
+**Last Updated:** 2025-10-29 (Phase 12 complete)
 
 This document tracks implementation progress for the desugarer phase.
 
@@ -9,7 +9,7 @@ This document tracks implementation progress for the desugarer phase.
 
 ## Overall Progress
 
-**Phases Completed:** 9 / 15 (60%)
+**Phases Completed:** 10 / 15 (67%)
 
 **Status Legend:**
 - 🔜 Not Started
@@ -479,9 +479,9 @@ npm test packages/core/src/desugarer/conditionals.test.ts
 
 ---
 
-## Phase 12: Or-Pattern Expansion 🔜
+## Phase 12: Or-Pattern Expansion ✅
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Estimated Time:** 2 hours
 
 ### Tasks

@@ -345,3 +345,21 @@ describe("List Pattern - Source Locations", () => {
         expect(result.loc).toBe(patternLoc);
     });
 });
+
+describe("Or-Pattern - Error", () => {
+    it("should throw error if or-pattern reaches desugarPattern", () => {
+        // Or-patterns should be expanded at Match level
+        // If one reaches desugarPattern, it's a compiler bug
+        const pattern: Pattern = {
+            kind: "OrPattern",
+            patterns: [
+                { kind: "VarPattern", name: "a", loc: testLoc },
+                { kind: "VarPattern", name: "b", loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const gen = new FreshVarGen();
+        expect(() => desugarPattern(pattern, gen)).toThrow("Or-pattern should have been expanded");
+    });
+});
