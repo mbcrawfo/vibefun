@@ -10,6 +10,7 @@ import type { ExternalOverload, TypeEnv, ValueBinding } from "../types/environme
 
 import { emptyEnv } from "../types/environment.js";
 import { TypeError } from "../utils/error.js";
+import { getBuiltinEnv } from "./builtins.js";
 
 /**
  * Build type environment from a module
@@ -18,12 +19,24 @@ import { TypeError } from "../utils/error.js";
  * It detects external functions with multiple declarations (overloads) and groups
  * them into ExternalOverload bindings.
  *
+ * The environment starts with built-in types and functions, then adds module declarations.
+ *
  * @param module - The parsed module
- * @returns The type environment
+ * @returns The type environment with built-ins and module declarations
  * @throws {TypeError} If overload declarations are invalid
  */
 export function buildEnvironment(module: Module): TypeEnv {
     const env = emptyEnv();
+
+    // Inject built-in types and standard library functions
+    const builtins = getBuiltinEnv();
+    for (const [name, scheme] of builtins.entries()) {
+        env.values.set(name, {
+            kind: "Value",
+            scheme,
+            loc: { file: "<builtin>", line: 0, column: 0, offset: 0 },
+        });
+    }
 
     // First pass: collect all declarations by name
     const declarationsByName = groupDeclarationsByName(module);

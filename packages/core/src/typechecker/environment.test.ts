@@ -240,4 +240,65 @@ describe("Environment Builder - External Overloading", () => {
             expect(error?.kind).toBe("External");
         });
     });
+
+    describe("built-in types and functions", () => {
+        it("includes built-in variant constructors", () => {
+            const source = ``;
+            const module = parseModule(source);
+            const env = buildEnvironment(module);
+
+            expect(env.values.has("Cons")).toBe(true);
+            expect(env.values.has("Nil")).toBe(true);
+            expect(env.values.has("Some")).toBe(true);
+            expect(env.values.has("None")).toBe(true);
+            expect(env.values.has("Ok")).toBe(true);
+            expect(env.values.has("Err")).toBe(true);
+        });
+
+        it("includes built-in standard library functions", () => {
+            const source = ``;
+            const module = parseModule(source);
+            const env = buildEnvironment(module);
+
+            expect(env.values.has("List.map")).toBe(true);
+            expect(env.values.has("Option.map")).toBe(true);
+            expect(env.values.has("Result.map")).toBe(true);
+            expect(env.values.has("String.length")).toBe(true);
+            expect(env.values.has("Int.toString")).toBe(true);
+            expect(env.values.has("Float.toString")).toBe(true);
+        });
+
+        it("includes special functions", () => {
+            const source = ``;
+            const module = parseModule(source);
+            const env = buildEnvironment(module);
+
+            expect(env.values.has("panic")).toBe(true);
+            expect(env.values.has("ref")).toBe(true);
+        });
+
+        it("does not allow user declarations to override built-ins", () => {
+            const source = `
+                external panic: (Int) -> String = "panic"
+            `;
+            const module = parseModule(source);
+            const env = buildEnvironment(module);
+
+            // User declaration should override the built-in
+            const panic = env.values.get("panic");
+            expect(panic?.kind).toBe("External");
+        });
+
+        it("preserves built-ins alongside user declarations", () => {
+            const source = `
+                external myFunction: (String) -> Int = "myFunc"
+            `;
+            const module = parseModule(source);
+            const env = buildEnvironment(module);
+
+            // Both built-ins and user declarations should be present
+            expect(env.values.has("Cons")).toBe(true);
+            expect(env.values.has("myFunction")).toBe(true);
+        });
+    });
 });

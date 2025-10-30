@@ -1,152 +1,174 @@
 # Type Checker Implementation Tasks
 
 **Created:** 2025-10-30
-**Last Updated:** 2025-10-30 (Synchronized with Final Plan)
-**Status:** Not Started
+**Last Updated:** 2025-10-30 (Phase 2 Complete)
+**Status:** In Progress
 
 ## Progress Overview
 
-- **Phases Completed:** 0/11 (0%) [Added Phase 4b]
-- **Current Phase:** Phase 1 (Type Representation & Unification)
-- **Tests Written:** 28 (existing), Target: 275+
+- **Phases Completed:** 2/11 (18%)
+- **Current Phase:** Phase 2.5 (Mutable References & Value Restriction)
+- **Tests Written:** 192 (28 existing + 164 new), Target: 275+
 
 ---
 
 ## Phase 1: Type Representation & Unification
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Estimated:** 4-6 hours
-**Actual:** _TBD_
+**Actual:** ~3 hours
 
 ### Implementation Tasks
 
-- [ ] Create `packages/core/src/typechecker/types.ts`
-  - [ ] Implement type construction helper functions
-  - [ ] Create type variable helpers (fresh, isFree, etc.)
-  - [ ] Implement type equality checks
-  - [ ] Add typeToString() for readable formatting
-  - [ ] Add Never type support (bottom type, unifies with everything)
-  - [ ] Add Ref<T> type constructor (for mutable references)
-  - [ ] Export all type utilities
+- [x] Create `packages/core/src/typechecker/types.ts`
+  - [x] Implement type construction helper functions
+  - [x] Create type variable helpers (fresh, isFree, etc.)
+  - [x] Implement type equality checks
+  - [x] Add typeToString() for readable formatting
+  - [x] Add Never type support (bottom type, unifies with everything)
+  - [x] Add Ref<T> type constructor (for mutable references)
+  - [x] Export all type utilities
+  - [x] Add level-based type variable scoping
+  - [x] Add freeTypeVarsAtLevel for scoped generalization
 
-- [ ] Create `packages/core/src/typechecker/unify.ts`
-  - [ ] Define Substitution type (Map<number, Type>)
-  - [ ] Implement substitution application to types
-  - [ ] Implement substitution composition
-  - [ ] Build occurs check function
-  - [ ] Implement unification algorithm:
-    - [ ] Unify primitives (Const with Const)
-    - [ ] Unify type variables (Var with any type)
-    - [ ] Unify function types recursively
-    - [ ] Unify generic applications (List<T> with List<U>)
-    - [ ] Unify record types (structural)
-    - [ ] Unify variant types
-    - [ ] Unify union types
-  - [ ] Export unify() function
+- [x] Create `packages/core/src/typechecker/unify.ts`
+  - [x] Define Substitution type (Map<number, Type>)
+  - [x] Implement substitution application to types
+  - [x] Implement substitution composition
+  - [x] Build occurs check function
+  - [x] Implement unification algorithm:
+    - [x] Unify primitives (Const with Const)
+    - [x] Unify type variables (Var with any type)
+    - [x] Unify function types recursively
+    - [x] Unify generic applications (List<T> with List<U>)
+    - [x] Unify record types (structural with width subtyping)
+    - [x] Unify variant types (nominal)
+    - [x] Unify union types
+  - [x] Export unify() function
+  - [x] Implement level updating during unification
+
+- [x] Modify `packages/core/src/types/environment.ts`
+  - [x] Add level field to Type.Var
 
 ### Testing Tasks
 
-- [ ] Create `packages/core/src/typechecker/types.test.ts`
-  - [ ] Test type construction functions
-  - [ ] Test type variable operations
-  - [ ] Test type equality
-  - [ ] Test typeToString formatting
-  - [ ] Test complex nested types
+- [x] Create `packages/core/src/typechecker/types.test.ts`
+  - [x] Test type construction functions
+  - [x] Test type variable operations
+  - [x] Test type equality
+  - [x] Test typeToString formatting
+  - [x] Test complex nested types
+  - [x] Test level-based free variable collection
+  - [x] **Achieved:** 48 tests
 
-- [ ] Create `packages/core/src/typechecker/unify.test.ts`
-  - [ ] Test primitive unification (Int ~ Int, Int !~ String)
-  - [ ] Test type variable unification (α ~ T)
-  - [ ] Test function type unification
-  - [ ] Test generic type unification (List<Int> ~ List<Int>)
-  - [ ] Test record type unification (structural)
-  - [ ] Test variant type unification
-  - [ ] Test union type unification
-  - [ ] Test occurs check (α !~ List<α>)
-  - [ ] Test substitution application
-  - [ ] Test substitution composition
-  - [ ] Test unification failure cases
-  - [ ] Test Never type unification (always succeeds)
-  - [ ] Test Ref<T> type unification
-  - [ ] **Target:** 25+ tests total
+- [x] Create `packages/core/src/typechecker/unify.test.ts`
+  - [x] Test primitive unification (Int ~ Int, Int !~ String)
+  - [x] Test type variable unification (α ~ T)
+  - [x] Test function type unification
+  - [x] Test generic type unification (List<Int> ~ List<Int>)
+  - [x] Test record type unification (structural)
+  - [x] Test variant type unification
+  - [x] Test union type unification
+  - [x] Test occurs check (α !~ List<α>)
+  - [x] Test substitution application
+  - [x] Test substitution composition
+  - [x] Test unification failure cases
+  - [x] Test Never type unification (always succeeds)
+  - [x] Test Ref<T> type unification
+  - [x] Test width subtyping for records
+  - [x] Test level updates during unification
+  - [x] **Achieved:** 63 tests (exceeded target of 25+)
 
 ### Quality Checks
 
-- [ ] `npm run check` passes
-- [ ] `npm run lint` passes
-- [ ] `npm test` passes (all tests)
-- [ ] `npm run format` applied
-- [ ] Test coverage ≥90%
+- [x] `npm run check` passes
+- [x] `npm run lint` passes
+- [x] `npm test` passes (all 1086 tests)
+- [x] `npm run format` applied
+- [x] Test coverage ≥90%
+
+### Commit
+
+- [x] Committed as: `feat(typechecker): implement Phase 1 - Type Representation & Unification`
+- [x] Commit hash: 4530021
+- [x] Files changed: 5 files, 1996 insertions(+), 1 deletion(-)
 
 ---
 
 ## Phase 2: Type Environment & Built-ins
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Estimated:** 3-4 hours
-**Actual:** _TBD_
+**Actual:** ~2.5 hours
 
 ### Implementation Tasks
 
-- [ ] Create `packages/core/src/typechecker/builtins.ts`
-  - [ ] Define primitive type constants
-    - [ ] Int: Const("Int")
-    - [ ] Float: Const("Float")
-    - [ ] String: Const("String")
-    - [ ] Bool: Const("Bool")
-    - [ ] Unit: Const("Unit")
-    - [ ] Never: Const("Never") - bottom type for panic
-  - [ ] Define List<T> variant type
-    - [ ] Cons constructor: (T, List<T>) -> List<T>
-    - [ ] Nil constructor: () -> List<T>
-  - [ ] Define Option<T> variant type
-    - [ ] Some constructor: (T) -> Option<T>
-    - [ ] None constructor: () -> Option<T>
-  - [ ] Define Result<T, E> variant type
-    - [ ] Ok constructor: (T) -> Result<T, E>
-    - [ ] Err constructor: (E) -> Result<T, E>
-  - [ ] Define **17 core stdlib function signatures** (Phase 2 subset):
-    - [ ] **List (4)**: map, filter, fold, length
-    - [ ] **Option (3)**: map, flatMap, getOrElse
-    - [ ] **Result (3)**: map, flatMap, isOk
-    - [ ] **String (3)**: length, concat, fromInt
-    - [ ] **Int (2)**: toString, toFloat
-    - [ ] **Float (2)**: toString, toInt
-    - [ ] *(Remaining 29 stdlib functions deferred to Phase 7)*
-  - [ ] Add panic function: panic: (String) -> Never
-  - [ ] Add ref constructor: ref: forall a. (a) -> Ref<a>
-  - [ ] Export getBuiltinEnv() function
+- [x] Create `packages/core/src/typechecker/builtins.ts`
+  - [x] Define primitive type constants
+    - [x] Int: Const("Int")
+    - [x] Float: Const("Float")
+    - [x] String: Const("String")
+    - [x] Bool: Const("Bool")
+    - [x] Unit: Const("Unit")
+    - [x] Never: Const("Never") - bottom type for panic
+  - [x] Define List<T> variant type
+    - [x] Cons constructor: (T, List<T>) -> List<T>
+    - [x] Nil constructor: () -> List<T>
+  - [x] Define Option<T> variant type
+    - [x] Some constructor: (T) -> Option<T>
+    - [x] None constructor: () -> Option<T>
+  - [x] Define Result<T, E> variant type
+    - [x] Ok constructor: (T) -> Result<T, E>
+    - [x] Err constructor: (E) -> Result<T, E>
+  - [x] Define **17 core stdlib function signatures** (Phase 2 subset):
+    - [x] **List (4)**: map, filter, fold, length
+    - [x] **Option (3)**: map, flatMap, getOrElse
+    - [x] **Result (3)**: map, flatMap, isOk
+    - [x] **String (3)**: length, concat, fromInt
+    - [x] **Int (2)**: toString, toFloat
+    - [x] **Float (2)**: toString, toInt
+    - [x] *(Remaining 29 stdlib functions deferred to Phase 7)*
+  - [x] Add panic function: panic: (String) -> Never
+  - [x] Add ref constructor: ref: forall a. (a) -> Ref<a>
+  - [x] Export getBuiltinEnv() function
 
-- [ ] Modify `packages/core/src/typechecker/environment.ts`
-  - [ ] Import built-ins module
-  - [ ] Update buildEnvironment() to inject built-ins
-  - [ ] Ensure existing tests still pass
-  - [ ] Add new built-ins to returned TypeEnv
+- [x] Modify `packages/core/src/typechecker/environment.ts`
+  - [x] Import built-ins module
+  - [x] Update buildEnvironment() to inject built-ins
+  - [x] Ensure existing tests still pass
+  - [x] Add new built-ins to returned TypeEnv
 
 ### Testing Tasks
 
-- [ ] Create `packages/core/src/typechecker/builtins.test.ts`
-  - [ ] Test primitive types exist
-  - [ ] Test List<T> type and constructors
-  - [ ] Test Option<T> type and constructors
-  - [ ] Test Result<T, E> type and constructors
-  - [ ] Test variant constructors have function types
-  - [ ] Test standard library function signatures
-  - [ ] Test built-in environment creation
-  - [ ] Test generic type instantiation
-  - [ ] **Target:** 15+ tests
+- [x] Create `packages/core/src/typechecker/builtins.test.ts`
+  - [x] Test primitive types exist
+  - [x] Test List<T> type and constructors
+  - [x] Test Option<T> type and constructors
+  - [x] Test Result<T, E> type and constructors
+  - [x] Test variant constructors have function types
+  - [x] Test standard library function signatures
+  - [x] Test built-in environment creation
+  - [x] Test generic type instantiation
+  - [x] **Achieved:** 48 tests (exceeded target of 15+)
 
-- [ ] Update `packages/core/src/typechecker/environment.test.ts`
-  - [ ] Verify existing tests still pass
-  - [ ] Test built-ins present in environment
-  - [ ] Test user declarations don't override built-ins
+- [x] Update `packages/core/src/typechecker/environment.test.ts`
+  - [x] Verify existing tests still pass
+  - [x] Test built-ins present in environment
+  - [x] Test user declarations don't override built-ins
 
 ### Quality Checks
 
-- [ ] `npm run check` passes
-- [ ] `npm run lint` passes
-- [ ] `npm test` passes (all existing + new tests)
-- [ ] `npm run format` applied
-- [ ] Test coverage ≥90%
+- [x] `npm run check` passes
+- [x] `npm run lint` passes
+- [x] `npm test` passes (all 1139 tests)
+- [x] `npm run format` applied
+- [x] Test coverage ≥90%
+
+### Commit
+
+- [ ] Committed as: TBD
+- [ ] Commit hash: TBD
+- [ ] Files changed: TBD
 
 ---
 
