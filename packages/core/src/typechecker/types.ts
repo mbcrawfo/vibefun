@@ -5,6 +5,7 @@
  * and inspecting types during type inference.
  */
 
+import type { CoreExpr } from "../types/core-ast.js";
 import type { Type, TypeScheme } from "../types/environment.js";
 
 /**
@@ -439,4 +440,81 @@ export function schemeToString(scheme: TypeScheme): string {
     }
     const varsStr = scheme.vars.map((id) => `'t${id}`).join(" ");
     return `forall ${varsStr}. ${typeToString(scheme.type)}`;
+}
+
+// =============================================================================
+// Syntactic Value Restriction
+// =============================================================================
+
+/**
+ * Check if a core expression is a syntactic value
+ *
+ * This implements the ML value restriction for sound polymorphism.
+ * Only syntactic values can be generalized to polymorphic types.
+ *
+ * Syntactic values include:
+ * - Literals (int, float, string, bool, unit)
+ * - Variables (references to bound names)
+ * - Lambda abstractions
+ * - Variant constructors where all arguments are syntactic values
+ * - Records where all field values are syntactic values
+ *
+ * Non-values include:
+ * - Function applications
+ * - Match expressions
+ * - Let bindings
+ * - Binary/unary operations
+ * - Record access/update (non-value operations)
+ *
+ * This prevents unsound generalization of expressions like:
+ * - `ref(None)` which would allow type variable escape
+ * - `f(x)` where f is a polymorphic function returning a ref
+ *
+ * @param expr - The core expression to check
+ * @returns true if the expression is a syntactic value, false otherwise
+ */
+export function isSyntacticValue(expr: CoreExpr): boolean {
+    switch (expr.kind) {
+        // Literals are always syntactic values
+        case "CoreIntLit":
+        case "CoreFloatLit":
+        case "CoreStringLit":
+        case "CoreBoolLit":
+        case "CoreUnitLit":
+            return true;
+
+        // Variables are syntactic values (they reference bound values)
+        case "CoreVar":
+            return true;
+
+        // Lambdas are syntactic values
+        case "CoreLambda":
+            return true;
+
+        // Variant constructors are syntactic values if all arguments are
+        case "CoreVariant":
+            return expr.args.every(isSyntacticValue);
+
+        // Records are syntactic values if all field values are
+        case "CoreRecord":
+            return expr.fields.every((field) => isSyntacticValue(field.value));
+
+        // Type annotations: check the inner expression
+        case "CoreTypeAnnotation":
+            return isSyntacticValue(expr.expr);
+
+        // Unsafe blocks: check the inner expression
+        case "CoreUnsafe":
+            return isSyntacticValue(expr.expr);
+
+        // Everything else is NOT a syntactic value
+        case "CoreLet":
+        case "CoreApp":
+        case "CoreMatch":
+        case "CoreRecordAccess":
+        case "CoreRecordUpdate":
+        case "CoreBinOp":
+        case "CoreUnaryOp":
+            return false;
+    }
 }

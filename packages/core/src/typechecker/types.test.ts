@@ -2,6 +2,32 @@
  * Tests for type representation utilities
  */
 
+import type {
+    CoreApp,
+    CoreBinOp,
+    CoreBoolLit,
+    CoreFloatLit,
+    CoreIntLit,
+    CoreLambda,
+    CoreLet,
+    CoreMatch,
+    CoreMatchCase,
+    CoreRecord,
+    CoreRecordAccess,
+    CoreRecordField,
+    CoreRecordUpdate,
+    CoreStringLit,
+    CoreTypeAnnotation,
+    CoreTypeConst,
+    CoreUnaryOp,
+    CoreUnitLit,
+    CoreUnsafe,
+    CoreVar,
+    CoreVariant,
+    CoreVarPattern,
+    CoreWildcardPattern,
+} from "../types/core-ast.js";
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -16,6 +42,7 @@ import {
     isConstType,
     isFunType,
     isRecordType,
+    isSyntacticValue,
     isTypeVar,
     isUnionType,
     isVariantType,
@@ -471,5 +498,231 @@ describe("Scheme Formatting", () => {
         const t2 = freshTypeVar();
         const scheme = { vars: [0, 1], type: funType([t1], t2) };
         expect(schemeToString(scheme)).toBe("forall 't0 't1. 't0 -> 't1");
+    });
+});
+
+describe("Syntactic Value Restriction", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
+
+    describe("Literals (always values)", () => {
+        it("should recognize integer literals as syntactic values", () => {
+            const expr: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize float literals as syntactic values", () => {
+            const expr: CoreFloatLit = { kind: "CoreFloatLit", value: 3.14, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize string literals as syntactic values", () => {
+            const expr: CoreStringLit = { kind: "CoreStringLit", value: "hello", loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize boolean literals as syntactic values", () => {
+            const expr: CoreBoolLit = { kind: "CoreBoolLit", value: true, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize unit literals as syntactic values", () => {
+            const expr: CoreUnitLit = { kind: "CoreUnitLit", loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+    });
+
+    describe("Variables (always values)", () => {
+        it("should recognize variable references as syntactic values", () => {
+            const expr: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+    });
+
+    describe("Lambdas (always values)", () => {
+        it("should recognize lambda abstractions as syntactic values", () => {
+            const param: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+            const body: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const expr: CoreLambda = { kind: "CoreLambda", param, body, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+    });
+
+    describe("Variant constructors", () => {
+        it("should recognize variant constructor with no args as syntactic value", () => {
+            const expr: CoreVariant = { kind: "CoreVariant", constructor: "None", args: [], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize variant constructor with value args as syntactic value", () => {
+            const arg: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const expr: CoreVariant = { kind: "CoreVariant", constructor: "Some", args: [arg], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize nested variant constructors as syntactic value", () => {
+            const innerArg: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const inner: CoreVariant = { kind: "CoreVariant", constructor: "Some", args: [innerArg], loc: testLoc };
+            const outer: CoreVariant = { kind: "CoreVariant", constructor: "Ok", args: [inner], loc: testLoc };
+            expect(isSyntacticValue(outer)).toBe(true);
+        });
+
+        it("should reject variant constructor with non-value arg", () => {
+            const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+            const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const nonValue: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
+            const expr: CoreVariant = { kind: "CoreVariant", constructor: "Some", args: [nonValue], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+    });
+
+    describe("Records", () => {
+        it("should recognize empty record as syntactic value", () => {
+            const expr: CoreRecord = { kind: "CoreRecord", fields: [], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should recognize record with value fields as syntactic value", () => {
+            const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const field: CoreRecordField = { name: "x", value, loc: testLoc };
+            const expr: CoreRecord = { kind: "CoreRecord", fields: [field], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should reject record with non-value field", () => {
+            const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+            const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const nonValue: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
+            const field: CoreRecordField = { name: "x", value: nonValue, loc: testLoc };
+            const expr: CoreRecord = { kind: "CoreRecord", fields: [field], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+    });
+
+    describe("Type annotations", () => {
+        it("should check inner expression for type annotation", () => {
+            const inner: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const typeExpr: CoreTypeConst = { kind: "CoreTypeConst", name: "Int", loc: testLoc };
+            const expr: CoreTypeAnnotation = { kind: "CoreTypeAnnotation", expr: inner, typeExpr, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should reject type annotation with non-value expression", () => {
+            const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+            const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const inner: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
+            const typeExpr: CoreTypeConst = { kind: "CoreTypeConst", name: "Int", loc: testLoc };
+            const expr: CoreTypeAnnotation = { kind: "CoreTypeAnnotation", expr: inner, typeExpr, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+    });
+
+    describe("Unsafe blocks", () => {
+        it("should check inner expression for unsafe block", () => {
+            const inner: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const expr: CoreUnsafe = { kind: "CoreUnsafe", expr: inner, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should reject unsafe block with non-value expression", () => {
+            const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+            const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const inner: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
+            const expr: CoreUnsafe = { kind: "CoreUnsafe", expr: inner, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+    });
+
+    describe("Non-values", () => {
+        it("should reject function application", () => {
+            const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+            const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const expr: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should reject match expression", () => {
+            const scrutinee: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const pattern: CoreWildcardPattern = { kind: "CoreWildcardPattern", loc: testLoc };
+            const body: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const cases: CoreMatchCase[] = [{ pattern, body, loc: testLoc }];
+            const expr: CoreMatch = { kind: "CoreMatch", expr: scrutinee, cases, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should reject let binding", () => {
+            const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+            const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const body: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const expr: CoreLet = {
+                kind: "CoreLet",
+                pattern,
+                value,
+                body,
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should reject record access", () => {
+            const record: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+            const expr: CoreRecordAccess = { kind: "CoreRecordAccess", record, field: "x", loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should reject record update", () => {
+            const record: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
+            const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const update: CoreRecordField = { name: "x", value, loc: testLoc };
+            const expr: CoreRecordUpdate = { kind: "CoreRecordUpdate", record, updates: [update], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should reject binary operations", () => {
+            const left: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+            const right: CoreIntLit = { kind: "CoreIntLit", value: 2, loc: testLoc };
+            const expr: CoreBinOp = { kind: "CoreBinOp", op: "Add", left, right, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should reject unary operations", () => {
+            const inner: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "Negate", expr: inner, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+    });
+
+    describe("Value restriction examples", () => {
+        it("should reject ref(None) - function application", () => {
+            const refFunc: CoreVar = { kind: "CoreVar", name: "ref", loc: testLoc };
+            const noneValue: CoreVariant = { kind: "CoreVariant", constructor: "None", args: [], loc: testLoc };
+            const expr: CoreApp = { kind: "CoreApp", func: refFunc, args: [noneValue], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should accept Some(42) - constructor with value", () => {
+            const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const expr: CoreVariant = { kind: "CoreVariant", constructor: "Some", args: [value], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
+
+        it("should reject f(x) - function application", () => {
+            const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+            const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const expr: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(false);
+        });
+
+        it("should accept lambda x => x - lambda abstraction", () => {
+            const param: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+            const body: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+            const expr: CoreLambda = { kind: "CoreLambda", param, body, loc: testLoc };
+            expect(isSyntacticValue(expr)).toBe(true);
+        });
     });
 });
