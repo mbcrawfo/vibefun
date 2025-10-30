@@ -76,10 +76,12 @@ The vibefun language design is based on these core principles:
 
 The project uses **npm workspaces** to organize code into independently publishable packages:
 
-```
+```[task-name]
 vibefun/
 ├── .claude/              # Project plans and documentation
-│   └── plans/            # Implementation plans for compiler phases
+│   ├── design/           # Design documents
+│   └── active/           # Active task tracking
+│       └── [task-name]/  # Task-specific plan files
 ├── packages/
 │   ├── core/             # @vibefun/core - Compiler library
 │   │   └── src/          # Lexer, parser, types, and utilities
@@ -249,11 +251,11 @@ vibefun run src/main.vf            # Compile and run
 ### Language Documentation
 - **[vibefun-spec.md](./vibefun-spec.md)** - Complete language specification (syntax, types, semantics, standard library)
 
-### Design & Planning Documents
-- **[.claude/plans/language-design.md](./.claude/plans/language-design.md)** - Original language design exploration
-- **[.claude/plans/type-system.md](./.claude/plans/type-system.md)** - Detailed type system design and algorithms
-- **[.claude/plans/compiler-architecture.md](./.claude/plans/compiler-architecture.md)** - Compiler pipeline design
+### Design Documents
+- **[.claude/design/language-design.md](.claude/design/language-design.md)** - Original language design exploration
+- **[.claude/design/type-system.md](.claude/design/type-system.md)** - Detailed type system design and algorithms
+- **[.claude/design/compiler-architecture.md](.claude/design/compiler-architecture.md)** - Compiler pipeline design
 
-# Additional Instructions
+### Additional Instructions
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md
 - Coding Standards @.claude/CODING_STANDARDS.md
