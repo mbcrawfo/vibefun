@@ -302,9 +302,13 @@ describe("Pipe Operator - Complex Expressions", () => {
             loc: testLoc,
         };
 
-        // This will fail until if-then-else is implemented
-        // For now, just verify it attempts desugaring
-        expect(() => desugar(pipe)).toThrow();
+        const result = desugar(pipe);
+
+        // Should be: (match cond { | true => f | false => g })(data)
+        expect(result.kind).toBe("CoreApp");
+        expect((result as any).func.kind).toBe("CoreMatch");
+        expect((result as any).args[0].kind).toBe("CoreVar");
+        expect((result as any).args[0].name).toBe("data");
     });
 });
 

@@ -472,14 +472,33 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // If-then-else - will desugar to match
+        // If-then-else - desugar to match on boolean
         case "If":
-            // TODO: Implement if-then-else desugaring
-            throw new DesugarError(
-                "If-then-else desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 11",
-            );
+            return {
+                kind: "CoreMatch",
+                expr: desugar(expr.condition, gen),
+                cases: [
+                    {
+                        pattern: {
+                            kind: "CoreLiteralPattern",
+                            literal: true,
+                            loc: expr.loc,
+                        },
+                        body: desugar(expr.then, gen),
+                        loc: expr.loc,
+                    },
+                    {
+                        pattern: {
+                            kind: "CoreLiteralPattern",
+                            literal: false,
+                            loc: expr.loc,
+                        },
+                        body: desugar(expr.else_, gen),
+                        loc: expr.loc,
+                    },
+                ],
+                loc: expr.loc,
+            };
 
         // Match - desugar expression and cases
         case "Match":

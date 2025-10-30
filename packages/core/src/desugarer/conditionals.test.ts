@@ -1,0 +1,381 @@
+/**
+ * Tests for if-then-else desugaring
+ *
+ * If-then-else is desugared to match on boolean:
+ * if cond then a else b => match cond { | true => a | false => b }
+ */
+
+import { describe, it, expect } from "vitest";
+import { desugar, FreshVarGen } from "./desugarer.js";
+import type { Expr, Location } from "../types/ast.js";
+
+const testLoc: Location = {
+    file: "test.vf",
+    line: 1,
+    column: 1,
+    offset: 0,
+};
+
+describe("If-Then-Else - Basic Cases", () => {
+    it("should desugar simple if-then-else", () => {
+        // if true then 1 else 2
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: { kind: "BoolLit", value: true, loc: testLoc },
+            then: { kind: "IntLit", value: 1, loc: testLoc },
+            else_: { kind: "IntLit", value: 2, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        // Should become: match true { | true => 1 | false => 2 }
+        expect(result.kind).toBe("CoreMatch");
+        expect((result as any).expr.kind).toBe("CoreBoolLit");
+        expect((result as any).expr.value).toBe(true);
+        expect((result as any).cases).toHaveLength(2);
+
+        // True case
+        const trueCase = (result as any).cases[0];
+        expect(trueCase.pattern.kind).toBe("CoreLiteralPattern");
+        expect(trueCase.pattern.literal).toBe(true);
+        expect(trueCase.body.kind).toBe("CoreIntLit");
+        expect(trueCase.body.value).toBe(1);
+
+        // False case
+        const falseCase = (result as any).cases[1];
+        expect(falseCase.pattern.kind).toBe("CoreLiteralPattern");
+        expect(falseCase.pattern.literal).toBe(false);
+        expect(falseCase.body.kind).toBe("CoreIntLit");
+        expect(falseCase.body.value).toBe(2);
+    });
+
+    it("should desugar if with variable condition", () => {
+        // if cond then "yes" else "no"
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "cond", loc: testLoc },
+            then: { kind: "StringLit", value: "yes", loc: testLoc },
+            else_: { kind: "StringLit", value: "no", loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        expect(result.kind).toBe("CoreMatch");
+        expect((result as any).expr.kind).toBe("CoreVar");
+        expect((result as any).expr.name).toBe("cond");
+    });
+
+    it("should desugar if with comparison condition", () => {
+        // if x > 0 then "positive" else "non-positive"
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: {
+                kind: "BinOp",
+                op: "GreaterThan",
+                left: { kind: "Var", name: "x", loc: testLoc },
+                right: { kind: "IntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            },
+            then: { kind: "StringLit", value: "positive", loc: testLoc },
+            else_: { kind: "StringLit", value: "non-positive", loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        expect(result.kind).toBe("CoreMatch");
+        expect((result as any).expr.kind).toBe("CoreBinOp");
+        expect((result as any).expr.op).toBe("GreaterThan");
+    });
+});
+
+describe("If-Then-Else - Nested If", () => {
+    it("should desugar nested if in then branch", () => {
+        // if a then (if b then 1 else 2) else 3
+        const innerIf: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "b", loc: testLoc },
+            then: { kind: "IntLit", value: 1, loc: testLoc },
+            else_: { kind: "IntLit", value: 2, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const outerIf: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "a", loc: testLoc },
+            then: innerIf,
+            else_: { kind: "IntLit", value: 3, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(outerIf);
+
+        // Outer should be match
+        expect(result.kind).toBe("CoreMatch");
+        expect((result as any).expr.name).toBe("a");
+
+        // Then branch should be another match
+        const thenBranch = (result as any).cases[0].body;
+        expect(thenBranch.kind).toBe("CoreMatch");
+        expect(thenBranch.expr.name).toBe("b");
+    });
+
+    it("should desugar nested if in else branch", () => {
+        // if a then 1 else (if b then 2 else 3)
+        const innerIf: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "b", loc: testLoc },
+            then: { kind: "IntLit", value: 2, loc: testLoc },
+            else_: { kind: "IntLit", value: 3, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const outerIf: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "a", loc: testLoc },
+            then: { kind: "IntLit", value: 1, loc: testLoc },
+            else_: innerIf,
+            loc: testLoc,
+        };
+
+        const result = desugar(outerIf);
+
+        expect(result.kind).toBe("CoreMatch");
+
+        // Else branch should be another match
+        const elseBranch = (result as any).cases[1].body;
+        expect(elseBranch.kind).toBe("CoreMatch");
+        expect(elseBranch.expr.name).toBe("b");
+    });
+
+    it("should desugar deeply nested if expressions", () => {
+        // if a then (if b then (if c then 1 else 2) else 3) else 4
+        const innermost: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "c", loc: testLoc },
+            then: { kind: "IntLit", value: 1, loc: testLoc },
+            else_: { kind: "IntLit", value: 2, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const middle: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "b", loc: testLoc },
+            then: innermost,
+            else_: { kind: "IntLit", value: 3, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const outer: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "a", loc: testLoc },
+            then: middle,
+            else_: { kind: "IntLit", value: 4, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(outer);
+
+        // Three levels of match expressions
+        expect(result.kind).toBe("CoreMatch");
+        expect((result as any).cases[0].body.kind).toBe("CoreMatch");
+        expect((result as any).cases[0].body.cases[0].body.kind).toBe("CoreMatch");
+    });
+});
+
+describe("If-Then-Else - Complex Branches", () => {
+    it("should desugar if with let in then branch", () => {
+        // if cond then (let x = 10 in x + 1) else 0
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "cond", loc: testLoc },
+            then: {
+                kind: "Let",
+                pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                value: { kind: "IntLit", value: 10, loc: testLoc },
+                body: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "x", loc: testLoc },
+                    right: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            },
+            else_: { kind: "IntLit", value: 0, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        expect(result.kind).toBe("CoreMatch");
+
+        // Then branch should be desugared let
+        const thenBranch = (result as any).cases[0].body;
+        expect(thenBranch.kind).toBe("CoreLet");
+    });
+
+    it("should desugar if with lambda in branches", () => {
+        // if cond then ((x) => x + 1) else ((x) => x - 1)
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "cond", loc: testLoc },
+            then: {
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                body: {
+                    kind: "BinOp",
+                    op: "Add",
+                    left: { kind: "Var", name: "x", loc: testLoc },
+                    right: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            },
+            else_: {
+                kind: "Lambda",
+                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                body: {
+                    kind: "BinOp",
+                    op: "Subtract",
+                    left: { kind: "Var", name: "x", loc: testLoc },
+                    right: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        expect(result.kind).toBe("CoreMatch");
+
+        // Both branches should be lambdas
+        expect((result as any).cases[0].body.kind).toBe("CoreLambda");
+        expect((result as any).cases[1].body.kind).toBe("CoreLambda");
+    });
+
+    it("should desugar if with match in branch", () => {
+        // if cond then (match x { | Some(v) => v | None => 0 }) else 1
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: { kind: "Var", name: "cond", loc: testLoc },
+            then: {
+                kind: "Match",
+                expr: { kind: "Var", name: "x", loc: testLoc },
+                cases: [
+                    {
+                        pattern: {
+                            kind: "ConstructorPattern",
+                            constructor: "Some",
+                            args: [{ kind: "VarPattern", name: "v", loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        body: { kind: "Var", name: "v", loc: testLoc },
+                        loc: testLoc,
+                    },
+                    {
+                        pattern: {
+                            kind: "ConstructorPattern",
+                            constructor: "None",
+                            args: [],
+                            loc: testLoc,
+                        },
+                        body: { kind: "IntLit", value: 0, loc: testLoc },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            },
+            else_: { kind: "IntLit", value: 1, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        expect(result.kind).toBe("CoreMatch");
+
+        // Then branch should be another match
+        const thenBranch = (result as any).cases[0].body;
+        expect(thenBranch.kind).toBe("CoreMatch");
+    });
+});
+
+describe("If-Then-Else - As Expression", () => {
+    it("should desugar if as function argument", () => {
+        // f(if cond then 1 else 2)
+        const app: Expr = {
+            kind: "App",
+            func: { kind: "Var", name: "f", loc: testLoc },
+            args: [
+                {
+                    kind: "If",
+                    condition: { kind: "Var", name: "cond", loc: testLoc },
+                    then: { kind: "IntLit", value: 1, loc: testLoc },
+                    else_: { kind: "IntLit", value: 2, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(app);
+
+        expect(result.kind).toBe("CoreApp");
+
+        // Argument should be desugared to match
+        expect((result as any).args[0].kind).toBe("CoreMatch");
+    });
+
+    it("should desugar if in binary operation", () => {
+        // (if cond then 1 else 2) + 3
+        const binOp: Expr = {
+            kind: "BinOp",
+            op: "Add",
+            left: {
+                kind: "If",
+                condition: { kind: "Var", name: "cond", loc: testLoc },
+                then: { kind: "IntLit", value: 1, loc: testLoc },
+                else_: { kind: "IntLit", value: 2, loc: testLoc },
+                loc: testLoc,
+            },
+            right: { kind: "IntLit", value: 3, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(binOp);
+
+        expect(result.kind).toBe("CoreBinOp");
+
+        // Left operand should be desugared to match
+        expect((result as any).left.kind).toBe("CoreMatch");
+    });
+});
+
+describe("If-Then-Else - Source Locations", () => {
+    it("should preserve source locations", () => {
+        const ifLoc: Location = {
+            file: "test.vf",
+            line: 20,
+            column: 5,
+            offset: 300,
+        };
+
+        const ifExpr: Expr = {
+            kind: "If",
+            condition: { kind: "BoolLit", value: true, loc: testLoc },
+            then: { kind: "IntLit", value: 1, loc: testLoc },
+            else_: { kind: "IntLit", value: 2, loc: testLoc },
+            loc: ifLoc,
+        };
+
+        const result = desugar(ifExpr);
+
+        expect(result.loc).toBe(ifLoc);
+    });
+});

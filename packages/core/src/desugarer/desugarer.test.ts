@@ -618,23 +618,3 @@ describe("Desugarer - Module", () => {
         expect(result.imports[0].items[0].name).toBe("Option");
     });
 });
-
-describe("Desugarer - Error Handling", () => {
-    // Lambda currying is now implemented - see lambdas.test.ts
-
-    it("should throw error for unimplemented if desugaring", () => {
-        const expr: Expr = {
-            kind: "If",
-            condition: { kind: "BoolLit", value: true, loc: testLoc },
-            then: { kind: "IntLit", value: 1, loc: testLoc },
-            else_: { kind: "IntLit", value: 2, loc: testLoc },
-            loc: testLoc,
-        };
-
-        expect(() => desugar(expr)).toThrow(DesugarError);
-    });
-
-    // Block desugaring is now implemented - see blocks.test.ts
-    // Pipe desugaring is now implemented - see pipes.test.ts
-    // List desugaring is now implemented - see lists.test.ts
-});
