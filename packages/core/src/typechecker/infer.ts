@@ -196,6 +196,9 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         case "CoreLet":
             return inferLet(ctx, expr);
 
+        case "CoreLetRecExpr":
+            return inferLetRecExpr(ctx, expr);
+
         // Records
         case "CoreRecord":
             return inferRecord(ctx, expr);
@@ -780,6 +783,176 @@ function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLe
     const bodyCtx: InferenceContext = {
         env: newEnv,
         subst: valueCtx.subst,
+        level: ctx.level, // Back to the original level
+    };
+
+    return inferExpr(bodyCtx, expr.body);
+}
+
+/**
+ * Infer the type of mutually recursive let bindings (let rec f = ... and g = ... in body)
+ *
+ * Implements the algorithm for mutually recursive bindings:
+ * 1. Bind all names with fresh type variables BEFORE inferring any values
+ * 2. Increment level
+ * 3. Infer each value expression
+ * 4. Unify inferred types with placeholder types
+ * 5. Generalize all bindings together
+ * 6. Add all bindings to environment
+ * 7. Infer the body expression
+ *
+ * @param ctx - The inference context
+ * @param expr - The mutually recursive let expression
+ * @returns The inferred type and updated substitution
+ * @throws {TypeError} If type inference fails
+ */
+function inferLetRecExpr(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLetRecExpr" }>): InferResult {
+    // For simplicity, only handle variable patterns
+    for (const binding of expr.bindings) {
+        if (binding.pattern.kind !== "CoreVarPattern") {
+            throw new TypeError(
+                `Pattern matching in mutually recursive bindings not yet supported`,
+                binding.loc,
+                `Only simple variable patterns are supported in mutually recursive bindings`,
+            );
+        }
+    }
+
+    // Mutable bindings are not supported yet
+    for (const binding of expr.bindings) {
+        if (binding.mutable) {
+            throw new TypeError(
+                `Mutable bindings in mutually recursive groups not yet supported`,
+                binding.loc,
+                `Mutable bindings will be fully supported after Phase 2.5 completion`,
+            );
+        }
+    }
+
+    // Step 1: Create new level for generalization
+    const newLevel = ctx.level + 1;
+
+    // Step 2: Bind all names with fresh type variables BEFORE inferring any values
+    const tempTypes: Map<string, Type> = new Map();
+    const newEnv: TypeEnv = {
+        types: ctx.env.types,
+        values: new Map(ctx.env.values),
+    };
+
+    for (const binding of expr.bindings) {
+        const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
+        const tempType = freshTypeVar(newLevel);
+        tempTypes.set(varName, tempType);
+
+        // Add temporary binding to environment
+        newEnv.values.set(varName, {
+            kind: "Value",
+            scheme: { vars: [], type: tempType },
+            loc: binding.loc,
+        });
+    }
+
+    // Step 3: Infer each value expression with all names bound
+    let currentSubst = ctx.subst;
+    const inferredTypes: Map<string, Type> = new Map();
+
+    for (const binding of expr.bindings) {
+        const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
+
+        const valueCtx: InferenceContext = {
+            env: newEnv,
+            subst: currentSubst,
+            level: newLevel,
+        };
+
+        const valueResult = inferExpr(valueCtx, binding.value);
+        currentSubst = valueResult.subst;
+        inferredTypes.set(varName, valueResult.type);
+    }
+
+    // Step 4: Unify inferred types with placeholder types
+    for (const binding of expr.bindings) {
+        const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
+        const tempType = tempTypes.get(varName);
+        const inferredType = inferredTypes.get(varName);
+
+        if (!tempType || !inferredType) {
+            throw new TypeError(
+                `Internal error: missing type for '${varName}'`,
+                binding.loc,
+                `This is a compiler bug.`,
+            );
+        }
+
+        try {
+            const tempTypeSubst = applySubst(currentSubst, tempType);
+            const unifySubst = unify(tempTypeSubst, inferredType);
+            currentSubst = composeSubst(unifySubst, currentSubst);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw error;
+            }
+            throw new TypeError(
+                `Type mismatch in mutually recursive binding`,
+                binding.loc,
+                `The type of '${varName}' is inconsistent with its usage`,
+            );
+        }
+    }
+
+    // Step 5: Generalize all bindings together
+    const generalizedSchemes: Map<string, TypeScheme> = new Map();
+    const valueCtxForGeneralize: InferenceContext = {
+        env: newEnv,
+        subst: currentSubst,
+        level: newLevel,
+    };
+
+    for (const binding of expr.bindings) {
+        const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
+        const inferredType = inferredTypes.get(varName);
+
+        if (!inferredType) {
+            throw new TypeError(
+                `Internal error: missing inferred type for '${varName}'`,
+                binding.loc,
+                `This is a compiler bug.`,
+            );
+        }
+
+        const scheme = generalize(valueCtxForGeneralize, inferredType, binding.value);
+        generalizedSchemes.set(varName, scheme);
+    }
+
+    // Step 6: Add all bindings to environment with generalized types
+    const finalEnv: TypeEnv = {
+        types: ctx.env.types,
+        values: new Map(ctx.env.values),
+    };
+
+    for (const binding of expr.bindings) {
+        const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
+        const scheme = generalizedSchemes.get(varName);
+
+        if (!scheme) {
+            throw new TypeError(
+                `Internal error: missing scheme for '${varName}'`,
+                binding.loc,
+                `This is a compiler bug.`,
+            );
+        }
+
+        finalEnv.values.set(varName, {
+            kind: "Value",
+            scheme,
+            loc: binding.loc,
+        });
+    }
+
+    // Step 7: Infer the body expression with the updated environment
+    const bodyCtx: InferenceContext = {
+        env: finalEnv,
+        subst: currentSubst,
         level: ctx.level, // Back to the original level
     };
 

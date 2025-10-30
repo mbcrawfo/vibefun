@@ -257,6 +257,17 @@ export type Declaration =
           loc: Location;
       }
     | {
+          kind: "LetRecGroup";
+          bindings: Array<{
+              pattern: Pattern;
+              value: Expr;
+              mutable: boolean;
+              loc: Location;
+          }>;
+          exported: boolean;
+          loc: Location;
+      }
+    | {
           kind: "TypeDecl";
           name: string;
           params: string[];

@@ -35,6 +35,7 @@ export type CoreExpr =
     // Variables and Bindings
     | CoreVar
     | CoreLet
+    | CoreLetRecExpr
     // Functions - ONLY single parameter
     | CoreLambda
     | CoreApp
@@ -115,6 +116,21 @@ export type CoreLet = {
     body: CoreExpr;
     mutable: boolean;
     recursive: boolean;
+    loc: Location;
+};
+
+/**
+ * Mutually recursive let bindings (let rec f = ... and g = ... in body)
+ */
+export type CoreLetRecExpr = {
+    kind: "CoreLetRecExpr";
+    bindings: Array<{
+        pattern: CorePattern;
+        value: CoreExpr;
+        mutable: boolean;
+        loc: Location;
+    }>;
+    body: CoreExpr;
     loc: Location;
 };
 
@@ -459,7 +475,13 @@ export type CoreUnionType = {
 /**
  * Core declaration AST nodes
  */
-export type CoreDeclaration = CoreLetDecl | CoreTypeDecl | CoreExternalDecl | CoreExternalTypeDecl | CoreImportDecl;
+export type CoreDeclaration =
+    | CoreLetDecl
+    | CoreLetRecGroup
+    | CoreTypeDecl
+    | CoreExternalDecl
+    | CoreExternalTypeDecl
+    | CoreImportDecl;
 
 /**
  * Let declaration at module level
@@ -470,6 +492,21 @@ export type CoreLetDecl = {
     value: CoreExpr;
     mutable: boolean;
     recursive: boolean;
+    exported: boolean;
+    loc: Location;
+};
+
+/**
+ * Mutually recursive let declarations (let rec f = ... and g = ...)
+ */
+export type CoreLetRecGroup = {
+    kind: "CoreLetRecGroup";
+    bindings: Array<{
+        pattern: CorePattern;
+        value: CoreExpr;
+        mutable: boolean;
+        loc: Location;
+    }>;
     exported: boolean;
     loc: Location;
 };

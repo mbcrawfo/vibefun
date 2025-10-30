@@ -17,6 +17,7 @@ export type Keyword =
     | "match"
     | "when"
     | "rec"
+    | "and"
     | "import"
     | "export"
     | "external"
@@ -110,6 +111,7 @@ export const KEYWORDS: ReadonlySet<Keyword> = new Set([
     "match",
     "when",
     "rec",
+    "and",
     "import",
     "export",
     "external",

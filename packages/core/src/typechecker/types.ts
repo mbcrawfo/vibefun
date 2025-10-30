@@ -509,6 +509,7 @@ export function isSyntacticValue(expr: CoreExpr): boolean {
 
         // Everything else is NOT a syntactic value
         case "CoreLet":
+        case "CoreLetRecExpr":
         case "CoreApp":
         case "CoreMatch":
         case "CoreRecordAccess":

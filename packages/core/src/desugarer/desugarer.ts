@@ -426,6 +426,20 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
                 loc: decl.loc,
             };
 
+        case "LetRecGroup":
+            // Mutually recursive let declarations
+            return {
+                kind: "CoreLetRecGroup",
+                bindings: decl.bindings.map((binding) => ({
+                    pattern: desugarPattern(binding.pattern, gen),
+                    value: desugar(binding.value, gen),
+                    mutable: binding.mutable,
+                    loc: binding.loc,
+                })),
+                exported: decl.exported,
+                loc: decl.loc,
+            };
+
         case "TypeDecl":
             // Type declarations pass through (no desugaring needed)
             return {

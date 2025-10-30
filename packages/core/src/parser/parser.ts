@@ -1616,7 +1616,7 @@ export class Parser {
 
     /**
      * Parse let declaration
-     * Syntax: let [mut] [rec] pattern [: type] = expr
+     * Syntax: let [mut] [rec] pattern [: type] = expr [and pattern = expr]*
      */
     private parseLetDecl(exported: boolean): Declaration {
         const startLoc = this.peek().loc;
@@ -1639,8 +1639,8 @@ export class Parser {
             }
         }
 
-        // Parse pattern (left side of =)
-        const pattern = this.parsePattern();
+        // Parse first binding
+        const firstPattern = this.parsePattern();
 
         // Optional type annotation
         if (this.match("COLON")) {
@@ -1652,12 +1652,83 @@ export class Parser {
         this.expect("EQ", "Expected '=' after let pattern");
 
         // Parse value expression
-        const value = this.parseExpression();
+        const firstValue = this.parseExpression();
 
+        // Check for 'and' keyword for mutually recursive bindings
+        const nextToken = this.peek();
+        if (this.check("KEYWORD") && nextToken.type === "KEYWORD" && nextToken.keyword === "and") {
+            // Must be recursive to use 'and'
+            if (!recursive) {
+                throw new ParserError(
+                    "The 'and' keyword can only be used with 'let rec' for mutually recursive functions",
+                    this.peek().loc,
+                    "Add 'rec' before the first binding: 'let rec f = ... and g = ...'",
+                );
+            }
+
+            // Collect all bindings in the mutual recursion group
+            const bindings: Array<{
+                pattern: Pattern;
+                value: Expr;
+                mutable: boolean;
+                loc: Location;
+            }> = [
+                {
+                    pattern: firstPattern,
+                    value: firstValue,
+                    mutable,
+                    loc: firstPattern.loc,
+                },
+            ];
+
+            // Parse additional bindings with 'and'
+            while (this.check("KEYWORD")) {
+                const token = this.peek();
+                if (token.type !== "KEYWORD" || token.keyword !== "and") {
+                    break;
+                }
+                this.advance(); // consume 'and'
+
+                // Check for mut modifier in this binding
+                let bindingMutable = false;
+                const mutToken = this.peek();
+                if (this.check("KEYWORD") && mutToken.type === "KEYWORD" && mutToken.keyword === "mut") {
+                    bindingMutable = true;
+                    this.advance();
+                }
+
+                const bindingPattern = this.parsePattern();
+
+                // Optional type annotation
+                if (this.match("COLON")) {
+                    this.parseTypeExpr();
+                }
+
+                this.expect("EQ", "Expected '=' after pattern in 'and' binding");
+
+                const bindingValue = this.parseExpression();
+
+                bindings.push({
+                    pattern: bindingPattern,
+                    value: bindingValue,
+                    mutable: bindingMutable,
+                    loc: bindingPattern.loc,
+                });
+            }
+
+            return {
+                kind: "LetRecGroup",
+                bindings,
+                exported,
+                loc: startLoc,
+            };
+        }
+
+        // Single binding (not mutually recursive)
         return {
             kind: "LetDecl",
-            pattern,
-            value,
+            pattern: firstPattern,
+            value: firstValue,
             mutable,
             recursive,
             exported,
