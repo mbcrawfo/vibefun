@@ -6,10 +6,11 @@
  */
 
 import type { Expr, Location, Module } from "../types/ast.js";
+import type { CoreExpr } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, desugarModule, FreshVarGen } from "./desugarer.js";
+import { desugar, desugarModule } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -69,8 +70,8 @@ describe("Integration - Blocks + Lambdas", () => {
         // Block should become let binding
         expect(result.kind).toBe("CoreLet");
         // Lambda should be curried
-        expect((result as any).value.kind).toBe("CoreLambda");
-        expect((result as any).value.body.kind).toBe("CoreLambda");
+        expect((result as CoreExpr).value.kind).toBe("CoreLambda");
+        expect((result as CoreExpr).value.body.kind).toBe("CoreLambda");
     });
 });
 
@@ -97,8 +98,8 @@ describe("Integration - Pipes + Lists", () => {
         // Pipe becomes app
         expect(result.kind).toBe("CoreApp");
         // List becomes Cons chain
-        expect((result as any).args[0].kind).toBe("CoreVariant");
-        expect((result as any).args[0].constructor).toBe("Cons");
+        expect((result as CoreExpr).args[0].kind).toBe("CoreVariant");
+        expect((result as CoreExpr).args[0].constructor).toBe("Cons");
     });
 
     it("should desugar chained pipes with list transformations", () => {
@@ -199,7 +200,7 @@ describe("Integration - Composition + If-Then-Else", () => {
         // Composition becomes lambda
         expect(result.kind).toBe("CoreLambda");
         // Body is application
-        const body = (result as any).body;
+        const body = (result as CoreExpr).body;
         expect(body.kind).toBe("CoreApp");
     });
 });
@@ -249,9 +250,9 @@ describe("Integration - Match + Or-Patterns + Lists", () => {
         expect(result.kind).toBe("CoreMatch");
         // Or-pattern should be expanded to 2 cases ([] and [_])
         // Plus the third case
-        expect((result as any).cases).toHaveLength(3);
+        expect((result as CoreExpr).cases).toHaveLength(3);
         // All list patterns should be Cons/Nil variant patterns
-        expect((result as any).cases[0].pattern.kind).toBe("CoreVariantPattern");
+        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreVariantPattern");
     });
 });
 
@@ -300,9 +301,9 @@ describe("Integration - Unsafe + Blocks + If", () => {
         // Unsafe boundary preserved
         expect(result.kind).toBe("CoreUnsafe");
         // Block becomes let
-        expect((result as any).expr.kind).toBe("CoreLet");
+        expect((result as CoreExpr).expr.kind).toBe("CoreLet");
         // If becomes match
-        expect((result as any).expr.body.kind).toBe("CoreMatch");
+        expect((result as CoreExpr).expr.body.kind).toBe("CoreMatch");
     });
 });
 
@@ -376,11 +377,11 @@ describe("Integration - Complete Programs", () => {
         // Top level is let
         expect(result.kind).toBe("CoreLet");
         // Value is lambda
-        expect((result as any).value.kind).toBe("CoreLambda");
+        expect((result as CoreExpr).value.kind).toBe("CoreLambda");
         // Body has match
-        expect((result as any).value.body.kind).toBe("CoreMatch");
+        expect((result as CoreExpr).value.body.kind).toBe("CoreMatch");
         // List patterns are Cons/Nil
-        const match = (result as any).value.body;
+        const match = (result as CoreExpr).value.body;
         expect(match.cases[0].pattern.kind).toBe("CoreVariantPattern");
         expect(match.cases[0].pattern.constructor).toBe("Nil");
         expect(match.cases[1].pattern.constructor).toBe("Cons");
@@ -456,7 +457,7 @@ describe("Integration - Complete Programs", () => {
         // Final result is application
         expect(result.kind).toBe("CoreApp");
         // Function is sum
-        expect((result as any).func.name).toBe("sum");
+        expect((result as CoreExpr).func.name).toBe("sum");
     });
 });
 
@@ -567,7 +568,7 @@ describe("Integration - Module with All Features", () => {
 
         // Let declaration with all features desugared
         expect(result.declarations[2].kind).toBe("CoreLetDecl");
-        const letDecl = result.declarations[2] as any;
+        const letDecl = result.declarations[2] as CoreExpr;
         // Lambda is curried
         expect(letDecl.value.kind).toBe("CoreLambda");
         expect(letDecl.value.body.kind).toBe("CoreLambda");

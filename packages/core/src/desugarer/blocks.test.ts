@@ -6,10 +6,11 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
+import type { CoreIntLit, CoreLet } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, DesugarError, FreshVarGen } from "./desugarer.js";
+import { desugar, DesugarError } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -30,7 +31,7 @@ describe("Block Desugaring - Basic Cases", () => {
 
         // Single expression - no let wrapping needed
         expect(result.kind).toBe("CoreIntLit");
-        expect((result as any).value).toBe(42);
+        expect((result as CoreIntLit).value).toBe(42);
     });
 
     it("should desugar two-expression block (one let + final expr)", () => {
@@ -54,12 +55,12 @@ describe("Block Desugaring - Basic Cases", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.kind).toBe("CoreVarPattern");
-        expect((result as any).pattern.name).toBe("x");
-        expect((result as any).value.kind).toBe("CoreIntLit");
-        expect((result as any).value.value).toBe(10);
-        expect((result as any).body.kind).toBe("CoreVar");
-        expect((result as any).body.name).toBe("x");
+        expect((result as CoreLet).pattern.kind).toBe("CoreVarPattern");
+        expect((result as CoreLet).pattern.name).toBe("x");
+        expect((result as CoreLet).value.kind).toBe("CoreIntLit");
+        expect((result as CoreLet).value.value).toBe(10);
+        expect((result as CoreLet).body.kind).toBe("CoreVar");
+        expect((result as CoreLet).body.name).toBe("x");
     });
 
     it("should desugar three-expression block (two lets + final expr)", () => {
@@ -99,11 +100,11 @@ describe("Block Desugaring - Basic Cases", () => {
 
         // Outer let: x = 10
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.name).toBe("x");
-        expect((result as any).value.value).toBe(10);
+        expect((result as CoreLet).pattern.name).toBe("x");
+        expect((result as CoreLet).value.value).toBe(10);
 
         // Inner let: y = 20
-        const innerLet = (result as any).body;
+        const innerLet = (result as CoreLet).body;
         expect(innerLet.kind).toBe("CoreLet");
         expect(innerLet.pattern.name).toBe("y");
         expect(innerLet.value.value).toBe(20);
@@ -154,9 +155,9 @@ describe("Block Desugaring - Basic Cases", () => {
 
         // Verify nested structure: let a = 1 in (let b = 2 in (let c = 3 in "done"))
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.name).toBe("a");
+        expect((result as CoreLet).pattern.name).toBe("a");
 
-        const level2 = (result as any).body;
+        const level2 = (result as CoreLet).body;
         expect(level2.kind).toBe("CoreLet");
         expect(level2.pattern.name).toBe("b");
 
@@ -192,7 +193,7 @@ describe("Block Desugaring - Mutable and Recursive Let", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).mutable).toBe(true);
+        expect((result as CoreLet).mutable).toBe(true);
     });
 
     it("should preserve recursive flag in block lets", () => {
@@ -216,7 +217,7 @@ describe("Block Desugaring - Mutable and Recursive Let", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).recursive).toBe(true);
+        expect((result as CoreLet).recursive).toBe(true);
     });
 });
 
@@ -259,10 +260,10 @@ describe("Block Desugaring - Nested Blocks", () => {
 
         // Outer structure
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.name).toBe("x");
+        expect((result as CoreLet).pattern.name).toBe("x");
 
         // Value should be a desugared inner block (let a = 5 in a)
-        const value = (result as any).value;
+        const value = (result as CoreLet).value;
         expect(value.kind).toBe("CoreLet");
         expect(value.pattern.name).toBe("a");
         expect(value.value.value).toBe(5);
@@ -306,7 +307,7 @@ describe("Block Desugaring - Complex Expressions", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        const body = (result as any).body;
+        const body = (result as CoreLet).body;
         expect(body.kind).toBe("CoreBinOp");
         expect(body.op).toBe("Multiply");
         expect(body.right.kind).toBe("CoreBinOp");
@@ -341,7 +342,7 @@ describe("Block Desugaring - Complex Expressions", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        const value = (result as any).value;
+        const value = (result as CoreLet).value;
         expect(value.kind).toBe("CoreBinOp");
         expect(value.op).toBe("Add");
     });
@@ -457,8 +458,8 @@ describe("Block Desugaring - Pattern Matching", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.kind).toBe("CoreVariantPattern");
-        expect((result as any).pattern.constructor).toBe("Some");
+        expect((result as CoreLet).pattern.kind).toBe("CoreVariantPattern");
+        expect((result as CoreLet).pattern.constructor).toBe("Some");
     });
 
     it("should desugar blocks with record patterns", () => {
@@ -503,7 +504,7 @@ describe("Block Desugaring - Pattern Matching", () => {
         const result = desugar(block);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.kind).toBe("CoreRecordPattern");
-        expect((result as any).pattern.fields).toHaveLength(2);
+        expect((result as CoreLet).pattern.kind).toBe("CoreRecordPattern");
+        expect((result as CoreLet).pattern.fields).toHaveLength(2);
     });
 });

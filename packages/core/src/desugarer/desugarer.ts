@@ -18,14 +18,29 @@
  * - External blocks → Multiple external declarations
  */
 
-import type { BinaryOp, Declaration, Expr, ListElement, Location, Module, Pattern } from "../types/ast.js";
 import type {
+    BinaryOp,
+    Declaration,
+    Expr,
+    ListElement,
+    Location,
+    Module,
+    Pattern,
+    TypeDefinition,
+    TypeExpr,
+} from "../types/ast.js";
+import type {
+    CoreBinaryOp,
     CoreDeclaration,
     CoreExpr,
+    CoreExternalDecl,
     CoreImportDecl,
     CoreImportItem,
+    CoreMatchCase,
     CoreModule,
     CorePattern,
+    CoreTypeDefinition,
+    CoreTypeExpr,
 } from "../types/core-ast.js";
 
 /**
@@ -617,7 +632,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                     // If pattern is OrPattern, expand into multiple cases
                     if (matchCase.pattern.kind === "OrPattern") {
                         return matchCase.pattern.patterns.map((altPattern) => {
-                            const coreCase: any = {
+                            const coreCase: CoreMatchCase = {
                                 pattern: desugarPattern(altPattern, gen),
                                 body: desugar(matchCase.body, gen),
                                 loc: matchCase.loc,
@@ -630,7 +645,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                     }
 
                     // Regular pattern - just desugar normally
-                    const coreCase: any = {
+                    const coreCase: CoreMatchCase = {
                         pattern: desugarPattern(matchCase.pattern, gen),
                         body: desugar(matchCase.body, gen),
                         loc: matchCase.loc,
@@ -731,8 +746,8 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         default:
             // Should never reach here if all cases are covered
             throw new DesugarError(
-                `Unknown expression kind: ${(expr as any).kind}`,
-                (expr as any).loc,
+                `Unknown expression kind: ${(expr as Expr).kind}`,
+                (expr as Expr).loc,
                 "This may indicate a parser bug or missing desugaring implementation",
             );
     }
@@ -760,7 +775,7 @@ function desugarBinOp(op: BinaryOp, left: Expr, right: Expr, loc: Location, gen:
     // All other binary operators are preserved
     return {
         kind: "CoreBinOp",
-        op: op as any, // Type assertion safe - we excluded composition and cons
+        op: op as CoreBinaryOp, // Type assertion safe - we excluded composition and cons
         left: desugar(left, gen),
         right: desugar(right, gen),
         loc,
@@ -896,8 +911,8 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
 
         default:
             throw new DesugarError(
-                `Unknown pattern kind: ${(pattern as any).kind}`,
-                (pattern as any).loc,
+                `Unknown pattern kind: ${(pattern as Pattern).kind}`,
+                (pattern as Pattern).loc,
                 "This may indicate a parser bug",
             );
     }
@@ -906,14 +921,14 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
 /**
  * Desugar a type expression (pass through - no desugaring needed)
  */
-function desugarTypeExpr(typeExpr: any): any {
+function desugarTypeExpr(typeExpr: TypeExpr): CoreTypeExpr {
     // Type expressions don't need desugaring - they're the same in Core AST
     // Just change the kind names to Core* variants
-    const coreTypeExpr = { ...typeExpr };
-    if (coreTypeExpr.kind) {
-        coreTypeExpr.kind = `Core${coreTypeExpr.kind}`;
+    const coreTypeExpr: Record<string, unknown> = { ...typeExpr };
+    if (coreTypeExpr["kind"]) {
+        coreTypeExpr["kind"] = `Core${coreTypeExpr["kind"] as string}`;
     }
-    return coreTypeExpr;
+    return coreTypeExpr as unknown as CoreTypeExpr;
 }
 
 /**
@@ -949,7 +964,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
 
         case "ExternalDecl": {
             // External declarations pass through
-            const coreDecl: any = {
+            const coreDecl: CoreExternalDecl = {
                 kind: "CoreExternalDecl",
                 name: decl.name,
                 typeExpr: desugarTypeExpr(decl.typeExpr),
@@ -976,7 +991,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
             // Expand external block into individual declarations
             return decl.items.map((item) => {
                 if (item.kind === "ExternalValue") {
-                    const coreDecl: any = {
+                    const coreDecl: CoreExternalDecl = {
                         kind: "CoreExternalDecl",
                         name: item.name,
                         typeExpr: desugarTypeExpr(item.typeExpr),
@@ -1005,7 +1020,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
             return {
                 kind: "CoreImportDecl",
                 items: decl.items.map((item): CoreImportItem => {
-                    const coreItem: any = {
+                    const coreItem: CoreImportItem = {
                         name: item.name,
                         isType: item.isType,
                     };
@@ -1020,8 +1035,8 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
 
         default:
             throw new DesugarError(
-                `Unknown declaration kind: ${(decl as any).kind}`,
-                (decl as any).loc,
+                `Unknown declaration kind: ${(decl as Declaration).kind}`,
+                (decl as Declaration).loc,
                 "This may indicate a parser bug",
             );
     }
@@ -1030,12 +1045,12 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
 /**
  * Desugar a type definition (pass through - no desugaring needed)
  */
-function desugarTypeDefinition(def: any): any {
-    const coreDef = { ...def };
-    if (coreDef.kind) {
-        coreDef.kind = `Core${coreDef.kind}`;
+function desugarTypeDefinition(def: TypeDefinition): CoreTypeDefinition {
+    const coreDef: Record<string, unknown> = { ...def };
+    if (coreDef["kind"]) {
+        coreDef["kind"] = `Core${coreDef["kind"] as string}`;
     }
-    return coreDef;
+    return coreDef as unknown as CoreTypeDefinition;
 }
 
 /**

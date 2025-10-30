@@ -9,10 +9,11 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
+import type { CoreExpr } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, FreshVarGen } from "./desugarer.js";
+import { desugar } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -39,7 +40,7 @@ describe("List Spread - Just Spread", () => {
 
         // Should just be the variable
         expect(result.kind).toBe("CoreVar");
-        expect((result as any).name).toBe("rest");
+        expect((result as CoreExpr).name).toBe("rest");
     });
 });
 
@@ -58,12 +59,12 @@ describe("List Spread - Spread at End", () => {
 
         // Should be: Cons(1, rest)
         expect(result.kind).toBe("CoreVariant");
-        expect((result as any).constructor).toBe("Cons");
-        expect((result as any).args).toHaveLength(2);
-        expect((result as any).args[0].kind).toBe("CoreIntLit");
-        expect((result as any).args[0].value).toBe(1);
-        expect((result as any).args[1].kind).toBe("CoreVar");
-        expect((result as any).args[1].name).toBe("rest");
+        expect((result as CoreExpr).constructor).toBe("Cons");
+        expect((result as CoreExpr).args).toHaveLength(2);
+        expect((result as CoreExpr).args[0].kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).args[0].value).toBe(1);
+        expect((result as CoreExpr).args[1].kind).toBe("CoreVar");
+        expect((result as CoreExpr).args[1].name).toBe("rest");
     });
 
     it("should desugar [1, 2, ...rest] optimally", () => {
@@ -81,10 +82,10 @@ describe("List Spread - Spread at End", () => {
 
         // Should be: Cons(1, Cons(2, rest))
         expect(result.kind).toBe("CoreVariant");
-        expect((result as any).constructor).toBe("Cons");
-        expect((result as any).args[0].value).toBe(1);
+        expect((result as CoreExpr).constructor).toBe("Cons");
+        expect((result as CoreExpr).args[0].value).toBe(1);
 
-        const tail = (result as any).args[1];
+        const tail = (result as CoreExpr).args[1];
         expect(tail.kind).toBe("CoreVariant");
         expect(tail.constructor).toBe("Cons");
         expect(tail.args[0].value).toBe(2);
@@ -108,7 +109,7 @@ describe("List Spread - Spread at End", () => {
 
         // Should be: Cons(1, Cons(2, Cons(3, rest)))
         expect(result.kind).toBe("CoreVariant");
-        let current: any = result;
+        let current: CoreExpr = result;
         expect(current.args[0].value).toBe(1);
         current = current.args[1];
         expect(current.args[0].value).toBe(2);
@@ -134,16 +135,16 @@ describe("List Spread - Spread at Beginning", () => {
 
         // Should be: concat(xs, Cons(1, Nil))
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.kind).toBe("CoreVar");
-        expect((result as any).func.name).toBe("concat");
-        expect((result as any).args).toHaveLength(2);
+        expect((result as CoreExpr).func.kind).toBe("CoreVar");
+        expect((result as CoreExpr).func.name).toBe("concat");
+        expect((result as CoreExpr).args).toHaveLength(2);
 
         // First arg: xs
-        expect((result as any).args[0].kind).toBe("CoreVar");
-        expect((result as any).args[0].name).toBe("xs");
+        expect((result as CoreExpr).args[0].kind).toBe("CoreVar");
+        expect((result as CoreExpr).args[0].name).toBe("xs");
 
         // Second arg: Cons(1, Nil)
-        const secondArg = (result as any).args[1];
+        const secondArg = (result as CoreExpr).args[1];
         expect(secondArg.kind).toBe("CoreVariant");
         expect(secondArg.constructor).toBe("Cons");
         expect(secondArg.args[0].value).toBe(1);
@@ -165,9 +166,9 @@ describe("List Spread - Spread at Beginning", () => {
 
         // Should be: concat(xs, Cons(1, Cons(2, Nil)))
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.name).toBe("concat");
+        expect((result as CoreExpr).func.name).toBe("concat");
 
-        const secondArg = (result as any).args[1];
+        const secondArg = (result as CoreExpr).args[1];
         expect(secondArg.constructor).toBe("Cons");
         expect(secondArg.args[0].value).toBe(1);
         expect(secondArg.args[1].constructor).toBe("Cons");
@@ -190,9 +191,9 @@ describe("List Spread - Multiple Spreads", () => {
 
         // Should be: concat(xs, ys)
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.name).toBe("concat");
-        expect((result as any).args[0].name).toBe("xs");
-        expect((result as any).args[1].name).toBe("ys");
+        expect((result as CoreExpr).func.name).toBe("concat");
+        expect((result as CoreExpr).args[0].name).toBe("xs");
+        expect((result as CoreExpr).args[1].name).toBe("ys");
     });
 
     it("should desugar [...xs, 1, ...ys] using concat", () => {
@@ -210,10 +211,10 @@ describe("List Spread - Multiple Spreads", () => {
 
         // Should be: concat(xs, concat(Cons(1, Nil), ys))
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.name).toBe("concat");
-        expect((result as any).args[0].name).toBe("xs");
+        expect((result as CoreExpr).func.name).toBe("concat");
+        expect((result as CoreExpr).args[0].name).toBe("xs");
 
-        const innerConcat = (result as any).args[1];
+        const innerConcat = (result as CoreExpr).args[1];
         expect(innerConcat.kind).toBe("CoreApp");
         expect(innerConcat.func.name).toBe("concat");
 
@@ -242,7 +243,7 @@ describe("List Spread - Multiple Spreads", () => {
 
         // Should be concat(xs, concat(Cons(1, Nil), concat(ys, Cons(2, Nil))))
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.name).toBe("concat");
+        expect((result as CoreExpr).func.name).toBe("concat");
     });
 
     it("should desugar [1, ...xs, 2, ...ys, 3] using concat", () => {
@@ -262,7 +263,7 @@ describe("List Spread - Multiple Spreads", () => {
 
         // Multiple concats
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.name).toBe("concat");
+        expect((result as CoreExpr).func.name).toBe("concat");
     });
 });
 

@@ -3,6 +3,7 @@
  */
 
 import type { Expr, Location, Module, Pattern } from "../types/ast.js";
+import type { CoreExpr } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -78,7 +79,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreIntLit");
-        expect((result as any).value).toBe(42);
+        expect((result as CoreExpr).value).toBe(42);
         expect(result.loc).toBe(testLoc);
     });
 
@@ -92,7 +93,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreFloatLit");
-        expect((result as any).value).toBe(3.14);
+        expect((result as CoreExpr).value).toBe(3.14);
         expect(result.loc).toBe(testLoc);
     });
 
@@ -106,7 +107,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreStringLit");
-        expect((result as any).value).toBe("hello");
+        expect((result as CoreExpr).value).toBe("hello");
         expect(result.loc).toBe(testLoc);
     });
 
@@ -120,7 +121,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBoolLit");
-        expect((result as any).value).toBe(true);
+        expect((result as CoreExpr).value).toBe(true);
         expect(result.loc).toBe(testLoc);
     });
 
@@ -148,7 +149,7 @@ describe("Desugarer - Variables", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreVar");
-        expect((result as any).name).toBe("x");
+        expect((result as CoreExpr).name).toBe("x");
         expect(result.loc).toBe(testLoc);
     });
 });
@@ -168,11 +169,11 @@ describe("Desugarer - Let Bindings", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as any).pattern.kind).toBe("CoreVarPattern");
-        expect((result as any).value.kind).toBe("CoreIntLit");
-        expect((result as any).body.kind).toBe("CoreVar");
-        expect((result as any).mutable).toBe(false);
-        expect((result as any).recursive).toBe(false);
+        expect((result as CoreExpr).pattern.kind).toBe("CoreVarPattern");
+        expect((result as CoreExpr).value.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).body.kind).toBe("CoreVar");
+        expect((result as CoreExpr).mutable).toBe(false);
+        expect((result as CoreExpr).recursive).toBe(false);
     });
 
     it("should preserve mutable flag", () => {
@@ -188,7 +189,7 @@ describe("Desugarer - Let Bindings", () => {
 
         const result = desugar(expr);
 
-        expect((result as any).mutable).toBe(true);
+        expect((result as CoreExpr).mutable).toBe(true);
     });
 
     it("should preserve recursive flag", () => {
@@ -204,7 +205,7 @@ describe("Desugarer - Let Bindings", () => {
 
         const result = desugar(expr);
 
-        expect((result as any).recursive).toBe(true);
+        expect((result as CoreExpr).recursive).toBe(true);
     });
 });
 
@@ -220,8 +221,8 @@ describe("Desugarer - Function Application", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).func.kind).toBe("CoreVar");
-        expect((result as any).args[0].kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).func.kind).toBe("CoreVar");
+        expect((result as CoreExpr).args[0].kind).toBe("CoreIntLit");
     });
 
     it("should desugar multi-argument applications", () => {
@@ -238,7 +239,7 @@ describe("Desugarer - Function Application", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as any).args).toHaveLength(2);
+        expect((result as CoreExpr).args).toHaveLength(2);
     });
 });
 
@@ -260,9 +261,9 @@ describe("Desugarer - Match Expressions", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).expr.kind).toBe("CoreVar");
-        expect((result as any).cases[0].pattern.kind).toBe("CoreLiteralPattern");
-        expect((result as any).cases[0].body.kind).toBe("CoreStringLit");
+        expect((result as CoreExpr).expr.kind).toBe("CoreVar");
+        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreLiteralPattern");
+        expect((result as CoreExpr).cases[0].body.kind).toBe("CoreStringLit");
     });
 
     it("should desugar match with guards", () => {
@@ -289,8 +290,8 @@ describe("Desugarer - Match Expressions", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases[0].guard).toBeDefined();
-        expect((result as any).cases[0].guard.kind).toBe("CoreBinOp");
+        expect((result as CoreExpr).cases[0].guard).toBeDefined();
+        expect((result as CoreExpr).cases[0].guard.kind).toBe("CoreBinOp");
     });
 });
 
@@ -316,9 +317,9 @@ describe("Desugarer - Records", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreRecord");
-        expect((result as any).fields).toHaveLength(2);
-        expect((result as any).fields[0].name).toBe("x");
-        expect((result as any).fields[0].value.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).fields).toHaveLength(2);
+        expect((result as CoreExpr).fields[0].name).toBe("x");
+        expect((result as CoreExpr).fields[0].value.kind).toBe("CoreIntLit");
     });
 
     it("should desugar record access", () => {
@@ -332,8 +333,8 @@ describe("Desugarer - Records", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreRecordAccess");
-        expect((result as any).record.kind).toBe("CoreVar");
-        expect((result as any).field).toBe("x");
+        expect((result as CoreExpr).record.kind).toBe("CoreVar");
+        expect((result as CoreExpr).field).toBe("x");
     });
 });
 
@@ -350,9 +351,9 @@ describe("Desugarer - Binary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as any).op).toBe("Add");
-        expect((result as any).left.kind).toBe("CoreIntLit");
-        expect((result as any).right.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).op).toBe("Add");
+        expect((result as CoreExpr).left.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).right.kind).toBe("CoreIntLit");
     });
 
     it("should desugar comparison operations", () => {
@@ -367,7 +368,7 @@ describe("Desugarer - Binary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as any).op).toBe("LessThan");
+        expect((result as CoreExpr).op).toBe("LessThan");
     });
 
     it("should desugar logical operations", () => {
@@ -382,7 +383,7 @@ describe("Desugarer - Binary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as any).op).toBe("LogicalAnd");
+        expect((result as CoreExpr).op).toBe("LogicalAnd");
     });
 });
 
@@ -398,8 +399,8 @@ describe("Desugarer - Unary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as any).op).toBe("Negate");
-        expect((result as any).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).op).toBe("Negate");
+        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
     });
 
     it("should desugar logical not", () => {
@@ -413,7 +414,7 @@ describe("Desugarer - Unary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as any).op).toBe("LogicalNot");
+        expect((result as CoreExpr).op).toBe("LogicalNot");
     });
 
     it("should desugar dereference", () => {
@@ -427,7 +428,7 @@ describe("Desugarer - Unary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as any).op).toBe("Deref");
+        expect((result as CoreExpr).op).toBe("Deref");
     });
 });
 
@@ -443,7 +444,7 @@ describe("Desugarer - Type Annotations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreTypeAnnotation");
-        expect((result as any).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
     });
 });
 
@@ -458,7 +459,7 @@ describe("Desugarer - Unsafe Blocks", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnsafe");
-        expect((result as any).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
     });
 
     it("should desugar contents of unsafe blocks", () => {
@@ -479,7 +480,7 @@ describe("Desugarer - Unsafe Blocks", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnsafe");
-        expect((result as any).expr.kind).toBe("CoreLet");
+        expect((result as CoreExpr).expr.kind).toBe("CoreLet");
     });
 });
 
@@ -495,7 +496,7 @@ describe("Desugarer - Patterns", () => {
         const result = desugarPattern(pattern, gen);
 
         expect(result.kind).toBe("CoreVarPattern");
-        expect((result as any).name).toBe("x");
+        expect((result as CoreExpr).name).toBe("x");
     });
 
     it("should desugar wildcard patterns", () => {
@@ -521,7 +522,7 @@ describe("Desugarer - Patterns", () => {
         const result = desugarPattern(pattern, gen);
 
         expect(result.kind).toBe("CoreLiteralPattern");
-        expect((result as any).literal).toBe(42);
+        expect((result as CoreExpr).literal).toBe(42);
     });
 
     it("should desugar constructor patterns", () => {
@@ -536,8 +537,8 @@ describe("Desugarer - Patterns", () => {
         const result = desugarPattern(pattern, gen);
 
         expect(result.kind).toBe("CoreVariantPattern");
-        expect((result as any).constructor).toBe("Some");
-        expect((result as any).args[0].kind).toBe("CoreVarPattern");
+        expect((result as CoreExpr).constructor).toBe("Some");
+        expect((result as CoreExpr).args[0].kind).toBe("CoreVarPattern");
     });
 
     it("should desugar record patterns", () => {
@@ -557,8 +558,8 @@ describe("Desugarer - Patterns", () => {
         const result = desugarPattern(pattern, gen);
 
         expect(result.kind).toBe("CoreRecordPattern");
-        expect((result as any).fields[0].name).toBe("x");
-        expect((result as any).fields[0].pattern.kind).toBe("CoreVarPattern");
+        expect((result as CoreExpr).fields[0].name).toBe("x");
+        expect((result as CoreExpr).fields[0].pattern.kind).toBe("CoreVarPattern");
     });
 });
 

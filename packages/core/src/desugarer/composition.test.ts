@@ -6,6 +6,7 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
+import type { CoreLambda } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -33,7 +34,7 @@ describe("Function Composition - Forward (>>)", () => {
 
         // Should become: (x) => g(f(x))
         expect(result.kind).toBe("CoreLambda");
-        const lambda = result as any;
+        const lambda = result as CoreLambda;
         expect(lambda.param.kind).toBe("CoreVarPattern");
 
         // Body should be g(f(x))
@@ -86,7 +87,7 @@ describe("Function Composition - Forward (>>)", () => {
 
         const result = desugar(comp, gen);
 
-        const lambda = result as any;
+        const lambda = result as CoreLambda;
         expect(lambda.param.name).toMatch(/\$composed\d+/);
     });
 });
@@ -106,7 +107,7 @@ describe("Function Composition - Backward (<<)", () => {
 
         // Should become: (x) => f(g(x))
         expect(result.kind).toBe("CoreLambda");
-        const lambda = result as any;
+        const lambda = result as CoreLambda;
         expect(lambda.param.kind).toBe("CoreVarPattern");
 
         // Body should be f(g(x))
@@ -183,7 +184,7 @@ describe("Function Composition - With Lambdas", () => {
 
         // Outer structure should be lambda
         expect(result.kind).toBe("CoreLambda");
-        const lambda = result as any;
+        const lambda = result as CoreLambda;
 
         // Body should apply second lambda to result of first
         expect(lambda.body.kind).toBe("CoreApp");
@@ -220,7 +221,7 @@ describe("Function Composition - Mixed with Partial Application", () => {
 
         // Should be lambda wrapping composed applications
         expect(result.kind).toBe("CoreLambda");
-        const lambda = result as any;
+        const lambda = result as CoreLambda;
         expect(lambda.body.kind).toBe("CoreApp");
 
         // Both functions should be partially applied

@@ -8,10 +8,11 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
+import type { CoreExpr } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, FreshVarGen } from "./desugarer.js";
+import { desugar } from "./desugarer.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -51,21 +52,21 @@ describe("Or-Pattern - Two Alternatives", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(3); // Expanded to 3 cases
+        expect((result as CoreExpr).cases).toHaveLength(3); // Expanded to 3 cases
 
         // First case: 1 => "small"
-        expect((result as any).cases[0].pattern.kind).toBe("CoreLiteralPattern");
-        expect((result as any).cases[0].pattern.literal).toBe(1);
-        expect((result as any).cases[0].body.value).toBe("small");
+        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreLiteralPattern");
+        expect((result as CoreExpr).cases[0].pattern.literal).toBe(1);
+        expect((result as CoreExpr).cases[0].body.value).toBe("small");
 
         // Second case: 2 => "small"
-        expect((result as any).cases[1].pattern.kind).toBe("CoreLiteralPattern");
-        expect((result as any).cases[1].pattern.literal).toBe(2);
-        expect((result as any).cases[1].body.value).toBe("small");
+        expect((result as CoreExpr).cases[1].pattern.kind).toBe("CoreLiteralPattern");
+        expect((result as CoreExpr).cases[1].pattern.literal).toBe(2);
+        expect((result as CoreExpr).cases[1].body.value).toBe("small");
 
         // Third case: other => "large"
-        expect((result as any).cases[2].pattern.kind).toBe("CoreVarPattern");
-        expect((result as any).cases[2].pattern.name).toBe("other");
+        expect((result as CoreExpr).cases[2].pattern.kind).toBe("CoreVarPattern");
+        expect((result as CoreExpr).cases[2].pattern.name).toBe("other");
     });
 
     it("should expand or-pattern with string patterns", () => {
@@ -98,9 +99,9 @@ describe("Or-Pattern - Two Alternatives", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(3);
-        expect((result as any).cases[0].pattern.literal).toBe("a");
-        expect((result as any).cases[1].pattern.literal).toBe("b");
+        expect((result as CoreExpr).cases).toHaveLength(3);
+        expect((result as CoreExpr).cases[0].pattern.literal).toBe("a");
+        expect((result as CoreExpr).cases[1].pattern.literal).toBe("b");
     });
 });
 
@@ -131,10 +132,10 @@ describe("Or-Pattern - Three+ Alternatives", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(3);
-        expect((result as any).cases[0].pattern.literal).toBe("a");
-        expect((result as any).cases[1].pattern.literal).toBe("b");
-        expect((result as any).cases[2].pattern.literal).toBe("c");
+        expect((result as CoreExpr).cases).toHaveLength(3);
+        expect((result as CoreExpr).cases[0].pattern.literal).toBe("a");
+        expect((result as CoreExpr).cases[1].pattern.literal).toBe("b");
+        expect((result as CoreExpr).cases[2].pattern.literal).toBe("c");
     });
 
     it("should expand or-pattern with five alternatives", () => {
@@ -165,12 +166,12 @@ describe("Or-Pattern - Three+ Alternatives", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(5);
+        expect((result as CoreExpr).cases).toHaveLength(5);
 
         // Check all five cases have correct literals
         for (let i = 0; i < 5; i++) {
-            expect((result as any).cases[i].pattern.literal).toBe(i + 1);
-            expect((result as any).cases[i].body.value).toBe("digit");
+            expect((result as CoreExpr).cases[i].pattern.literal).toBe(i + 1);
+            expect((result as CoreExpr).cases[i].body.value).toBe("digit");
         }
     });
 });
@@ -208,13 +209,13 @@ describe("Or-Pattern - With Guards", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(2);
+        expect((result as CoreExpr).cases).toHaveLength(2);
 
         // Both cases should have the guard
-        expect((result as any).cases[0].guard).toBeDefined();
-        expect((result as any).cases[0].guard.kind).toBe("CoreBinOp");
-        expect((result as any).cases[1].guard).toBeDefined();
-        expect((result as any).cases[1].guard.kind).toBe("CoreBinOp");
+        expect((result as CoreExpr).cases[0].guard).toBeDefined();
+        expect((result as CoreExpr).cases[0].guard.kind).toBe("CoreBinOp");
+        expect((result as CoreExpr).cases[1].guard).toBeDefined();
+        expect((result as CoreExpr).cases[1].guard.kind).toBe("CoreBinOp");
     });
 });
 
@@ -264,16 +265,16 @@ describe("Or-Pattern - Constructor Patterns", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(3);
+        expect((result as CoreExpr).cases).toHaveLength(3);
 
         // First two cases: Some(1) and Some(2)
-        expect((result as any).cases[0].pattern.kind).toBe("CoreVariantPattern");
-        expect((result as any).cases[0].pattern.constructor).toBe("Some");
-        expect((result as any).cases[1].pattern.kind).toBe("CoreVariantPattern");
-        expect((result as any).cases[1].pattern.constructor).toBe("Some");
+        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreVariantPattern");
+        expect((result as CoreExpr).cases[0].pattern.constructor).toBe("Some");
+        expect((result as CoreExpr).cases[1].pattern.kind).toBe("CoreVariantPattern");
+        expect((result as CoreExpr).cases[1].pattern.constructor).toBe("Some");
 
         // Third case: None
-        expect((result as any).cases[2].pattern.constructor).toBe("None");
+        expect((result as CoreExpr).cases[2].pattern.constructor).toBe("None");
     });
 });
 
@@ -324,19 +325,19 @@ describe("Or-Pattern - Multiple Or-Patterns in Same Match", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(5); // 2 + 2 + 1
+        expect((result as CoreExpr).cases).toHaveLength(5); // 2 + 2 + 1
 
         // Cases: 1, 2, 8, 9, other
-        expect((result as any).cases[0].pattern.literal).toBe(1);
-        expect((result as any).cases[0].body.value).toBe("small");
-        expect((result as any).cases[1].pattern.literal).toBe(2);
-        expect((result as any).cases[1].body.value).toBe("small");
-        expect((result as any).cases[2].pattern.literal).toBe(8);
-        expect((result as any).cases[2].body.value).toBe("large");
-        expect((result as any).cases[3].pattern.literal).toBe(9);
-        expect((result as any).cases[3].body.value).toBe("large");
-        expect((result as any).cases[4].pattern.name).toBe("other");
-        expect((result as any).cases[4].body.value).toBe("medium");
+        expect((result as CoreExpr).cases[0].pattern.literal).toBe(1);
+        expect((result as CoreExpr).cases[0].body.value).toBe("small");
+        expect((result as CoreExpr).cases[1].pattern.literal).toBe(2);
+        expect((result as CoreExpr).cases[1].body.value).toBe("small");
+        expect((result as CoreExpr).cases[2].pattern.literal).toBe(8);
+        expect((result as CoreExpr).cases[2].body.value).toBe("large");
+        expect((result as CoreExpr).cases[3].pattern.literal).toBe(9);
+        expect((result as CoreExpr).cases[3].body.value).toBe("large");
+        expect((result as CoreExpr).cases[4].pattern.name).toBe("other");
+        expect((result as CoreExpr).cases[4].body.value).toBe("medium");
     });
 });
 
@@ -386,11 +387,11 @@ describe("Or-Pattern - Complex Bodies", () => {
         const result = desugar(match);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as any).cases).toHaveLength(2);
+        expect((result as CoreExpr).cases).toHaveLength(2);
 
         // Both cases should have the desugared let binding
-        expect((result as any).cases[0].body.kind).toBe("CoreLet");
-        expect((result as any).cases[1].body.kind).toBe("CoreLet");
+        expect((result as CoreExpr).cases[0].body.kind).toBe("CoreLet");
+        expect((result as CoreExpr).cases[1].body.kind).toBe("CoreLet");
     });
 });
 
