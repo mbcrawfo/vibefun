@@ -124,6 +124,62 @@ where gen(T) generalizes free type variables in T
 (all branches must have same type T')
 ```
 
+#### Or Patterns
+
+Or patterns allow matching multiple cases with the same handler:
+
+```
+Γ ⊢ e : T    Γ, p1 : T ⊢ body : T'    Γ, p2 : T ⊢ body : T'
+──────────────────────────────────────────────────────────
+Γ ⊢ match e { p1 | p2 => body } : T'
+
+(all patterns in or-pattern must bind same variables with same types)
+```
+
+Example:
+```vibefun
+match status {
+    | "pending" | "loading" => "In progress"  // OK
+    | "success" => "Done"
+}
+```
+
+### Overloaded External Functions
+
+External functions can be declared with multiple type signatures, enabling natural JavaScript interop. Resolution is compile-time based on arity (argument count):
+
+```
+external f: (T1) -> R1 = "jsFunc"
+external f: (T1, T2) -> R2 = "jsFunc"
+─────────────────────────────────────
+f(x) resolves to first signature
+f(x, y) resolves to second signature
+```
+
+Type checking rules:
+
+1. **Declaration validation**: All overloads must:
+   - Map to the same JavaScript function name
+   - Be function types (not values)
+   - Have different arities
+
+2. **Call site resolution**: At each call site, select the overload whose arity matches the number of arguments
+
+3. **Type checking**: Check arguments against selected overload's parameter types
+
+Example:
+```vibefun
+external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+// Type checking:
+let r1 = fetch("url")              // resolves to first overload
+let r2 = fetch("url", options)     // resolves to second overload
+let r3 = fetch("url", x, y)        // error: no matching overload
+```
+
+**Important**: Overloading is limited to `external` declarations only. Pure vibefun functions cannot be overloaded; use pattern matching or different function names instead.
+
 ## Algebraic Data Types
 
 ### Sum Types (Variants)

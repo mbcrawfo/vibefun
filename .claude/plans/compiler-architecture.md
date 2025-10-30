@@ -51,9 +51,9 @@ Stream of tokens
 ```typescript
 type Token =
     // Literals
-    | { type: 'INT_LITERAL'; value: number; loc: Location }
-    | { type: 'FLOAT_LITERAL'; value: number; loc: Location }
-    | { type: 'STRING_LITERAL'; value: string; loc: Location }
+    | { type: 'INT_LITERAL'; value: number; loc: Location }  // Supports numeric separators: 1_000_000
+    | { type: 'FLOAT_LITERAL'; value: number; loc: Location }  // Supports numeric separators: 3.14_159
+    | { type: 'STRING_LITERAL'; value: string; loc: Location }  // Single-line or multi-line (""")
     | { type: 'BOOL_LITERAL'; value: boolean; loc: Location }
 
     // Identifiers and Keywords
@@ -113,7 +113,7 @@ class Lexer {
     }
 
     nextToken(): Token {
-        this.skipWhitespaceAndComments()
+        this.skipWhitespaceAndComments()  // Supports nested comments
 
         if (this.isAtEnd()) {
             return this.makeToken('EOF')
@@ -123,20 +123,34 @@ class Lexer {
 
         // Match literals
         if (this.isDigit(char)) {
-            return this.readNumber()
+            return this.readNumber()  // Handles numeric separators (_)
         }
 
         if (char === '"') {
+            // Check for multi-line string (""")
+            if (this.peek(1) === '"' && this.peek(2) === '"') {
+                return this.readMultiLineString()
+            }
             return this.readString()
         }
 
-        // Match identifiers and keywords
-        if (this.isAlpha(char)) {
+        // Match identifiers and keywords (supports Unicode identifiers)
+        if (this.isAlpha(char) || this.isUnicodeIdentifierStart(char)) {
             return this.readIdentifierOrKeyword()
         }
 
         // Match operators and punctuation
         return this.readOperatorOrPunctuation()
+    }
+
+    private readNumber(): Token {
+        // Parse numbers with optional numeric separators (e.g., 1_000_000)
+        // Separators are ignored during parsing
+    }
+
+    private readMultiLineString(): Token {
+        // Parse multi-line strings delimited by """
+        // Preserves whitespace and line breaks
     }
 
     // ... helper methods
@@ -207,6 +221,7 @@ type Pattern =
     | { kind: 'ConstructorPattern'; constructor: string; args: Pattern[]; loc: Location }
     | { kind: 'RecordPattern'; fields: Map<string, Pattern>; loc: Location }
     | { kind: 'ListPattern'; elements: Pattern[]; rest?: Pattern; loc: Location }
+    | { kind: 'OrPattern'; patterns: Pattern[]; loc: Location }  // For | "a" | "b" => ...
 
 type MatchCase = {
     pattern: Pattern
@@ -225,7 +240,12 @@ type TypeExpr =
 type Declaration =
     | { kind: 'LetDecl'; pattern: Pattern; value: Expr; exported: boolean; loc: Location }
     | { kind: 'TypeDecl'; name: string; params: string[]; definition: TypeDefinition; exported: boolean; loc: Location }
-    | { kind: 'ExternalDecl'; name: string; type: TypeExpr; from?: string; as?: string; loc: Location }
+    | { kind: 'ExternalDecl'; name: string; type: TypeExpr; jsName: string; from?: string; loc: Location }
+    | { kind: 'ExternalBlockDecl'; externals: ExternalItem[]; from?: string; exported: boolean; loc: Location }
+
+type ExternalItem =
+    | { kind: 'ExternalFunction'; name: string; type: TypeExpr; jsName: string; loc: Location }
+    | { kind: 'ExternalType'; name: string; type: TypeExpr; jsName: string; loc: Location }
 
 type TypeDefinition =
     | { kind: 'AliasType'; type: TypeExpr }
@@ -362,9 +382,18 @@ See `type-system.md` for detailed type checking rules.
 Key steps:
 1. Build type environment from declarations
 2. Infer types for expressions using Algorithm W
-3. Check pattern exhaustiveness
-4. Validate external declarations
-5. Attach type information to AST nodes
+3. Check pattern exhaustiveness (including or patterns)
+4. Validate external declarations and handle overloading
+5. Resolve overloaded external function calls based on arity
+6. Attach type information to AST nodes
+
+#### External Function Overload Resolution
+
+When processing external declarations:
+- Group overloads by name and module
+- Validate all overloads map to same JavaScript function
+- At call sites, select overload based on argument count
+- Report error if no matching overload exists
 
 ```typescript
 type TypedExpr = Expr & { inferredType: Type }
@@ -432,9 +461,21 @@ JavaScript code + source map
 
 ### Code Generation Strategy
 
+**Target**: ES2020 JavaScript for maximum compatibility with modern runtimes (Node.js 14.0+, modern browsers 2020+)
+
+**Implementation Philosophy**:
+- **Readable output**: Generated JavaScript should be human-readable for debugging
+- **Implementation details**: Specific code generation patterns (currying, variant representation, list structures) are implementation details that may evolve. The generated JavaScript is designed for debugging purposes but should not be relied upon as a stable API
+- **Runtime library**: Small runtime for type checking and data structures
+- **Source maps**: Enable debugging of original vibefun source
+
+Key generation strategies:
 1. **Direct transpilation**: Generate readable JavaScript
-2. **Runtime library**: Small runtime for type checking and data structures
-3. **Source maps**: For debugging
+2. **Currying**: Multi-parameter functions become nested arrow functions (current implementation)
+3. **Variants**: Tagged objects with `tag` and `value` fields (current implementation)
+4. **Lists**: Persistent data structures with Cons/Nil (current implementation)
+
+**Note**: These specific representations may change in future versions as optimizations improve.
 
 ### JavaScript Output Examples
 

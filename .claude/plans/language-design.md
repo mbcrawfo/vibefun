@@ -96,11 +96,41 @@ let describe = (x) => match x {
 
 ### Primitive Types
 
-- `Int` - Integer numbers
-- `Float` - Floating-point numbers
-- `String` - Text strings
+- `Int` - Integer numbers (supports numeric separators: `1_000_000`)
+- `Float` - Floating-point numbers (supports numeric separators: `3.14_159`)
+- `String` - Text strings (single-line `"..."` or multi-line `"""..."""`)
 - `Bool` - true/false
 - `Unit` - Empty value (like void), written as `()`
+
+#### String Literals
+
+```vibefun
+// Single-line strings
+let simple = "Hello, world!"
+
+// Multi-line strings
+let multiline = """
+    This is a multi-line string.
+    It can span multiple lines.
+    Leading/trailing whitespace is preserved.
+"""
+
+// String concatenation with & operator
+let greeting = "Hello, " &"world!"
+```
+
+#### Numeric Literals
+
+```vibefun
+// Numeric separators for readability
+let million = 1_000_000
+let billion = 1_000_000_000
+let precise = 3.14_159_265
+
+// Standard numeric literals
+let x = 42
+let y = 3.14
+```
 
 ### Type Annotations
 
@@ -228,6 +258,14 @@ let describe = (n) => match n {
     | _ => "many"
 }
 
+// Or patterns (match multiple cases)
+let describeStatus = (status) => match status {
+    | "pending" | "loading" => "In progress..."
+    | "success" | "complete" => "Done!"
+    | "error" | "failed" => "Something went wrong"
+    | _ => "Unknown status"
+}
+
 // Match with guards
 let classify = (n) => match n {
     | x when x < 0 => "negative"
@@ -254,26 +292,86 @@ let sumList = (list) => match list {
 
 Explicit boundaries with the `external` keyword and `unsafe` blocks:
 
+### Single External Declarations
+
 ```vibefun
 // Declare external JS function
 external console_log: (String) -> Unit = "console.log"
+
+// Import from JS module
+external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"
 
 // Use in unsafe block
 let debug = (msg) => unsafe {
     console_log(msg)
 }
+```
 
-// Import JS module
-external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"
+### External Blocks
 
-// Type declarations for JS values
-external type Response = {
-    json: () -> Promise<Json>,
-    text: () -> Promise<String>,
-    ok: Bool
+Group multiple external declarations, especially useful when wrapping JavaScript libraries:
+
+```vibefun
+// Simple external block
+external {
+    log: (String) -> Unit = "console.log"
+    error: (String) -> Unit = "console.error"
+    warn: (String) -> Unit = "console.warn"
 }
 
-// Convert between vibefun and JS types
+// External block with module import
+external from "node-fetch" {
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+    Headers: Type = "Headers"
+}
+
+// Exportable external block
+export external from "react" {
+    useState: <T>(T) -> (T, (T) -> Unit) = "useState"
+    useEffect: ((Unit) -> Unit, List<a>) -> Unit = "useEffect"
+    useCallback: <T>((Unit) -> T, List<a>) -> (Unit) -> T = "useCallback"
+}
+
+// External type declarations in blocks
+external {
+    type Response = {
+        json: (Unit) -> Promise<Json>,
+        text: (Unit) -> Promise<String>,
+        ok: Bool,
+        status: Int
+    }
+
+    fetch: (String) -> Promise<Response> = "fetch"
+}
+```
+
+### Overloaded External Functions
+
+External functions can be overloaded with different arities, enabling natural interop with JavaScript APIs that accept varying numbers of arguments. Resolution is compile-time based on argument count:
+
+```vibefun
+// Overload setTimeout with different signatures
+external setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
+external setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+
+// Overload fetch with optional options parameter
+external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+// Can also use external blocks for overloads
+external from "react" {
+    createElement: (String) -> Element = "createElement"
+    createElement: (String, Props) -> Element = "createElement"
+    createElement: (String, Props, Children) -> Element = "createElement"
+}
+```
+
+**Important**: Overloading is **only** available for `external` declarations, not pure vibefun functions. Pure vibefun code uses pattern matching or different function names instead.
+
+### Converting Between Vibefun and JS Types
+
+```vibefun
+// Use external functions in unsafe blocks
 let fetchUser = (id) => unsafe {
     let url = "https://api.example.com/users/" &String.fromInt(id)
     fetch(url)
@@ -355,6 +453,13 @@ src/
 ```
 
 ## Compilation
+
+Vibefun transpiles to **ES2020 JavaScript** for maximum compatibility with modern runtimes:
+
+- **Node.js**: 14.0+ (16+ recommended)
+- **Browsers**: Modern browsers from 2020+ (Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+)
+
+**Note**: Specific code generation patterns (currying implementation, variant representation, etc.) are implementation details that may evolve. The generated JavaScript is designed to be readable for debugging purposes, but should not be relied upon as a stable API.
 
 ```bash
 # Compile single file
