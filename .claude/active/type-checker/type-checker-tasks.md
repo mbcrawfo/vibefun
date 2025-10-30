@@ -166,9 +166,9 @@
 
 ### Commit
 
-- [ ] Committed as: TBD
-- [ ] Commit hash: TBD
-- [ ] Files changed: TBD
+- [x] Committed as: `feat(typechecker): implement Phase 2 - Type Environment & Built-ins`
+- [x] Commit hash: ebf457a
+- [x] Files changed: 5 files, 1014 insertions(+), 110 deletions(-)
 
 ---
 
