@@ -225,6 +225,35 @@ function curryLambda(
 }
 
 /**
+ * Desugar a pipe operator into function application
+ *
+ * @param data - The data being piped
+ * @param func - The function to apply
+ * @param loc - Location of the pipe expression
+ * @param gen - Fresh variable generator
+ * @returns Desugared core expression
+ *
+ * @example
+ * // Input: data |> filter(pred) |> map(f)
+ * // Parser creates: Pipe(Pipe(data, filter(pred)), map(f))
+ * // Output: map(f)(filter(pred)(data))
+ */
+function desugarPipe(data: Expr, func: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
+    // Desugar both operands
+    const desugaredData = desugar(data, gen);
+    const desugaredFunc = desugar(func, gen);
+
+    // Create function application: func(data)
+    // Since vibefun functions are curried, this works naturally
+    return {
+        kind: "CoreApp",
+        func: desugaredFunc,
+        args: [desugaredData],
+        loc,
+    };
+}
+
+/**
  * Desugar a surface expression to a core expression
  *
  * @param expr - Surface expression to desugar
@@ -396,14 +425,9 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Pipe operator - will desugar to function application
+        // Pipe operator - desugar to function application
         case "Pipe":
-            // TODO: Implement pipe desugaring
-            throw new DesugarError(
-                "Pipe operator desugaring not yet implemented",
-                expr.loc,
-                "This will be implemented in Phase 5",
-            );
+            return desugarPipe(expr.expr, expr.func, expr.loc, gen);
 
         // Block expressions - desugar to nested lets
         case "Block":
