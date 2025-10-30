@@ -1,6 +1,9 @@
 {
     "compilerOptions": {
         /* Language and Environment */
+        /* NOTE: This target (ES2022) is for the COMPILER CODE itself.
+           The Vibefun compiler generates JavaScript targeting ES2020.
+           See vibefun-spec.md and CLAUDE.md for details on output targets. */
         "target": "ES2022",
         "lib": ["ES2022"],
         "module": "Node16",

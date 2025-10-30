@@ -101,10 +101,10 @@ vibefun/
 6. **Code Generator**: Emit JavaScript + source maps
 
 ### Code Generation Strategy
-- **Readable output**: Generated JavaScript should be human-readable
-- **Curried functions**: Multi-argument functions become nested single-argument functions
-- **Variants as objects**: `{ tag: 'Constructor', args: [...] }`
-- **Source maps**: For debugging in JavaScript context
+- **Target**: ES2020 JavaScript for maximum compatibility with modern runtimes
+- **Readable output**: Generated JavaScript should be human-readable for debugging
+- **Source maps**: Enable debugging in JavaScript context
+- **Implementation flexibility**: Specific generation patterns (currying, variant representation) are implementation details that may evolve
 
 ### External Function Overloading
 - **Scope**: Only `external` declarations can be overloaded (not pure vibefun functions)

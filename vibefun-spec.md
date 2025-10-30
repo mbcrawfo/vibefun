@@ -1353,64 +1353,31 @@ Float.abs: (Float) -> Float
 5. **Optimization**: Optional transformations
 6. **Code Generation**: Core AST → JavaScript
 
-### JavaScript Output
+### JavaScript Target
 
-Vibefun generates readable JavaScript that can be debugged and understood.
+Vibefun generates JavaScript code targeting **ECMAScript 2020 (ES2020)**.
 
-#### Function Compilation
+#### Guaranteed Features
 
-```vibefun
-// Vibefun
-let add = (x, y) => x + y
-```
+The generated JavaScript is guaranteed to be valid ES2020, which includes:
 
-```javascript
-// JavaScript
-const add = (x) => (y) => x + y;
-```
+- Arrow functions, `const`/`let` declarations
+- Destructuring, spread operators
+- Promises, `async`/`await`
+- Optional chaining (`?.`), nullish coalescing (`??`)
+- All ES2020 standard library features
 
-#### Variant Compilation
+#### Compatibility
 
-```vibefun
-// Vibefun
-type Option<T> = Some(T) | None
-```
+- **Node.js**: 14.0+ (Node.js 16+ recommended)
+- **Browsers**: Modern browsers (2020+)
+- **Legacy targets**: Transpilation for older environments is the user's responsibility
 
-```javascript
-// JavaScript
-const Some = (value) => ({ tag: 'Some', value });
-const None = { tag: 'None' };
-```
+#### Implementation Details
 
-#### Match Compilation
+The specific patterns used to generate JavaScript from Vibefun code (such as how functions are curried, how algebraic data types are represented, or how pattern matching is compiled) are **implementation details** and may change between compiler versions without notice.
 
-```vibefun
-// Vibefun
-match opt {
-    | Some(x) => x
-    | None => 0
-}
-```
-
-```javascript
-// JavaScript
-(opt.tag === 'Some') ? opt.value :
-(opt.tag === 'None') ? 0 :
-(() => { throw new Error('Non-exhaustive match'); })()
-```
-
-#### Record Compilation
-
-```vibefun
-// Vibefun
-type Person = { name: String, age: Int }
-let person = { name: "Alice", age: 30 }
-```
-
-```javascript
-// JavaScript
-const person = { name: "Alice", age: 30 };
-```
+The generated code is designed to be **readable for debugging purposes**, but should be treated as compiler output rather than a stable API. Always use source maps to debug original Vibefun source code rather than inspecting generated JavaScript.
 
 ### Source Maps
 
