@@ -282,12 +282,12 @@ describe("Parser - Declarations", () => {
             if (decl.kind !== "ExternalBlock") return;
 
             expect(decl.items).toHaveLength(2);
-            expect(decl.items[0]).toMatchObject({
+            expect(decl.items[0]!).toMatchObject({
                 kind: "ExternalValue",
                 name: "log",
                 jsName: "console.log",
             });
-            expect(decl.items[1]).toMatchObject({
+            expect(decl.items[1]!).toMatchObject({
                 kind: "ExternalValue",
                 name: "error",
                 jsName: "console.error",
@@ -331,7 +331,7 @@ describe("Parser - Declarations", () => {
             expect(decl.items).toHaveLength(2);
 
             // First item is a type
-            expect(decl.items[0]).toMatchObject({
+            expect(decl.items[0]!).toMatchObject({
                 kind: "ExternalType",
                 name: "Response",
                 typeExpr: {
@@ -344,7 +344,7 @@ describe("Parser - Declarations", () => {
             });
 
             // Second item is a value
-            expect(decl.items[1]).toMatchObject({
+            expect(decl.items[1]!).toMatchObject({
                 kind: "ExternalValue",
                 name: "fetch",
                 jsName: "fetch",
@@ -380,7 +380,7 @@ describe("Parser - Declarations", () => {
             if (decl.kind !== "ExternalBlock") return;
 
             expect(decl.items).toHaveLength(1);
-            expect(decl.items[0]).toMatchObject({
+            expect(decl.items[0]!).toMatchObject({
                 kind: "ExternalValue",
                 name: "log",
             });
@@ -395,7 +395,7 @@ describe("Parser - Declarations", () => {
             if (decl.kind !== "ExternalBlock") return;
 
             expect(decl.items).toHaveLength(2);
-            expect(decl.items[0]).toMatchObject({
+            expect(decl.items[0]!).toMatchObject({
                 kind: "ExternalValue",
                 name: "map",
                 typeExpr: { kind: "FunctionType" },
@@ -419,8 +419,8 @@ describe("Parser - Declarations", () => {
             if (decl.kind !== "ExternalBlock") return;
 
             expect(decl.items).toHaveLength(2);
-            expect(decl.items[0].kind).toBe("ExternalType");
-            expect(decl.items[1].kind).toBe("ExternalType");
+            expect(decl.items[0]!.kind).toBe("ExternalType");
+            expect(decl.items[1]!.kind).toBe("ExternalType");
         });
     });
 
@@ -428,7 +428,7 @@ describe("Parser - Declarations", () => {
         it("parses named import", () => {
             const module = parseModule('import { map, filter } from "./list"');
             expect(module.imports).toHaveLength(1);
-            const imp = module.imports[0];
+            const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
@@ -442,7 +442,7 @@ describe("Parser - Declarations", () => {
 
         it("parses import with alias", () => {
             const module = parseModule('import { map as listMap } from "./list"');
-            const imp = module.imports[0];
+            const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
@@ -453,7 +453,7 @@ describe("Parser - Declarations", () => {
 
         it("parses import all as namespace", () => {
             const module = parseModule('import * as List from "./list"');
-            const imp = module.imports[0];
+            const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
@@ -464,7 +464,7 @@ describe("Parser - Declarations", () => {
 
         it("parses type import", () => {
             const module = parseModule('import { type User, type Post } from "./types"');
-            const imp = module.imports[0];
+            const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",
@@ -478,7 +478,7 @@ describe("Parser - Declarations", () => {
 
         it("parses mixed import", () => {
             const module = parseModule('import { type User, getUser, updateUser } from "./api"');
-            const imp = module.imports[0];
+            const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
                 kind: "ImportDecl",

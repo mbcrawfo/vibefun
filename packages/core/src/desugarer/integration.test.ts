@@ -6,7 +6,17 @@
  */
 
 import type { Expr, Location, Module } from "../types/ast.js";
-import type { CoreExpr } from "../types/core-ast.js";
+import type {
+    CoreApp,
+    CoreLambda,
+    CoreLet,
+    CoreLetDecl,
+    CoreMatch,
+    CoreUnsafe,
+    CoreVar,
+    CoreVariant,
+    CoreVariantPattern,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -70,8 +80,9 @@ describe("Integration - Blocks + Lambdas", () => {
         // Block should become let binding
         expect(result.kind).toBe("CoreLet");
         // Lambda should be curried
-        expect((result as CoreExpr).value.kind).toBe("CoreLambda");
-        expect((result as CoreExpr).value.body.kind).toBe("CoreLambda");
+        const letExpr = result as CoreLet;
+        expect(letExpr.value.kind).toBe("CoreLambda");
+        expect((letExpr.value as CoreLambda).body.kind).toBe("CoreLambda");
     });
 });
 
@@ -98,8 +109,9 @@ describe("Integration - Pipes + Lists", () => {
         // Pipe becomes app
         expect(result.kind).toBe("CoreApp");
         // List becomes Cons chain
-        expect((result as CoreExpr).args[0].kind).toBe("CoreVariant");
-        expect((result as CoreExpr).args[0].constructor).toBe("Cons");
+        const appExpr = result as CoreApp;
+        expect(appExpr.args[0]!.kind).toBe("CoreVariant");
+        expect((appExpr.args[0] as CoreVariant).constructor).toBe("Cons");
     });
 
     it("should desugar chained pipes with list transformations", () => {
@@ -200,8 +212,8 @@ describe("Integration - Composition + If-Then-Else", () => {
         // Composition becomes lambda
         expect(result.kind).toBe("CoreLambda");
         // Body is application
-        const body = (result as CoreExpr).body;
-        expect(body.kind).toBe("CoreApp");
+        const lambdaExpr = result as CoreLambda;
+        expect(lambdaExpr.body.kind).toBe("CoreApp");
     });
 });
 
@@ -250,9 +262,10 @@ describe("Integration - Match + Or-Patterns + Lists", () => {
         expect(result.kind).toBe("CoreMatch");
         // Or-pattern should be expanded to 2 cases ([] and [_])
         // Plus the third case
-        expect((result as CoreExpr).cases).toHaveLength(3);
+        const matchExpr = result as CoreMatch;
+        expect(matchExpr.cases).toHaveLength(3);
         // All list patterns should be Cons/Nil variant patterns
-        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreVariantPattern");
+        expect(matchExpr.cases[0]!.pattern.kind).toBe("CoreVariantPattern");
     });
 });
 
@@ -301,9 +314,10 @@ describe("Integration - Unsafe + Blocks + If", () => {
         // Unsafe boundary preserved
         expect(result.kind).toBe("CoreUnsafe");
         // Block becomes let
-        expect((result as CoreExpr).expr.kind).toBe("CoreLet");
+        const unsafeExpr = result as CoreUnsafe;
+        expect(unsafeExpr.expr.kind).toBe("CoreLet");
         // If becomes match
-        expect((result as CoreExpr).expr.body.kind).toBe("CoreMatch");
+        expect((unsafeExpr.expr as CoreLet).body.kind).toBe("CoreMatch");
     });
 });
 
@@ -377,14 +391,16 @@ describe("Integration - Complete Programs", () => {
         // Top level is let
         expect(result.kind).toBe("CoreLet");
         // Value is lambda
-        expect((result as CoreExpr).value.kind).toBe("CoreLambda");
+        const letExpr = result as CoreLet;
+        expect(letExpr.value.kind).toBe("CoreLambda");
         // Body has match
-        expect((result as CoreExpr).value.body.kind).toBe("CoreMatch");
+        const lambdaValue = letExpr.value as CoreLambda;
+        expect(lambdaValue.body.kind).toBe("CoreMatch");
         // List patterns are Cons/Nil
-        const match = (result as CoreExpr).value.body;
-        expect(match.cases[0].pattern.kind).toBe("CoreVariantPattern");
-        expect(match.cases[0].pattern.constructor).toBe("Nil");
-        expect(match.cases[1].pattern.constructor).toBe("Cons");
+        const match = lambdaValue.body as CoreMatch;
+        expect(match.cases[0]!.pattern.kind).toBe("CoreVariantPattern");
+        expect((match.cases[0]!.pattern as CoreVariantPattern).constructor).toBe("Nil");
+        expect((match.cases[1]!.pattern as CoreVariantPattern).constructor).toBe("Cons");
     });
 
     it("should desugar complex functional pipeline", () => {
@@ -457,7 +473,8 @@ describe("Integration - Complete Programs", () => {
         // Final result is application
         expect(result.kind).toBe("CoreApp");
         // Function is sum
-        expect((result as CoreExpr).func.name).toBe("sum");
+        const appExpr = result as CoreApp;
+        expect((appExpr.func as CoreVar).name).toBe("sum");
     });
 });
 
@@ -467,7 +484,7 @@ describe("Integration - Module with All Features", () => {
             imports: [
                 {
                     kind: "ImportDecl",
-                    items: [{ name: "List", alias: undefined, isType: true }],
+                    items: [{ name: "List", isType: true }],
                     from: "./list",
                     loc: testLoc,
                 },
@@ -479,14 +496,16 @@ describe("Integration - Module with All Features", () => {
                     name: "Option",
                     params: ["T"],
                     definition: {
-                        kind: "VariantType",
-                        variants: [
+                        kind: "VariantTypeDef",
+                        constructors: [
                             {
                                 name: "Some",
-                                types: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                                args: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                                loc: testLoc,
                             },
-                            { name: "None", types: [] },
+                            { name: "None", args: [], loc: testLoc },
                         ],
+                        loc: testLoc,
                     },
                     exported: true,
                     loc: testLoc,
@@ -495,7 +514,7 @@ describe("Integration - Module with All Features", () => {
                 {
                     kind: "ExternalDecl",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     exported: false,
                     loc: testLoc,
@@ -561,21 +580,23 @@ describe("Integration - Module with All Features", () => {
         expect(result.declarations).toHaveLength(3);
 
         // Type declaration passes through
-        expect(result.declarations[0].kind).toBe("CoreTypeDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreTypeDecl");
 
         // External passes through
-        expect(result.declarations[1].kind).toBe("CoreExternalDecl");
+        expect(result.declarations[1]!.kind).toBe("CoreExternalDecl");
 
         // Let declaration with all features desugared
-        expect(result.declarations[2].kind).toBe("CoreLetDecl");
-        const letDecl = result.declarations[2] as CoreExpr;
+        expect(result.declarations[2]!.kind).toBe("CoreLetDecl");
+        const letDecl = result.declarations[2] as CoreLetDecl;
         // Lambda is curried
         expect(letDecl.value.kind).toBe("CoreLambda");
-        expect(letDecl.value.body.kind).toBe("CoreLambda");
+        const outerLambda = letDecl.value as CoreLambda;
+        expect(outerLambda.body.kind).toBe("CoreLambda");
         // Block inside becomes let
-        const lambdaBody = letDecl.value.body.body;
-        expect(lambdaBody.kind).toBe("CoreLet");
+        const innerLambda = outerLambda.body as CoreLambda;
+        expect(innerLambda.body.kind).toBe("CoreLet");
         // If inside becomes match
-        expect(lambdaBody.body.kind).toBe("CoreMatch");
+        const lambdaBodyLet = innerLambda.body as CoreLet;
+        expect(lambdaBodyLet.body.kind).toBe("CoreMatch");
     });
 });

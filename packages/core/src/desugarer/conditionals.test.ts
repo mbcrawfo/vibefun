@@ -6,7 +6,17 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreMatch } from "../types/core-ast.js";
+import type {
+    CoreApp,
+    CoreBinOp,
+    CoreBoolLit,
+    CoreIntLit,
+    CoreLambda,
+    CoreLet,
+    CoreLiteralPattern,
+    CoreMatch,
+    CoreVar,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -34,23 +44,29 @@ describe("If-Then-Else - Basic Cases", () => {
 
         // Should become: match true { | true => 1 | false => 2 }
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreMatch).expr.kind).toBe("CoreBoolLit");
-        expect((result as CoreMatch).expr.value).toBe(true);
-        expect((result as CoreMatch).cases).toHaveLength(2);
+        const match = result as CoreMatch;
+        const matchExpr = match.expr as CoreBoolLit;
+        expect(matchExpr.kind).toBe("CoreBoolLit");
+        expect(matchExpr.value).toBe(true);
+        expect(match.cases).toHaveLength(2);
 
         // True case
-        const trueCase = (result as CoreMatch).cases[0];
-        expect(trueCase.pattern.kind).toBe("CoreLiteralPattern");
-        expect(trueCase.pattern.literal).toBe(true);
-        expect(trueCase.body.kind).toBe("CoreIntLit");
-        expect(trueCase.body.value).toBe(1);
+        const trueCase = match.cases[0]!;
+        const truePat = trueCase.pattern as CoreLiteralPattern;
+        expect(truePat.kind).toBe("CoreLiteralPattern");
+        expect(truePat.literal).toBe(true);
+        const trueBody = trueCase.body as CoreIntLit;
+        expect(trueBody.kind).toBe("CoreIntLit");
+        expect(trueBody.value).toBe(1);
 
         // False case
-        const falseCase = (result as CoreMatch).cases[1];
-        expect(falseCase.pattern.kind).toBe("CoreLiteralPattern");
-        expect(falseCase.pattern.literal).toBe(false);
-        expect(falseCase.body.kind).toBe("CoreIntLit");
-        expect(falseCase.body.value).toBe(2);
+        const falseCase = match.cases[1]!;
+        const falsePat = falseCase.pattern as CoreLiteralPattern;
+        expect(falsePat.kind).toBe("CoreLiteralPattern");
+        expect(falsePat.literal).toBe(false);
+        const falseBody = falseCase.body as CoreIntLit;
+        expect(falseBody.kind).toBe("CoreIntLit");
+        expect(falseBody.value).toBe(2);
     });
 
     it("should desugar if with variable condition", () => {
@@ -66,8 +82,10 @@ describe("If-Then-Else - Basic Cases", () => {
         const result = desugar(ifExpr);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreMatch).expr.kind).toBe("CoreVar");
-        expect((result as CoreMatch).expr.name).toBe("cond");
+        const match = result as CoreMatch;
+        const matchExpr = match.expr as CoreVar;
+        expect(matchExpr.kind).toBe("CoreVar");
+        expect(matchExpr.name).toBe("cond");
     });
 
     it("should desugar if with comparison condition", () => {
@@ -89,8 +107,10 @@ describe("If-Then-Else - Basic Cases", () => {
         const result = desugar(ifExpr);
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreMatch).expr.kind).toBe("CoreBinOp");
-        expect((result as CoreMatch).expr.op).toBe("GreaterThan");
+        const match = result as CoreMatch;
+        const matchExpr = match.expr as CoreBinOp;
+        expect(matchExpr.kind).toBe("CoreBinOp");
+        expect(matchExpr.op).toBe("GreaterThan");
     });
 });
 
@@ -117,12 +137,15 @@ describe("If-Then-Else - Nested If", () => {
 
         // Outer should be match
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreMatch).expr.name).toBe("a");
+        const match = result as CoreMatch;
+        const matchExpr = match.expr as CoreVar;
+        expect(matchExpr.name).toBe("a");
 
         // Then branch should be another match
-        const thenBranch = (result as CoreMatch).cases[0].body;
+        const thenBranch = match.cases[0]!.body as CoreMatch;
         expect(thenBranch.kind).toBe("CoreMatch");
-        expect(thenBranch.expr.name).toBe("b");
+        const thenExpr = thenBranch.expr as CoreVar;
+        expect(thenExpr.name).toBe("b");
     });
 
     it("should desugar nested if in else branch", () => {
@@ -146,11 +169,13 @@ describe("If-Then-Else - Nested If", () => {
         const result = desugar(outerIf);
 
         expect(result.kind).toBe("CoreMatch");
+        const match = result as CoreMatch;
 
         // Else branch should be another match
-        const elseBranch = (result as CoreMatch).cases[1].body;
+        const elseBranch = match.cases[1]!.body as CoreMatch;
         expect(elseBranch.kind).toBe("CoreMatch");
-        expect(elseBranch.expr.name).toBe("b");
+        const elseExpr = elseBranch.expr as CoreVar;
+        expect(elseExpr.name).toBe("b");
     });
 
     it("should desugar deeply nested if expressions", () => {
@@ -183,8 +208,11 @@ describe("If-Then-Else - Nested If", () => {
 
         // Three levels of match expressions
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreMatch).cases[0].body.kind).toBe("CoreMatch");
-        expect((result as CoreMatch).cases[0].body.cases[0].body.kind).toBe("CoreMatch");
+        const match = result as CoreMatch;
+        const level1 = match.cases[0]!.body as CoreMatch;
+        expect(level1.kind).toBe("CoreMatch");
+        const level2 = level1.cases[0]!.body as CoreMatch;
+        expect(level2.kind).toBe("CoreMatch");
     });
 });
 
@@ -216,9 +244,10 @@ describe("If-Then-Else - Complex Branches", () => {
         const result = desugar(ifExpr);
 
         expect(result.kind).toBe("CoreMatch");
+        const match = result as CoreMatch;
 
         // Then branch should be desugared let
-        const thenBranch = (result as CoreMatch).cases[0].body;
+        const thenBranch = match.cases[0]!.body as CoreLet;
         expect(thenBranch.kind).toBe("CoreLet");
     });
 
@@ -257,10 +286,13 @@ describe("If-Then-Else - Complex Branches", () => {
         const result = desugar(ifExpr);
 
         expect(result.kind).toBe("CoreMatch");
+        const match = result as CoreMatch;
 
         // Both branches should be lambdas
-        expect((result as CoreMatch).cases[0].body.kind).toBe("CoreLambda");
-        expect((result as CoreMatch).cases[1].body.kind).toBe("CoreLambda");
+        const thenBranch = match.cases[0]!.body as CoreLambda;
+        expect(thenBranch.kind).toBe("CoreLambda");
+        const elseBranch = match.cases[1]!.body as CoreLambda;
+        expect(elseBranch.kind).toBe("CoreLambda");
     });
 
     it("should desugar if with match in branch", () => {
@@ -302,9 +334,10 @@ describe("If-Then-Else - Complex Branches", () => {
         const result = desugar(ifExpr);
 
         expect(result.kind).toBe("CoreMatch");
+        const match = result as CoreMatch;
 
         // Then branch should be another match
-        const thenBranch = (result as CoreMatch).cases[0].body;
+        const thenBranch = match.cases[0]!.body as CoreMatch;
         expect(thenBranch.kind).toBe("CoreMatch");
     });
 });
@@ -330,9 +363,11 @@ describe("If-Then-Else - As Expression", () => {
         const result = desugar(app);
 
         expect(result.kind).toBe("CoreApp");
+        const coreApp = result as CoreApp;
 
         // Argument should be desugared to match
-        expect((result as CoreMatch).args[0].kind).toBe("CoreMatch");
+        const arg = coreApp.args[0]! as CoreMatch;
+        expect(arg.kind).toBe("CoreMatch");
     });
 
     it("should desugar if in binary operation", () => {
@@ -354,9 +389,11 @@ describe("If-Then-Else - As Expression", () => {
         const result = desugar(binOp);
 
         expect(result.kind).toBe("CoreBinOp");
+        const coreBinOp = result as CoreBinOp;
 
         // Left operand should be desugared to match
-        expect((result as CoreMatch).left.kind).toBe("CoreMatch");
+        const left = coreBinOp.left as CoreMatch;
+        expect(left.kind).toBe("CoreMatch");
     });
 });
 

@@ -6,7 +6,7 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreExpr, CoreVariant } from "../types/core-ast.js";
+import type { CoreExpr, CoreIntLit, CoreVar, CoreVariant } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -54,12 +54,15 @@ describe("List Literals - Single Element", () => {
         expect((result as CoreVariant).args).toHaveLength(2);
 
         // First arg should be 42
-        expect((result as CoreVariant).args[0].kind).toBe("CoreIntLit");
-        expect((result as CoreVariant).args[0].value).toBe(42);
+        const resultVariant = result as CoreVariant;
+        const firstArg = resultVariant.args[0]!;
+        expect(firstArg.kind).toBe("CoreIntLit");
+        expect((firstArg as CoreIntLit).value).toBe(42);
 
         // Second arg should be Nil
-        expect((result as CoreVariant).args[1].kind).toBe("CoreVariant");
-        expect((result as CoreVariant).args[1].constructor).toBe("Nil");
+        const secondArg = resultVariant.args[1]!;
+        expect(secondArg.kind).toBe("CoreVariant");
+        expect((secondArg as CoreVariant).constructor).toBe("Nil");
     });
 
     it("should desugar single string element", () => {
@@ -72,8 +75,9 @@ describe("List Literals - Single Element", () => {
         const result = desugar(list);
 
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
-        expect((result as CoreVariant).args[0].kind).toBe("CoreStringLit");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
+        expect(resultVariant.args[0]!.kind).toBe("CoreStringLit");
     });
 });
 
@@ -92,19 +96,20 @@ describe("List Literals - Two Elements", () => {
 
         // Should be: Cons(1, Cons(2, Nil))
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
 
         // First element
-        expect((result as CoreVariant).args[0].value).toBe(1);
+        expect((resultVariant.args[0]! as CoreIntLit).value).toBe(1);
 
         // Tail: Cons(2, Nil)
-        const tail = (result as CoreVariant).args[1];
+        const tail = resultVariant.args[1]! as CoreVariant;
         expect(tail.kind).toBe("CoreVariant");
         expect(tail.constructor).toBe("Cons");
-        expect(tail.args[0].value).toBe(2);
+        expect((tail.args[0]! as CoreIntLit).value).toBe(2);
 
         // Tail of tail: Nil
-        const tailTail = tail.args[1];
+        const tailTail = tail.args[1]! as CoreVariant;
         expect(tailTail.kind).toBe("CoreVariant");
         expect(tailTail.constructor).toBe("Nil");
     });
@@ -126,18 +131,19 @@ describe("List Literals - Multiple Elements", () => {
 
         // Cons(1, Cons(2, Cons(3, Nil)))
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
-        expect((result as CoreVariant).args[0].value).toBe(1);
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
+        expect((resultVariant.args[0]! as CoreIntLit).value).toBe(1);
 
-        let current = (result as CoreVariant).args[1];
+        let current = resultVariant.args[1]! as CoreVariant;
         expect(current.constructor).toBe("Cons");
-        expect(current.args[0].value).toBe(2);
+        expect((current.args[0]! as CoreIntLit).value).toBe(2);
 
-        current = current.args[1];
+        current = current.args[1]! as CoreVariant;
         expect(current.constructor).toBe("Cons");
-        expect(current.args[0].value).toBe(3);
+        expect((current.args[0]! as CoreIntLit).value).toBe(3);
 
-        current = current.args[1];
+        current = current.args[1]! as CoreVariant;
         expect(current.constructor).toBe("Nil");
     });
 
@@ -160,13 +166,13 @@ describe("List Literals - Multiple Elements", () => {
         let current: CoreExpr = result;
         const values = [];
 
-        while (current.constructor === "Cons") {
-            values.push(current.args[0].value);
-            current = current.args[1];
+        while (current.kind === "CoreVariant" && current.constructor === "Cons") {
+            values.push((current.args[0]! as CoreIntLit).value);
+            current = current.args[1]!;
         }
 
         expect(values).toEqual([1, 2, 3, 4, 5]);
-        expect(current.constructor).toBe("Nil");
+        expect((current as CoreVariant).constructor).toBe("Nil");
     });
 });
 
@@ -200,10 +206,11 @@ describe("List Literals - Nested Lists", () => {
 
         // Outer structure should be Cons
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
 
         // First element should be a desugared list
-        const firstElem = (result as CoreVariant).args[0];
+        const firstElem = resultVariant.args[0]! as CoreVariant;
         expect(firstElem.kind).toBe("CoreVariant");
         expect(firstElem.constructor).toBe("Cons");
     });
@@ -237,10 +244,11 @@ describe("List Literals - Complex Elements", () => {
         const result = desugar(list);
 
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
 
         // First element should be desugared BinOp
-        expect((result as CoreVariant).args[0].kind).toBe("CoreBinOp");
+        expect(resultVariant.args[0]!.kind).toBe("CoreBinOp");
     });
 
     it("should desugar list with lambda elements", () => {
@@ -279,7 +287,8 @@ describe("List Literals - Complex Elements", () => {
         const result = desugar(list);
 
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).args[0].kind).toBe("CoreLambda");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.args[0]!.kind).toBe("CoreLambda");
     });
 });
 
@@ -296,12 +305,15 @@ describe("Cons Operator", () => {
         const result = desugar(cons);
 
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
-        expect((result as CoreVariant).args).toHaveLength(2);
-        expect((result as CoreVariant).args[0].kind).toBe("CoreVar");
-        expect((result as CoreVariant).args[0].name).toBe("x");
-        expect((result as CoreVariant).args[1].kind).toBe("CoreVar");
-        expect((result as CoreVariant).args[1].name).toBe("xs");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
+        expect(resultVariant.args).toHaveLength(2);
+        const headArg = resultVariant.args[0]! as CoreVar;
+        expect(headArg.kind).toBe("CoreVar");
+        expect(headArg.name).toBe("x");
+        const tailArg = resultVariant.args[1]! as CoreVar;
+        expect(tailArg.kind).toBe("CoreVar");
+        expect(tailArg.name).toBe("xs");
     });
 
     it("should desugar cons with literal head", () => {
@@ -316,9 +328,11 @@ describe("Cons Operator", () => {
         const result = desugar(cons);
 
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
-        expect((result as CoreVariant).args[0].kind).toBe("CoreIntLit");
-        expect((result as CoreVariant).args[0].value).toBe(42);
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
+        const headArg = resultVariant.args[0]! as CoreIntLit;
+        expect(headArg.kind).toBe("CoreIntLit");
+        expect(headArg.value).toBe(42);
     });
 
     it("should desugar cons with empty list tail", () => {
@@ -333,10 +347,11 @@ describe("Cons Operator", () => {
         const result = desugar(cons);
 
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
 
         // Tail should be desugared to Nil
-        const tail = (result as CoreVariant).args[1];
+        const tail = resultVariant.args[1]! as CoreVariant;
         expect(tail.kind).toBe("CoreVariant");
         expect(tail.constructor).toBe("Nil");
     });
@@ -369,18 +384,19 @@ describe("Cons Operator", () => {
 
         // Should be: Cons(1, Cons(2, Cons(3, Nil)))
         expect(result.kind).toBe("CoreVariant");
-        expect((result as CoreVariant).constructor).toBe("Cons");
-        expect((result as CoreVariant).args[0].value).toBe(1);
+        const resultVariant = result as CoreVariant;
+        expect(resultVariant.constructor).toBe("Cons");
+        expect((resultVariant.args[0]! as CoreIntLit).value).toBe(1);
 
-        let current = (result as CoreVariant).args[1];
+        let current = resultVariant.args[1]! as CoreVariant;
         expect(current.constructor).toBe("Cons");
-        expect(current.args[0].value).toBe(2);
+        expect((current.args[0]! as CoreIntLit).value).toBe(2);
 
-        current = current.args[1];
+        current = current.args[1]! as CoreVariant;
         expect(current.constructor).toBe("Cons");
-        expect(current.args[0].value).toBe(3);
+        expect((current.args[0]! as CoreIntLit).value).toBe(3);
 
-        current = current.args[1];
+        current = current.args[1]! as CoreVariant;
         expect(current.constructor).toBe("Nil");
     });
 });

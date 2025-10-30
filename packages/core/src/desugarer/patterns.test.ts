@@ -9,7 +9,7 @@
  */
 
 import type { Location, Pattern } from "../types/ast.js";
-import type { CoreVariantPattern } from "../types/core-ast.js";
+import type { CoreLiteralPattern, CoreVariantPattern, CoreVarPattern } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -57,12 +57,14 @@ describe("List Pattern - Single Element", () => {
         expect((result as CoreVariantPattern).args).toHaveLength(2);
 
         // First arg: x
-        expect((result as CoreVariantPattern).args[0].kind).toBe("CoreVarPattern");
-        expect((result as CoreVariantPattern).args[0].name).toBe("x");
+        const firstArg = (result as CoreVariantPattern).args[0]!;
+        expect(firstArg.kind).toBe("CoreVarPattern");
+        expect((firstArg as CoreVarPattern).name).toBe("x");
 
         // Second arg: Nil
-        expect((result as CoreVariantPattern).args[1].kind).toBe("CoreVariantPattern");
-        expect((result as CoreVariantPattern).args[1].constructor).toBe("Nil");
+        const secondArg = (result as CoreVariantPattern).args[1]!;
+        expect(secondArg.kind).toBe("CoreVariantPattern");
+        expect((secondArg as CoreVariantPattern).constructor).toBe("Nil");
     });
 
     it("should desugar single wildcard pattern", () => {
@@ -78,7 +80,7 @@ describe("List Pattern - Single Element", () => {
 
         expect(result.kind).toBe("CoreVariantPattern");
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
-        expect((result as CoreVariantPattern).args[0].kind).toBe("CoreWildcardPattern");
+        expect((result as CoreVariantPattern).args[0]!.kind).toBe("CoreWildcardPattern");
     });
 });
 
@@ -100,14 +102,16 @@ describe("List Pattern - Two Elements", () => {
         // Should be: Cons(x, Cons(y, Nil))
         expect(result.kind).toBe("CoreVariantPattern");
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
-        expect((result as CoreVariantPattern).args[0].name).toBe("x");
+        const firstArg = (result as CoreVariantPattern).args[0]!;
+        expect((firstArg as CoreVarPattern).name).toBe("x");
 
-        const tail = (result as CoreVariantPattern).args[1];
+        const tail = (result as CoreVariantPattern).args[1]! as CoreVariantPattern;
         expect(tail.kind).toBe("CoreVariantPattern");
         expect(tail.constructor).toBe("Cons");
-        expect(tail.args[0].name).toBe("y");
+        const tailFirstArg = tail.args[0]!;
+        expect((tailFirstArg as CoreVarPattern).name).toBe("y");
 
-        const tailTail = tail.args[1];
+        const tailTail = tail.args[1]! as CoreVariantPattern;
         expect(tailTail.constructor).toBe("Nil");
     });
 });
@@ -129,12 +133,13 @@ describe("List Pattern - Multiple Elements", () => {
         const result = desugarPattern(pattern, gen);
 
         // Walk through the chain
-        let current: CoreVariantPattern = result;
+        let current: CoreVariantPattern = result as CoreVariantPattern;
         const names = [];
 
         while (current.constructor === "Cons") {
-            names.push(current.args[0].name);
-            current = current.args[1];
+            const headArg = current.args[0]!;
+            names.push((headArg as CoreVarPattern).name);
+            current = current.args[1]! as CoreVariantPattern;
         }
 
         expect(names).toEqual(["a", "b", "c"]);
@@ -158,9 +163,11 @@ describe("List Pattern - With Rest", () => {
         // Should be: Cons(x, rest)
         expect(result.kind).toBe("CoreVariantPattern");
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
-        expect((result as CoreVariantPattern).args[0].name).toBe("x");
-        expect((result as CoreVariantPattern).args[1].kind).toBe("CoreVarPattern");
-        expect((result as CoreVariantPattern).args[1].name).toBe("rest");
+        const firstArg = (result as CoreVariantPattern).args[0]!;
+        expect((firstArg as CoreVarPattern).name).toBe("x");
+        const secondArg = (result as CoreVariantPattern).args[1]!;
+        expect(secondArg.kind).toBe("CoreVarPattern");
+        expect((secondArg as CoreVarPattern).name).toBe("rest");
     });
 
     it("should desugar two elements with rest", () => {
@@ -181,13 +188,16 @@ describe("List Pattern - With Rest", () => {
         // Should be: Cons(x, Cons(y, rest))
         expect(result.kind).toBe("CoreVariantPattern");
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
-        expect((result as CoreVariantPattern).args[0].name).toBe("x");
+        const firstArg = (result as CoreVariantPattern).args[0]!;
+        expect((firstArg as CoreVarPattern).name).toBe("x");
 
-        const tail = (result as CoreVariantPattern).args[1];
+        const tail = (result as CoreVariantPattern).args[1]! as CoreVariantPattern;
         expect(tail.constructor).toBe("Cons");
-        expect(tail.args[0].name).toBe("y");
-        expect(tail.args[1].kind).toBe("CoreVarPattern");
-        expect(tail.args[1].name).toBe("rest");
+        const tailFirstArg = tail.args[0]!;
+        expect((tailFirstArg as CoreVarPattern).name).toBe("y");
+        const tailSecondArg = tail.args[1]!;
+        expect(tailSecondArg.kind).toBe("CoreVarPattern");
+        expect((tailSecondArg as CoreVarPattern).name).toBe("rest");
     });
 
     it("should desugar just rest pattern", () => {
@@ -204,7 +214,7 @@ describe("List Pattern - With Rest", () => {
 
         // Should just be: rest (variable pattern)
         expect(result.kind).toBe("CoreVarPattern");
-        expect((result as CoreVariantPattern).name).toBe("rest");
+        expect((result as CoreVarPattern).name).toBe("rest");
     });
 });
 
@@ -235,7 +245,7 @@ describe("List Pattern - Nested Patterns", () => {
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
 
         // First element should be a desugared list pattern
-        const firstElem = (result as CoreVariantPattern).args[0];
+        const firstElem = (result as CoreVariantPattern).args[0]! as CoreVariantPattern;
         expect(firstElem.kind).toBe("CoreVariantPattern");
         expect(firstElem.constructor).toBe("Cons");
     });
@@ -268,7 +278,7 @@ describe("List Pattern - Nested Patterns", () => {
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
 
         // First element should be Some(x)
-        const firstElem = (result as CoreVariantPattern).args[0];
+        const firstElem = (result as CoreVariantPattern).args[0]! as CoreVariantPattern;
         expect(firstElem.kind).toBe("CoreVariantPattern");
         expect(firstElem.constructor).toBe("Some");
     });
@@ -292,8 +302,9 @@ describe("List Pattern - Nested Patterns", () => {
         expect((result as CoreVariantPattern).constructor).toBe("Cons");
 
         // First element should be literal pattern
-        expect((result as CoreVariantPattern).args[0].kind).toBe("CoreLiteralPattern");
-        expect((result as CoreVariantPattern).args[0].literal).toBe(1);
+        const firstArg = (result as CoreVariantPattern).args[0]!;
+        expect(firstArg.kind).toBe("CoreLiteralPattern");
+        expect((firstArg as CoreLiteralPattern).literal).toBe(1);
     });
 });
 

@@ -2,7 +2,7 @@
  * Pattern parsing tests
  */
 
-import type { Pattern } from "../types/index.js";
+import type { Pattern } from "../types/ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -463,15 +463,15 @@ describe("Parser - Patterns", () => {
             expect(expr.kind).toBe("Match");
             if (expr.kind === "Match") {
                 expect(expr.cases).toHaveLength(3);
-                expect(expr.cases[0].pattern).toMatchObject({
+                expect(expr.cases[0]!.pattern).toMatchObject({
                     kind: "LiteralPattern",
                     literal: 0,
                 });
-                expect(expr.cases[1].pattern).toMatchObject({
+                expect(expr.cases[1]!.pattern).toMatchObject({
                     kind: "LiteralPattern",
                     literal: 1,
                 });
-                expect(expr.cases[2].pattern).toMatchObject({
+                expect(expr.cases[2]!.pattern).toMatchObject({
                     kind: "WildcardPattern",
                 });
             }
@@ -490,12 +490,12 @@ describe("Parser - Patterns", () => {
             expect(expr.kind).toBe("Match");
             if (expr.kind === "Match") {
                 expect(expr.cases).toHaveLength(2);
-                expect(expr.cases[0].pattern).toMatchObject({
+                expect(expr.cases[0]!.pattern).toMatchObject({
                     kind: "ConstructorPattern",
                     constructor: "Some",
                     args: [{ kind: "VarPattern", name: "x" }],
                 });
-                expect(expr.cases[1].pattern).toMatchObject({
+                expect(expr.cases[1]!.pattern).toMatchObject({
                     kind: "ConstructorPattern",
                     constructor: "None",
                     args: [],
@@ -517,15 +517,15 @@ describe("Parser - Patterns", () => {
             expect(expr.kind).toBe("Match");
             if (expr.kind === "Match") {
                 expect(expr.cases).toHaveLength(3);
-                expect(expr.cases[0].pattern).toMatchObject({
+                expect(expr.cases[0]!.pattern).toMatchObject({
                     kind: "ListPattern",
                     elements: [],
                 });
-                expect(expr.cases[1].pattern).toMatchObject({
+                expect(expr.cases[1]!.pattern).toMatchObject({
                     kind: "ListPattern",
                     elements: [{ kind: "VarPattern", name: "x" }],
                 });
-                expect(expr.cases[2].pattern).toMatchObject({
+                expect(expr.cases[2]!.pattern).toMatchObject({
                     kind: "ListPattern",
                     elements: [{ kind: "VarPattern", name: "x" }],
                     rest: { kind: "VarPattern", name: "rest" },
@@ -546,7 +546,7 @@ describe("Parser - Patterns", () => {
             expect(expr.kind).toBe("Match");
             if (expr.kind === "Match") {
                 expect(expr.cases).toHaveLength(2);
-                expect(expr.cases[0].pattern).toMatchObject({
+                expect(expr.cases[0]!.pattern).toMatchObject({
                     kind: "RecordPattern",
                     fields: [
                         {
@@ -576,7 +576,7 @@ describe("Parser - Patterns", () => {
             expect(expr.kind).toBe("Match");
             if (expr.kind === "Match") {
                 expect(expr.cases).toHaveLength(3);
-                expect(expr.cases[0].pattern).toMatchObject({
+                expect(expr.cases[0]!.pattern).toMatchObject({
                     kind: "OrPattern",
                     patterns: [
                         { kind: "LiteralPattern", literal: "pending" },

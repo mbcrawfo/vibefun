@@ -6,7 +6,7 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreLambda } from "../types/core-ast.js";
+import type { CoreApp, CoreLambda, CoreVar, CoreVarPattern } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -38,14 +38,15 @@ describe("Function Composition - Forward (>>)", () => {
         expect(lambda.param.kind).toBe("CoreVarPattern");
 
         // Body should be g(f(x))
-        const body = lambda.body;
+        const body = lambda.body as CoreApp;
         expect(body.kind).toBe("CoreApp");
-        expect(body.func.name).toBe("g");
+        expect((body.func as CoreVar).name).toBe("g");
 
         // Argument to g should be f(x)
-        const arg = body.args[0];
+        const arg = body.args[0] as CoreApp;
+        expect(arg).toBeDefined();
         expect(arg.kind).toBe("CoreApp");
-        expect(arg.func.name).toBe("f");
+        expect((arg.func as CoreVar).name).toBe("f");
     });
 
     it("should desugar three-function forward composition", () => {
@@ -88,7 +89,7 @@ describe("Function Composition - Forward (>>)", () => {
         const result = desugar(comp, gen);
 
         const lambda = result as CoreLambda;
-        expect(lambda.param.name).toMatch(/\$composed\d+/);
+        expect((lambda.param as CoreVarPattern).name).toMatch(/\$composed\d+/);
     });
 });
 
@@ -111,14 +112,15 @@ describe("Function Composition - Backward (<<)", () => {
         expect(lambda.param.kind).toBe("CoreVarPattern");
 
         // Body should be f(g(x))
-        const body = lambda.body;
+        const body = lambda.body as CoreApp;
         expect(body.kind).toBe("CoreApp");
-        expect(body.func.name).toBe("f");
+        expect((body.func as CoreVar).name).toBe("f");
 
         // Argument to f should be g(x)
-        const arg = body.args[0];
+        const arg = body.args[0] as CoreApp;
+        expect(arg).toBeDefined();
         expect(arg.kind).toBe("CoreApp");
-        expect(arg.func.name).toBe("g");
+        expect((arg.func as CoreVar).name).toBe("g");
     });
 
     it("should desugar three-function backward composition", () => {
@@ -187,12 +189,15 @@ describe("Function Composition - With Lambdas", () => {
         const lambda = result as CoreLambda;
 
         // Body should apply second lambda to result of first
-        expect(lambda.body.kind).toBe("CoreApp");
-        expect(lambda.body.func.kind).toBe("CoreLambda");
+        const body = lambda.body as CoreApp;
+        expect(body.kind).toBe("CoreApp");
+        expect(body.func.kind).toBe("CoreLambda");
 
         // Argument should be application of first lambda
-        expect(lambda.body.args[0].kind).toBe("CoreApp");
-        expect(lambda.body.args[0].func.kind).toBe("CoreLambda");
+        const bodyArg = body.args[0] as CoreApp;
+        expect(bodyArg).toBeDefined();
+        expect(bodyArg.kind).toBe("CoreApp");
+        expect(bodyArg.func.kind).toBe("CoreLambda");
     });
 });
 
@@ -222,11 +227,14 @@ describe("Function Composition - Mixed with Partial Application", () => {
         // Should be lambda wrapping composed applications
         expect(result.kind).toBe("CoreLambda");
         const lambda = result as CoreLambda;
-        expect(lambda.body.kind).toBe("CoreApp");
+        const body = lambda.body as CoreApp;
+        expect(body.kind).toBe("CoreApp");
 
         // Both functions should be partially applied
-        expect(lambda.body.func.kind).toBe("CoreApp");
-        expect(lambda.body.args[0].kind).toBe("CoreApp");
+        expect(body.func.kind).toBe("CoreApp");
+        const bodyArg = body.args[0] as CoreApp;
+        expect(bodyArg).toBeDefined();
+        expect(bodyArg.kind).toBe("CoreApp");
     });
 });
 

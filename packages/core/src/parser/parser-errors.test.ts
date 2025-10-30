@@ -32,7 +32,7 @@ describe("Parser - Error Handling", () => {
         it("reports error for unexpected token in expression", () => {
             const error = expectParseError("let x = then");
             expect(error.message).toContain("Unexpected");
-            expect(error.location.line).toBe(1);
+            expect(error.location!.line).toBe(1);
         });
 
         it("reports error for missing operator between operands", () => {
@@ -120,17 +120,17 @@ describe("Parser - Error Handling", () => {
     describe("error location information", () => {
         it("includes file name in error", () => {
             const error = expectParseError("let x = then");
-            expect(error.location.file).toBe("test.vf");
+            expect(error.location!.file).toBe("test.vf");
         });
 
         it("includes line number in error", () => {
             const error = expectParseError("let x = 1\nlet y = then");
-            expect(error.location.line).toBe(2);
+            expect(error.location!.line).toBe(2);
         });
 
         it("includes column information", () => {
             const error = expectParseError("let x = then");
-            expect(error.location.column).toBeGreaterThan(0);
+            expect(error.location!.column).toBeGreaterThan(0);
         });
     });
 

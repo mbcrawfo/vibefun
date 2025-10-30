@@ -3,7 +3,26 @@
  */
 
 import type { Expr, Location, Module, Pattern } from "../types/ast.js";
-import type { CoreExpr } from "../types/core-ast.js";
+import type {
+    CoreApp,
+    CoreBinOp,
+    CoreBoolLit,
+    CoreFloatLit,
+    CoreIntLit,
+    CoreLet,
+    CoreLiteralPattern,
+    CoreMatch,
+    CoreRecord,
+    CoreRecordAccess,
+    CoreRecordPattern,
+    CoreStringLit,
+    CoreTypeAnnotation,
+    CoreUnaryOp,
+    CoreUnsafe,
+    CoreVar,
+    CoreVariantPattern,
+    CoreVarPattern,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -79,7 +98,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreIntLit");
-        expect((result as CoreExpr).value).toBe(42);
+        expect((result as CoreIntLit).value).toBe(42);
         expect(result.loc).toBe(testLoc);
     });
 
@@ -93,7 +112,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreFloatLit");
-        expect((result as CoreExpr).value).toBe(3.14);
+        expect((result as CoreFloatLit).value).toBe(3.14);
         expect(result.loc).toBe(testLoc);
     });
 
@@ -107,7 +126,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreStringLit");
-        expect((result as CoreExpr).value).toBe("hello");
+        expect((result as CoreStringLit).value).toBe("hello");
         expect(result.loc).toBe(testLoc);
     });
 
@@ -121,7 +140,7 @@ describe("Desugarer - Literals", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBoolLit");
-        expect((result as CoreExpr).value).toBe(true);
+        expect((result as CoreBoolLit).value).toBe(true);
         expect(result.loc).toBe(testLoc);
     });
 
@@ -149,7 +168,7 @@ describe("Desugarer - Variables", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreVar");
-        expect((result as CoreExpr).name).toBe("x");
+        expect((result as CoreVar).name).toBe("x");
         expect(result.loc).toBe(testLoc);
     });
 });
@@ -167,13 +186,14 @@ describe("Desugarer - Let Bindings", () => {
         };
 
         const result = desugar(expr);
+        const letResult = result as CoreLet;
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as CoreExpr).pattern.kind).toBe("CoreVarPattern");
-        expect((result as CoreExpr).value.kind).toBe("CoreIntLit");
-        expect((result as CoreExpr).body.kind).toBe("CoreVar");
-        expect((result as CoreExpr).mutable).toBe(false);
-        expect((result as CoreExpr).recursive).toBe(false);
+        expect(letResult.pattern.kind).toBe("CoreVarPattern");
+        expect(letResult.value.kind).toBe("CoreIntLit");
+        expect(letResult.body.kind).toBe("CoreVar");
+        expect(letResult.mutable).toBe(false);
+        expect(letResult.recursive).toBe(false);
     });
 
     it("should preserve mutable flag", () => {
@@ -189,7 +209,7 @@ describe("Desugarer - Let Bindings", () => {
 
         const result = desugar(expr);
 
-        expect((result as CoreExpr).mutable).toBe(true);
+        expect((result as CoreLet).mutable).toBe(true);
     });
 
     it("should preserve recursive flag", () => {
@@ -205,7 +225,7 @@ describe("Desugarer - Let Bindings", () => {
 
         const result = desugar(expr);
 
-        expect((result as CoreExpr).recursive).toBe(true);
+        expect((result as CoreLet).recursive).toBe(true);
     });
 });
 
@@ -219,10 +239,11 @@ describe("Desugarer - Function Application", () => {
         };
 
         const result = desugar(expr);
+        const app = result as CoreApp;
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as CoreExpr).func.kind).toBe("CoreVar");
-        expect((result as CoreExpr).args[0].kind).toBe("CoreIntLit");
+        expect(app.func.kind).toBe("CoreVar");
+        expect(app.args[0]!.kind).toBe("CoreIntLit");
     });
 
     it("should desugar multi-argument applications", () => {
@@ -239,7 +260,7 @@ describe("Desugarer - Function Application", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as CoreExpr).args).toHaveLength(2);
+        expect((result as CoreApp).args).toHaveLength(2);
     });
 });
 
@@ -259,11 +280,12 @@ describe("Desugarer - Match Expressions", () => {
         };
 
         const result = desugar(expr);
+        const match = result as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).expr.kind).toBe("CoreVar");
-        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreLiteralPattern");
-        expect((result as CoreExpr).cases[0].body.kind).toBe("CoreStringLit");
+        expect(match.expr.kind).toBe("CoreVar");
+        expect(match.cases[0]!.pattern.kind).toBe("CoreLiteralPattern");
+        expect(match.cases[0]!.body.kind).toBe("CoreStringLit");
     });
 
     it("should desugar match with guards", () => {
@@ -288,10 +310,12 @@ describe("Desugarer - Match Expressions", () => {
         };
 
         const result = desugar(expr);
+        const match = result as CoreMatch;
+        const guard = match.cases[0]!.guard;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases[0].guard).toBeDefined();
-        expect((result as CoreExpr).cases[0].guard.kind).toBe("CoreBinOp");
+        expect(guard).toBeDefined();
+        expect(guard!.kind).toBe("CoreBinOp");
     });
 });
 
@@ -315,11 +339,12 @@ describe("Desugarer - Records", () => {
         };
 
         const result = desugar(expr);
+        const record = result as CoreRecord;
 
         expect(result.kind).toBe("CoreRecord");
-        expect((result as CoreExpr).fields).toHaveLength(2);
-        expect((result as CoreExpr).fields[0].name).toBe("x");
-        expect((result as CoreExpr).fields[0].value.kind).toBe("CoreIntLit");
+        expect(record.fields).toHaveLength(2);
+        expect(record.fields[0]!.name).toBe("x");
+        expect(record.fields[0]!.value.kind).toBe("CoreIntLit");
     });
 
     it("should desugar record access", () => {
@@ -331,10 +356,11 @@ describe("Desugarer - Records", () => {
         };
 
         const result = desugar(expr);
+        const access = result as CoreRecordAccess;
 
         expect(result.kind).toBe("CoreRecordAccess");
-        expect((result as CoreExpr).record.kind).toBe("CoreVar");
-        expect((result as CoreExpr).field).toBe("x");
+        expect(access.record.kind).toBe("CoreVar");
+        expect(access.field).toBe("x");
     });
 });
 
@@ -349,11 +375,12 @@ describe("Desugarer - Binary Operations", () => {
         };
 
         const result = desugar(expr);
+        const binOp = result as CoreBinOp;
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).op).toBe("Add");
-        expect((result as CoreExpr).left.kind).toBe("CoreIntLit");
-        expect((result as CoreExpr).right.kind).toBe("CoreIntLit");
+        expect(binOp.op).toBe("Add");
+        expect(binOp.left.kind).toBe("CoreIntLit");
+        expect(binOp.right.kind).toBe("CoreIntLit");
     });
 
     it("should desugar comparison operations", () => {
@@ -368,7 +395,7 @@ describe("Desugarer - Binary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).op).toBe("LessThan");
+        expect((result as CoreBinOp).op).toBe("LessThan");
     });
 
     it("should desugar logical operations", () => {
@@ -383,7 +410,7 @@ describe("Desugarer - Binary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).op).toBe("LogicalAnd");
+        expect((result as CoreBinOp).op).toBe("LogicalAnd");
     });
 });
 
@@ -397,10 +424,11 @@ describe("Desugarer - Unary Operations", () => {
         };
 
         const result = desugar(expr);
+        const unaryOp = result as CoreUnaryOp;
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as CoreExpr).op).toBe("Negate");
-        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
+        expect(unaryOp.op).toBe("Negate");
+        expect(unaryOp.expr.kind).toBe("CoreIntLit");
     });
 
     it("should desugar logical not", () => {
@@ -414,7 +442,7 @@ describe("Desugarer - Unary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as CoreExpr).op).toBe("LogicalNot");
+        expect((result as CoreUnaryOp).op).toBe("LogicalNot");
     });
 
     it("should desugar dereference", () => {
@@ -428,7 +456,7 @@ describe("Desugarer - Unary Operations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as CoreExpr).op).toBe("Deref");
+        expect((result as CoreUnaryOp).op).toBe("Deref");
     });
 });
 
@@ -444,7 +472,7 @@ describe("Desugarer - Type Annotations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreTypeAnnotation");
-        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreTypeAnnotation).expr.kind).toBe("CoreIntLit");
     });
 });
 
@@ -459,7 +487,7 @@ describe("Desugarer - Unsafe Blocks", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnsafe");
-        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreUnsafe).expr.kind).toBe("CoreIntLit");
     });
 
     it("should desugar contents of unsafe blocks", () => {
@@ -480,7 +508,7 @@ describe("Desugarer - Unsafe Blocks", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnsafe");
-        expect((result as CoreExpr).expr.kind).toBe("CoreLet");
+        expect((result as CoreUnsafe).expr.kind).toBe("CoreLet");
     });
 });
 
@@ -496,7 +524,7 @@ describe("Desugarer - Patterns", () => {
         const result = desugarPattern(pattern, gen);
 
         expect(result.kind).toBe("CoreVarPattern");
-        expect((result as CoreExpr).name).toBe("x");
+        expect((result as CoreVarPattern).name).toBe("x");
     });
 
     it("should desugar wildcard patterns", () => {
@@ -522,7 +550,7 @@ describe("Desugarer - Patterns", () => {
         const result = desugarPattern(pattern, gen);
 
         expect(result.kind).toBe("CoreLiteralPattern");
-        expect((result as CoreExpr).literal).toBe(42);
+        expect((result as CoreLiteralPattern).literal).toBe(42);
     });
 
     it("should desugar constructor patterns", () => {
@@ -535,10 +563,11 @@ describe("Desugarer - Patterns", () => {
 
         const gen = new FreshVarGen();
         const result = desugarPattern(pattern, gen);
+        const variantPat = result as CoreVariantPattern;
 
         expect(result.kind).toBe("CoreVariantPattern");
-        expect((result as CoreExpr).constructor).toBe("Some");
-        expect((result as CoreExpr).args[0].kind).toBe("CoreVarPattern");
+        expect(variantPat.constructor).toBe("Some");
+        expect(variantPat.args[0]!.kind).toBe("CoreVarPattern");
     });
 
     it("should desugar record patterns", () => {
@@ -556,10 +585,11 @@ describe("Desugarer - Patterns", () => {
 
         const gen = new FreshVarGen();
         const result = desugarPattern(pattern, gen);
+        const recordPat = result as CoreRecordPattern;
 
         expect(result.kind).toBe("CoreRecordPattern");
-        expect((result as CoreExpr).fields[0].name).toBe("x");
-        expect((result as CoreExpr).fields[0].pattern.kind).toBe("CoreVarPattern");
+        expect(recordPat.fields[0]!.name).toBe("x");
+        expect(recordPat.fields[0]!.pattern.kind).toBe("CoreVarPattern");
     });
 });
 
@@ -597,7 +627,7 @@ describe("Desugarer - Module", () => {
         const result = desugarModule(module);
 
         expect(result.declarations).toHaveLength(1);
-        expect(result.declarations[0].kind).toBe("CoreLetDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreLetDecl");
     });
 
     it("should desugar module with imports", () => {
@@ -605,7 +635,7 @@ describe("Desugarer - Module", () => {
             imports: [
                 {
                     kind: "ImportDecl",
-                    items: [{ name: "Option", alias: undefined, isType: true }],
+                    items: [{ name: "Option", isType: true }],
                     from: "./option",
                     loc: testLoc,
                 },
@@ -617,8 +647,8 @@ describe("Desugarer - Module", () => {
         const result = desugarModule(module);
 
         expect(result.imports).toHaveLength(1);
-        expect(result.imports[0].kind).toBe("CoreImportDecl");
-        expect(result.imports[0].items[0].name).toBe("Option");
+        expect(result.imports[0]!.kind).toBe("CoreImportDecl");
+        expect(result.imports[0]!.items[0]!.name).toBe("Option");
     });
 
     it("should desugar module with multiple let declarations", () => {
@@ -659,9 +689,9 @@ describe("Desugarer - Module", () => {
         const result = desugarModule(module);
 
         expect(result.declarations).toHaveLength(3);
-        expect(result.declarations[0].kind).toBe("CoreLetDecl");
-        expect(result.declarations[1].kind).toBe("CoreLetDecl");
-        expect(result.declarations[2].kind).toBe("CoreLetDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreLetDecl");
+        expect(result.declarations[1]!.kind).toBe("CoreLetDecl");
+        expect(result.declarations[2]!.kind).toBe("CoreLetDecl");
     });
 
     it("should desugar module with type declarations", () => {
@@ -673,14 +703,16 @@ describe("Desugarer - Module", () => {
                     name: "Option",
                     params: ["T"],
                     definition: {
-                        kind: "VariantType",
-                        variants: [
+                        kind: "VariantTypeDef",
+                        constructors: [
                             {
                                 name: "Some",
-                                types: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                                args: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                                loc: testLoc,
                             },
-                            { name: "None", types: [] },
+                            { name: "None", args: [], loc: testLoc },
                         ],
+                        loc: testLoc,
                     },
                     exported: false,
                     loc: testLoc,
@@ -692,7 +724,7 @@ describe("Desugarer - Module", () => {
         const result = desugarModule(module);
 
         expect(result.declarations).toHaveLength(1);
-        expect(result.declarations[0].kind).toBe("CoreTypeDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreTypeDecl");
     });
 
     it("should desugar module with external declarations", () => {
@@ -702,7 +734,7 @@ describe("Desugarer - Module", () => {
                 {
                     kind: "ExternalDecl",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     exported: false,
                     loc: testLoc,
@@ -714,7 +746,7 @@ describe("Desugarer - Module", () => {
         const result = desugarModule(module);
 
         expect(result.declarations).toHaveLength(1);
-        expect(result.declarations[0].kind).toBe("CoreExternalDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreExternalDecl");
     });
 
     it("should desugar module with external type declarations", () => {
@@ -724,7 +756,7 @@ describe("Desugarer - Module", () => {
                 {
                     kind: "ExternalTypeDecl",
                     name: "Promise",
-                    typeExpr: { kind: "TypeConstructor", name: "external", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "external", loc: testLoc },
                     exported: false,
                     loc: testLoc,
                 },
@@ -735,7 +767,7 @@ describe("Desugarer - Module", () => {
         const result = desugarModule(module);
 
         expect(result.declarations).toHaveLength(1);
-        expect(result.declarations[0].kind).toBe("CoreExternalTypeDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreExternalTypeDecl");
     });
 
     it("should desugar module with mixed declaration types", () => {
@@ -743,7 +775,7 @@ describe("Desugarer - Module", () => {
             imports: [
                 {
                     kind: "ImportDecl",
-                    items: [{ name: "Option", alias: undefined, isType: true }],
+                    items: [{ name: "Option", isType: true }],
                     from: "./option",
                     loc: testLoc,
                 },
@@ -754,17 +786,20 @@ describe("Desugarer - Module", () => {
                     name: "Result",
                     params: ["T", "E"],
                     definition: {
-                        kind: "VariantType",
-                        variants: [
+                        kind: "VariantTypeDef",
+                        constructors: [
                             {
                                 name: "Ok",
-                                types: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                                args: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                                loc: testLoc,
                             },
                             {
                                 name: "Err",
-                                types: [{ kind: "TypeVar", name: "E", loc: testLoc }],
+                                args: [{ kind: "TypeVar", name: "E", loc: testLoc }],
+                                loc: testLoc,
                             },
                         ],
+                        loc: testLoc,
                     },
                     exported: true,
                     loc: testLoc,
@@ -772,7 +807,7 @@ describe("Desugarer - Module", () => {
                 {
                     kind: "ExternalDecl",
                     name: "log",
-                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    typeExpr: { kind: "TypeConst", name: "Unit", loc: testLoc },
                     jsName: "console.log",
                     exported: false,
                     loc: testLoc,
@@ -794,8 +829,8 @@ describe("Desugarer - Module", () => {
 
         expect(result.imports).toHaveLength(1);
         expect(result.declarations).toHaveLength(3);
-        expect(result.declarations[0].kind).toBe("CoreTypeDecl");
-        expect(result.declarations[1].kind).toBe("CoreExternalDecl");
-        expect(result.declarations[2].kind).toBe("CoreLetDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreTypeDecl");
+        expect(result.declarations[1]!.kind).toBe("CoreExternalDecl");
+        expect(result.declarations[2]!.kind).toBe("CoreLetDecl");
     });
 });

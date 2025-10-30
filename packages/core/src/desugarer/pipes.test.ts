@@ -7,7 +7,7 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreApp } from "../types/core-ast.js";
+import type { CoreApp, CoreIntLit, CoreVar } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -33,12 +33,14 @@ describe("Pipe Operator - Basic Cases", () => {
         const result = desugar(pipe);
 
         // Should become: f(data)
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.kind).toBe("CoreVar");
-        expect((result as CoreApp).func.name).toBe("f");
-        expect((result as CoreApp).args).toHaveLength(1);
-        expect((result as CoreApp).args[0].kind).toBe("CoreVar");
-        expect((result as CoreApp).args[0].name).toBe("data");
+        const app = result as CoreApp;
+        expect(app.kind).toBe("CoreApp");
+        expect(app.func.kind).toBe("CoreVar");
+        expect((app.func as CoreVar).name).toBe("f");
+        expect(app.args).toHaveLength(1);
+        const arg = app.args[0]!;
+        expect(arg.kind).toBe("CoreVar");
+        expect((arg as CoreVar).name).toBe("data");
     });
 
     it("should desugar pipe with literal", () => {
@@ -52,9 +54,11 @@ describe("Pipe Operator - Basic Cases", () => {
 
         const result = desugar(pipe);
 
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).args[0].kind).toBe("CoreIntLit");
-        expect((result as CoreApp).args[0].value).toBe(42);
+        const app = result as CoreApp;
+        expect(app.kind).toBe("CoreApp");
+        const arg = app.args[0]!;
+        expect(arg.kind).toBe("CoreIntLit");
+        expect((arg as CoreIntLit).value).toBe(42);
     });
 });
 
@@ -79,13 +83,15 @@ describe("Pipe Operator - Chained Pipes", () => {
         const result = desugar(outerPipe);
 
         // Should become: g(f(data))
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.name).toBe("g");
+        const outerApp = result as CoreApp;
+        expect(outerApp.kind).toBe("CoreApp");
+        expect((outerApp.func as CoreVar).name).toBe("g");
 
-        const arg = (result as CoreApp).args[0];
+        const arg = outerApp.args[0]! as CoreApp;
         expect(arg.kind).toBe("CoreApp");
-        expect(arg.func.name).toBe("f");
-        expect(arg.args[0].name).toBe("data");
+        expect((arg.func as CoreVar).name).toBe("f");
+        const innerArg = arg.args[0]!;
+        expect((innerArg as CoreVar).name).toBe("data");
     });
 
     it("should desugar three-stage pipe", () => {
@@ -115,17 +121,19 @@ describe("Pipe Operator - Chained Pipes", () => {
         const result = desugar(pipe3);
 
         // Should become: h(g(f(data)))
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.name).toBe("h");
+        const outerApp = result as CoreApp;
+        expect(outerApp.kind).toBe("CoreApp");
+        expect((outerApp.func as CoreVar).name).toBe("h");
 
-        const arg1 = (result as CoreApp).args[0];
+        const arg1 = outerApp.args[0]! as CoreApp;
         expect(arg1.kind).toBe("CoreApp");
-        expect(arg1.func.name).toBe("g");
+        expect((arg1.func as CoreVar).name).toBe("g");
 
-        const arg2 = arg1.args[0];
+        const arg2 = arg1.args[0]! as CoreApp;
         expect(arg2.kind).toBe("CoreApp");
-        expect(arg2.func.name).toBe("f");
-        expect(arg2.args[0].name).toBe("data");
+        expect((arg2.func as CoreVar).name).toBe("f");
+        const innerArg = arg2.args[0]!;
+        expect((innerArg as CoreVar).name).toBe("data");
     });
 });
 
@@ -147,10 +155,13 @@ describe("Pipe Operator - With Function Applications", () => {
         const result = desugar(pipe);
 
         // Should become: filter(pred)(data)
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.func.name).toBe("filter");
-        expect((result as CoreApp).args[0].name).toBe("data");
+        const outerApp = result as CoreApp;
+        expect(outerApp.kind).toBe("CoreApp");
+        const funcApp = outerApp.func as CoreApp;
+        expect(funcApp.kind).toBe("CoreApp");
+        expect((funcApp.func as CoreVar).name).toBe("filter");
+        const arg = outerApp.args[0]!;
+        expect((arg as CoreVar).name).toBe("data");
     });
 
     it("should desugar pipe chain with partial applications", () => {
@@ -184,13 +195,15 @@ describe("Pipe Operator - With Function Applications", () => {
         // Should become: map(transform)(filter(pred)(data))
         expect(result.kind).toBe("CoreApp");
         const mapCall = result as CoreApp;
-        expect(mapCall.func.kind).toBe("CoreApp");
-        expect(mapCall.func.func.name).toBe("map");
+        const mapFunc = mapCall.func as CoreApp;
+        expect(mapFunc.kind).toBe("CoreApp");
+        expect((mapFunc.func as CoreVar).name).toBe("map");
 
-        const filterResult = mapCall.args[0];
+        const filterResult = mapCall.args[0]! as CoreApp;
         expect(filterResult.kind).toBe("CoreApp");
-        expect(filterResult.func.kind).toBe("CoreApp");
-        expect(filterResult.func.func.name).toBe("filter");
+        const filterFunc = filterResult.func as CoreApp;
+        expect(filterFunc.kind).toBe("CoreApp");
+        expect((filterFunc.func as CoreVar).name).toBe("filter");
     });
 });
 
@@ -218,9 +231,11 @@ describe("Pipe Operator - With Lambdas", () => {
         const result = desugar(pipe);
 
         // Should become: ((x) => x + 1)(data)
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.kind).toBe("CoreLambda");
-        expect((result as CoreApp).args[0].name).toBe("data");
+        const app = result as CoreApp;
+        expect(app.kind).toBe("CoreApp");
+        expect(app.func.kind).toBe("CoreLambda");
+        const arg = app.args[0]!;
+        expect((arg as CoreVar).name).toBe("data");
     });
 
     it("should desugar chained pipes with lambdas", () => {
@@ -287,7 +302,7 @@ describe("Pipe Operator - Complex Expressions", () => {
         const result = desugar(pipe);
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).args[0].kind).toBe("CoreBinOp");
+        expect((result as CoreApp).args[0]!.kind).toBe("CoreBinOp");
     });
 
     it("should desugar pipe with complex function expression", () => {
@@ -308,10 +323,12 @@ describe("Pipe Operator - Complex Expressions", () => {
         const result = desugar(pipe);
 
         // Should be: (match cond { | true => f | false => g })(data)
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).func.kind).toBe("CoreMatch");
-        expect((result as CoreApp).args[0].kind).toBe("CoreVar");
-        expect((result as CoreApp).args[0].name).toBe("data");
+        const app = result as CoreApp;
+        expect(app.kind).toBe("CoreApp");
+        expect(app.func.kind).toBe("CoreMatch");
+        const arg = app.args[0]!;
+        expect(arg.kind).toBe("CoreVar");
+        expect((arg as CoreVar).name).toBe("data");
     });
 });
 
@@ -333,7 +350,7 @@ describe("Pipe Operator - With Records", () => {
         const result = desugar(pipe);
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).args[0].kind).toBe("CoreRecordAccess");
+        expect((result as CoreApp).args[0]!.kind).toBe("CoreRecordAccess");
     });
 
     it("should desugar pipe with record literal", () => {
@@ -363,7 +380,7 @@ describe("Pipe Operator - With Records", () => {
         const result = desugar(pipe);
 
         expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).args[0].kind).toBe("CoreRecord");
+        expect((result as CoreApp).args[0]!.kind).toBe("CoreRecord");
     });
 });
 

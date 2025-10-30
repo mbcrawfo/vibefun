@@ -9,7 +9,17 @@
  */
 
 import type { Declaration, Expr, Location, Module } from "../types/ast.js";
-import type { CoreExpr } from "../types/core-ast.js";
+import type {
+    CoreBinOp,
+    CoreDeclaration,
+    CoreExternalDecl,
+    CoreExternalTypeDecl,
+    CoreLet,
+    CoreLetDecl,
+    CoreTypeAnnotation,
+    CoreUnaryOp,
+    CoreUnsafe,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -38,9 +48,9 @@ describe("Mutable References - Let Bindings", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as CoreExpr).mutable).toBe(true);
-        expect((result as CoreExpr).value.kind).toBe("CoreIntLit");
-        expect((result as CoreExpr).body.kind).toBe("CoreVar");
+        expect((result as CoreLet).mutable).toBe(true);
+        expect((result as CoreLet).value.kind).toBe("CoreIntLit");
+        expect((result as CoreLet).body.kind).toBe("CoreVar");
     });
 
     it("should preserve immutable flag in let binding", () => {
@@ -58,7 +68,7 @@ describe("Mutable References - Let Bindings", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as CoreExpr).mutable).toBe(false);
+        expect((result as CoreLet).mutable).toBe(false);
     });
 
     it("should preserve recursive flag in let binding", () => {
@@ -81,7 +91,7 @@ describe("Mutable References - Let Bindings", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreLet");
-        expect((result as CoreExpr).recursive).toBe(true);
+        expect((result as CoreLet).recursive).toBe(true);
     });
 });
 
@@ -99,9 +109,9 @@ describe("Mutable References - Operators", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).op).toBe("RefAssign");
-        expect((result as CoreExpr).left.kind).toBe("CoreVar");
-        expect((result as CoreExpr).right.kind).toBe("CoreIntLit");
+        expect((result as CoreBinOp).op).toBe("RefAssign");
+        expect((result as CoreBinOp).left.kind).toBe("CoreVar");
+        expect((result as CoreBinOp).right.kind).toBe("CoreIntLit");
     });
 
     it("should desugar dereference (Deref)", () => {
@@ -116,8 +126,8 @@ describe("Mutable References - Operators", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnaryOp");
-        expect((result as CoreExpr).op).toBe("Deref");
-        expect((result as CoreExpr).expr.kind).toBe("CoreVar");
+        expect((result as CoreUnaryOp).op).toBe("Deref");
+        expect((result as CoreUnaryOp).expr.kind).toBe("CoreVar");
     });
 
     it("should desugar complex ref assignment", () => {
@@ -139,9 +149,9 @@ describe("Mutable References - Operators", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).op).toBe("RefAssign");
-        expect((result as CoreExpr).right.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).right.op).toBe("Add");
+        expect((result as CoreBinOp).op).toBe("RefAssign");
+        expect((result as CoreBinOp).right.kind).toBe("CoreBinOp");
+        expect(((result as CoreBinOp).right as CoreBinOp).op).toBe("Add");
     });
 });
 
@@ -158,8 +168,8 @@ describe("Type Annotations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreTypeAnnotation");
-        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
-        expect((result as CoreExpr).typeExpr.kind).toBe("CoreTypeConst");
+        expect((result as CoreTypeAnnotation).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreTypeAnnotation).typeExpr.kind).toBe("CoreTypeConst");
     });
 
     it("should desugar complex expression with type annotation", () => {
@@ -180,7 +190,7 @@ describe("Type Annotations", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreTypeAnnotation");
-        expect((result as CoreExpr).expr.kind).toBe("CoreBinOp");
+        expect((result as CoreTypeAnnotation).expr.kind).toBe("CoreBinOp");
     });
 
     it("should desugar lambda with type annotation", () => {
@@ -210,7 +220,7 @@ describe("Type Annotations", () => {
 
         expect(result.kind).toBe("CoreTypeAnnotation");
         // Lambda should be curried inside
-        expect((result as CoreExpr).expr.kind).toBe("CoreLambda");
+        expect((result as CoreTypeAnnotation).expr.kind).toBe("CoreLambda");
     });
 });
 
@@ -226,7 +236,7 @@ describe("Unsafe Blocks", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnsafe");
-        expect((result as CoreExpr).expr.kind).toBe("CoreIntLit");
+        expect((result as CoreUnsafe).expr.kind).toBe("CoreIntLit");
     });
 
     it("should desugar complex expression inside unsafe", () => {
@@ -246,7 +256,7 @@ describe("Unsafe Blocks", () => {
         const result = desugar(expr);
 
         expect(result.kind).toBe("CoreUnsafe");
-        expect((result as CoreExpr).expr.kind).toBe("CoreBinOp");
+        expect((result as CoreUnsafe).expr.kind).toBe("CoreBinOp");
     });
 
     it("should desugar block inside unsafe", () => {
@@ -281,7 +291,7 @@ describe("Unsafe Blocks", () => {
 
         expect(result.kind).toBe("CoreUnsafe");
         // Block should be desugared to CoreLet
-        expect((result as CoreExpr).expr.kind).toBe("CoreLet");
+        expect((result as CoreUnsafe).expr.kind).toBe("CoreLet");
     });
 
     it("should desugar if-then-else inside unsafe", () => {
@@ -302,7 +312,7 @@ describe("Unsafe Blocks", () => {
 
         expect(result.kind).toBe("CoreUnsafe");
         // If should be desugared to CoreMatch
-        expect((result as CoreExpr).expr.kind).toBe("CoreMatch");
+        expect((result as CoreUnsafe).expr.kind).toBe("CoreMatch");
     });
 });
 
@@ -329,10 +339,11 @@ describe("External Blocks", () => {
         const result = desugarDecl(decl, gen);
 
         expect(Array.isArray(result)).toBe(true);
-        expect((result as CoreExpr[]).length).toBe(1);
-        expect((result as CoreExpr[])[0].kind).toBe("CoreExternalDecl");
-        expect((result as CoreExpr[])[0].name).toBe("log");
-        expect((result as CoreExpr[])[0].from).toBe("console");
+        const resultArray = result as CoreDeclaration[];
+        expect(resultArray.length).toBe(1);
+        expect(resultArray[0]!.kind).toBe("CoreExternalDecl");
+        expect((resultArray[0]! as CoreExternalDecl).name).toBe("log");
+        expect((resultArray[0]! as CoreExternalDecl).from).toBe("console");
     });
 
     it("should expand external block with multiple values", () => {
@@ -366,9 +377,10 @@ describe("External Blocks", () => {
         const result = desugarDecl(decl, gen);
 
         expect(Array.isArray(result)).toBe(true);
-        expect((result as CoreExpr[]).length).toBe(2);
-        expect((result as CoreExpr[])[0].name).toBe("log");
-        expect((result as CoreExpr[])[1].name).toBe("warn");
+        const resultArray = result as CoreDeclaration[];
+        expect(resultArray.length).toBe(2);
+        expect((resultArray[0]! as CoreExternalDecl).name).toBe("log");
+        expect((resultArray[1]! as CoreExternalDecl).name).toBe("warn");
     });
 
     it("should expand external block with types", () => {
@@ -400,11 +412,12 @@ describe("External Blocks", () => {
         const result = desugarDecl(decl, gen);
 
         expect(Array.isArray(result)).toBe(true);
-        expect((result as CoreExpr[]).length).toBe(2);
-        expect((result as CoreExpr[])[0].kind).toBe("CoreExternalTypeDecl");
-        expect((result as CoreExpr[])[1].kind).toBe("CoreExternalTypeDecl");
-        expect((result as CoreExpr[])[0].exported).toBe(true);
-        expect((result as CoreExpr[])[1].exported).toBe(true);
+        const resultArray = result as CoreDeclaration[];
+        expect(resultArray.length).toBe(2);
+        expect(resultArray[0]!.kind).toBe("CoreExternalTypeDecl");
+        expect(resultArray[1]!.kind).toBe("CoreExternalTypeDecl");
+        expect((resultArray[0]! as CoreExternalTypeDecl).exported).toBe(true);
+        expect((resultArray[1]! as CoreExternalTypeDecl).exported).toBe(true);
     });
 
     it("should expand external block with mixed values and types", () => {
@@ -445,10 +458,11 @@ describe("External Blocks", () => {
         const result = desugarDecl(decl, gen);
 
         expect(Array.isArray(result)).toBe(true);
-        expect((result as CoreExpr[]).length).toBe(3);
-        expect((result as CoreExpr[])[0].kind).toBe("CoreExternalDecl");
-        expect((result as CoreExpr[])[1].kind).toBe("CoreExternalTypeDecl");
-        expect((result as CoreExpr[])[2].kind).toBe("CoreExternalDecl");
+        const resultArray = result as CoreDeclaration[];
+        expect(resultArray.length).toBe(3);
+        expect(resultArray[0]!.kind).toBe("CoreExternalDecl");
+        expect(resultArray[1]!.kind).toBe("CoreExternalTypeDecl");
+        expect(resultArray[2]!.kind).toBe("CoreExternalDecl");
     });
 
     it("should preserve exported flag from block to all items", () => {
@@ -471,7 +485,8 @@ describe("External Blocks", () => {
         const gen = new FreshVarGen();
         const result = desugarDecl(decl, gen);
 
-        expect((result as CoreExpr[])[0].exported).toBe(true);
+        const resultArray = result as CoreDeclaration[];
+        expect((resultArray[0]! as CoreExternalDecl).exported).toBe(true);
     });
 });
 
@@ -496,8 +511,8 @@ describe("Pass-Through - Integration", () => {
         const result = desugarModule(module);
 
         expect(result.declarations).toHaveLength(1);
-        expect(result.declarations[0].kind).toBe("CoreLetDecl");
-        expect((result.declarations[0] as CoreExpr).mutable).toBe(true);
+        expect(result.declarations[0]!.kind).toBe("CoreLetDecl");
+        expect((result.declarations[0]! as CoreLetDecl).mutable).toBe(true);
     });
 
     it("should expand external block in module", () => {
@@ -533,7 +548,7 @@ describe("Pass-Through - Integration", () => {
 
         // External block should expand to 2 declarations
         expect(result.declarations).toHaveLength(2);
-        expect(result.declarations[0].kind).toBe("CoreExternalDecl");
-        expect(result.declarations[1].kind).toBe("CoreExternalDecl");
+        expect(result.declarations[0]!.kind).toBe("CoreExternalDecl");
+        expect(result.declarations[1]!.kind).toBe("CoreExternalDecl");
     });
 });

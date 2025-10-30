@@ -6,7 +6,14 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreExpr, CoreLambda } from "../types/core-ast.js";
+import type {
+    CoreBinOp,
+    CoreExpr,
+    CoreLambda,
+    CoreRecordPattern,
+    CoreVariantPattern,
+    CoreVarPattern,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -31,10 +38,12 @@ describe("Lambda Currying - Single Parameter", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.kind).toBe("CoreVarPattern");
-        expect((result as CoreLambda).param.name).toBe("x");
-        expect((result as CoreLambda).body.kind).toBe("CoreVar");
-        expect((result as CoreLambda).body.name).toBe("x");
+        const coreLambda = result as CoreLambda;
+        expect(coreLambda.param.kind).toBe("CoreVarPattern");
+        expect((coreLambda.param as CoreVarPattern).name).toBe("x");
+        expect(coreLambda.body.kind).toBe("CoreVar");
+        const body = coreLambda.body as { kind: "CoreVar"; name: string };
+        expect(body.name).toBe("x");
     });
 
     it("should desugar identity function", () => {
@@ -67,8 +76,10 @@ describe("Lambda Currying - Single Parameter", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).body.kind).toBe("CoreBinOp");
-        expect((result as CoreLambda).body.op).toBe("Add");
+        const coreLambda = result as CoreLambda;
+        expect(coreLambda.body.kind).toBe("CoreBinOp");
+        const body = coreLambda.body as CoreBinOp;
+        expect(body.op).toBe("Add");
     });
 });
 
@@ -94,15 +105,16 @@ describe("Lambda Currying - Two Parameters", () => {
 
         // Outer lambda: (x) => ...
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.name).toBe("x");
+        const outerLambda = result as CoreLambda;
+        expect((outerLambda.param as CoreVarPattern).name).toBe("x");
 
         // Inner lambda: (y) => x + y
-        const innerLambda = (result as CoreLambda).body;
+        const innerLambda = outerLambda.body as CoreLambda;
         expect(innerLambda.kind).toBe("CoreLambda");
-        expect(innerLambda.param.name).toBe("y");
+        expect((innerLambda.param as CoreVarPattern).name).toBe("y");
 
         // Body: x + y
-        const body = innerLambda.body;
+        const body = innerLambda.body as CoreBinOp;
         expect(body.kind).toBe("CoreBinOp");
         expect(body.op).toBe("Add");
     });
@@ -127,9 +139,11 @@ describe("Lambda Currying - Two Parameters", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.name).toBe("a");
-        expect((result as CoreLambda).body.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).body.param.name).toBe("b");
+        const outerLambda = result as CoreLambda;
+        expect((outerLambda.param as CoreVarPattern).name).toBe("a");
+        expect(outerLambda.body.kind).toBe("CoreLambda");
+        const innerLambda = outerLambda.body as CoreLambda;
+        expect((innerLambda.param as CoreVarPattern).name).toBe("b");
     });
 });
 
@@ -162,17 +176,18 @@ describe("Lambda Currying - Three Parameters", () => {
 
         // Level 1: (x) => ...
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.name).toBe("x");
+        const level1 = result as CoreLambda;
+        expect((level1.param as CoreVarPattern).name).toBe("x");
 
         // Level 2: (y) => ...
-        const level2 = (result as CoreLambda).body;
+        const level2 = level1.body as CoreLambda;
         expect(level2.kind).toBe("CoreLambda");
-        expect(level2.param.name).toBe("y");
+        expect((level2.param as CoreVarPattern).name).toBe("y");
 
         // Level 3: (z) => x + y + z
-        const level3 = level2.body;
+        const level3 = level2.body as CoreLambda;
         expect(level3.kind).toBe("CoreLambda");
-        expect(level3.param.name).toBe("z");
+        expect((level3.param as CoreVarPattern).name).toBe("z");
 
         // Body: x + (y + z)
         const body = level3.body;
@@ -198,23 +213,25 @@ describe("Lambda Currying - Four+ Parameters", () => {
 
         // Verify four levels of nesting
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.name).toBe("a");
+        const lambda1 = result as CoreLambda;
+        expect((lambda1.param as CoreVarPattern).name).toBe("a");
 
-        let current = (result as CoreLambda).body;
+        let current = lambda1.body as CoreLambda;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("b");
+        expect((current.param as CoreVarPattern).name).toBe("b");
 
-        current = current.body;
+        current = current.body as CoreLambda;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("c");
+        expect((current.param as CoreVarPattern).name).toBe("c");
 
-        current = current.body;
+        current = current.body as CoreLambda;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("d");
+        expect((current.param as CoreVarPattern).name).toBe("d");
 
         // Final body
-        expect(current.body.kind).toBe("CoreIntLit");
-        expect(current.body.value).toBe(42);
+        const finalBody = current.body as { kind: "CoreIntLit"; value: number };
+        expect(finalBody.kind).toBe("CoreIntLit");
+        expect(finalBody.value).toBe(42);
     });
 
     it("should curry five-parameter lambda", () => {
@@ -236,26 +253,31 @@ describe("Lambda Currying - Four+ Parameters", () => {
         // Walk through five levels
         let current: CoreExpr = result;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("p1");
+        const lambda1 = current as CoreLambda;
+        expect((lambda1.param as CoreVarPattern).name).toBe("p1");
 
-        current = current.body;
+        current = lambda1.body;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("p2");
+        const lambda2 = current as CoreLambda;
+        expect((lambda2.param as CoreVarPattern).name).toBe("p2");
 
-        current = current.body;
+        current = lambda2.body;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("p3");
+        const lambda3 = current as CoreLambda;
+        expect((lambda3.param as CoreVarPattern).name).toBe("p3");
 
-        current = current.body;
+        current = lambda3.body;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("p4");
+        const lambda4 = current as CoreLambda;
+        expect((lambda4.param as CoreVarPattern).name).toBe("p4");
 
-        current = current.body;
+        current = lambda4.body;
         expect(current.kind).toBe("CoreLambda");
-        expect(current.param.name).toBe("p5");
+        const lambda5 = current as CoreLambda;
+        expect((lambda5.param as CoreVarPattern).name).toBe("p5");
 
         // Final body
-        expect(current.body.kind).toBe("CoreStringLit");
+        expect(lambda5.body.kind).toBe("CoreStringLit");
     });
 });
 
@@ -290,20 +312,21 @@ describe("Lambda Currying - Nested Lambdas", () => {
 
         // Outer lambda structure: (x) => (y) => ...
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.name).toBe("x");
+        const level1 = result as CoreLambda;
+        expect((level1.param as CoreVarPattern).name).toBe("x");
 
-        const level2 = (result as CoreLambda).body;
+        const level2 = level1.body as CoreLambda;
         expect(level2.kind).toBe("CoreLambda");
-        expect(level2.param.name).toBe("y");
+        expect((level2.param as CoreVarPattern).name).toBe("y");
 
         // Inner lambda structure: (a) => (b) => x + a
-        const innerLambda = level2.body;
+        const innerLambda = level2.body as CoreLambda;
         expect(innerLambda.kind).toBe("CoreLambda");
-        expect(innerLambda.param.name).toBe("a");
+        expect((innerLambda.param as CoreVarPattern).name).toBe("a");
 
-        const innerLevel2 = innerLambda.body;
+        const innerLevel2 = innerLambda.body as CoreLambda;
         expect(innerLevel2.kind).toBe("CoreLambda");
-        expect(innerLevel2.param.name).toBe("b");
+        expect((innerLevel2.param as CoreVarPattern).name).toBe("b");
 
         // Final body
         expect(innerLevel2.body.kind).toBe("CoreBinOp");
@@ -325,9 +348,11 @@ describe("Lambda Currying - Pattern Parameters", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.kind).toBe("CoreWildcardPattern");
-        expect((result as CoreLambda).body.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).body.param.name).toBe("y");
+        const outerLambda = result as CoreLambda;
+        expect(outerLambda.param.kind).toBe("CoreWildcardPattern");
+        expect(outerLambda.body.kind).toBe("CoreLambda");
+        const innerLambda = outerLambda.body as CoreLambda;
+        expect((innerLambda.param as CoreVarPattern).name).toBe("y");
     });
 
     it("should curry lambda with constructor patterns", () => {
@@ -349,8 +374,10 @@ describe("Lambda Currying - Pattern Parameters", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.kind).toBe("CoreVariantPattern");
-        expect((result as CoreLambda).param.constructor).toBe("Some");
+        const outerLambda = result as CoreLambda;
+        expect(outerLambda.param.kind).toBe("CoreVariantPattern");
+        const variantPattern = outerLambda.param as CoreVariantPattern;
+        expect(variantPattern.constructor).toBe("Some");
     });
 
     it("should curry lambda with record patterns", () => {
@@ -387,8 +414,10 @@ describe("Lambda Currying - Pattern Parameters", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        expect((result as CoreLambda).param.kind).toBe("CoreRecordPattern");
-        expect((result as CoreLambda).param.fields).toHaveLength(2);
+        const coreLambda = result as CoreLambda;
+        expect(coreLambda.param.kind).toBe("CoreRecordPattern");
+        const recordPattern = coreLambda.param as CoreRecordPattern;
+        expect(recordPattern.fields).toHaveLength(2);
     });
 });
 
@@ -422,7 +451,8 @@ describe("Lambda Currying - Complex Bodies", () => {
 
         // Outer structure
         expect(result.kind).toBe("CoreLambda");
-        const innerLambda = (result as CoreLambda).body;
+        const outerLambda = result as CoreLambda;
+        const innerLambda = outerLambda.body as CoreLambda;
         expect(innerLambda.kind).toBe("CoreLambda");
 
         // Body should be desugared let
@@ -455,7 +485,8 @@ describe("Lambda Currying - Complex Bodies", () => {
         const result = desugar(lambda);
 
         expect(result.kind).toBe("CoreLambda");
-        const innerLambda = (result as CoreLambda).body;
+        const outerLambda = result as CoreLambda;
+        const innerLambda = outerLambda.body as CoreLambda;
         expect(innerLambda.kind).toBe("CoreLambda");
 
         const body = innerLambda.body;
@@ -486,7 +517,8 @@ describe("Lambda Currying - Source Locations", () => {
 
         // All lambdas use the original location
         expect(result.loc).toBe(lambdaLoc);
-        expect((result as CoreLambda).body.loc).toBe(lambdaLoc);
+        const coreLambda = result as CoreLambda;
+        expect(coreLambda.body.loc).toBe(lambdaLoc);
     });
 });
 

@@ -8,7 +8,13 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreExpr } from "../types/core-ast.js";
+import type {
+    CoreLiteralPattern,
+    CoreMatch,
+    CoreStringLit,
+    CoreVariantPattern,
+    CoreVarPattern,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -49,24 +55,29 @@ describe("Or-Pattern - Two Alternatives", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(3); // Expanded to 3 cases
+        expect(result.cases).toHaveLength(3); // Expanded to 3 cases
 
         // First case: 1 => "small"
-        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreLiteralPattern");
-        expect((result as CoreExpr).cases[0].pattern.literal).toBe(1);
-        expect((result as CoreExpr).cases[0].body.value).toBe("small");
+        const case0Pattern = result.cases[0]!.pattern as CoreLiteralPattern;
+        expect(case0Pattern.kind).toBe("CoreLiteralPattern");
+        expect(case0Pattern.literal).toBe(1);
+        const case0Body = result.cases[0]!.body as CoreStringLit;
+        expect(case0Body.value).toBe("small");
 
         // Second case: 2 => "small"
-        expect((result as CoreExpr).cases[1].pattern.kind).toBe("CoreLiteralPattern");
-        expect((result as CoreExpr).cases[1].pattern.literal).toBe(2);
-        expect((result as CoreExpr).cases[1].body.value).toBe("small");
+        const case1Pattern = result.cases[1]!.pattern as CoreLiteralPattern;
+        expect(case1Pattern.kind).toBe("CoreLiteralPattern");
+        expect(case1Pattern.literal).toBe(2);
+        const case1Body = result.cases[1]!.body as CoreStringLit;
+        expect(case1Body.value).toBe("small");
 
         // Third case: other => "large"
-        expect((result as CoreExpr).cases[2].pattern.kind).toBe("CoreVarPattern");
-        expect((result as CoreExpr).cases[2].pattern.name).toBe("other");
+        const case2Pattern = result.cases[2]!.pattern as CoreVarPattern;
+        expect(case2Pattern.kind).toBe("CoreVarPattern");
+        expect(case2Pattern.name).toBe("other");
     });
 
     it("should expand or-pattern with string patterns", () => {
@@ -96,12 +107,14 @@ describe("Or-Pattern - Two Alternatives", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(3);
-        expect((result as CoreExpr).cases[0].pattern.literal).toBe("a");
-        expect((result as CoreExpr).cases[1].pattern.literal).toBe("b");
+        expect(result.cases).toHaveLength(3);
+        const pattern0 = result.cases[0]!.pattern as CoreLiteralPattern;
+        expect(pattern0.literal).toBe("a");
+        const pattern1 = result.cases[1]!.pattern as CoreLiteralPattern;
+        expect(pattern1.literal).toBe("b");
     });
 });
 
@@ -129,13 +142,16 @@ describe("Or-Pattern - Three+ Alternatives", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(3);
-        expect((result as CoreExpr).cases[0].pattern.literal).toBe("a");
-        expect((result as CoreExpr).cases[1].pattern.literal).toBe("b");
-        expect((result as CoreExpr).cases[2].pattern.literal).toBe("c");
+        expect(result.cases).toHaveLength(3);
+        const pattern0 = result.cases[0]!.pattern as CoreLiteralPattern;
+        expect(pattern0.literal).toBe("a");
+        const pattern1 = result.cases[1]!.pattern as CoreLiteralPattern;
+        expect(pattern1.literal).toBe("b");
+        const pattern2 = result.cases[2]!.pattern as CoreLiteralPattern;
+        expect(pattern2.literal).toBe("c");
     });
 
     it("should expand or-pattern with five alternatives", () => {
@@ -163,15 +179,17 @@ describe("Or-Pattern - Three+ Alternatives", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(5);
+        expect(result.cases).toHaveLength(5);
 
         // Check all five cases have correct literals
         for (let i = 0; i < 5; i++) {
-            expect((result as CoreExpr).cases[i].pattern.literal).toBe(i + 1);
-            expect((result as CoreExpr).cases[i].body.value).toBe("digit");
+            const pattern = result.cases[i]!.pattern as CoreLiteralPattern;
+            expect(pattern.literal).toBe(i + 1);
+            const body = result.cases[i]!.body as CoreStringLit;
+            expect(body.value).toBe("digit");
         }
     });
 });
@@ -206,16 +224,18 @@ describe("Or-Pattern - With Guards", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(2);
+        expect(result.cases).toHaveLength(2);
 
         // Both cases should have the guard
-        expect((result as CoreExpr).cases[0].guard).toBeDefined();
-        expect((result as CoreExpr).cases[0].guard.kind).toBe("CoreBinOp");
-        expect((result as CoreExpr).cases[1].guard).toBeDefined();
-        expect((result as CoreExpr).cases[1].guard.kind).toBe("CoreBinOp");
+        const guard0 = result.cases[0]!.guard;
+        expect(guard0).toBeDefined();
+        expect(guard0!.kind).toBe("CoreBinOp");
+        const guard1 = result.cases[1]!.guard;
+        expect(guard1).toBeDefined();
+        expect(guard1!.kind).toBe("CoreBinOp");
     });
 });
 
@@ -262,19 +282,22 @@ describe("Or-Pattern - Constructor Patterns", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(3);
+        expect(result.cases).toHaveLength(3);
 
         // First two cases: Some(1) and Some(2)
-        expect((result as CoreExpr).cases[0].pattern.kind).toBe("CoreVariantPattern");
-        expect((result as CoreExpr).cases[0].pattern.constructor).toBe("Some");
-        expect((result as CoreExpr).cases[1].pattern.kind).toBe("CoreVariantPattern");
-        expect((result as CoreExpr).cases[1].pattern.constructor).toBe("Some");
+        const pattern0 = result.cases[0]!.pattern as CoreVariantPattern;
+        expect(pattern0.kind).toBe("CoreVariantPattern");
+        expect(pattern0.constructor).toBe("Some");
+        const pattern1 = result.cases[1]!.pattern as CoreVariantPattern;
+        expect(pattern1.kind).toBe("CoreVariantPattern");
+        expect(pattern1.constructor).toBe("Some");
 
         // Third case: None
-        expect((result as CoreExpr).cases[2].pattern.constructor).toBe("None");
+        const pattern2 = result.cases[2]!.pattern as CoreVariantPattern;
+        expect(pattern2.constructor).toBe("None");
     });
 });
 
@@ -322,22 +345,32 @@ describe("Or-Pattern - Multiple Or-Patterns in Same Match", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(5); // 2 + 2 + 1
+        expect(result.cases).toHaveLength(5); // 2 + 2 + 1
 
         // Cases: 1, 2, 8, 9, other
-        expect((result as CoreExpr).cases[0].pattern.literal).toBe(1);
-        expect((result as CoreExpr).cases[0].body.value).toBe("small");
-        expect((result as CoreExpr).cases[1].pattern.literal).toBe(2);
-        expect((result as CoreExpr).cases[1].body.value).toBe("small");
-        expect((result as CoreExpr).cases[2].pattern.literal).toBe(8);
-        expect((result as CoreExpr).cases[2].body.value).toBe("large");
-        expect((result as CoreExpr).cases[3].pattern.literal).toBe(9);
-        expect((result as CoreExpr).cases[3].body.value).toBe("large");
-        expect((result as CoreExpr).cases[4].pattern.name).toBe("other");
-        expect((result as CoreExpr).cases[4].body.value).toBe("medium");
+        const pattern0 = result.cases[0]!.pattern as CoreLiteralPattern;
+        expect(pattern0.literal).toBe(1);
+        const body0 = result.cases[0]!.body as CoreStringLit;
+        expect(body0.value).toBe("small");
+        const pattern1 = result.cases[1]!.pattern as CoreLiteralPattern;
+        expect(pattern1.literal).toBe(2);
+        const body1 = result.cases[1]!.body as CoreStringLit;
+        expect(body1.value).toBe("small");
+        const pattern2 = result.cases[2]!.pattern as CoreLiteralPattern;
+        expect(pattern2.literal).toBe(8);
+        const body2 = result.cases[2]!.body as CoreStringLit;
+        expect(body2.value).toBe("large");
+        const pattern3 = result.cases[3]!.pattern as CoreLiteralPattern;
+        expect(pattern3.literal).toBe(9);
+        const body3 = result.cases[3]!.body as CoreStringLit;
+        expect(body3.value).toBe("large");
+        const pattern4 = result.cases[4]!.pattern as CoreVarPattern;
+        expect(pattern4.name).toBe("other");
+        const body4 = result.cases[4]!.body as CoreStringLit;
+        expect(body4.value).toBe("medium");
     });
 });
 
@@ -384,14 +417,14 @@ describe("Or-Pattern - Complex Bodies", () => {
             loc: testLoc,
         };
 
-        const result = desugar(match);
+        const result = desugar(match) as CoreMatch;
 
         expect(result.kind).toBe("CoreMatch");
-        expect((result as CoreExpr).cases).toHaveLength(2);
+        expect(result.cases).toHaveLength(2);
 
         // Both cases should have the desugared let binding
-        expect((result as CoreExpr).cases[0].body.kind).toBe("CoreLet");
-        expect((result as CoreExpr).cases[1].body.kind).toBe("CoreLet");
+        expect(result.cases[0]!.body.kind).toBe("CoreLet");
+        expect(result.cases[1]!.body.kind).toBe("CoreLet");
     });
 });
 

@@ -207,19 +207,19 @@ describe("Parser - Type Expressions", () => {
                 fields: [
                     {
                         name: "name",
-                        typeExpr: { kind: "TypeConst", name: "String" },
+                        typeExpr: { kind: "TypeConst", name: "String" } as TypeExpr,
                     },
                     {
                         name: "age",
-                        typeExpr: { kind: "TypeConst", name: "Int" },
+                        typeExpr: { kind: "TypeConst", name: "Int" } as TypeExpr,
                     },
                     {
                         name: "scores",
                         typeExpr: {
                             kind: "TypeApp",
-                            constructor: { kind: "TypeConst", name: "List" },
-                            args: [{ kind: "TypeConst", name: "Int" }],
-                        },
+                            constructor: { kind: "TypeConst", name: "List" } as TypeExpr,
+                            args: [{ kind: "TypeConst", name: "Int" } as TypeExpr],
+                        } as TypeExpr,
                     },
                 ],
             });

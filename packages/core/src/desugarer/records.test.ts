@@ -6,7 +6,14 @@
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreRecordUpdate } from "../types/core-ast.js";
+import type {
+    CoreIntLit,
+    CoreRecord,
+    CoreRecordAccess,
+    CoreRecordUpdate,
+    CoreStringLit,
+    CoreVar,
+} from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -35,15 +42,15 @@ describe("Record Update - Single Field", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).record.kind).toBe("CoreVar");
-        expect((result as CoreRecordUpdate).record.name).toBe("person");
-        expect((result as CoreRecordUpdate).updates).toHaveLength(1);
-        expect((result as CoreRecordUpdate).updates[0].name).toBe("age");
-        expect((result as CoreRecordUpdate).updates[0].value.kind).toBe("CoreIntLit");
-        expect((result as CoreRecordUpdate).updates[0].value.value).toBe(31);
+        expect(result.record.kind).toBe("CoreVar");
+        expect((result.record as CoreVar).name).toBe("person");
+        expect(result.updates).toHaveLength(1);
+        expect(result.updates[0]!.name).toBe("age");
+        expect(result.updates[0]!.value.kind).toBe("CoreIntLit");
+        expect((result.updates[0]!.value as CoreIntLit).value).toBe(31);
     });
 
     it("should desugar field update with expression", () => {
@@ -72,12 +79,12 @@ describe("Record Update - Single Field", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates[0].name).toBe("x");
+        expect(result.updates[0]!.name).toBe("x");
         // Value should be desugared BinOp
-        expect((result as CoreRecordUpdate).updates[0].value.kind).toBe("CoreBinOp");
+        expect(result.updates[0]!.value.kind).toBe("CoreBinOp");
     });
 });
 
@@ -102,14 +109,14 @@ describe("Record Update - Multiple Fields", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates).toHaveLength(2);
-        expect((result as CoreRecordUpdate).updates[0].name).toBe("age");
-        expect((result as CoreRecordUpdate).updates[0].value.value).toBe(31);
-        expect((result as CoreRecordUpdate).updates[1].name).toBe("name");
-        expect((result as CoreRecordUpdate).updates[1].value.value).toBe("Alice");
+        expect(result.updates).toHaveLength(2);
+        expect(result.updates[0]!.name).toBe("age");
+        expect((result.updates[0]!.value as CoreIntLit).value).toBe(31);
+        expect(result.updates[1]!.name).toBe("name");
+        expect((result.updates[1]!.value as CoreStringLit).value).toBe("Alice");
     });
 
     it("should desugar three field update", () => {
@@ -137,13 +144,13 @@ describe("Record Update - Multiple Fields", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates).toHaveLength(3);
-        expect((result as CoreRecordUpdate).updates[0].name).toBe("host");
-        expect((result as CoreRecordUpdate).updates[1].name).toBe("port");
-        expect((result as CoreRecordUpdate).updates[2].name).toBe("debug");
+        expect(result.updates).toHaveLength(3);
+        expect(result.updates[0]!.name).toBe("host");
+        expect(result.updates[1]!.name).toBe("port");
+        expect(result.updates[2]!.name).toBe("debug");
     });
 });
 
@@ -176,13 +183,14 @@ describe("Record Update - Nested Updates", () => {
             loc: testLoc,
         };
 
-        const result = desugar(outerUpdate);
+        const result = desugar(outerUpdate) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates[0].name).toBe("inner");
+        expect(result.updates[0]!.name).toBe("inner");
         // Inner value should be a desugared record update
-        expect((result as CoreRecordUpdate).updates[0].value.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates[0].value.record.name).toBe("inner");
+        expect(result.updates[0]!.value.kind).toBe("CoreRecordUpdate");
+        expect((result.updates[0]!.value as CoreRecordUpdate).record.kind).toBe("CoreVar");
+        expect(((result.updates[0]!.value as CoreRecordUpdate).record as CoreVar).name).toBe("inner");
     });
 
     it("should desugar double nested update", () => {
@@ -226,12 +234,12 @@ describe("Record Update - Nested Updates", () => {
             loc: testLoc,
         };
 
-        const result = desugar(outer);
+        const result = desugar(outer) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        const middleResult = (result as CoreRecordUpdate).updates[0].value;
+        const middleResult = result.updates[0]!.value as CoreRecordUpdate;
         expect(middleResult.kind).toBe("CoreRecordUpdate");
-        const innermostResult = middleResult.updates[0].value;
+        const innermostResult = middleResult.updates[0]!.value as CoreRecordUpdate;
         expect(innermostResult.kind).toBe("CoreRecordUpdate");
     });
 });
@@ -263,10 +271,10 @@ describe("Record Update - Complex Expressions", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates[0].value.kind).toBe("CoreLambda");
+        expect(result.updates[0]!.value.kind).toBe("CoreLambda");
     });
 
     it("should desugar update with match expression", () => {
@@ -310,10 +318,10 @@ describe("Record Update - Complex Expressions", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates[0].value.kind).toBe("CoreMatch");
+        expect(result.updates[0]!.value.kind).toBe("CoreMatch");
     });
 
     it("should desugar update with record construction", () => {
@@ -346,11 +354,11 @@ describe("Record Update - Complex Expressions", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).updates[0].value.kind).toBe("CoreRecord");
-        expect((result as CoreRecordUpdate).updates[0].value.fields).toHaveLength(2);
+        expect(result.updates[0]!.value.kind).toBe("CoreRecord");
+        expect((result.updates[0]!.value as CoreRecord).fields).toHaveLength(2);
     });
 });
 
@@ -375,11 +383,11 @@ describe("Record Update - Base Record Expressions", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).record.kind).toBe("CoreRecordAccess");
-        expect((result as CoreRecordUpdate).record.field).toBe("field");
+        expect(result.record.kind).toBe("CoreRecordAccess");
+        expect((result.record as CoreRecordAccess).field).toBe("field");
     });
 
     it("should desugar update with function call as base", () => {
@@ -402,10 +410,10 @@ describe("Record Update - Base Record Expressions", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).record.kind).toBe("CoreApp");
+        expect(result.record.kind).toBe("CoreApp");
     });
 
     it("should desugar update with record literal as base", () => {
@@ -438,11 +446,11 @@ describe("Record Update - Base Record Expressions", () => {
             loc: testLoc,
         };
 
-        const result = desugar(update);
+        const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect((result as CoreRecordUpdate).record.kind).toBe("CoreRecord");
-        expect((result as CoreRecordUpdate).record.fields).toHaveLength(2);
+        expect(result.record.kind).toBe("CoreRecord");
+        expect((result.record as CoreRecord).fields).toHaveLength(2);
     });
 });
 

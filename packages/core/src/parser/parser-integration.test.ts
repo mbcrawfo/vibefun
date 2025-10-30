@@ -2,12 +2,15 @@
  * Parser integration tests - complete programs
  */
 
-import type { Module } from "../types/index.js";
+import type { Declaration, Module } from "../types/index.js";
 
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
 import { Parser } from "./parser.js";
+
+// Type aliases for casting
+type LetDecl = Extract<Declaration, { kind: "LetDecl" }>;
 
 // Helper to parse a complete module
 function parseModule(source: string): Module {
@@ -24,7 +27,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "identity" },
                 value: { kind: "Lambda" },
@@ -36,7 +39,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            const decl = module.declarations[0];
+            const decl = module.declarations[0]!;
             expect(decl).toBeDefined();
             expect(decl).toMatchObject({
                 kind: "LetDecl",
@@ -56,7 +59,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 value: {
                     kind: "Lambda",
@@ -75,7 +78,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "factorial" },
                 recursive: true,
@@ -95,7 +98,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 recursive: true,
                 value: {
@@ -119,7 +122,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "TypeDecl",
                 name: "UserId",
                 params: [],
@@ -132,7 +135,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "TypeDecl",
                 name: "Point",
                 definition: {
@@ -147,7 +150,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "TypeDecl",
                 name: "option",
                 params: ["t"],
@@ -163,7 +166,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "TypeDecl",
                 name: "Result",
                 params: ["t", "e"],
@@ -185,7 +188,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.imports).toHaveLength(1);
-            expect(module.imports[0]).toMatchObject({
+            expect(module.imports[0]!).toMatchObject({
                 kind: "ImportDecl",
                 items: [{ name: "map" }, { name: "filter" }],
                 from: "./list",
@@ -199,7 +202,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.imports).toHaveLength(1);
-            expect(module.imports[0]).toMatchObject({
+            expect(module.imports[0]!).toMatchObject({
                 kind: "ImportDecl",
                 items: [{ name: "*", alias: "List" }],
                 from: "./list",
@@ -212,7 +215,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.imports).toHaveLength(1);
-            expect(module.imports[0]).toMatchObject({
+            expect(module.imports[0]!).toMatchObject({
                 kind: "ImportDecl",
                 items: [
                     { name: "User", isType: true },
@@ -228,7 +231,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "ExternalDecl",
                 name: "log",
                 jsName: "console.log",
@@ -240,7 +243,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "ExternalDecl",
                 name: "fetch",
                 jsName: "fetch",
@@ -255,7 +258,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 exported: true,
             });
@@ -266,7 +269,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "TypeDecl",
                 exported: true,
             });
@@ -292,11 +295,11 @@ describe("Parser - Integration", () => {
 
             expect(module.declarations).toHaveLength(3);
             expect(module.declarations[0]).toBeDefined();
-            expect(module.declarations[0]?.kind).toBe("TypeDecl");
+            expect(module.declarations[0]!.kind).toBe("TypeDecl");
             expect(module.declarations[1]).toBeDefined();
-            expect(module.declarations[1]?.kind).toBe("LetDecl");
+            expect(module.declarations[1]!.kind).toBe("LetDecl");
             expect(module.declarations[2]).toBeDefined();
-            expect(module.declarations[2]?.kind).toBe("LetDecl");
+            expect(module.declarations[2]!.kind).toBe("LetDecl");
         });
 
         it("parses List utilities module", () => {
@@ -319,7 +322,11 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(3);
-            expect(module.declarations.every((d) => d.kind === "LetDecl" && d.exported && d.recursive)).toBe(true);
+            expect(
+                module.declarations.every(
+                    (d) => d.kind === "LetDecl" && (d as LetDecl).exported && (d as LetDecl).recursive,
+                ),
+            ).toBe(true);
         });
 
         it("parses Counter module with mutable state", () => {
@@ -337,12 +344,14 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(5);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 mutable: true,
                 exported: false,
             });
-            expect(module.declarations.slice(1).every((d) => d.kind === "LetDecl" && d.exported)).toBe(true);
+            expect(module.declarations.slice(1).every((d) => d.kind === "LetDecl" && (d as LetDecl).exported)).toBe(
+                true,
+            );
         });
 
         it("parses Point module with type and functions", () => {
@@ -358,12 +367,12 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(4);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "TypeDecl",
                 name: "Point",
                 exported: true,
             });
-            expect(module.declarations[1]).toMatchObject({
+            expect(module.declarations[1]!).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "origin" },
                 exported: true,
@@ -393,15 +402,15 @@ describe("Parser - Integration", () => {
             expect(module.imports).toHaveLength(2);
             expect(module.declarations).toHaveLength(5);
             expect(module.declarations[0]).toBeDefined();
-            expect(module.declarations[0]?.kind).toBe("TypeDecl");
+            expect(module.declarations[0]!.kind).toBe("TypeDecl");
             expect(module.declarations[1]).toBeDefined();
-            expect(module.declarations[1]?.kind).toBe("ExternalDecl");
+            expect(module.declarations[1]!.kind).toBe("ExternalDecl");
             expect(module.declarations[2]).toBeDefined();
-            expect(module.declarations[2]?.kind).toBe("LetDecl");
+            expect(module.declarations[2]!.kind).toBe("LetDecl");
             expect(module.declarations[3]).toBeDefined();
-            expect(module.declarations[3]?.kind).toBe("LetDecl");
+            expect(module.declarations[3]!.kind).toBe("LetDecl");
             expect(module.declarations[4]).toBeDefined();
-            expect(module.declarations[4]?.kind).toBe("LetDecl");
+            expect(module.declarations[4]!.kind).toBe("LetDecl");
         });
     });
 
@@ -416,7 +425,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 recursive: true,
                 value: {
@@ -448,20 +457,20 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            const decl = module.declarations[0];
+            const decl = module.declarations[0]!;
             expect(decl).toBeDefined();
-            expect(decl?.kind).toBe("LetDecl");
+            expect(decl.kind).toBe("LetDecl");
             if (decl.kind === "LetDecl" && decl.value.kind === "Lambda") {
                 const body = decl.value.body;
                 expect(body.kind).toBe("Match");
                 if (body.kind === "Match") {
                     expect(body.cases).toHaveLength(3);
                     expect(body.cases[0]).toBeDefined();
-                    expect(body.cases[0]?.pattern.kind).toBe("ConstructorPattern");
+                    expect(body.cases[0]!.pattern.kind).toBe("ConstructorPattern");
                     expect(body.cases[1]).toBeDefined();
-                    expect(body.cases[1]?.pattern.kind).toBe("ConstructorPattern");
+                    expect(body.cases[1]!.pattern.kind).toBe("ConstructorPattern");
                     expect(body.cases[2]).toBeDefined();
-                    expect(body.cases[2]?.pattern.kind).toBe("ConstructorPattern");
+                    expect(body.cases[2]!.pattern.kind).toBe("ConstructorPattern");
                 }
             }
         });
@@ -474,7 +483,7 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(2);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 pattern: {
                     kind: "RecordPattern",
@@ -490,9 +499,9 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
-            const decl = module.declarations[0];
+            const decl = module.declarations[0]!;
             expect(decl).toBeDefined();
-            expect(decl?.kind).toBe("LetDecl");
+            expect(decl.kind).toBe("LetDecl");
             if (decl.kind === "LetDecl") {
                 expect(decl.value.kind).toBe("Pipe");
             }
@@ -506,11 +515,11 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(2);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 value: { kind: "Record" },
             });
-            expect(module.declarations[1]).toMatchObject({
+            expect(module.declarations[1]!).toMatchObject({
                 kind: "LetDecl",
                 value: { kind: "RecordUpdate" },
             });
@@ -525,11 +534,11 @@ describe("Parser - Integration", () => {
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(3);
-            expect(module.declarations[0]).toMatchObject({
+            expect(module.declarations[0]!).toMatchObject({
                 kind: "LetDecl",
                 value: { kind: "List" },
             });
-            expect(module.declarations[1]).toMatchObject({
+            expect(module.declarations[1]!).toMatchObject({
                 kind: "LetDecl",
                 value: { kind: "ListCons" },
             });

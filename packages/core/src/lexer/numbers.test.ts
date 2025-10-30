@@ -21,7 +21,7 @@ describe("Lexer - Decimal Integers", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(2); // INT_LITERAL + EOF
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 5,
         });
@@ -31,7 +31,7 @@ describe("Lexer - Decimal Integers", () => {
         const lexer = new Lexer("0", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 0,
         });
@@ -41,7 +41,7 @@ describe("Lexer - Decimal Integers", () => {
         const lexer = new Lexer("42", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 42,
         });
@@ -51,7 +51,7 @@ describe("Lexer - Decimal Integers", () => {
         const lexer = new Lexer("999999", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 999999,
         });
@@ -62,9 +62,9 @@ describe("Lexer - Decimal Integers", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(4); // 1, 2, 3, EOF
-        expect(tokens[0].value).toBe(1);
-        expect(tokens[1].value).toBe(2);
-        expect(tokens[2].value).toBe(3);
+        expect(tokens[0]!.value).toBe(1);
+        expect(tokens[1]!.value).toBe(2);
+        expect(tokens[2]!.value).toBe(3);
     });
 
     it("should tokenize integers with operators", () => {
@@ -72,9 +72,9 @@ describe("Lexer - Decimal Integers", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(4); // 10, +, 20, EOF
-        expect(tokens[0]).toMatchObject({ type: "INT_LITERAL", value: 10 });
-        expect(tokens[1]).toMatchObject({ type: "PLUS", value: "+" });
-        expect(tokens[2]).toMatchObject({ type: "INT_LITERAL", value: 20 });
+        expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 10 });
+        expect(tokens[1]!).toMatchObject({ type: "PLUS", value: "+" });
+        expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 20 });
     });
 });
 
@@ -83,7 +83,7 @@ describe("Lexer - Decimal Floats", () => {
         const lexer = new Lexer("3.14", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 3.14,
         });
@@ -93,7 +93,7 @@ describe("Lexer - Decimal Floats", () => {
         const lexer = new Lexer("0.5", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 0.5,
         });
@@ -103,7 +103,7 @@ describe("Lexer - Decimal Floats", () => {
         const lexer = new Lexer("3.141592653589793", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 3.141592653589793,
         });
@@ -115,15 +115,15 @@ describe("Lexer - Decimal Floats", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(3); // 3, ., EOF
-        expect(tokens[0]).toMatchObject({ type: "INT_LITERAL", value: 3 });
-        expect(tokens[1]).toMatchObject({ type: "DOT", value: "." });
+        expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 3 });
+        expect(tokens[1]!).toMatchObject({ type: "DOT", value: "." });
     });
 
     it("should tokenize float with leading zeros", () => {
         const lexer = new Lexer("0.001", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 0.001,
         });
@@ -135,7 +135,7 @@ describe("Lexer - Scientific Notation", () => {
         const lexer = new Lexer("1e10", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 1e10,
         });
@@ -145,7 +145,7 @@ describe("Lexer - Scientific Notation", () => {
         const lexer = new Lexer("2E+5", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 2e5,
         });
@@ -155,7 +155,7 @@ describe("Lexer - Scientific Notation", () => {
         const lexer = new Lexer("3.14e-2", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 3.14e-2,
         });
@@ -165,7 +165,7 @@ describe("Lexer - Scientific Notation", () => {
         const lexer = new Lexer("1.5E10", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 1.5e10,
         });
@@ -175,7 +175,7 @@ describe("Lexer - Scientific Notation", () => {
         const lexer = new Lexer("1e100", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 1e100,
         });
@@ -209,7 +209,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0xFF", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 255,
         });
@@ -219,7 +219,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0xff", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 255,
         });
@@ -229,7 +229,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0XFF", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 255,
         });
@@ -239,7 +239,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0xAbCd", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 0xabcd,
         });
@@ -249,7 +249,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0xabcdef", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 0xabcdef,
         });
@@ -259,7 +259,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0x0", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 0,
         });
@@ -269,7 +269,7 @@ describe("Lexer - Hexadecimal Literals", () => {
         const lexer = new Lexer("0x1A", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 26,
         });
@@ -294,9 +294,9 @@ describe("Lexer - Hexadecimal Literals", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(4); // 0xFF, +, 0x10, EOF
-        expect(tokens[0].value).toBe(255);
-        expect(tokens[1]).toMatchObject({ type: "PLUS" });
-        expect(tokens[2].value).toBe(16);
+        expect(tokens[0]!.value).toBe(255);
+        expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+        expect(tokens[2]!.value).toBe(16);
     });
 });
 
@@ -305,7 +305,7 @@ describe("Lexer - Binary Literals", () => {
         const lexer = new Lexer("0b1010", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 10,
         });
@@ -315,7 +315,7 @@ describe("Lexer - Binary Literals", () => {
         const lexer = new Lexer("0b11111111", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 255,
         });
@@ -325,7 +325,7 @@ describe("Lexer - Binary Literals", () => {
         const lexer = new Lexer("0B1010", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 10,
         });
@@ -335,7 +335,7 @@ describe("Lexer - Binary Literals", () => {
         const lexer = new Lexer("0b0", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 0,
         });
@@ -345,7 +345,7 @@ describe("Lexer - Binary Literals", () => {
         const lexer = new Lexer("0b1", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 1,
         });
@@ -355,7 +355,7 @@ describe("Lexer - Binary Literals", () => {
         const lexer = new Lexer("0b11111111111111111111111111111111", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 0b11111111111111111111111111111111,
         });
@@ -374,8 +374,8 @@ describe("Lexer - Binary Literals", () => {
         const tokens = lexer.tokenize();
 
         // Should parse 0b10 and then fail on '2' as unexpected character
-        expect(tokens[0].value).toBe(2); // 0b10 = 2
-        expect(tokens[1].value).toBe(2); // the '2' is parsed as a separate integer
+        expect(tokens[0]!.value).toBe(2); // 0b10 = 2
+        expect(tokens[1]!.value).toBe(2); // the '2' is parsed as a separate integer
     });
 
     it("should tokenize binary followed by operator", () => {
@@ -383,9 +383,9 @@ describe("Lexer - Binary Literals", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(4); // 0b1010, +, 0b0101, EOF
-        expect(tokens[0].value).toBe(10);
-        expect(tokens[1]).toMatchObject({ type: "PLUS" });
-        expect(tokens[2].value).toBe(5);
+        expect(tokens[0]!.value).toBe(10);
+        expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+        expect(tokens[2]!.value).toBe(5);
     });
 });
 
@@ -394,7 +394,7 @@ describe("Lexer - Number Location Tracking", () => {
         const lexer = new Lexer("42", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0].loc).toMatchObject({
+        expect(tokens[0]!.loc).toMatchObject({
             file: "test.vf",
             line: 1,
             column: 1,
@@ -406,7 +406,7 @@ describe("Lexer - Number Location Tracking", () => {
         const lexer = new Lexer("3.14", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0].loc).toMatchObject({
+        expect(tokens[0]!.loc).toMatchObject({
             line: 1,
             column: 1,
         });
@@ -416,18 +416,18 @@ describe("Lexer - Number Location Tracking", () => {
         const lexer = new Lexer("1\n2\n3", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0].loc.line).toBe(1); // 1
-        expect(tokens[1].loc.line).toBe(1); // newline
-        expect(tokens[2].loc.line).toBe(2); // 2
-        expect(tokens[3].loc.line).toBe(2); // newline
-        expect(tokens[4].loc.line).toBe(3); // 3
+        expect(tokens[0]!.loc.line).toBe(1); // 1
+        expect(tokens[1]!.loc.line).toBe(1); // newline
+        expect(tokens[2]!.loc.line).toBe(2); // 2
+        expect(tokens[3]!.loc.line).toBe(2); // newline
+        expect(tokens[4]!.loc.line).toBe(3); // 3
     });
 
     it("should track location for hex literal", () => {
         const lexer = new Lexer("0xFF", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0].loc).toMatchObject({
+        expect(tokens[0]!.loc).toMatchObject({
             line: 1,
             column: 1,
         });
@@ -440,11 +440,11 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(6); // 10, +, 20, *, 3.5, EOF
-        expect(tokens[0]).toMatchObject({ type: "INT_LITERAL", value: 10 });
-        expect(tokens[1]).toMatchObject({ type: "PLUS" });
-        expect(tokens[2]).toMatchObject({ type: "INT_LITERAL", value: 20 });
-        expect(tokens[3]).toMatchObject({ type: "STAR" });
-        expect(tokens[4]).toMatchObject({ type: "FLOAT_LITERAL", value: 3.5 });
+        expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 10 });
+        expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+        expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 20 });
+        expect(tokens[3]!).toMatchObject({ type: "STAR" });
+        expect(tokens[4]!).toMatchObject({ type: "FLOAT_LITERAL", value: 3.5 });
     });
 
     it("should tokenize numbers with parentheses", () => {
@@ -452,7 +452,7 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(4); // (, 42, ), EOF
-        expect(tokens[1]).toMatchObject({ type: "INT_LITERAL", value: 42 });
+        expect(tokens[1]!).toMatchObject({ type: "INT_LITERAL", value: 42 });
     });
 
     it("should tokenize negative numbers as separate tokens", () => {
@@ -461,8 +461,8 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(3); // -, 42, EOF
-        expect(tokens[0]).toMatchObject({ type: "MINUS" });
-        expect(tokens[1]).toMatchObject({ type: "INT_LITERAL", value: 42 });
+        expect(tokens[0]!).toMatchObject({ type: "MINUS" });
+        expect(tokens[1]!).toMatchObject({ type: "INT_LITERAL", value: 42 });
     });
 
     it("should tokenize array of numbers", () => {
@@ -487,8 +487,8 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(5); // foo, (, 42, ), EOF
-        expect(tokens[0]).toMatchObject({ type: "IDENTIFIER", value: "foo" });
-        expect(tokens[2]).toMatchObject({ type: "INT_LITERAL", value: 42 });
+        expect(tokens[0]!).toMatchObject({ type: "IDENTIFIER", value: "foo" });
+        expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 42 });
     });
 
     it("should handle numbers in comments", () => {
@@ -496,8 +496,8 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(4); // 42, newline, 200, EOF
-        expect(tokens[0].value).toBe(42);
-        expect(tokens[2].value).toBe(200);
+        expect(tokens[0]!.value).toBe(42);
+        expect(tokens[2]!.value).toBe(200);
     });
 
     it("should tokenize mixed number formats", () => {
@@ -505,11 +505,11 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(6); // 5 numbers + EOF
-        expect(tokens[0]).toMatchObject({ type: "INT_LITERAL", value: 42 });
-        expect(tokens[1]).toMatchObject({ type: "INT_LITERAL", value: 255 });
-        expect(tokens[2]).toMatchObject({ type: "INT_LITERAL", value: 10 });
-        expect(tokens[3]).toMatchObject({ type: "FLOAT_LITERAL", value: 3.14 });
-        expect(tokens[4]).toMatchObject({ type: "FLOAT_LITERAL", value: 1e10 });
+        expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 42 });
+        expect(tokens[1]!).toMatchObject({ type: "INT_LITERAL", value: 255 });
+        expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 10 });
+        expect(tokens[3]!).toMatchObject({ type: "FLOAT_LITERAL", value: 3.14 });
+        expect(tokens[4]!).toMatchObject({ type: "FLOAT_LITERAL", value: 1e10 });
     });
 });
 
@@ -518,7 +518,7 @@ describe("Lexer - Edge Cases", () => {
         const lexer = new Lexer("999999999999999", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "INT_LITERAL",
             value: 999999999999999,
         });
@@ -528,7 +528,7 @@ describe("Lexer - Edge Cases", () => {
         const lexer = new Lexer("0.000000001", "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens[0]).toMatchObject({
+        expect(tokens[0]!).toMatchObject({
             type: "FLOAT_LITERAL",
             value: 0.000000001,
         });
@@ -540,8 +540,8 @@ describe("Lexer - Edge Cases", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(3); // 42, abc, EOF
-        expect(tokens[0]).toMatchObject({ type: "INT_LITERAL", value: 42 });
-        expect(tokens[1]).toMatchObject({ type: "IDENTIFIER", value: "abc" });
+        expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 42 });
+        expect(tokens[1]!).toMatchObject({ type: "IDENTIFIER", value: "abc" });
     });
 
     it("should tokenize zero with various formats", () => {
