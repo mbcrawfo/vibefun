@@ -39,7 +39,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.Int, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.Int);
             expect(result.bindings.size).toBe(0);
@@ -52,7 +52,7 @@ describe("Pattern Checking", () => {
             };
 
             const listStringType = listType(primitiveTypes.String);
-            const result = checkPattern(env, pattern, listStringType, emptySubst());
+            const result = checkPattern(env, pattern, listStringType, emptySubst(), 0);
 
             expect(result.type).toEqual(listStringType);
             expect(result.bindings.size).toBe(0);
@@ -67,7 +67,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.Int, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.Int);
             expect(result.bindings.size).toBe(1);
@@ -82,7 +82,7 @@ describe("Pattern Checking", () => {
             };
 
             const listIntType = listType(primitiveTypes.Int);
-            const result = checkPattern(env, pattern, listIntType, emptySubst());
+            const result = checkPattern(env, pattern, listIntType, emptySubst(), 0);
 
             expect(result.type).toEqual(listIntType);
             expect(result.bindings.get("list")).toEqual(listIntType);
@@ -97,7 +97,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.Int, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.Int);
             expect(result.bindings.size).toBe(0);
@@ -110,7 +110,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.Float, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.Float, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.Float);
         });
@@ -122,7 +122,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.String, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.String, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.String);
         });
@@ -134,7 +134,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.Bool, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.Bool, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.Bool);
         });
@@ -146,7 +146,7 @@ describe("Pattern Checking", () => {
                 loc: testLoc,
             };
 
-            const result = checkPattern(env, pattern, primitiveTypes.Unit, emptySubst());
+            const result = checkPattern(env, pattern, primitiveTypes.Unit, emptySubst(), 0);
 
             expect(result.type).toEqual(primitiveTypes.Unit);
         });
@@ -159,7 +159,7 @@ describe("Pattern Checking", () => {
             };
 
             expect(() => {
-                checkPattern(env, pattern, primitiveTypes.String, emptySubst());
+                checkPattern(env, pattern, primitiveTypes.String, emptySubst(), 0);
             }).toThrow();
         });
     });
@@ -174,7 +174,7 @@ describe("Pattern Checking", () => {
             };
 
             const optionIntType = optionType(primitiveTypes.Int);
-            const result = checkPattern(env, pattern, optionIntType, emptySubst());
+            const result = checkPattern(env, pattern, optionIntType, emptySubst(), 0);
 
             expect(result.type).toEqual(optionIntType);
             expect(result.bindings.size).toBe(0);
@@ -195,7 +195,7 @@ describe("Pattern Checking", () => {
             };
 
             const optionIntType = optionType(primitiveTypes.Int);
-            const result = checkPattern(env, pattern, optionIntType, emptySubst());
+            const result = checkPattern(env, pattern, optionIntType, emptySubst(), 0);
 
             expect(result.type).toEqual(optionIntType);
             expect(result.bindings.size).toBe(1);
@@ -223,7 +223,7 @@ describe("Pattern Checking", () => {
             };
 
             const listStringType2 = listType(primitiveTypes.String);
-            const result = checkPattern(env, pattern, listStringType2, emptySubst());
+            const result = checkPattern(env, pattern, listStringType2, emptySubst(), 0);
 
             expect(result.type).toEqual(listStringType2);
             expect(result.bindings.size).toBe(2);
@@ -253,7 +253,7 @@ describe("Pattern Checking", () => {
             };
 
             const nestedOptionType = optionType(optionType(primitiveTypes.Int));
-            const result = checkPattern(env, pattern, nestedOptionType, emptySubst());
+            const result = checkPattern(env, pattern, nestedOptionType, emptySubst(), 0);
 
             expect(result.bindings.size).toBe(1);
             expect(result.bindings.get("x")).toEqual(primitiveTypes.Int);
@@ -268,7 +268,7 @@ describe("Pattern Checking", () => {
             };
 
             expect(() => {
-                checkPattern(env, pattern, primitiveTypes.Int, emptySubst());
+                checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
             }).toThrow("Undefined constructor");
         });
 
@@ -282,7 +282,7 @@ describe("Pattern Checking", () => {
 
             const optionIntType = optionType(primitiveTypes.Int);
             expect(() => {
-                checkPattern(env, pattern, optionIntType, emptySubst());
+                checkPattern(env, pattern, optionIntType, emptySubst(), 0);
             }).toThrow();
         });
 
@@ -307,7 +307,7 @@ describe("Pattern Checking", () => {
 
             const listIntType = listType(primitiveTypes.Int);
             expect(() => {
-                checkPattern(env, pattern, listIntType, emptySubst());
+                checkPattern(env, pattern, listIntType, emptySubst(), 0);
             }).toThrow("Duplicate pattern variable");
         });
     });
@@ -348,7 +348,7 @@ describe("Pattern Checking", () => {
                 ]),
             };
 
-            const result = checkPattern(env, pattern, recordType, emptySubst());
+            const result = checkPattern(env, pattern, recordType, emptySubst(), 0);
 
             expect(result.type).toEqual(recordType);
             expect(result.bindings.size).toBe(2);
@@ -395,7 +395,7 @@ describe("Pattern Checking", () => {
                 fields: new Map([["inner", innerRecordType]]),
             };
 
-            const result = checkPattern(env, pattern, recordType, emptySubst());
+            const result = checkPattern(env, pattern, recordType, emptySubst(), 0);
 
             expect(result.bindings.size).toBe(1);
             expect(result.bindings.get("aVal")).toEqual(primitiveTypes.Int);
@@ -424,7 +424,7 @@ describe("Pattern Checking", () => {
             };
 
             expect(() => {
-                checkPattern(env, pattern, recordType, emptySubst());
+                checkPattern(env, pattern, recordType, emptySubst(), 0);
             }).toThrow("not found");
         });
 
@@ -436,7 +436,7 @@ describe("Pattern Checking", () => {
             };
 
             expect(() => {
-                checkPattern(env, pattern, primitiveTypes.Int, emptySubst());
+                checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
             }).toThrow("expects record type");
         });
     });

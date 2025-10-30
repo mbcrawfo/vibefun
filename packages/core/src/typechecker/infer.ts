@@ -1081,7 +1081,13 @@ function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Core
 
     for (const matchCase of expr.cases) {
         // Check pattern against scrutinee type
-        const patternResult = checkPattern(currentCtx.env, matchCase.pattern, scrutineeType, currentCtx.subst);
+        const patternResult = checkPattern(
+            currentCtx.env,
+            matchCase.pattern,
+            scrutineeType,
+            currentCtx.subst,
+            currentCtx.level,
+        );
         currentCtx = { ...currentCtx, subst: patternResult.subst };
 
         // Extend environment with pattern bindings

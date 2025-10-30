@@ -18,6 +18,7 @@ import type {
 import type { Type, TypeEnv } from "../types/environment.js";
 import type { Substitution } from "./unify.js";
 
+import { instantiate } from "./infer.js";
 import { primitiveTypes } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
 
@@ -40,6 +41,7 @@ export type PatternCheckResult = {
  * @param pattern - Pattern to check
  * @param expectedType - Type the pattern is expected to match
  * @param subst - Current substitution
+ * @param level - Current type variable level for instantiation
  * @returns Pattern check result with type, bindings, and updated substitution
  */
 export function checkPattern(
@@ -47,6 +49,7 @@ export function checkPattern(
     pattern: CorePattern,
     expectedType: Type,
     subst: Substitution,
+    level: number,
 ): PatternCheckResult {
     switch (pattern.kind) {
         case "CoreWildcardPattern":
@@ -59,10 +62,10 @@ export function checkPattern(
             return checkLiteralPattern(pattern, expectedType, subst);
 
         case "CoreVariantPattern":
-            return checkVariantPattern(env, pattern, expectedType, subst);
+            return checkVariantPattern(env, pattern, expectedType, subst, level);
 
         case "CoreRecordPattern":
-            return checkRecordPattern(env, pattern, expectedType, subst);
+            return checkRecordPattern(env, pattern, expectedType, subst, level);
 
         default: {
             const _exhaustive: never = pattern;
@@ -143,6 +146,7 @@ function checkVariantPattern(
     pattern: CoreVariantPattern,
     expectedType: Type,
     subst: Substitution,
+    level: number,
 ): PatternCheckResult {
     // Look up constructor in environment
     const binding = env.values.get(pattern.constructor);
@@ -154,15 +158,15 @@ function checkVariantPattern(
         throw new Error(`${pattern.constructor} is not a value binding`);
     }
 
-    // Get constructor type scheme and instantiate it
+    // Get constructor type scheme and instantiate it with fresh type variables
     const scheme = binding.scheme;
 
     // For patterns, we need to check if constructor type matches expected type
     // Instantiate the type scheme (we'll get fresh type variables)
     // Then unify the result type with expected type
 
-    // Extract constructor type
-    const constructorType: Type = scheme.type;
+    // Instantiate the type scheme with fresh type variables
+    const constructorType: Type = instantiate(scheme, level);
 
     // If nullary constructor (None, Nil)
     if (constructorType.type !== "Fun") {
@@ -207,7 +211,7 @@ function checkVariantPattern(
             throw new Error(`Missing argument pattern or parameter type at index ${i}`);
         }
 
-        const argResult = checkPattern(env, argPattern, applySubst(currentSubst, paramType), currentSubst);
+        const argResult = checkPattern(env, argPattern, applySubst(currentSubst, paramType), currentSubst, level);
         currentSubst = argResult.subst;
 
         // Collect bindings from argument patterns
@@ -235,6 +239,7 @@ function checkRecordPattern(
     pattern: CoreRecordPattern,
     expectedType: Type,
     subst: Substitution,
+    level: number,
 ): PatternCheckResult {
     // Expected type should be a record
     const appliedExpected = applySubst(subst, expectedType);
@@ -256,7 +261,7 @@ function checkRecordPattern(
             throw new Error(`Field ${field.name} not found in record type`);
         }
 
-        const fieldResult = checkPattern(env, field.pattern, fieldType, currentSubst);
+        const fieldResult = checkPattern(env, field.pattern, fieldType, currentSubst, level);
         currentSubst = fieldResult.subst;
 
         // Collect bindings from field patterns
