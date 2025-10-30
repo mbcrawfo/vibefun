@@ -235,7 +235,10 @@ describe("Unify Never Type", () => {
     it("should unify Never with type variables", () => {
         const t = freshTypeVar();
         const subst = unify(primitiveTypes.Never, t);
-        expect(subst.size).toBe(0);
+        // Should bind the type variable to Never
+        expect(subst.size).toBe(1);
+        const result = applySubst(subst, t);
+        expect(result).toEqual(primitiveTypes.Never);
     });
 });
 

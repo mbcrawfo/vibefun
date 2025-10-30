@@ -162,20 +162,21 @@ export function occursIn(id: number, type: Type): boolean {
  * @throws Error if types cannot be unified
  */
 export function unify(t1: Type, t2: Type): Substitution {
-    // Handle Never type (bottom type) - unifies with anything
-    if (isConstType(t1) && t1.name === "Never") {
-        return emptySubst();
-    }
-    if (isConstType(t2) && t2.name === "Never") {
-        return emptySubst();
-    }
-
-    // Type variable unification
+    // Type variable unification (must come before Never check)
     if (isTypeVar(t1)) {
         return unifyVar(t1.id, t1.level, t2);
     }
     if (isTypeVar(t2)) {
         return unifyVar(t2.id, t2.level, t1);
+    }
+
+    // Handle Never type (bottom type) - unifies with anything
+    // This comes after var check so that 't ~ Never binds 't to Never
+    if (isConstType(t1) && t1.name === "Never") {
+        return emptySubst();
+    }
+    if (isConstType(t2) && t2.name === "Never") {
+        return emptySubst();
     }
 
     // Constant type unification
