@@ -1,7 +1,7 @@
 # Desugarer Implementation Tasks
 
 **Created:** 2025-10-29
-**Last Updated:** 2025-10-29 (Phase 12 complete)
+**Last Updated:** 2025-10-29 (Phase 13 complete)
 
 This document tracks implementation progress for the desugarer phase.
 
@@ -9,7 +9,7 @@ This document tracks implementation progress for the desugarer phase.
 
 ## Overall Progress
 
-**Phases Completed:** 10 / 15 (67%)
+**Phases Completed:** 11 / 15 (73%)
 
 **Status Legend:**
 - 🔜 Not Started
@@ -529,9 +529,9 @@ npm test packages/core/src/desugarer/patterns.test.ts
 
 ---
 
-## Phase 13: Pass-Through Transformations 🔜
+## Phase 13: Pass-Through Transformations ✅
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Estimated Time:** 2 hours
 
 ### Tasks

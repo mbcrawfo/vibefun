@@ -870,12 +870,32 @@ export function desugarDecl(
             };
 
         case "ExternalBlock":
-            // TODO: Implement external block expansion
-            throw new DesugarError(
-                "External block desugaring not yet implemented",
-                decl.loc,
-                "This will be implemented in Phase 13",
-            );
+            // Expand external block into individual declarations
+            return decl.items.map((item) => {
+                if (item.kind === "ExternalValue") {
+                    const coreDecl: any = {
+                        kind: "CoreExternalDecl",
+                        name: item.name,
+                        typeExpr: desugarTypeExpr(item.typeExpr),
+                        jsName: item.jsName,
+                        exported: decl.exported,
+                        loc: item.loc,
+                    };
+                    if (decl.from) {
+                        coreDecl.from = decl.from;
+                    }
+                    return coreDecl;
+                } else {
+                    // ExternalType
+                    return {
+                        kind: "CoreExternalTypeDecl",
+                        name: item.name,
+                        typeExpr: desugarTypeExpr(item.typeExpr),
+                        exported: decl.exported,
+                        loc: item.loc,
+                    };
+                }
+            });
 
         case "ImportDecl":
             // Import declarations pass through
