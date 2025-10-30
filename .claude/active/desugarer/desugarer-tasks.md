@@ -1,7 +1,7 @@
 # Desugarer Implementation Tasks
 
 **Created:** 2025-10-29
-**Last Updated:** 2025-10-29 (Phase 13 complete)
+**Last Updated:** 2025-10-29 (Phase 14 complete)
 
 This document tracks implementation progress for the desugarer phase.
 
@@ -9,7 +9,7 @@ This document tracks implementation progress for the desugarer phase.
 
 ## Overall Progress
 
-**Phases Completed:** 11 / 15 (73%)
+**Phases Completed:** 12 / 15 (80%)
 
 **Status Legend:**
 - 🔜 Not Started
@@ -610,9 +610,9 @@ npm test -w @vibefun/core
 
 ---
 
-## Phase 14: Module-Level Desugaring 🔜
+## Phase 14: Module-Level Desugaring ✅
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Estimated Time:** 1.5 hours
 
 ### Tasks

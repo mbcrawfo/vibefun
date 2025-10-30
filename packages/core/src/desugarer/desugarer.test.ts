@@ -617,4 +617,182 @@ describe("Desugarer - Module", () => {
         expect(result.imports[0].kind).toBe("CoreImportDecl");
         expect(result.imports[0].items[0].name).toBe("Option");
     });
+
+    it("should desugar module with multiple let declarations", () => {
+        const module: Module = {
+            imports: [],
+            declarations: [
+                {
+                    kind: "LetDecl",
+                    pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                    value: { kind: "IntLit", value: 1, loc: testLoc },
+                    mutable: false,
+                    recursive: false,
+                    exported: false,
+                    loc: testLoc,
+                },
+                {
+                    kind: "LetDecl",
+                    pattern: { kind: "VarPattern", name: "y", loc: testLoc },
+                    value: { kind: "IntLit", value: 2, loc: testLoc },
+                    mutable: false,
+                    recursive: false,
+                    exported: false,
+                    loc: testLoc,
+                },
+                {
+                    kind: "LetDecl",
+                    pattern: { kind: "VarPattern", name: "z", loc: testLoc },
+                    value: { kind: "IntLit", value: 3, loc: testLoc },
+                    mutable: false,
+                    recursive: false,
+                    exported: false,
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.declarations).toHaveLength(3);
+        expect(result.declarations[0].kind).toBe("CoreLetDecl");
+        expect(result.declarations[1].kind).toBe("CoreLetDecl");
+        expect(result.declarations[2].kind).toBe("CoreLetDecl");
+    });
+
+    it("should desugar module with type declarations", () => {
+        const module: Module = {
+            imports: [],
+            declarations: [
+                {
+                    kind: "TypeDecl",
+                    name: "Option",
+                    params: ["T"],
+                    definition: {
+                        kind: "VariantType",
+                        variants: [
+                            {
+                                name: "Some",
+                                types: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                            },
+                            { name: "None", types: [] },
+                        ],
+                    },
+                    exported: false,
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.declarations).toHaveLength(1);
+        expect(result.declarations[0].kind).toBe("CoreTypeDecl");
+    });
+
+    it("should desugar module with external declarations", () => {
+        const module: Module = {
+            imports: [],
+            declarations: [
+                {
+                    kind: "ExternalDecl",
+                    name: "log",
+                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    jsName: "console.log",
+                    exported: false,
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.declarations).toHaveLength(1);
+        expect(result.declarations[0].kind).toBe("CoreExternalDecl");
+    });
+
+    it("should desugar module with external type declarations", () => {
+        const module: Module = {
+            imports: [],
+            declarations: [
+                {
+                    kind: "ExternalTypeDecl",
+                    name: "Promise",
+                    typeExpr: { kind: "TypeConstructor", name: "external", args: [], loc: testLoc },
+                    exported: false,
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.declarations).toHaveLength(1);
+        expect(result.declarations[0].kind).toBe("CoreExternalTypeDecl");
+    });
+
+    it("should desugar module with mixed declaration types", () => {
+        const module: Module = {
+            imports: [
+                {
+                    kind: "ImportDecl",
+                    items: [{ name: "Option", alias: undefined, isType: true }],
+                    from: "./option",
+                    loc: testLoc,
+                },
+            ],
+            declarations: [
+                {
+                    kind: "TypeDecl",
+                    name: "Result",
+                    params: ["T", "E"],
+                    definition: {
+                        kind: "VariantType",
+                        variants: [
+                            {
+                                name: "Ok",
+                                types: [{ kind: "TypeVar", name: "T", loc: testLoc }],
+                            },
+                            {
+                                name: "Err",
+                                types: [{ kind: "TypeVar", name: "E", loc: testLoc }],
+                            },
+                        ],
+                    },
+                    exported: true,
+                    loc: testLoc,
+                },
+                {
+                    kind: "ExternalDecl",
+                    name: "log",
+                    typeExpr: { kind: "TypeConstructor", name: "Unit", args: [], loc: testLoc },
+                    jsName: "console.log",
+                    exported: false,
+                    loc: testLoc,
+                },
+                {
+                    kind: "LetDecl",
+                    pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                    value: { kind: "IntLit", value: 42, loc: testLoc },
+                    mutable: false,
+                    recursive: false,
+                    exported: true,
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.imports).toHaveLength(1);
+        expect(result.declarations).toHaveLength(3);
+        expect(result.declarations[0].kind).toBe("CoreTypeDecl");
+        expect(result.declarations[1].kind).toBe("CoreExternalDecl");
+        expect(result.declarations[2].kind).toBe("CoreLetDecl");
+    });
 });
