@@ -627,6 +627,74 @@ function desugarBinOp(
 }
 
 /**
+ * Desugar a list pattern into Cons/Nil patterns
+ *
+ * @param elements - Pattern elements
+ * @param rest - Optional rest pattern
+ * @param loc - Location of the list pattern
+ * @param gen - Fresh variable generator
+ * @returns Desugared core pattern
+ *
+ * @example
+ * // Input: [] => Nil
+ * // Input: [x] => Cons(x, Nil)
+ * // Input: [x, ...rest] => Cons(x, rest)
+ */
+function desugarListPattern(
+    elements: Pattern[],
+    rest: Pattern | undefined,
+    loc: Location,
+    gen: FreshVarGen,
+): CorePattern {
+    // Empty list pattern: []
+    if (elements.length === 0 && !rest) {
+        return {
+            kind: "CoreVariantPattern",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    // Just rest pattern: [...rest]
+    if (elements.length === 0 && rest) {
+        return desugarPattern(rest, gen);
+    }
+
+    // Build Cons patterns from right to left
+    // Start with either rest pattern or Nil
+    let tailPattern: CorePattern;
+
+    if (rest) {
+        tailPattern = desugarPattern(rest, gen);
+    } else {
+        tailPattern = {
+            kind: "CoreVariantPattern",
+            constructor: "Nil",
+            args: [],
+            loc,
+        };
+    }
+
+    // Work backwards through elements to build nested Cons patterns
+    for (let i = elements.length - 1; i >= 0; i--) {
+        const element = elements[i];
+        if (!element) {
+            throw new DesugarError(`List pattern has undefined element at index ${i}`, loc);
+        }
+
+        tailPattern = {
+            kind: "CoreVariantPattern",
+            constructor: "Cons",
+            args: [desugarPattern(element, gen), tailPattern],
+            loc,
+        };
+    }
+
+    return tailPattern;
+}
+
+/**
  * Desugar a pattern
  *
  * @param pattern - Surface pattern to desugar
@@ -675,12 +743,7 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
             };
 
         case "ListPattern":
-            // TODO: Implement list pattern desugaring
-            throw new DesugarError(
-                "List pattern desugaring not yet implemented",
-                pattern.loc,
-                "This will be implemented in Phase 9",
-            );
+            return desugarListPattern(pattern.elements, pattern.rest, pattern.loc, gen);
 
         case "OrPattern":
             // TODO: Implement or-pattern expansion
