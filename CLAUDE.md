@@ -42,6 +42,23 @@ These directives guide all development work on the vibefun project:
 
    Or use the convenience command: `npm run verify` (runs all checks)
 
+### Starting Large Tasks
+
+When exiting plan mode with an accepted plan:
+
+1. **Create Task Directory**: `mkdir -p .claude/active/[task-name]/`
+2. **Create Documents**:
+   - `[task-name]-plan.md` - The accepted plan
+   - `[task-name]-context.md` - Key files, decisions
+   - `[task-name]-tasks.md` - Checklist of work
+3. **Update Regularly**: Mark tasks complete immediately upon finishing.
+
+### Continuing Tasks
+
+- Check `.claude/active/[task-name]/` for existing tasks
+- Read all three files before proceeding
+- Update "Last Updated" timestamps
+
 ## Language Design Summary
 
 The vibefun language design is based on these core principles:
@@ -115,18 +132,6 @@ vibefun/
 - **Alternative**: Pure vibefun code uses pattern matching or different function names instead of overloading
 
 See `vibefun-spec.md` (JavaScript Interop → Overloaded External Functions) for complete details.
-
-### Dependencies (Planned)
-
-Development:
-- TypeScript compiler
-- Vitest for testing
-- Prettier (already configured)
-- ESLint for linting
-
-Runtime:
-- Minimal runtime library (custom implementation)
-- No external runtime dependencies for compiled output
 
 ## Quick Language Reference
 
@@ -248,7 +253,6 @@ vibefun run src/main.vf            # Compile and run
 - **[.claude/plans/language-design.md](./.claude/plans/language-design.md)** - Original language design exploration
 - **[.claude/plans/type-system.md](./.claude/plans/type-system.md)** - Detailed type system design and algorithms
 - **[.claude/plans/compiler-architecture.md](./.claude/plans/compiler-architecture.md)** - Compiler pipeline design
-- **[.claude/plans/lexer-implementation.md](./.claude/plans/lexer-implementation.md)** - Detailed lexer implementation plan
 
 # Additional Instructions
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md
