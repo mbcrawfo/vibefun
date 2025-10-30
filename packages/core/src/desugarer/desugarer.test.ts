@@ -26,7 +26,9 @@ import type {
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, DesugarError, desugarModule, desugarPattern, FreshVarGen } from "./desugarer.js";
+import { desugar, desugarModule, desugarPattern } from "./desugarer.js";
+import { DesugarError } from "./DesugarError.js";
+import { FreshVarGen } from "./FreshVarGen.js";
 
 // Helper to create test location
 const testLoc: Location = {

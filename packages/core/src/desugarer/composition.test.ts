@@ -10,7 +10,8 @@ import type { CoreApp, CoreLambda, CoreVar, CoreVarPattern } from "../types/core
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, FreshVarGen } from "./desugarer.js";
+import { desugar } from "./desugarer.js";
+import { FreshVarGen } from "./FreshVarGen.js";
 
 const testLoc: Location = {
     file: "test.vf",

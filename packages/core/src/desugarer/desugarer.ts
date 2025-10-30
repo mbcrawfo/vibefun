@@ -19,7 +19,6 @@
  */
 
 import type {
-    BinaryOp,
     Declaration,
     Expr,
     ListElement,
@@ -27,7 +26,6 @@ import type {
     Module,
     Pattern,
     RecordTypeField,
-    TypeDefinition,
     TypeExpr,
     VariantConstructor,
 } from "../types/ast.js";
@@ -41,103 +39,25 @@ import type {
     CoreModule,
     CorePattern,
     CoreRecordTypeField,
-    CoreTypeDefinition,
     CoreTypeExpr,
     CoreVariantConstructor,
 } from "../types/core-ast.js";
 
-import { buildConsChain as buildConsChainImpl } from "./buildConsChain.js";
-import { curryLambda as curryLambdaImpl } from "./curryLambda.js";
-import { desugarBinOp as desugarBinOpImpl } from "./desugarBinOp.js";
-import { desugarBlock as desugarBlockImpl } from "./desugarBlock.js";
-import { desugarComposition as desugarCompositionImpl } from "./desugarComposition.js";
+import { buildConsChain } from "./buildConsChain.js";
+import { curryLambda } from "./curryLambda.js";
+import { desugarBinOp } from "./desugarBinOp.js";
+import { desugarBlock } from "./desugarBlock.js";
+import { desugarComposition } from "./desugarComposition.js";
 import { DesugarError } from "./DesugarError.js";
-import { desugarListLiteral as desugarListLiteralImpl } from "./desugarListLiteral.js";
-import { desugarListPattern as desugarListPatternImpl } from "./desugarListPattern.js";
-import { desugarListWithConcats as desugarListWithConcatsImpl } from "./desugarListWithConcats.js";
-import { desugarPipe as desugarPipeImpl } from "./desugarPipe.js";
-import { desugarRecordTypeField as desugarRecordTypeFieldImpl } from "./desugarRecordTypeField.js";
-import { desugarTypeDefinition as desugarTypeDefinitionImpl } from "./desugarTypeDefinition.js";
-import { desugarTypeExpr as desugarTypeExprImpl } from "./desugarTypeExpr.js";
-import { desugarVariantConstructor as desugarVariantConstructorImpl } from "./desugarVariantConstructor.js";
+import { desugarListLiteral } from "./desugarListLiteral.js";
+import { desugarListPattern } from "./desugarListPattern.js";
+import { desugarListWithConcats } from "./desugarListWithConcats.js";
+import { desugarPipe } from "./desugarPipe.js";
+import { desugarRecordTypeField } from "./desugarRecordTypeField.js";
+import { desugarTypeDefinition } from "./desugarTypeDefinition.js";
+import { desugarTypeExpr } from "./desugarTypeExpr.js";
+import { desugarVariantConstructor } from "./desugarVariantConstructor.js";
 import { FreshVarGen } from "./FreshVarGen.js";
-
-// Re-export for backwards compatibility
-export { DesugarError, FreshVarGen };
-
-/**
- * Desugar a block expression into nested let bindings
- */
-function desugarBlock(exprs: Expr[], loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarBlockImpl(exprs, loc, gen, desugar, desugarPattern);
-}
-
-/**
- * Curry a multi-parameter lambda into nested single-parameter lambdas
- */
-function curryLambda(params: Pattern[], body: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
-    return curryLambdaImpl(params, body, loc, gen, desugar, desugarPattern);
-}
-
-/**
- * Desugar a pipe operator into function application
- */
-function desugarPipe(data: Expr, func: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarPipeImpl(data, func, loc, gen, desugar);
-}
-
-/**
- * Desugar function composition operators
- */
-function desugarComposition(
-    op: "ForwardCompose" | "BackwardCompose",
-    left: Expr,
-    right: Expr,
-    loc: Location,
-    gen: FreshVarGen,
-): CoreExpr {
-    return desugarCompositionImpl(op, left, right, loc, gen, desugar);
-}
-
-/**
- * Desugar a list literal into Cons/Nil chain or concat operations
- *
- * @param elements - List elements (may include spread elements)
- * @param loc - Location of the list literal
- * @param gen - Fresh variable generator
- * @returns Desugared core expression
- *
- * @example
- * // Input: [1, 2, 3]
- * // Output: Cons(1, Cons(2, Cons(3, Nil)))
- *
- * @example
- * // Input: [1, 2, ...rest]
- * // Output: Cons(1, Cons(2, rest))
- *
- * @example
- * // Input: [...xs, 1, ...ys]
- * // Output: concat(xs, Cons(1, ys))
- */
-function desugarListLiteral(elements: ListElement[], loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarListLiteralImpl(elements, loc, gen, desugar, buildConsChain, desugarListWithConcats);
-}
-
-/**
- * Build a simple Cons chain from regular elements
- */
-function buildConsChain(elements: { kind: "Element"; expr: Expr }[], loc: Location, gen: FreshVarGen): CoreExpr {
-    return buildConsChainImpl(elements, loc, gen, desugar);
-}
-
-/**
- * Desugar list with spreads using concat
- *
- * Groups elements into segments separated by spreads, then concat them together.
- */
-function desugarListWithConcats(elements: ListElement[], loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarListWithConcatsImpl(elements, loc, gen, desugar, buildConsChain);
-}
 
 /**
  * Desugar a surface expression to a core expression
@@ -153,6 +73,24 @@ function desugarListWithConcats(elements: ListElement[], loc: Location, gen: Fre
  * // => { kind: "CoreIntLit", value: 42, loc }
  */
 export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreExpr {
+    // Local wrappers that close over desugar and desugarPattern to avoid passing callbacks everywhere
+    const buildConsChainLocal = (
+        elements: { kind: "Element"; expr: Expr }[],
+        loc: Location,
+        gen: FreshVarGen,
+    ): CoreExpr => buildConsChain(elements, loc, gen, desugar);
+
+    const desugarListWithConcatsLocal = (elements: ListElement[], loc: Location, gen: FreshVarGen): CoreExpr =>
+        desugarListWithConcats(elements, loc, gen, desugar, buildConsChainLocal);
+
+    const desugarCompositionLocal = (
+        op: "ForwardCompose" | "BackwardCompose",
+        left: Expr,
+        right: Expr,
+        loc: Location,
+        gen: FreshVarGen,
+    ): CoreExpr => desugarComposition(op, left, right, loc, gen, desugar);
+
     switch (expr.kind) {
         // Literals - direct translation
         case "IntLit":
@@ -211,7 +149,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
 
         // Lambdas - curry multi-parameter lambdas
         case "Lambda":
-            return curryLambda(expr.params, expr.body, expr.loc, gen);
+            return curryLambda(expr.params, expr.body, expr.loc, gen, desugar, desugarPattern);
 
         // Function application - desugar function and arguments
         case "App":
@@ -321,7 +259,14 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
 
         // List literals - desugar to Cons/Nil
         case "List":
-            return desugarListLiteral(expr.elements, expr.loc, gen);
+            return desugarListLiteral(
+                expr.elements,
+                expr.loc,
+                gen,
+                desugar,
+                buildConsChainLocal,
+                desugarListWithConcatsLocal,
+            );
 
         // List cons operator - desugar to Cons variant
         case "ListCons":
@@ -334,7 +279,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
 
         // Binary operations
         case "BinOp":
-            return desugarBinOp(expr.op, expr.left, expr.right, expr.loc, gen);
+            return desugarBinOp(expr.op, expr.left, expr.right, expr.loc, gen, desugar, desugarCompositionLocal);
 
         // Unary operations - desugar operand
         case "UnaryOp":
@@ -347,18 +292,18 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
 
         // Pipe operator - desugar to function application
         case "Pipe":
-            return desugarPipe(expr.expr, expr.func, expr.loc, gen);
+            return desugarPipe(expr.expr, expr.func, expr.loc, gen, desugar);
 
         // Block expressions - desugar to nested lets
         case "Block":
-            return desugarBlock(expr.exprs, expr.loc, gen);
+            return desugarBlock(expr.exprs, expr.loc, gen, desugar, desugarPattern);
 
         // Type annotation - preserve, desugar inner expression
         case "TypeAnnotation":
             return {
                 kind: "CoreTypeAnnotation",
                 expr: desugar(expr.expr, gen),
-                typeExpr: desugarTypeExpr(expr.typeExpr),
+                typeExpr: desugarTypeExprLocal(expr.typeExpr),
                 loc: expr.loc,
             };
 
@@ -378,36 +323,6 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 "This may indicate a parser bug or missing desugaring implementation",
             );
     }
-}
-
-/**
- * Desugar a binary operation
- */
-function desugarBinOp(op: BinaryOp, left: Expr, right: Expr, loc: Location, gen: FreshVarGen): CoreExpr {
-    return desugarBinOpImpl(op, left, right, loc, gen, desugar, desugarComposition);
-}
-
-/**
- * Desugar a list pattern into Cons/Nil patterns
- *
- * @param elements - Pattern elements
- * @param rest - Optional rest pattern
- * @param loc - Location of the list pattern
- * @param gen - Fresh variable generator
- * @returns Desugared core pattern
- *
- * @example
- * // Input: [] => Nil
- * // Input: [x] => Cons(x, Nil)
- * // Input: [x, ...rest] => Cons(x, rest)
- */
-function desugarListPattern(
-    elements: Pattern[],
-    rest: Pattern | undefined,
-    loc: Location,
-    gen: FreshVarGen,
-): CorePattern {
-    return desugarListPatternImpl(elements, rest, loc, gen, desugarPattern);
 }
 
 /**
@@ -459,7 +374,7 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
             };
 
         case "ListPattern":
-            return desugarListPattern(pattern.elements, pattern.rest, pattern.loc, gen);
+            return desugarListPattern(pattern.elements, pattern.rest, pattern.loc, gen, desugarPattern);
 
         case "OrPattern":
             // Or-patterns should be expanded at the Match level before reaching here
@@ -478,32 +393,17 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
     }
 }
 
-/**
- * Desugar a type expression
- *
- * Type expressions are structurally similar between surface and core AST,
- * but we need to properly transform the kind names and recursively process
- * nested type expressions.
- *
- * @param typeExpr - Surface type expression
- * @returns Core type expression
- */
-function desugarTypeExpr(typeExpr: TypeExpr): CoreTypeExpr {
-    return desugarTypeExprImpl(typeExpr, desugarRecordTypeField, desugarVariantConstructor);
+// Type desugaring functions are wrappers to handle mutual recursion
+function desugarTypeExprLocal(typeExpr: TypeExpr): CoreTypeExpr {
+    return desugarTypeExpr(typeExpr, desugarRecordTypeFieldLocal, desugarVariantConstructorLocal);
 }
 
-/**
- * Desugar a record type field
- */
-function desugarRecordTypeField(field: RecordTypeField): CoreRecordTypeField {
-    return desugarRecordTypeFieldImpl(field, desugarTypeExpr);
+function desugarRecordTypeFieldLocal(field: RecordTypeField): CoreRecordTypeField {
+    return desugarRecordTypeField(field, desugarTypeExprLocal);
 }
 
-/**
- * Desugar a variant constructor
- */
-function desugarVariantConstructor(ctor: VariantConstructor): CoreVariantConstructor {
-    return desugarVariantConstructorImpl(ctor, desugarTypeExpr);
+function desugarVariantConstructorLocal(ctor: VariantConstructor): CoreVariantConstructor {
+    return desugarVariantConstructor(ctor, desugarTypeExprLocal);
 }
 
 /**
@@ -532,7 +432,12 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
                 kind: "CoreTypeDecl",
                 name: decl.name,
                 params: decl.params,
-                definition: desugarTypeDefinition(decl.definition),
+                definition: desugarTypeDefinition(
+                    decl.definition,
+                    desugarTypeExprLocal,
+                    desugarRecordTypeFieldLocal,
+                    desugarVariantConstructorLocal,
+                ),
                 exported: decl.exported,
                 loc: decl.loc,
             };
@@ -542,7 +447,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
             const coreDecl: CoreExternalDecl = {
                 kind: "CoreExternalDecl",
                 name: decl.name,
-                typeExpr: desugarTypeExpr(decl.typeExpr),
+                typeExpr: desugarTypeExprLocal(decl.typeExpr),
                 jsName: decl.jsName,
                 exported: decl.exported,
                 loc: decl.loc,
@@ -557,7 +462,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
             return {
                 kind: "CoreExternalTypeDecl",
                 name: decl.name,
-                typeExpr: desugarTypeExpr(decl.typeExpr),
+                typeExpr: desugarTypeExprLocal(decl.typeExpr),
                 exported: decl.exported,
                 loc: decl.loc,
             };
@@ -569,7 +474,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
                     const coreDecl: CoreExternalDecl = {
                         kind: "CoreExternalDecl",
                         name: item.name,
-                        typeExpr: desugarTypeExpr(item.typeExpr),
+                        typeExpr: desugarTypeExprLocal(item.typeExpr),
                         jsName: item.jsName,
                         exported: decl.exported,
                         loc: item.loc,
@@ -583,7 +488,7 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
                     return {
                         kind: "CoreExternalTypeDecl",
                         name: item.name,
-                        typeExpr: desugarTypeExpr(item.typeExpr),
+                        typeExpr: desugarTypeExprLocal(item.typeExpr),
                         exported: decl.exported,
                         loc: item.loc,
                     };
@@ -615,20 +520,6 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
                 "This may indicate a parser bug",
             );
     }
-}
-
-/**
- * Desugar a type definition
- *
- * Type definitions are structurally similar between surface and core AST,
- * but we need to properly transform the kind names and recursively process
- * nested type expressions.
- *
- * @param def - Surface type definition
- * @returns Core type definition
- */
-function desugarTypeDefinition(def: TypeDefinition): CoreTypeDefinition {
-    return desugarTypeDefinitionImpl(def, desugarTypeExpr, desugarRecordTypeField, desugarVariantConstructor);
 }
 
 /**

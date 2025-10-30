@@ -13,7 +13,8 @@ import type { CoreLiteralPattern, CoreVariantPattern, CoreVarPattern } from "../
 
 import { describe, expect, it } from "vitest";
 
-import { desugarPattern, FreshVarGen } from "./desugarer.js";
+import { desugarPattern } from "./desugarer.js";
+import { FreshVarGen } from "./FreshVarGen.js";
 
 const testLoc: Location = {
     file: "test.vf",

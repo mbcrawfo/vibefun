@@ -19,7 +19,8 @@ import type {
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, DesugarError } from "./desugarer.js";
+import { desugar } from "./desugarer.js";
+import { DesugarError } from "./DesugarError.js";
 
 const testLoc: Location = {
     file: "test.vf",

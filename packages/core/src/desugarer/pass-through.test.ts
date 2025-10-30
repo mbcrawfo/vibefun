@@ -23,7 +23,8 @@ import type {
 
 import { describe, expect, it } from "vitest";
 
-import { desugar, desugarDecl, desugarModule, FreshVarGen } from "./desugarer.js";
+import { desugar, desugarDecl, desugarModule } from "./desugarer.js";
+import { FreshVarGen } from "./FreshVarGen.js";
 
 const testLoc: Location = {
     file: "test.vf",
