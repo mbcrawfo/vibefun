@@ -351,7 +351,7 @@ describe("typeCheck - Integration Tests", () => {
         expect(factorialType?.type).toBe("Fun");
     });
 
-    it.skip("should type check mutual recursion (isEven/isOdd)", () => {
+    it("should type check mutual recursion (isEven/isOdd)", () => {
         // Note: Bug in typeCheckDeclaration - inferLetRecExpr doesn't update ctx.env
         // so the bindings can't be extracted at line 115 of typechecker.ts
         // let rec isEven = n => match n { | 0 => true | n => isOdd(n - 1) }

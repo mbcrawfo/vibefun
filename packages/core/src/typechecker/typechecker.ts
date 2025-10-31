@@ -6,11 +6,11 @@
  */
 
 import type { Module } from "../types/ast.js";
-import type { CoreDeclaration, CoreExpr, CoreModule } from "../types/core-ast.js";
+import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
 import { buildEnvironment } from "./environment.js";
-import { convertTypeExpr, createContext, inferExpr, instantiate } from "./infer.js";
+import { convertTypeExpr, createContext, inferExpr } from "./infer.js";
 import { checkPattern } from "./patterns.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
@@ -150,22 +150,59 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
 
         case "CoreLetRecGroup": {
             // Type check mutually recursive function group
-            // Wrap in a synthetic let rec expression and infer
+            // Inline the mutual recursion logic instead of using synthetic expression
             const ctx = createContext(env);
 
-            // Create a synthetic expression for the let rec group
-            const letRecExpr: CoreExpr = {
-                kind: "CoreLetRecExpr",
-                bindings: decl.bindings,
-                body: {
-                    kind: "CoreUnitLit",
-                    loc: decl.loc,
-                },
-                loc: decl.loc,
+            // Create placeholder types for all bindings
+            const placeholders = new Map<string, Type>();
+            const tempEnv: TypeEnv = {
+                values: new Map(ctx.env.values),
+                types: ctx.env.types,
             };
 
-            // Infer the let rec expression (this updates the environment)
-            inferExpr(ctx, letRecExpr);
+            // Add all bindings with placeholder types to temporary environment
+            for (const binding of decl.bindings) {
+                if (binding.pattern.kind === "CoreVarPattern") {
+                    const name = binding.pattern.name;
+                    const placeholder = freshTypeVar(ctx.level);
+                    placeholders.set(name, placeholder);
+                    tempEnv.values.set(name, {
+                        kind: "Value",
+                        scheme: { vars: [], type: placeholder },
+                        loc: binding.loc,
+                    });
+                }
+            }
+
+            // Infer each binding with all names in scope
+            let currentSubst = ctx.subst;
+            const inferredTypes = new Map<string, Type>();
+
+            for (const binding of decl.bindings) {
+                if (binding.pattern.kind === "CoreVarPattern") {
+                    const name = binding.pattern.name;
+                    const inferCtx = {
+                        env: tempEnv,
+                        subst: currentSubst,
+                        level: ctx.level + 1,
+                    };
+
+                    // Infer the binding value
+                    const result = inferExpr(inferCtx, binding.value);
+
+                    // Unify placeholder with inferred type
+                    const placeholder = placeholders.get(name);
+                    if (placeholder) {
+                        const placeholderApplied = applySubst(result.subst, placeholder);
+                        const unifySubst = unify(placeholderApplied, result.type);
+                        currentSubst = composeSubst(unifySubst, result.subst);
+
+                        // Store the inferred type
+                        const finalType = applySubst(currentSubst, result.type);
+                        inferredTypes.set(name, finalType);
+                    }
+                }
+            }
 
             // Create updated environment with new bindings
             const newEnv: TypeEnv = {
@@ -173,20 +210,14 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 types: env.types,
             };
 
-            // Extract the inferred types from the updated environment
-            for (const binding of decl.bindings) {
-                // Get pattern variables
-                if (binding.pattern.kind === "CoreVarPattern") {
-                    const name = binding.pattern.name;
-                    const bindingScheme = ctx.env.values.get(name);
-                    if (bindingScheme && bindingScheme.kind === "Value") {
-                        // Instantiate the scheme to get a concrete type
-                        const type = instantiate(bindingScheme.scheme, 0);
-                        declarationTypes.set(name, type);
-                        // Add binding to environment for subsequent declarations
-                        newEnv.values.set(name, bindingScheme);
-                    }
-                }
+            // Store all bindings in declarationTypes and environment
+            for (const [name, type] of inferredTypes) {
+                declarationTypes.set(name, type);
+                newEnv.values.set(name, {
+                    kind: "Value",
+                    scheme: { vars: [], type },
+                    loc: decl.loc,
+                });
             }
 
             return newEnv;
