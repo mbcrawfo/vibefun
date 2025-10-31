@@ -28,4 +28,4 @@ export { InlineExpansionPass } from "./passes/inline.js";
 export { DeadCodeEliminationPass } from "./passes/dead-code-elim.js";
 export { EtaReductionPass } from "./passes/eta-reduction.js";
 export { PatternMatchOptimizationPass } from "./passes/pattern-match-opt.js";
-// export { CSEPass } from "./passes/cse.js";
+export { CommonSubexpressionEliminationPass } from "./passes/cse.js";

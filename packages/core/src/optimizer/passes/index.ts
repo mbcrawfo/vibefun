@@ -8,3 +8,4 @@ export { InlineExpansionPass } from "./inline.js";
 export { DeadCodeEliminationPass } from "./dead-code-elim.js";
 export { EtaReductionPass } from "./eta-reduction.js";
 export { PatternMatchOptimizationPass } from "./pattern-match-opt.js";
+export { CommonSubexpressionEliminationPass } from "./cse.js";
