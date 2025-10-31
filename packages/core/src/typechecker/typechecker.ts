@@ -42,17 +42,17 @@ export type TypedModule = {
  * ```
  */
 export function typeCheck(module: CoreModule): TypedModule {
-    // Build type environment from module declarations
+    // Build initial type environment from module declarations
     // This includes built-ins, user type definitions, and external declarations
     // Note: CoreModule is structurally compatible with Module for buildEnvironment's purposes
-    const env = buildEnvironment(module as unknown as Module);
+    let env = buildEnvironment(module as unknown as Module);
 
     // Map to store inferred types for top-level declarations
     const declarationTypes = new Map<string, Type>();
 
-    // Type check each top-level declaration
+    // Type check each top-level declaration, threading environment
     for (const decl of module.declarations) {
-        typeCheckDeclaration(decl, env, declarationTypes);
+        env = typeCheckDeclaration(decl, env, declarationTypes);
     }
 
     return {
@@ -68,8 +68,9 @@ export function typeCheck(module: CoreModule): TypedModule {
  * @param decl - The declaration to type check
  * @param env - The type environment
  * @param declarationTypes - Map to store inferred types
+ * @returns Updated type environment with new bindings
  */
-function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTypes: Map<string, Type>): void {
+function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTypes: Map<string, Type>): TypeEnv {
     switch (decl.kind) {
         case "CoreLetDecl": {
             // Type check let declaration by inferring the value expression
@@ -81,11 +82,24 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             // Check the pattern and get variable bindings
             const patternResult = checkPattern(ctx.env, decl.pattern, result.type, result.subst, ctx.level);
 
-            // Store the inferred types for all pattern variables
+            // Create updated environment with new bindings
+            const newEnv: TypeEnv = {
+                values: new Map(env.values),
+                types: env.types,
+            };
+
+            // Store the inferred types and add to environment
             for (const [name, type] of patternResult.bindings) {
                 declarationTypes.set(name, type);
+                // Add binding to environment for subsequent declarations
+                newEnv.values.set(name, {
+                    kind: "Value",
+                    scheme: { vars: [], type },
+                    loc: decl.loc,
+                });
             }
-            break;
+
+            return newEnv;
         }
 
         case "CoreLetRecGroup": {
@@ -107,6 +121,12 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             // Infer the let rec expression (this updates the environment)
             inferExpr(ctx, letRecExpr);
 
+            // Create updated environment with new bindings
+            const newEnv: TypeEnv = {
+                values: new Map(env.values),
+                types: env.types,
+            };
+
             // Extract the inferred types from the updated environment
             for (const binding of decl.bindings) {
                 // Get pattern variables
@@ -117,35 +137,52 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                         // Instantiate the scheme to get a concrete type
                         const type = instantiate(bindingScheme.scheme, 0);
                         declarationTypes.set(name, type);
+                        // Add binding to environment for subsequent declarations
+                        newEnv.values.set(name, bindingScheme);
                     }
                 }
             }
-            break;
+
+            return newEnv;
         }
 
         case "CoreTypeDecl":
             // Type declarations are already processed in buildEnvironment
-            // Nothing to do here
-            break;
+            // Nothing to do here, return unchanged environment
+            return env;
 
-        case "CoreExternalDecl":
+        case "CoreExternalDecl": {
             // External declarations need to be converted and stored in declarationTypes
             // Convert the CoreTypeExpr to a Type
-            {
-                const type = convertTypeExpr(decl.typeExpr);
-                declarationTypes.set(decl.name, type);
-            }
-            break;
+            const type = convertTypeExpr(decl.typeExpr);
+            declarationTypes.set(decl.name, type);
+
+            // Create updated environment with external binding
+            const newEnv: TypeEnv = {
+                values: new Map(env.values),
+                types: env.types,
+            };
+
+            newEnv.values.set(decl.name, {
+                kind: "External",
+                scheme: { vars: [], type },
+                jsName: decl.jsName,
+                ...(decl.from !== undefined && { from: decl.from }),
+                loc: decl.loc,
+            });
+
+            return newEnv;
+        }
 
         case "CoreExternalTypeDecl":
             // External type declarations are already processed in buildEnvironment
-            // Nothing to do here
-            break;
+            // Nothing to do here, return unchanged environment
+            return env;
 
         case "CoreImportDecl":
             // Import declarations are trusted (not verified in this phase)
-            // Nothing to do here
-            break;
+            // Nothing to do here, return unchanged environment
+            return env;
 
         default: {
             const _exhaustive: never = decl;

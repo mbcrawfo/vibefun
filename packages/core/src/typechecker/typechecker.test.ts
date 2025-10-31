@@ -530,7 +530,7 @@ describe("typeCheck - Integration Tests", () => {
         expect(isOddType?.type).toBe("Fun");
     });
 
-    it.skip("should type check record construction and access", () => {
+    it("should type check record construction and access", () => {
         // Note: Multiple declarations can't reference each other (no shared env)
         // let person = { name: "Alice", age: 30 }
         // let name = person.name
@@ -1165,7 +1165,7 @@ describe("typeCheck - Integration Tests", () => {
         expect(result.env.values.has("Err")).toBe(true);
     });
 
-    it.skip("should type check record update expressions", () => {
+    it("should type check record update expressions", () => {
         // Note: Multiple declarations can't reference each other (no shared env)
         // let person = { name: "Charlie", age: 40 }
         // let updated = { ...person, age: 41 }
