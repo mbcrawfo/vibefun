@@ -248,7 +248,7 @@ describe("typeCheck", () => {
 });
 
 describe("typeCheck - Integration Tests", () => {
-    it.skip("should type check recursive factorial with pattern matching", () => {
+    it("should type check recursive factorial with pattern matching", () => {
         // Note: CoreLetDecl with recursive:true not fully supported in typeCheckDeclaration
         // Use CoreLetRecGroup for mutual recursion instead
         // let rec factorial = (n) => match n { | 0 => 1 | m => m * factorial(m - 1) }

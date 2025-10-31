@@ -12,6 +12,8 @@ import type { Type, TypeEnv } from "../types/environment.js";
 import { buildEnvironment } from "./environment.js";
 import { convertTypeExpr, createContext, inferExpr, instantiate } from "./infer.js";
 import { checkPattern } from "./patterns.js";
+import { freshTypeVar } from "./types.js";
+import { applySubst, composeSubst, unify } from "./unify.js";
 
 /**
  * A typed module with inferred types attached to expressions
@@ -76,30 +78,74 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             // Type check let declaration by inferring the value expression
             const ctx = createContext(env);
 
-            // Infer the type of the value expression
-            const result = inferExpr(ctx, decl.value);
+            // Check if this is a recursive binding
+            if (decl.recursive && decl.pattern.kind === "CoreVarPattern") {
+                // Handle recursive binding
+                const name = decl.pattern.name;
 
-            // Check the pattern and get variable bindings
-            const patternResult = checkPattern(ctx.env, decl.pattern, result.type, result.subst, ctx.level);
+                // Create placeholder type for recursive reference
+                const placeholderType = freshTypeVar(ctx.level);
 
-            // Create updated environment with new bindings
-            const newEnv: TypeEnv = {
-                values: new Map(env.values),
-                types: env.types,
-            };
-
-            // Store the inferred types and add to environment
-            for (const [name, type] of patternResult.bindings) {
-                declarationTypes.set(name, type);
-                // Add binding to environment for subsequent declarations
-                newEnv.values.set(name, {
+                // Create temporary environment with binding in scope
+                const tempEnv: TypeEnv = {
+                    values: new Map(ctx.env.values),
+                    types: ctx.env.types,
+                };
+                tempEnv.values.set(name, {
                     kind: "Value",
-                    scheme: { vars: [], type },
+                    scheme: { vars: [], type: placeholderType },
                     loc: decl.loc,
                 });
-            }
 
-            return newEnv;
+                // Infer with name in scope
+                const result = inferExpr({ ...ctx, env: tempEnv }, decl.value);
+
+                // Unify placeholder with inferred type
+                const unifySubst = unify(applySubst(result.subst, placeholderType), result.type);
+                const finalSubst = composeSubst(unifySubst, result.subst);
+                const finalType = applySubst(finalSubst, result.type);
+
+                // Create updated environment with new binding
+                const newEnv: TypeEnv = {
+                    values: new Map(env.values),
+                    types: env.types,
+                };
+
+                // Store the inferred type and add to environment
+                declarationTypes.set(name, finalType);
+                newEnv.values.set(name, {
+                    kind: "Value",
+                    scheme: { vars: [], type: finalType },
+                    loc: decl.loc,
+                });
+
+                return newEnv;
+            } else {
+                // Handle non-recursive binding
+                const result = inferExpr(ctx, decl.value);
+
+                // Check the pattern and get variable bindings
+                const patternResult = checkPattern(ctx.env, decl.pattern, result.type, result.subst, ctx.level);
+
+                // Create updated environment with new bindings
+                const newEnv: TypeEnv = {
+                    values: new Map(env.values),
+                    types: env.types,
+                };
+
+                // Store the inferred types and add to environment
+                for (const [name, type] of patternResult.bindings) {
+                    declarationTypes.set(name, type);
+                    // Add binding to environment for subsequent declarations
+                    newEnv.values.set(name, {
+                        kind: "Value",
+                        scheme: { vars: [], type },
+                        loc: decl.loc,
+                    });
+                }
+
+                return newEnv;
+            }
         }
 
         case "CoreLetRecGroup": {
