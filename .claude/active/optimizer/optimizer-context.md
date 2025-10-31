@@ -10,40 +10,112 @@ This document captures key context, design decisions, important patterns, and cr
 
 ### Core AST Definitions
 
-**Location**: `packages/core/src/types/`
+**Location**: `packages/core/src/types/core-ast.ts`
 
 The optimizer works with the **Core AST** (desugared, simplified form):
 
-- `ast.ts` - Contains `CoreExpr` type and all Core AST nodes
+- `core-ast.ts` - Contains all Core AST node types
 - `token.ts` - Token types (needed for literals)
 - `type.ts` - Type system types (for preserving type annotations)
 
-**Important Core AST Nodes**:
+**Complete Core AST Nodes** (19 expression types):
 ```typescript
-// From src/types/ast.ts (to be consulted during implementation)
+// From src/types/core-ast.ts
 type CoreExpr =
-  | CoreVar          // Variables: x, y, foo
-  | CoreLambda       // Functions: (x) => body
-  | CoreApp          // Application: f(x)
-  | CoreLet          // Let binding: let x = expr in body
-  | CoreLetRec       // Recursive: let rec f = ... and g = ...
-  | CoreIntLit       // Integer literals: 42
-  | CoreFloatLit     // Float literals: 3.14
-  | CoreStringLit    // String literals: "hello"
-  | CoreBoolLit      // Boolean literals: true, false
-  | CoreBinOp        // Binary operators: +, -, *, /, &&, ||, etc.
-  | CoreUnaryOp      // Unary operators: !, -, not
-  | CoreMatch        // Pattern matching
-  | CoreVariantCtor  // Variant constructor application
-  | CoreRecordLit    // Record literals
-  | CoreRecordAccess // Record field access
-  | CoreRef          // Reference creation
-  | CoreDeref        // Dereference: !ref
-  | CoreAssign       // Assignment: ref := value
-  | CoreExternal     // External function reference
-  | CoreUnsafe       // Unsafe block
-  | CoreTypeAnnotation // Type annotations
+  // Literals (5)
+  | CoreIntLit         // Integer literals: 42
+  | CoreFloatLit       // Float literals: 3.14
+  | CoreStringLit      // String literals: "hello", """multi-line"""
+  | CoreBoolLit        // Boolean literals: true, false
+  | CoreUnitLit        // Unit value: ()
+  // Variables and Bindings (3)
+  | CoreVar            // Variables: x, y, foo
+  | CoreLet            // Let binding: let x = expr in body
+  | CoreLetRecExpr     // Mutually recursive: let rec f = ... and g = ... in body
+  // Functions (2)
+  | CoreLambda         // Single-param functions: (x) => body
+  | CoreApp            // Application: f(x)
+  // Control Flow (1)
+  | CoreMatch          // Pattern matching with optional guards
+  // Data Structures (5)
+  | CoreRecord         // Record literals: { x: 1, y: 2 }
+  | CoreRecordAccess   // Field access: record.field
+  | CoreRecordUpdate   // Record update: { ...record, field: value }
+  | CoreVariant        // Variant constructor: Some(42), Cons(1, Nil)
+  // Operations (2)
+  | CoreBinOp          // Binary: +, -, *, /, &&, ||, &, RefAssign (:=)
+  | CoreUnaryOp        // Unary: -, !, Deref (!)
+  // Other (2)
+  | CoreTypeAnnotation // Type annotations: (expr: Type)
+  | CoreUnsafe         // Unsafe block: unsafe { ... }
 ```
+
+**Note on References**:
+- Reference creation: `ref(value)` likely represented as `CoreApp` or `CoreVariant`
+- Dereference: `!ref` represented as `CoreUnaryOp` with `Deref`
+- Assignment: `ref := value` represented as `CoreBinOp` with `RefAssign`
+
+## Language Feature Coverage Matrix
+
+This matrix systematically documents which optimizations apply to each Core AST construct.
+
+### Legend
+- ✅ **Optimize** - Optimization pass applies to this node
+- ❌ **Never** - Never optimize (semantic constraint)
+- ⚠️ **Careful** - Special handling required
+- 🔍 **Recurse** - Optimize children only, not the node itself
+- N/A - Not applicable
+
+### Complete Coverage Matrix
+
+| Core AST Node | Const Fold | Beta Reduce | Inline | Dead Code | Eta | Pattern | CSE | Notes |
+|---------------|------------|-------------|--------|-----------|-----|---------|-----|-------|
+| **CoreIntLit** | ✅ | N/A | N/A | N/A | N/A | N/A | ✅ | Fold in arithmetic |
+| **CoreFloatLit** | ✅ | N/A | N/A | N/A | N/A | N/A | ✅ | Fold in arithmetic |
+| **CoreStringLit** | ✅ | N/A | N/A | N/A | N/A | N/A | ✅ | Concat folding |
+| **CoreBoolLit** | ✅ | N/A | N/A | N/A | N/A | N/A | ✅ | Logical ops folding |
+| **CoreUnitLit** | N/A | N/A | N/A | N/A | N/A | N/A | N/A | No optimizations |
+| **CoreVar** | N/A | ✅ | ✅ | ✅ | ✅ | N/A | ✅ | Substitute, inline, CSE |
+| **CoreLet** | 🔍 | 🔍 | ✅ | ✅ | 🔍 | N/A | 🔍 | Inline binding, eliminate if unused |
+| **CoreLetRecExpr** | 🔍 | 🔍 | ❌ | ⚠️ | 🔍 | N/A | 🔍 | NEVER inline funcs in group |
+| **CoreLambda** | 🔍 | ✅ | ⚠️ | N/A | ✅ | N/A | ⚠️ | Beta reduce when applied, eta reduce |
+| **CoreApp** | 🔍 | ✅ | 🔍 | N/A | N/A | N/A | ✅ | Beta reduction target |
+| **CoreMatch** | 🔍 | 🔍 | 🔍 | ✅ | 🔍 | ✅ | 🔍 | Optimize known values, patterns |
+| **CoreRecord** | 🔍 | 🔍 | 🔍 | N/A | N/A | N/A | ⚠️ | CSE if pure fields |
+| **CoreRecordAccess** | ⚠️ | 🔍 | 🔍 | N/A | N/A | N/A | ⚠️ | Fold if known record + field |
+| **CoreRecordUpdate** | ⚠️ | 🔍 | 🔍 | N/A | N/A | N/A | ⚠️ | Identity elim, update fusion |
+| **CoreVariant** | 🔍 | 🔍 | 🔍 | N/A | N/A | N/A | ✅ | CSE if pure args |
+| **CoreBinOp** | ✅ | 🔍 | 🔍 | N/A | N/A | N/A | ⚠️ | Fold if literals; NEVER fold RefAssign |
+| **CoreUnaryOp** | ✅ | 🔍 | 🔍 | N/A | N/A | N/A | ⚠️ | Fold if literal; NEVER fold Deref |
+| **CoreTypeAnnotation** | 🔍 | 🔍 | 🔍 | N/A | 🔍 | N/A | N/A | Preserve annotation |
+| **CoreUnsafe** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | BLACK BOX - never optimize inside |
+
+### Special Cases Requiring Careful Handling
+
+#### Mutable Reference Operations (❌ NEVER)
+| Operation | Representation | Policy |
+|-----------|----------------|--------|
+| Create | `CoreApp` or `CoreVariant` with `ref` | Never optimize, never inline |
+| Deref | `CoreUnaryOp(Deref, ref)` | Never fold, never CSE |
+| Assign | `CoreBinOp(RefAssign, ref, value)` | Never fold, never eliminate |
+
+**Reason**: Reference identity and side effects must be preserved.
+
+#### Mutually Recursive Functions (❌ NEVER INLINE)
+- **Node**: `CoreLetRecExpr` with multiple bindings
+- **Policy**: Treat all bindings as a unit, never inline any function in the group
+- **Reason**: Inlining one breaks references from others
+
+#### Pattern Match Guards (⚠️ CAREFUL)
+- **Node**: `CoreMatchCase` with `guard?: CoreExpr`
+- **Policy**: Don't reorder patterns with guards (side effects)
+- **Allowed**: Optimize guard expressions themselves
+- **Reason**: Guards evaluated sequentially, order matters
+
+#### Unsafe Blocks (❌ BLACK BOX)
+- **Node**: `CoreUnsafe`
+- **Policy**: Never optimize contents, never inline functions containing unsafe
+- **Reason**: User explicitly marked as requiring special handling
 
 ### Existing Utilities
 
@@ -87,6 +159,152 @@ Understanding what the desugarer does helps identify optimization opportunities:
 7. Or-patterns → Multiple cases
 
 **Optimization Implication**: Many optimization opportunities arise from desugared code (especially beta reduction opportunities from pipes/composition).
+
+## Type System Interactions
+
+The optimizer must respect and preserve vibefun's type system features.
+
+### Width Subtyping (Records)
+
+**Vibefun uses width subtyping for records**: A record with extra fields is a subtype.
+
+**Example**:
+```vibefun
+type Point2D = { x: Int, y: Int }
+type Point3D = { x: Int, y: Int, z: Int }  // Point3D is subtype of Point2D
+```
+
+**Optimization Implications**:
+1. **Record access optimization**: Can't assume exact field match
+2. **CSE on records**: Must account for structural typing
+3. **Pattern matching**: Extra fields allowed in patterns
+4. **Constant folding**: Record with extra fields still valid
+
+**Policy**: Record optimizations must preserve width subtyping semantics.
+
+### Nominal Typing (Variants)
+
+**Vibefun uses nominal typing for variants**: Name matters, not structure.
+
+**Example**:
+```vibefun
+type Status = Active | Pending
+type State = Active | Pending  // Different type! Same structure, different name
+```
+
+**Optimization Implications**:
+1. **Pattern optimization**: Can't merge patterns from different variant types
+2. **Even if structurally identical**: Status.Active ≠ State.Active
+3. **Exhaustiveness**: Type name matters for exhaustiveness checking
+
+**Policy**: Never merge or conflate patterns from nominally different types.
+
+### Let-Polymorphism
+
+**Vibefun supports let-polymorphism**: Functions can have polymorphic types.
+
+**Example**:
+```vibefun
+let identity = (x) => x  // identity: ∀ 'a. 'a -> 'a
+
+let intId = identity(42)        // identity instantiated to Int -> Int
+let strId = identity("hello")   // identity instantiated to String -> String
+```
+
+**Optimization Implications**:
+1. **Inlining polymorphic functions**: Must preserve instantiation at each call site
+2. **Type variable scoping**: Level-based scoping must be preserved
+3. **Monomorphization** (future): Could specialize polymorphic functions per type
+
+**Policy**: Optimization must preserve polymorphic types. Each call site may have different type.
+
+### Type Preservation Invariant
+
+**Critical Requirement**: Every optimization must be type-preserving.
+
+**Invariant**: `∀ expr: type(optimize(expr)) = type(expr)`
+
+**Verification Strategy**:
+1. Run type checker on original AST → Type T
+2. Run optimizer on AST → Optimized AST
+3. Run type checker on optimized AST → Type T'
+4. Assert: T = T' (no type errors)
+
+**Testing**: Integration tests with type checker to verify preservation.
+
+## JavaScript Runtime Constraints
+
+Vibefun compiles to JavaScript, which imposes runtime limitations on optimizations.
+
+### Number Precision Limits
+
+**JavaScript has only IEEE 754 doubles** (no separate int type):
+
+**Constraints**:
+- **Safe integer range**: -(2^53 - 1) to (2^53 - 1)
+- **MAX_SAFE_INTEGER**: 9007199254740991
+- **MIN_SAFE_INTEGER**: -9007199254740991
+- Outside this range: Precision is lost
+
+**Optimization Implications**:
+1. **Constant folding**: Must handle overflow correctly
+2. **Don't fold if result exceeds safe range**: Risk of incorrect result
+3. **Example**: `MAX_SAFE_INTEGER + 1` → Don't fold (runtime behavior preserved)
+
+**Policy**: Constant folding must respect JavaScript number limits.
+
+### Special Numeric Values
+
+**JavaScript has special values**: NaN, Infinity, -Infinity
+
+**Semantics**:
+- **NaN propagation**: `NaN + 1` → `NaN`, `NaN == NaN` → `false`
+- **Infinity**: `1 / 0` → `Infinity` (runtime error in some contexts)
+- **Division by zero**: Keep as runtime behavior (don't fold)
+
+**Policy**: Preserve JavaScript semantics for special values.
+
+### No Tail Call Optimization
+
+**JavaScript does not guarantee tail call optimization** (even in strict mode).
+
+**Constraint**: Cannot optimize tail-recursive functions to loops.
+
+**Implication**:
+1. Recursive functions will use stack space
+2. Deep recursion can overflow stack
+3. Vibefun cannot provide TCO guarantee
+
+**Policy**: Don't attempt tail call optimization. Document limitation.
+
+### Stack Depth Limitations
+
+**JavaScript has limited call stack** (varies by implementation):
+
+**Typical limits**: ~10,000-50,000 call frames
+
+**Optimization Implications**:
+1. **Aggressive inlining**: Could increase recursion depth at runtime
+2. **Inline depth limit**: Consider in cost model
+3. **Deep recursion**: Already problematic, but inlining can make worse
+
+**Policy**: Inlining cost model should consider stack depth impact.
+
+### Evaluation Order
+
+**JavaScript evaluates left-to-right** (strictly defined):
+
+**Example**:
+```javascript
+f(g(), h())  // g() evaluated before h()
+```
+
+**Optimization Implications**:
+1. **Don't reorder function arguments**: Observable if side effects
+2. **Don't reorder pattern match guards**: Evaluated sequentially
+3. **Preserve evaluation order**: Critical for semantics
+
+**Policy**: All optimizations must preserve left-to-right evaluation order.
 
 ## Design Decisions
 

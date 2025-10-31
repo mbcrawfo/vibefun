@@ -10,6 +10,83 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
 - 🔜 Blocked/Waiting
 - ⏳ In progress
 
+## Phase 0: Language Feature Audit & Coverage Analysis
+
+**Goal**: Systematically audit all language features to ensure comprehensive optimizer coverage.
+
+**Status**: Not Started
+**Estimated Complexity**: Medium (foundational analysis)
+
+### Language Feature Inventory
+
+- [ ] Read all Core AST node types from `src/types/core-ast.ts`
+- [ ] Catalog all 19 CoreExpr types
+- [ ] Catalog all 5 CorePattern types
+- [ ] Catalog binary operators (CoreBinaryOp)
+- [ ] Catalog unary operators (CoreUnary)
+- [ ] Document each node type with description
+
+### Coverage Matrix Creation
+
+- [ ] Create coverage matrix in optimizer-context.md
+- [ ] Map each Core AST node to optimization passes (7 passes)
+- [ ] Mark which optimizations apply to which nodes (✅, ❌, ⚠️, 🔍, N/A)
+- [ ] Add notes column explaining special handling
+
+### Special Case Documentation
+
+- [ ] Document mutable reference handling policy
+  - [ ] Reference creation (CoreApp/CoreVariant with `ref`)
+  - [ ] Dereference (CoreUnaryOp with Deref)
+  - [ ] Assignment (CoreBinOp with RefAssign)
+- [ ] Document mutually recursive function policy
+  - [ ] CoreLetRecExpr with multiple bindings
+  - [ ] Never inline policy
+- [ ] Document external function policy
+  - [ ] Treat as opaque
+  - [ ] Never optimize calls
+- [ ] Document unsafe block policy
+  - [ ] CoreUnsafe as black box
+  - [ ] Never optimize inside
+- [ ] Document record operation opportunities
+  - [ ] CoreRecordUpdate optimization potential
+  - [ ] Update fusion, identity elimination
+- [ ] Document pattern match guard policy
+  - [ ] CoreMatchCase with optional guard
+  - [ ] Side effect preservation
+
+### Type System Integration
+
+- [ ] Document width subtyping (records) implications
+- [ ] Document nominal typing (variants) implications
+- [ ] Document let-polymorphism preservation requirements
+- [ ] Document type preservation invariant
+
+### JavaScript Runtime Constraints
+
+- [ ] Document number precision limits (MAX_SAFE_INTEGER)
+- [ ] Document special numeric values (NaN, Infinity)
+- [ ] Document no TCO guarantee
+- [ ] Document stack depth limitations
+- [ ] Document evaluation order requirements
+
+### Gap Analysis
+
+- [ ] Identify Core AST nodes not covered by any optimization
+- [ ] Identify optimization opportunities not in current plan
+- [ ] Identify edge cases requiring special tests
+- [ ] Document findings in optimizer-context.md
+
+### Validation
+
+- [ ] Verify all 19 CoreExpr types documented
+- [ ] Verify coverage matrix complete (19 nodes × 7 passes)
+- [ ] Verify all special cases have policies
+- [ ] Verify all constraints documented
+- [ ] Update optimizer-context.md with all findings
+
+---
+
 ## Phase 1: Foundation & Infrastructure
 
 **Goal**: Build core infrastructure that all optimization passes depend on.
@@ -80,6 +157,26 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
   - [ ] Export all optimization passes (as they're created)
   - [ ] Export types (re-export from src/types)
 
+### Policy Implementation
+
+- [ ] Implement mutable reference detection utilities
+  - [ ] `containsRef(expr: CoreExpr): boolean` - Check for ref operations
+  - [ ] `isRefOperation(expr: CoreExpr): boolean` - Identify ref/deref/assign
+  - [ ] Tests for ref detection
+
+- [ ] Implement mutual recursion detection
+  - [ ] `isMutuallyRecursive(expr: CoreLetRecExpr): boolean`
+  - [ ] `getRecursiveBindingGroup(expr: CoreLetRecExpr): Set<string>`
+  - [ ] Tests for mutual recursion detection
+
+- [ ] Implement unsafe block detection
+  - [ ] `containsUnsafe(expr: CoreExpr): boolean`
+  - [ ] Tests for unsafe detection
+
+- [ ] Implement source location preservation utilities
+  - [ ] `preserveLoc<T extends { loc: Location }>(source: T, target: T): T`
+  - [ ] Tests for location preservation
+
 ### Validation
 
 - [ ] Run `npm run check` - Type checking must pass
@@ -87,6 +184,7 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
 - [ ] Run `npm test` - All tests must pass
 - [ ] Run `npm run format` - Code must be formatted
 - [ ] Verify 90%+ test coverage for Phase 1 code
+- [ ] Verify all policies have corresponding utilities
 
 ---
 
@@ -120,6 +218,32 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
   - [ ] Don't fold division by zero (keep as runtime error)
   - [ ] Handle NaN and Infinity correctly
   - [ ] Handle integer overflow (JavaScript limits)
+  - [ ] Respect MAX_SAFE_INTEGER boundaries
+  - [ ] Don't fold if result exceeds safe range
+
+### Extended Constant Folding (NEW)
+
+- [ ] String operations:
+  - [ ] String concatenation chains: "a" & "b" & "c" → "abc"
+  - [ ] Multi-line string literal handling
+  - [ ] (Future) String module function folding if inlined
+
+- [ ] Record operations:
+  - [ ] Update-then-access: `{ ...r, x: 5 }.x` → `5`
+  - [ ] Identity update elimination: `{ ...r, x: r.x }` → `r`
+
+- [ ] Mutable reference policy enforcement:
+  - [ ] NEVER fold CoreUnaryOp with Deref
+  - [ ] NEVER fold CoreBinOp with RefAssign
+  - [ ] NEVER fold ref creation (CoreApp/CoreVariant with `ref`)
+  - [ ] Tests verifying refs aren't folded
+
+- [ ] Numeric edge cases:
+  - [ ] Test overflow at MAX_SAFE_INTEGER
+  - [ ] Test underflow at MIN_SAFE_INTEGER
+  - [ ] Test NaN propagation: NaN + 1 → NaN
+  - [ ] Test Infinity: 1/0 not folded
+  - [ ] Test negative zero handling
 
 ### Constant Folding Tests
 
@@ -197,9 +321,39 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
 - [ ] Perform inlining (substitute function body)
 - [ ] Track variable usage counts
 - [ ] Respect optimization level (different thresholds for O1 vs O2)
-- [ ] Don't inline recursive functions
-- [ ] Don't inline if contains unsafe blocks
-- [ ] Don't inline external functions
+
+### Inlining Special Cases (NEW)
+
+- [ ] Recursive function detection:
+  - [ ] Don't inline directly recursive functions
+  - [ ] Use free variable analysis to detect recursion
+  - [ ] Tests for recursive function preservation
+
+- [ ] Mutual recursion detection (CRITICAL):
+  - [ ] Detect `CoreLetRecExpr` with multiple bindings
+  - [ ] NEVER inline any function in mutually recursive group
+  - [ ] Use utility from Phase 1: `isMutuallyRecursive()`
+  - [ ] Tests for isEven/isOdd mutual recursion example
+  - [ ] Tests that inlining one doesn't break the others
+
+- [ ] Unsafe block detection:
+  - [ ] Don't inline functions containing `CoreUnsafe` anywhere in body
+  - [ ] Use utility from Phase 1: `containsUnsafe()`
+  - [ ] Tests for unsafe block preservation
+
+- [ ] Mutable reference detection:
+  - [ ] Don't inline functions containing ref operations
+  - [ ] Use utility from Phase 1: `containsRef()`
+  - [ ] Tests for ref operation preservation
+
+- [ ] External functions:
+  - [ ] Don't inline external functions (already handled - no definitions)
+  - [ ] Tests verifying external calls not inlined
+
+- [ ] Stack depth considerations:
+  - [ ] Factor stack depth into cost model
+  - [ ] Limit inlining depth to prevent stack overflow
+  - [ ] Tests for deep inlining scenarios
 
 ### Inline Expansion Tests
 
@@ -290,7 +444,7 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
 
 - [ ] Create `packages/core/src/optimizer/passes/pattern-opt.ts`
 - [ ] Implement `PatternMatchOptimizationPass extends OptimizationPass`
-- [ ] Case reordering:
+- [ ] Case reordering (without guards):
   - [ ] Move literal patterns before variable patterns
   - [ ] Move constructor patterns before wildcard patterns
   - [ ] Detect and remove redundant wildcards
@@ -301,6 +455,38 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
   - [ ] Match on literal: reduce to matching branch
   - [ ] Match on known constructor: reduce to matching branch
 - [ ] Jump table generation (for literal patterns)
+
+### Pattern Match Guard Handling (NEW)
+
+- [ ] Guard detection and analysis:
+  - [ ] Detect `CoreMatchCase` with optional `guard?: CoreExpr`
+  - [ ] Identify patterns that have guards vs those that don't
+
+- [ ] Guard side-effect preservation:
+  - [ ] DON'T reorder patterns that have guards
+  - [ ] Preserve sequential evaluation order for guarded patterns
+  - [ ] Tests for guard side-effect preservation
+  - [ ] Tests with unsafe blocks in guards
+
+- [ ] Safe pattern reorderings:
+  - [ ] CAN reorder patterns without guards
+  - [ ] CAN'T reorder patterns with guards
+  - [ ] Tests verifying correct reordering behavior
+
+- [ ] Guard expression optimization:
+  - [ ] CAN optimize guard expressions themselves (constant fold, etc.)
+  - [ ] Can't change evaluation order
+  - [ ] Tests for guard expression optimization
+
+- [ ] Nominal variant type preservation:
+  - [ ] Never merge patterns from different variant types
+  - [ ] Tests ensuring Status.Active ≠ State.Active (different types)
+  - [ ] Verify nominal type boundaries respected
+
+- [ ] Exhaustiveness preservation:
+  - [ ] Never remove cases that affect exhaustiveness
+  - [ ] Verify optimized match still exhaustive if original was
+  - [ ] Tests for exhaustiveness preservation
 
 ### Pattern Match Optimization Tests
 
@@ -460,6 +646,155 @@ This document tracks all implementation tasks for the vibefun optimizer. Mark ta
 - [ ] Test: Type preservation across all passes
 - [ ] Test: Source location preservation across all passes
 - [ ] Test: Semantic preservation (before/after equivalence)
+
+### Language Feature Integration Tests (NEW)
+
+- [ ] Create `optimizer.language-features.test.ts`
+
+- [ ] Mutable reference tests:
+  - [ ] Test ref creation not optimized away
+  - [ ] Test deref operations preserved
+  - [ ] Test assignments not eliminated
+  - [ ] Test functions containing refs not inlined
+  - [ ] Test CSE doesn't duplicate refs
+  - [ ] Test all ref operations have correct semantics
+
+- [ ] Mutually recursive function tests:
+  - [ ] Test isEven/isOdd example
+  - [ ] Test functions in group not inlined
+  - [ ] Test mutual references preserved
+  - [ ] Test optimization doesn't break recursion
+  - [ ] Test with 3+ mutually recursive functions
+
+- [ ] Record update tests:
+  - [ ] Test update fusion when applicable
+  - [ ] Test identity update elimination
+  - [ ] Test update-then-access constant propagation
+  - [ ] Test width subtyping preserved
+  - [ ] Test nested updates
+
+- [ ] Pattern match guard tests:
+  - [ ] Test guard side effects preserved
+  - [ ] Test patterns with guards not reordered
+  - [ ] Test guard expressions optimized
+  - [ ] Test guards with unsafe blocks
+  - [ ] Test sequential guard evaluation
+
+- [ ] Unsafe block tests:
+  - [ ] Test expressions inside unsafe not optimized
+  - [ ] Test functions containing unsafe not inlined
+  - [ ] Test unsafe boundaries preserved
+  - [ ] Test nested unsafe blocks
+
+- [ ] External function tests:
+  - [ ] Test external calls not optimized
+  - [ ] Test external function overloading preserved
+  - [ ] Test external functions never inlined
+  - [ ] Test wrapper functions around externals can be inlined
+
+- [ ] Multi-line string tests:
+  - [ ] Test multi-line string literals handled correctly
+  - [ ] Test concatenation with multi-line strings
+  - [ ] Test optimization preserves string content
+
+### Type System Preservation Tests (NEW)
+
+- [ ] Create `optimizer.types.test.ts`
+
+- [ ] Polymorphic type preservation:
+  - [ ] Test identity function stays polymorphic
+  - [ ] Test type variable scoping preserved
+  - [ ] Test let-polymorphism maintained
+  - [ ] Test polymorphic inlining preserves instantiation
+  - [ ] Test with complex polymorphic functions
+
+- [ ] Width subtyping (records):
+  - [ ] Test record optimizations respect subtyping
+  - [ ] Test extra fields preserved
+  - [ ] Test structural typing semantics
+  - [ ] Test Point3D is subtype of Point2D
+  - [ ] Test CSE with records of different widths
+
+- [ ] Nominal variant types:
+  - [ ] Test variant patterns not incorrectly merged
+  - [ ] Test Status.Active ≠ State.Active
+  - [ ] Test nominal type boundaries respected
+  - [ ] Test exhaustiveness with nominal types
+  - [ ] Test pattern optimization preserves nominal typing
+
+- [ ] Type re-checking integration:
+  - [ ] Integrate with type checker
+  - [ ] Test re-type-check after optimization
+  - [ ] Property test: ∀ expr. type(optimize(expr)) = type(expr)
+  - [ ] Test no type errors introduced by optimization
+  - [ ] Test type annotations preserved
+
+### JavaScript Runtime Edge Case Tests (NEW)
+
+- [ ] Create `optimizer.js-runtime.test.ts`
+
+- [ ] Number precision limits:
+  - [ ] Test MAX_SAFE_INTEGER boundaries
+  - [ ] Test overflow handling (don't fold if exceeds range)
+  - [ ] Test MIN_SAFE_INTEGER boundaries
+  - [ ] Test integer arithmetic near boundaries
+  - [ ] Test constant folding respects safe range
+
+- [ ] Special numeric values:
+  - [ ] Test NaN propagation: NaN + 1 → NaN
+  - [ ] Test NaN == NaN → false
+  - [ ] Test Infinity handling: 1/0 not folded
+  - [ ] Test -Infinity behavior
+  - [ ] Test negative zero handling
+
+- [ ] Division by zero:
+  - [ ] Test division by zero not folded (runtime error)
+  - [ ] Test 0/0 behavior
+  - [ ] Test Infinity / Infinity
+
+- [ ] Stack depth considerations:
+  - [ ] Test aggressive inlining doesn't create deep nesting
+  - [ ] Test recursion depth not increased unsafely
+  - [ ] Test inlining depth limits enforced
+  - [ ] Test with deeply nested function calls
+
+### Source Location Preservation Tests (NEW)
+
+- [ ] Create `optimizer.locations.test.ts`
+- [ ] Test all transformations preserve `loc` fields
+- [ ] Test synthetic nodes have valid locations
+- [ ] Test error messages point to correct source locations
+- [ ] Test source maps remain valid
+- [ ] Test location preservation across all passes
+- [ ] Test location preservation in complex transformations
+
+### Semantic Preservation Integration Tests (NEW)
+
+- [ ] Create `optimizer.semantics.test.ts`
+
+- [ ] Complex program tests:
+  - [ ] Fibonacci (recursion handling)
+  - [ ] List operations (pipeline optimizations)
+  - [ ] Higher-order functions (inlining + beta reduction)
+  - [ ] Nested pattern matches
+  - [ ] Record-heavy computation
+
+- [ ] Observable behavior tests:
+  - [ ] Test optimization doesn't change behavior
+  - [ ] Test side effects preserved
+  - [ ] Test evaluation order preserved
+  - [ ] Test with programs that use unsafe blocks
+  - [ ] Test with programs that use mutable refs
+
+### Fixed-Point Convergence Tests (NEW)
+
+- [ ] Create `optimizer.convergence.test.ts`
+- [ ] Test optimization reaches fixed point
+- [ ] Test iteration limits respected (max 10)
+- [ ] Test idempotence: optimize(optimize(expr)) = optimize(expr)
+- [ ] Test cascading optimizations converge
+- [ ] Test pathological cases don't infinite loop
+- [ ] Test convergence metrics collected correctly
 
 ### Example Programs
 
