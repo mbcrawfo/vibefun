@@ -21,9 +21,9 @@ export type {
 
 export { OptimizationLevel as Level, createEmptyMetrics, mergeMetrics } from "../types/optimizer.js";
 
-// Optimization passes will be exported as they are implemented
-// export { ConstantFoldingPass } from "./passes/constant-folding.js";
-// export { BetaReductionPass } from "./passes/beta-reduction.js";
+// Optimization passes
+export { ConstantFoldingPass } from "./passes/constant-folding.js";
+export { BetaReductionPass } from "./passes/beta-reduction.js";
 // export { InlineExpansionPass } from "./passes/inline.js";
 // export { DeadCodeEliminationPass } from "./passes/dead-code-elim.js";
 // export { EtaReductionPass } from "./passes/eta-reduction.js";
