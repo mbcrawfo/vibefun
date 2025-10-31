@@ -147,7 +147,7 @@ describe("Built-in Environment", () => {
 
     it("should have exactly 54 built-in values", () => {
         const env = getBuiltinEnv();
-        // 6 constructors + 46 stdlib functions (17 core + 29 Phase 7) + 2 special functions = 54
+        // 6 constructors + 46 stdlib functions + 2 special functions = 54
         expect(env.size).toBe(54);
     });
 });
@@ -504,9 +504,9 @@ describe("Special Function Types", () => {
     });
 });
 
-// ==================== Phase 7: Additional Standard Library Functions Tests ====================
+// ==================== Additional Standard Library Functions Tests ====================
 
-describe("Phase 7 List Functions", () => {
+describe("List Functions", () => {
     beforeEach(() => {
         resetTypeVarCounter();
     });
@@ -552,7 +552,7 @@ describe("Phase 7 List Functions", () => {
     });
 });
 
-describe("Phase 7 Option Functions", () => {
+describe("Option Functions", () => {
     beforeEach(() => {
         resetTypeVarCounter();
     });
@@ -582,7 +582,7 @@ describe("Phase 7 Option Functions", () => {
     });
 });
 
-describe("Phase 7 Result Functions", () => {
+describe("Result Functions", () => {
     beforeEach(() => {
         resetTypeVarCounter();
     });
@@ -620,7 +620,7 @@ describe("Phase 7 Result Functions", () => {
     });
 });
 
-describe("Phase 7 String Functions", () => {
+describe("String Functions", () => {
     beforeEach(() => {
         resetTypeVarCounter();
     });
@@ -706,7 +706,7 @@ describe("Phase 7 String Functions", () => {
     });
 });
 
-describe("Phase 7 Int Functions", () => {
+describe("Int Functions", () => {
     beforeEach(() => {
         resetTypeVarCounter();
     });
@@ -736,7 +736,7 @@ describe("Phase 7 Int Functions", () => {
     });
 });
 
-describe("Phase 7 Float Functions", () => {
+describe("Float Functions", () => {
     beforeEach(() => {
         resetTypeVarCounter();
     });

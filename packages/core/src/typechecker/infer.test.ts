@@ -1904,9 +1904,9 @@ describe("Type Inference - Match Expressions", () => {
     });
 });
 
-// ==================== Phase 7: Advanced Features Tests ====================
+// ==================== Advanced Features Tests ====================
 
-describe("Phase 7 - Type Annotations", () => {
+describe("Type Annotations", () => {
     let ctx: InferenceContext;
 
     beforeEach(() => {

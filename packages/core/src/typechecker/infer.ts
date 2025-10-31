@@ -259,11 +259,11 @@ function inferVar(
     if (binding.kind === "Value" || binding.kind === "External") {
         scheme = binding.scheme;
     } else {
-        // ExternalOverload case - not yet supported in Phase 3
+        // ExternalOverload case - not yet supported
         throw new TypeError(
             `Overloaded external '${name}' not yet supported`,
             loc,
-            `Overload resolution will be implemented in Phase 7`,
+            `Overload resolution is planned for a future release`,
         );
     }
 
@@ -288,12 +288,12 @@ function inferLambda(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
     const paramType = freshTypeVar(ctx.level);
 
     // Add parameter to environment
-    // For simplicity, we only handle variable patterns in Phase 3
+    // Currently only variable patterns are supported in lambda parameters
     if (expr.param.kind !== "CoreVarPattern") {
         throw new TypeError(
             `Pattern matching in lambda parameters not yet supported`,
             expr.loc,
-            `Only simple variable patterns are supported in this phase`,
+            `Only simple variable patterns are currently supported`,
         );
     }
 
@@ -477,8 +477,8 @@ function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } 
         case "Multiply":
         case "Divide":
         case "Modulo": {
-            // For simplicity in Phase 3, require Int
-            // TODO: Phase 7 will add polymorphic arithmetic
+            // Currently require Int for arithmetic operators
+            // TODO: Add polymorphic arithmetic to support Float operators
             return {
                 paramType: primitiveTypes.Int,
                 resultType: primitiveTypes.Int,
@@ -523,10 +523,9 @@ function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } 
             };
 
         // Reference assignment: (Ref<T>, T) -> Unit
+        // Note: RefAssign is handled with special logic in inferBinaryOp before this function is called
         case "RefAssign": {
-            // This will be properly implemented in Phase 2.5 completion
-            // For now, throw an error
-            throw new Error("RefAssign operator type checking not yet implemented");
+            throw new Error("RefAssign should be handled by special case logic");
         }
     }
 }
@@ -616,10 +615,9 @@ function getUnaryOpTypes(op: CoreUnary): { paramType: Type; resultType: Type } {
             };
 
         // Dereference: Ref<T> -> T
+        // Note: Deref is handled with special logic in inferUnaryOp before this function is called
         case "Deref": {
-            // This will be properly implemented in Phase 2.5 completion
-            // For now, throw an error
-            throw new Error("Deref operator type checking not yet implemented");
+            throw new Error("Deref should be handled by special case logic");
         }
     }
 }
@@ -641,7 +639,6 @@ function inferTypeAnnotation(
     const exprResult = inferExpr(ctx, expr.expr);
 
     // Convert type expression to Type
-    // For Phase 3, we'll implement a simple converter
     const annotationType = convertTypeExpr(expr.typeExpr);
 
     // Unify inferred type with annotation
@@ -706,23 +703,23 @@ function generalize(ctx: InferenceContext, type: Type, expr: CoreExpr): TypeSche
  * @returns The inferred type and updated substitution
  */
 function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>): InferResult {
-    // For simplicity, we only handle variable patterns in Phase 4
+    // Currently only variable patterns are supported in let-bindings
     if (expr.pattern.kind !== "CoreVarPattern") {
         throw new TypeError(
             `Pattern matching in let-bindings not yet supported`,
             expr.loc,
-            `Only simple variable patterns are supported in this phase`,
+            `Only simple variable patterns are currently supported`,
         );
     }
 
     const varName = expr.pattern.name;
 
-    // Mutable bindings are not supported yet (Phase 2.5 completion)
+    // Mutable let-bindings are not supported yet
     if (expr.mutable) {
         throw new TypeError(
             `Mutable let-bindings not yet supported`,
             expr.loc,
-            `Mutable bindings will be fully supported after Phase 2.5 completion`,
+            `Use Ref<T> types for mutable values instead`,
         );
     }
 
@@ -833,7 +830,7 @@ function inferLetRecExpr(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
             throw new TypeError(
                 `Mutable bindings in mutually recursive groups not yet supported`,
                 binding.loc,
-                `Mutable bindings will be fully supported after Phase 2.5 completion`,
+                `Use Ref<T> types for mutable values instead`,
             );
         }
     }
@@ -1359,8 +1356,7 @@ function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Core
 /**
  * Convert a CoreTypeExpr to a Type
  *
- * This is a simple implementation for Phase 3. More complex type expressions
- * will be handled in later phases.
+ * Converts surface syntax type expressions to internal Type representation.
  *
  * @param typeExpr - The type expression to convert
  * @returns The corresponding Type

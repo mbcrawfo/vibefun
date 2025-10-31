@@ -112,7 +112,7 @@ export function getBuiltinEnv(): Map<string, TypeScheme> {
     // Err: (E) -> Result<T, E>
     env.set("Err", polyScheme([tVar3Id, eVarId], funType([eVar], resultOfTE)));
 
-    // Standard Library Functions - Phase 2 Core Subset (17 functions)
+    // Standard Library Functions
 
     // List functions (4)
     const tVar4 = freshTypeVar();
@@ -239,7 +239,7 @@ export function getBuiltinEnv(): Map<string, TypeScheme> {
     // Float.toInt: (Float) -> Int
     env.set("Float.toInt", monoScheme(funType([primitiveTypes.Float], primitiveTypes.Int)));
 
-    // ==================== Phase 7: Additional Standard Library Functions (29 functions) ====================
+    // ==================== Additional Standard Library Functions ====================
 
     // List functions (5 more)
     const tVar14 = freshTypeVar();
