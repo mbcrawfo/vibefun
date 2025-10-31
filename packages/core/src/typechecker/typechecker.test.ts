@@ -999,11 +999,10 @@ describe("typeCheck - Integration Tests", () => {
         expect(composeType?.type).toBe("Fun");
     });
 
-    it.skip("should type check record pattern matching", () => {
-        // Note: Record patterns in lambdas need type information
-        // let getName = (p) => match p { | { name } => name }
-        // Note: This requires pattern matching in match expressions, which may not be fully supported
-        // For now, we'll use record access instead
+    it("should type check record pattern matching", () => {
+        // Tests record field access on polymorphic lambda parameters
+        // Type variable is constrained to be a record type when field is accessed
+        // let getName = (p) => p.name
         const module = createModule([
             {
                 kind: "CoreLetDecl",

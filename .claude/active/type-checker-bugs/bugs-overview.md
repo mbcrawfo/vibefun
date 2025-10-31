@@ -4,10 +4,10 @@
 
 ## Status Summary
 
-- **Total Skipped Tests:** 9 tests originally, 4 remaining
-- **Distinct Bugs:** 6 bugs total, 4 fixed, 2 remaining
-- **Current Test Status:** 1356/1360 passing (99.7%)
-- **Goal:** Fix all 9 skipped tests to achieve 100% test pass rate
+- **Total Skipped Tests:** 9 tests originally, 0 remaining ✅
+- **Distinct Bugs:** 6 bugs total, ALL FIXED ✅
+- **Current Test Status:** 1360/1360 passing (100%) ✅
+- **Goal:** ✅ COMPLETE - All 9 skipped tests now pass!
 
 ## Bug Summary Table
 
@@ -17,8 +17,8 @@
 | **2** | Recursive CoreLetDecl not supported | 1 | Medium | ✅ Fixed | [bug-2-recursive-let.md](./bug-2-recursive-let.md) |
 | **3** | Mutual recursion env not updated | 1 | Medium | ✅ Fixed | [bug-3-mutual-recursion.md](./bug-3-mutual-recursion.md) |
 | **4** | Multiple declarations can't reference each other | 2 | Medium | ✅ Fixed | [bug-4-environment-threading.md](./bug-4-environment-threading.md) |
-| **5** | Exhaustiveness on polymorphic lambda params | 3 | High | 🔜 Not Started | [bug-5-polymorphic-exhaustiveness.md](./bug-5-polymorphic-exhaustiveness.md) |
-| **6** | Record patterns in lambdas | 1 | High | 🔜 Not Started | [bug-6-record-patterns.md](./bug-6-record-patterns.md) |
+| **5** | Exhaustiveness on polymorphic lambda params | 3 | High | ✅ Fixed | [bug-5-polymorphic-exhaustiveness.md](./bug-5-polymorphic-exhaustiveness.md) |
+| **6** | Record field access in lambdas | 1 | High | ✅ Fixed | [bug-6-record-patterns.md](./bug-6-record-patterns.md) |
 
 ## Recommended Fix Order
 
@@ -110,19 +110,17 @@ These are documented limitations, NOT bugs:
 
 ## Progress Tracking
 
-### Bugs Fixed: 4/6 (67%)
-### Tests Fixed: 5/9 (56%)
-### Overall Progress: 67%
+### Bugs Fixed: 6/6 (100%) ✅
+### Tests Fixed: 9/9 (100%) ✅
+### Overall Progress: 100% ✅
 
-**Completed:**
+**All Bugs Fixed:**
 - ✅ Bug #1: External declarations (1 test)
 - ✅ Bug #4: Environment threading (2 tests)
 - ✅ Bug #2: Recursive let (1 test)
 - ✅ Bug #3: Mutual recursion (1 test)
-
-**Remaining:**
-- 🔜 Bug #5: Polymorphic exhaustiveness (3 tests) - High complexity
-- 🔜 Bug #6: Record patterns (1 test) - High complexity
+- ✅ Bug #5: Polymorphic exhaustiveness (3 tests)
+- ✅ Bug #6: Record field access (1 test)
 
 ## Files to Modify
 

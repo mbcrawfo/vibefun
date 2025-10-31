@@ -1009,7 +1009,28 @@ function inferRecord(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
 function inferRecordAccess(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecordAccess" }>): InferResult {
     // Infer the type of the record expression
     const recordResult = inferExpr(ctx, expr.record);
-    const recordType = applySubst(recordResult.subst, recordResult.type);
+    let recordType = applySubst(recordResult.subst, recordResult.type);
+    let currentSubst = recordResult.subst;
+
+    // If the type is a type variable, constrain it to be a record type with the accessed field
+    if (recordType.type === "Var") {
+        // Create a fresh type variable for the field
+        const fieldType = freshTypeVar(ctx.level);
+
+        // Create a record type with (at least) the accessed field
+        const recordConstraint: Type = {
+            type: "Record",
+            fields: new Map([[expr.field, fieldType]]),
+        };
+
+        // Unify the type variable with the record constraint
+        const unifySubst = unify(recordType, recordConstraint);
+        currentSubst = composeSubst(unifySubst, currentSubst);
+        recordType = applySubst(currentSubst, recordType);
+
+        // Return the field type
+        return { type: fieldType, subst: currentSubst };
+    }
 
     // Check that it's a record type
     if (recordType.type !== "Record") {
@@ -1031,7 +1052,7 @@ function inferRecordAccess(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
         );
     }
 
-    return { type: fieldType, subst: recordResult.subst };
+    return { type: fieldType, subst: currentSubst };
 }
 
 /**
