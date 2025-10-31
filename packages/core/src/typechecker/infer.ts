@@ -1341,7 +1341,7 @@ function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Core
  * @param typeExpr - The type expression to convert
  * @returns The corresponding Type
  */
-function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
+export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
     switch (typeExpr.kind) {
         case "CoreTypeConst":
             return constType(typeExpr.name);

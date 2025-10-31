@@ -106,10 +106,7 @@ describe("typeCheck", () => {
         expect(result.env.values.has("ref")).toBe(true);
     });
 
-    it.skip("should type check external function declaration", () => {
-        // Note: External declarations aren't being added to declarationTypes
-        // buildEnvironment should process them, but typeCheckDeclaration can't find them
-        // Need to investigate why env.values.get(name) returns undefined at line 135
+    it("should type check external function declaration", () => {
         const module = createModule([
             {
                 kind: "CoreExternalDecl",
@@ -289,7 +286,6 @@ describe("typeCheck - Integration Tests", () => {
                                     value: 1,
                                     loc: testLoc,
                                 },
-                                guard: null,
                                 loc: testLoc,
                             },
                             {
@@ -334,7 +330,6 @@ describe("typeCheck - Integration Tests", () => {
                                     },
                                     loc: testLoc,
                                 },
-                                guard: null,
                                 loc: testLoc,
                             },
                         ],
@@ -397,7 +392,6 @@ describe("typeCheck - Integration Tests", () => {
                                             value: true,
                                             loc: testLoc,
                                         },
-                                        guard: null,
                                         loc: testLoc,
                                     },
                                     {
@@ -432,7 +426,6 @@ describe("typeCheck - Integration Tests", () => {
                                             ],
                                             loc: testLoc,
                                         },
-                                        guard: null,
                                         loc: testLoc,
                                     },
                                 ],
@@ -441,7 +434,6 @@ describe("typeCheck - Integration Tests", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        exported: true,
                         loc: testLoc,
                     },
                     {
@@ -476,7 +468,6 @@ describe("typeCheck - Integration Tests", () => {
                                             value: false,
                                             loc: testLoc,
                                         },
-                                        guard: null,
                                         loc: testLoc,
                                     },
                                     {
@@ -511,7 +502,6 @@ describe("typeCheck - Integration Tests", () => {
                                             ],
                                             loc: testLoc,
                                         },
-                                        guard: null,
                                         loc: testLoc,
                                     },
                                 ],
@@ -520,10 +510,10 @@ describe("typeCheck - Integration Tests", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        exported: true,
                         loc: testLoc,
                     },
                 ],
+                exported: true,
                 loc: testLoc,
             },
         ]);
@@ -720,7 +710,6 @@ describe("typeCheck - Integration Tests", () => {
                                         name: "x",
                                         loc: testLoc,
                                     },
-                                    guard: null,
                                     loc: testLoc,
                                 },
                                 {
@@ -735,7 +724,6 @@ describe("typeCheck - Integration Tests", () => {
                                         name: "default",
                                         loc: testLoc,
                                     },
-                                    guard: null,
                                     loc: testLoc,
                                 },
                             ],
@@ -795,7 +783,6 @@ describe("typeCheck - Integration Tests", () => {
                                     value: "zero",
                                     loc: testLoc,
                                 },
-                                guard: null,
                                 loc: testLoc,
                             },
                             {
@@ -836,7 +823,6 @@ describe("typeCheck - Integration Tests", () => {
                                     value: "negative",
                                     loc: testLoc,
                                 },
-                                guard: null,
                                 loc: testLoc,
                             },
                         ],
@@ -1138,7 +1124,6 @@ describe("typeCheck - Integration Tests", () => {
                                     name: "v",
                                     loc: testLoc,
                                 },
-                                guard: null,
                                 loc: testLoc,
                             },
                             {
@@ -1159,7 +1144,6 @@ describe("typeCheck - Integration Tests", () => {
                                     value: 0,
                                     loc: testLoc,
                                 },
-                                guard: null,
                                 loc: testLoc,
                             },
                         ],
@@ -1392,7 +1376,6 @@ describe("typeCheck - Integration Tests", () => {
                                         ],
                                         loc: testLoc,
                                     },
-                                    guard: null,
                                     loc: testLoc,
                                 },
                                 {
@@ -1408,7 +1391,6 @@ describe("typeCheck - Integration Tests", () => {
                                         args: [],
                                         loc: testLoc,
                                     },
-                                    guard: null,
                                     loc: testLoc,
                                 },
                             ],

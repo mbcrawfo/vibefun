@@ -10,7 +10,7 @@ import type { CoreDeclaration, CoreExpr, CoreModule } from "../types/core-ast.js
 import type { Type, TypeEnv } from "../types/environment.js";
 
 import { buildEnvironment } from "./environment.js";
-import { createContext, inferExpr, instantiate } from "./infer.js";
+import { convertTypeExpr, createContext, inferExpr, instantiate } from "./infer.js";
 import { checkPattern } from "./patterns.js";
 
 /**
@@ -129,16 +129,11 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             break;
 
         case "CoreExternalDecl":
-            // External declarations are processed in buildEnvironment
-            // but we need to store them in declarationTypes
+            // External declarations need to be converted and stored in declarationTypes
+            // Convert the CoreTypeExpr to a Type
             {
-                const binding = env.values.get(decl.name);
-                if (binding) {
-                    if (binding.kind === "Value" || binding.kind === "External") {
-                        const type = instantiate(binding.scheme, 0);
-                        declarationTypes.set(decl.name, type);
-                    }
-                }
+                const type = convertTypeExpr(decl.typeExpr);
+                declarationTypes.set(decl.name, type);
             }
             break;
 
