@@ -4,19 +4,19 @@
 
 ## Status Summary
 
-- **Total Skipped Tests:** 9 tests in `packages/core/src/typechecker/typechecker.test.ts`
-- **Distinct Bugs:** 6 bugs affecting different functionality
-- **Current Test Status:** 1341/1342 passing (99.9%)
+- **Total Skipped Tests:** 9 tests originally, 4 remaining
+- **Distinct Bugs:** 6 bugs total, 4 fixed, 2 remaining
+- **Current Test Status:** 1356/1360 passing (99.7%)
 - **Goal:** Fix all 9 skipped tests to achieve 100% test pass rate
 
 ## Bug Summary Table
 
 | Bug # | Issue | Tests | Complexity | Status | Doc |
 |-------|-------|-------|------------|--------|-----|
-| **1** | External declarations not in declarationTypes | 1 | Low | 🔜 Not Started | [bug-1-external-declarations.md](./bug-1-external-declarations.md) |
-| **2** | Recursive CoreLetDecl not supported | 1 | Medium | 🔜 Not Started | [bug-2-recursive-let.md](./bug-2-recursive-let.md) |
-| **3** | Mutual recursion env not updated | 1 | Medium | 🔜 Not Started | [bug-3-mutual-recursion.md](./bug-3-mutual-recursion.md) |
-| **4** | Multiple declarations can't reference each other | 2 | Medium | 🔜 Not Started | [bug-4-environment-threading.md](./bug-4-environment-threading.md) |
+| **1** | External declarations not in declarationTypes | 1 | Low | ✅ Fixed | [bug-1-external-declarations.md](./bug-1-external-declarations.md) |
+| **2** | Recursive CoreLetDecl not supported | 1 | Medium | ✅ Fixed | [bug-2-recursive-let.md](./bug-2-recursive-let.md) |
+| **3** | Mutual recursion env not updated | 1 | Medium | ✅ Fixed | [bug-3-mutual-recursion.md](./bug-3-mutual-recursion.md) |
+| **4** | Multiple declarations can't reference each other | 2 | Medium | ✅ Fixed | [bug-4-environment-threading.md](./bug-4-environment-threading.md) |
 | **5** | Exhaustiveness on polymorphic lambda params | 3 | High | 🔜 Not Started | [bug-5-polymorphic-exhaustiveness.md](./bug-5-polymorphic-exhaustiveness.md) |
 | **6** | Record patterns in lambdas | 1 | High | 🔜 Not Started | [bug-6-record-patterns.md](./bug-6-record-patterns.md) |
 
@@ -110,11 +110,19 @@ These are documented limitations, NOT bugs:
 
 ## Progress Tracking
 
-### Bugs Fixed: 0/6
-### Tests Fixed: 0/9
-### Overall Progress: 0%
+### Bugs Fixed: 4/6 (67%)
+### Tests Fixed: 5/9 (56%)
+### Overall Progress: 67%
 
-Update this section as bugs are fixed.
+**Completed:**
+- ✅ Bug #1: External declarations (1 test)
+- ✅ Bug #4: Environment threading (2 tests)
+- ✅ Bug #2: Recursive let (1 test)
+- ✅ Bug #3: Mutual recursion (1 test)
+
+**Remaining:**
+- 🔜 Bug #5: Polymorphic exhaustiveness (3 tests) - High complexity
+- 🔜 Bug #6: Record patterns (1 test) - High complexity
 
 ## Files to Modify
 

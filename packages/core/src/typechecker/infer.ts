@@ -1249,14 +1249,7 @@ function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Core
     // Infer scrutinee type
     const scrutineeResult = inferExpr(ctx, expr.expr);
     let currentCtx: InferenceContext = { ...ctx, subst: scrutineeResult.subst };
-    const scrutineeType = applySubst(currentCtx.subst, scrutineeResult.type);
-
-    // Check exhaustiveness
-    const patterns = expr.cases.map((c) => c.pattern);
-    const missingCases = checkExhaustiveness(currentCtx.env, patterns, scrutineeType);
-    if (missingCases.length > 0) {
-        throw new TypeError(`Non-exhaustive pattern match`, expr.loc, `Missing cases: ${missingCases.join(", ")}`);
-    }
+    let scrutineeType = applySubst(currentCtx.subst, scrutineeResult.type);
 
     // Infer type of each case
     let resultType: Type | null = null;
@@ -1319,6 +1312,16 @@ function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Core
             currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
             resultType = applySubst(currentCtx.subst, resultType);
         }
+    }
+
+    // Check exhaustiveness after pattern checking completes
+    // This allows the substitution to contain unifications from pattern checking
+    // which resolves type variables to concrete variant types
+    scrutineeType = applySubst(currentCtx.subst, scrutineeType);
+    const patterns = expr.cases.map((c) => c.pattern);
+    const missingCases = checkExhaustiveness(currentCtx.env, patterns, scrutineeType);
+    if (missingCases.length > 0) {
+        throw new TypeError(`Non-exhaustive pattern match`, expr.loc, `Missing cases: ${missingCases.join(", ")}`);
     }
 
     // Return unified result type

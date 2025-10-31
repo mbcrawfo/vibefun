@@ -658,9 +658,9 @@ describe("typeCheck - Integration Tests", () => {
         expect(result.env.values.has("Nil")).toBe(true);
     });
 
-    it.skip("should type check Option pattern matching", () => {
-        // Note: Exhaustiveness checking on polymorphic types in lambda params doesn't work
-        // The parameter type is too general, so exhaustiveness can't determine constructors
+    it("should type check Option pattern matching", () => {
+        // Tests exhaustiveness checking on polymorphic lambda parameters
+        // Pattern checking constrains the type, then exhaustiveness is checked after
         // let unwrapOr = (opt, default) => match opt { | Some(x) => x | None => default }
         const module = createModule([
             {
@@ -1080,8 +1080,8 @@ describe("typeCheck - Integration Tests", () => {
         expect(result.declarationTypes.has("getName")).toBe(true);
     });
 
-    it.skip("should type check Result type with error handling", () => {
-        // Note: Exhaustiveness checking on polymorphic types in lambda params doesn't work
+    it("should type check Result type with error handling", () => {
+        // Tests exhaustiveness checking with Result type (polymorphic error handling)
         // let handleResult = (r) => match r { | Ok(v) => v | Err(e) => 0 }
         const module = createModule([
             {
@@ -1307,8 +1307,8 @@ describe("typeCheck - Integration Tests", () => {
         expect(outerType).toMatchObject({ type: "Const", name: "Int" });
     });
 
-    it.skip("should type check higher-order functions with ADTs", () => {
-        // Note: Exhaustiveness checking on polymorphic types in lambda params doesn't work
+    it("should type check higher-order functions with ADTs", () => {
+        // Tests exhaustiveness checking with higher-order functions on ADTs
         // let mapOption = (f) => (opt) => match opt { | Some(x) => Some(f(x)) | None => None }
         const module = createModule([
             {
