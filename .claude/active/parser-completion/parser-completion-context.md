@@ -1,8 +1,8 @@
 # Parser Completion - Context & Key Files (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02
-**Revision:** Critical findings incorporated
+**Last Updated:** 2025-11-02 (Deep Analysis + User Decisions)
+**Revision:** Critical findings incorporated, all decisions finalized
 
 ## Overview
 
@@ -105,51 +105,49 @@ This document tracks key files, decisions, and context for completing the vibefu
 
 ## Design Decisions
 
-### Phase 0: Record Spread Syntax (CRITICAL DECISION)
+### Phase 0: Record Spread Syntax (CRITICAL DECISION - ALL FINALIZED)
 
 #### Decision: Which syntax to use?
 **Question:** Spec shows `{...r, f: v}`, parser has `{r | f: v}`. Which to use?
-**Answer:** Use spec syntax (spread) - user decision
+**Answer:** ✅ FINALIZED - Use spec syntax (spread)
 **Rationale:** Spec is source of truth, spread syntax more familiar to JS developers
+
+#### Decision: Handle breaking change?
+**Question:** Changing syntax breaks existing code. How to handle?
+**Answer:** ✅ FINALIZED - Accept breaking change (pre-1.0)
+**Rationale:** Pre-1.0 allows breaking changes, simplest approach
 
 #### Decision: AST structure for record spread
 **Options:**
-1. Keep `RecordUpdate` separate, modify parsing
-2. Merge into `Record` with optional spread field
+1. Keep `RecordUpdate` separate, modify parsing ✅ CHOSEN
+2. Merge into `Record` with optional spread field ❌ REJECTED
 
-**Current thinking:** Option 1 (keep separate) is cleaner
+**Answer:** ✅ FINALIZED - Option 1 (keep separate)
+**Rationale:** Cleaner separation of concerns
 - `Record` for construction: `{ x: 1, y: 2 }`
 - `RecordUpdate` for updates: `{ ...base, x: 1 }`
 - Parser distinguishes by presence of spread
 
-**Proposed structure:**
+**Final structure:**
 ```typescript
-// Option 1 (RECOMMENDED)
+// Keep these separate (FINALIZED)
 { kind: "Record"; fields: RecordField[]; loc: Location }
 { kind: "RecordUpdate"; base: Expr; updates: RecordField[]; loc: Location }
-
-// Option 2 (Alternative)
-{ kind: "Record"; fields: RecordField[]; spread?: Expr; loc: Location }
 ```
 
-#### Implementation challenge: Multiple spreads
-Spec examples don't clarify: `{...a, ...b, x: 1}` - is this valid?
-
-**Proposed semantics:**
+#### Decision: Multiple spread semantics
+**Question:** `{...a, ...b, x: 1}` - is this valid? What semantics?
+**Answer:** ✅ FINALIZED - JavaScript semantics (rightmost wins)
+**Rationale:**
 - Multiple spreads allowed
 - Later spreads/fields override earlier ones
 - Order matters: `{...a, x: 1, ...b}` - b.x overrides explicit x
+- Consistent with JavaScript spread operator
 
-**AST for multiple spreads:**
+**Implementation:** Desugar to nested updates in desugarer (not parser concern)
 ```typescript
-// Could support array of spreads
-{ kind: "RecordUpdate"; spreads: Expr[]; updates: RecordField[]; loc: Location }
-
-// Or desugar to nested updates
-{ kind: "RecordUpdate";
-  base: { kind: "RecordUpdate"; base: a, updates: [x: 1] },
-  updates: []
-}
+// Parser creates single RecordUpdate with base
+// Desugarer handles multiple spreads by nesting
 ```
 
 ### Phase 1: List Spread
@@ -197,14 +195,14 @@ x!!       // Deref(Deref(Var("x"))) - double deref, loops through parseCall
 
 **Rationale:** Postfix operators bind tightest, consistent with field access
 
-### Phase 3: Re-exports
+### Phase 3: Re-exports (FINALIZED)
 
 #### Decision: AST structure
 **Question:** Extend `ExportDeclaration` or create new `ReExportDeclaration`?
-**Answer:** Create new `ReExportDeclaration` - user decision
+**Answer:** ✅ FINALIZED - Create new `ReExportDeclaration`
 **Rationale:** Cleaner separation of concerns
 
-**Structure:**
+**Final structure:**
 ```typescript
 export type ReExportDeclaration = {
     kind: "ReExportDecl";
@@ -290,23 +288,35 @@ From comprehensive parser audit (2025-11-02):
 - **Maintainability:** Very good, clear code
 - **Performance:** Good (no benchmarks yet)
 
-## Open Questions
+## Resolved Questions (All Finalized)
 
 ### Question 1: Record spread precedence
 **Q:** In `{...a, x: 1, ...b}`, does `b.x` override the explicit `x: 1`?
-**A:** Assume yes (later bindings override earlier). Document in spec.
+**A:** ✅ FINALIZED - Yes (JavaScript rightmost-wins semantics). Later bindings override earlier.
 
 ### Question 2: Multiple list spreads
 **Q:** Is `[...xs, ...ys, ...zs]` valid?
-**A:** Assume yes. AST supports it.
+**A:** ✅ FINALIZED - Yes. AST supports it, parser will allow it.
 
 ### Question 3: Empty spreads
 **Q:** Are `{...}` and `[...]` valid?
-**A:** Should be parse errors. Add to error tests.
+**A:** ✅ FINALIZED - No, parse errors. Add to error tests.
 
 ### Question 4: Spread of non-record/list
 **Q:** What if spread applied to wrong type? `{...42}`
-**A:** Parser should accept, type-checker rejects. Not parser's concern.
+**A:** ✅ FINALIZED - Parser accepts, type-checker rejects. Not parser's concern.
+
+### Question 5: Breaking change handling
+**Q:** How to handle record syntax change?
+**A:** ✅ FINALIZED - Accept breaking change (pre-1.0 allows it). Just change the syntax.
+
+### Question 6: Record AST structure
+**Q:** Keep RecordUpdate separate or merge into Record?
+**A:** ✅ FINALIZED - Keep separate RecordUpdate node. Cleaner design.
+
+### Question 7: Re-export AST structure
+**Q:** New node or extend existing?
+**A:** ✅ FINALIZED - New ReExportDeclaration node. Better separation.
 
 ## Dependencies
 
@@ -370,6 +380,14 @@ Update this file when:
 - Approach changes ✅
 
 ## Change Log
+
+### 2025-11-02: User Decision Finalization
+- ✅ FINALIZED: Use JavaScript rightmost-wins spread semantics
+- ✅ FINALIZED: Accept breaking change (pre-1.0)
+- ✅ FINALIZED: Keep separate RecordUpdate AST node
+- ✅ FINALIZED: Create new ReExportDeclaration node
+- ✅ All open questions resolved
+- ✅ Plan ready for implementation
 
 ### 2025-11-02: Deep Analysis & Revision
 - ✅ Identified record syntax mismatch (CRITICAL)

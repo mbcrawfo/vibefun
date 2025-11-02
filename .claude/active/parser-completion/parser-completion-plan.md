@@ -1,18 +1,19 @@
 # Parser Completion Plan (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02
-**Status:** Ready to implement
-**Revision:** Critical issues identified and plan updated
+**Last Updated:** 2025-11-02 (Deep Analysis + User Decisions)
+**Status:** Ready to implement - All decisions finalized
+**Revision:** Critical issues identified, plan updated, user decisions incorporated
 
 ## Critical Findings from Deep Analysis
 
 ### 🚨 Major Issues Discovered
 
 1. **SYNTAX MISMATCH: Record Updates**
-   - **Spec (line 404-407):** `{ ...person, age: 31 }` (spread syntax)
-   - **Parser (lines 772-827):** `{ person | age: 31 }` (pipe syntax)
-   - **Decision:** Migrate to spec syntax (spread)
+   - **Spec (line 680):** `{ ...person, age: 31 }` (spread syntax)
+   - **Parser (lines 794-827):** `{ person | age: 31 }` (pipe syntax)
+   - **Decision:** ✅ FINALIZED - Migrate to spec syntax (spread)
+   - **Breaking Change:** ✅ FINALIZED - Accept breaking change (pre-1.0)
    - **Impact:** HIGH - requires rewriting existing working code
 
 2. **MISSING FEATURE: List Spread**
@@ -29,7 +30,7 @@
 
 4. **AST DESIGN: Re-exports**
    - **Original plan:** Left as "TBD"
-   - **Decision:** Create new `ReExportDeclaration` node
+   - **Decision:** ✅ FINALIZED - Create new `ReExportDeclaration` node
    - **Impact:** Clean separation of concerns
 
 ## Revised Implementation Phases
@@ -49,15 +50,15 @@
 ```
 
 **Options:**
-1. **Keep RecordUpdate separate** (RECOMMENDED)
+1. **Keep RecordUpdate separate** ✅ CHOSEN
    - Parser detects spread, creates RecordUpdate AST
    - Cleaner separation: Record vs RecordUpdate
 
-2. **Merge into Record with optional spread**
+2. **Merge into Record with optional spread** ❌ REJECTED
    - `{ kind: "Record"; fields: RecordField[]; spread?: Expr; loc: Location }`
    - Single node type, but mixes two concepts
 
-**Decision needed:** Choose option before implementation
+**Decision:** ✅ FINALIZED - Keep separate RecordUpdate node
 
 #### 0.2 Parser Implementation
 **File:** `packages/core/src/parser/parser.ts`
@@ -69,6 +70,7 @@
 - Parse spread expression
 - Parse remaining fields
 - Support multiple spreads: `{...a, ...b, x: 1}`
+- **Semantics:** ✅ FINALIZED - JavaScript rightmost-wins (later overrides earlier)
 
 **Disambiguation:**
 - `{...x}` - record with spread only
@@ -213,6 +215,8 @@ else if (this.match("BANG")) {
 
 #### 3.1 AST Implementation
 **File:** `packages/core/src/types/ast.ts`
+
+**Decision:** ✅ FINALIZED - Create new `ReExportDeclaration` node (not extending existing)
 
 **Add:**
 ```typescript
@@ -589,10 +593,13 @@ npm run format     # Prettier formatting
 
 ## Decision Log
 
-| Decision | Rationale | Date |
-|----------|-----------|------|
-| Use spec record syntax (`{...r, f: v}`) | Spec is source of truth, JS-like syntax more familiar | 2025-11-02 |
-| Implement list spread now | Achieve full spec parity, AST already ready | 2025-11-02 |
-| Create ReExportDeclaration node | Cleaner separation vs extending ExportDeclaration | 2025-11-02 |
-| Keep full test scope (~100 new) | Comprehensive coverage worth the effort | 2025-11-02 |
-| Phase 0 first | Get risky work done early | 2025-11-02 |
+| Decision | Rationale | Date | Status |
+|----------|-----------|------|--------|
+| Use spec record syntax (`{...r, f: v}`) | Spec is source of truth, JS-like syntax more familiar | 2025-11-02 | ✅ FINALIZED |
+| JavaScript spread semantics (rightmost wins) | Multiple spreads allowed, later overrides earlier | 2025-11-02 | ✅ FINALIZED |
+| Accept breaking change (pre-1.0) | Pre-1.0 allows breaking changes, simplest approach | 2025-11-02 | ✅ FINALIZED |
+| Keep separate RecordUpdate AST node | Cleaner than merging into Record with optional spread | 2025-11-02 | ✅ FINALIZED |
+| Create new ReExportDeclaration node | Cleaner separation vs extending ExportDeclaration | 2025-11-02 | ✅ FINALIZED |
+| Implement list spread now | Achieve full spec parity, AST already ready | 2025-11-02 | ✅ FINALIZED |
+| Keep full test scope (~115 new) | Comprehensive coverage worth the effort | 2025-11-02 | ✅ FINALIZED |
+| Phase 0 first | Get risky work done early | 2025-11-02 | ✅ FINALIZED |

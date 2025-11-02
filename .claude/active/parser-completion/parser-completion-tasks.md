@@ -1,9 +1,9 @@
 # Parser Completion - Task Checklist (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02
-**Status:** Not Started
-**Revision:** Critical findings incorporated, plan completely revised
+**Last Updated:** 2025-11-02 (Deep Analysis + User Decisions)
+**Status:** Ready to Start - All decisions finalized
+**Revision:** Critical findings incorporated, plan completely revised, all user decisions finalized
 
 ## Overview
 
@@ -13,8 +13,9 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 - Phase 0 added (record spread migration) - CRITICAL
 - Phase 1 changed (list spread, not refs)
 - Phase 2 scope reduced (only postfix !, RefAssign already done)
-- AST design decisions finalized
-- ~100 new tests planned (was 85)
+- AST design decisions ✅ FINALIZED by user
+- ~115 new tests planned (was 85)
+- All breaking change and semantic decisions resolved
 
 ---
 
@@ -24,15 +25,16 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 **Goal:** Replace `{r | f: v}` with `{...r, f: v}` to match spec
 **Risk:** HIGH - modifies existing working code
 
-### 0.1 AST Design Decision
+### 0.1 AST Design Decision ✅ FINALIZED
 
+- [x] ✅ DECISION MADE: Keep separate RecordUpdate node (Option 1)
+- [x] ✅ DECISION MADE: JavaScript rightmost-wins semantics for multiple spreads
+- [x] ✅ DECISION MADE: Accept breaking change (pre-1.0 allows it)
 - [ ] Review current `RecordUpdate` AST structure
 - [ ] Review how desugarer/type-checker use RecordUpdate
-- [ ] Decide: Keep separate RecordUpdate vs merge into Record
-  - Option 1: Keep `{ kind: "RecordUpdate"; base: Expr; updates: RecordField[] }`
-  - Option 2: Merge `{ kind: "Record"; fields: RecordField[]; spread?: Expr }`
-- [ ] Document decision in context.md
-- [ ] Plan handling of multiple spreads: `{...a, ...b, x: 1}`
+- [ ] Confirm AST structure matches finalized decision:
+  - ✅ Keep `{ kind: "RecordUpdate"; base: Expr; updates: RecordField[] }`
+- [ ] Document implementation details in context.md
 
 ### 0.2 AST Implementation
 
@@ -51,15 +53,15 @@ Task checklist for completing vibefun parser to 100% spec coverage.
   - [ ] Check for `DOT_DOT_DOT` token at start of record
   - [ ] Parse spread expression
   - [ ] Continue parsing remaining fields
-  - [ ] Handle multiple spreads
+  - [ ] Handle multiple spreads (✅ JavaScript rightmost-wins semantics)
 - [ ] Implement disambiguation:
   - [ ] `{...x}` - record with spread only
   - [ ] `{...x, y: 1}` - record with spread and fields
   - [ ] `{x: 1}` - normal record construction (unchanged)
 - [ ] Handle edge cases:
-  - [ ] Empty spread: `{...}` - should error
-  - [ ] Multiple spreads: `{...a, ...b, x: 1}`
-  - [ ] Spread order: `{...a, x: 1, ...b}` - later overrides
+  - [ ] Empty spread: `{...}` - should error (✅ confirmed)
+  - [ ] Multiple spreads: `{...a, ...b, x: 1}` (✅ allowed)
+  - [ ] Spread order: `{...a, x: 1, ...b}` - ✅ b.x overrides (rightmost wins)
 - [ ] Add JSDoc comments explaining spread logic
 - [ ] Run type check: `npm run check`
 
@@ -238,8 +240,9 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 
 **DECISION:** Use new `ReExportDeclaration` node (not extending ExportDeclaration)
 
-### 3.1 AST Implementation - ReExportDeclaration
+### 3.1 AST Implementation - ReExportDeclaration ✅ FINALIZED DESIGN
 
+- [x] ✅ DECISION MADE: Create new ReExportDeclaration node (not extending ExportDeclaration)
 - [ ] Add new type in `packages/core/src/types/ast.ts`:
   ```typescript
   export type ReExportDeclaration = {
@@ -586,4 +589,20 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 
 ---
 
-**Next Steps:** Begin Phase 0 - Review AST and decide on record spread design.
+## Finalized Decisions Summary
+
+All critical decisions have been made by the user:
+
+| Decision | Choice | Status |
+|----------|--------|--------|
+| Record syntax | Use spec syntax (`{...r, f: v}`) | ✅ FINALIZED |
+| Breaking change | Accept (pre-1.0) | ✅ FINALIZED |
+| Spread semantics | JavaScript rightmost-wins | ✅ FINALIZED |
+| RecordUpdate AST | Keep separate node | ✅ FINALIZED |
+| ReExportDeclaration AST | Create new node | ✅ FINALIZED |
+| Multiple spreads | Allowed | ✅ FINALIZED |
+| Empty spreads | Parse error | ✅ FINALIZED |
+
+---
+
+**Next Steps:** Begin Phase 0 - Implement record spread migration with finalized decisions.
