@@ -511,4 +511,938 @@ let olderAlice = updateAge(alice, 31)`;
             expect(tokens.some((t) => t.type === "DOT_DOT_DOT")).toBe(true);
         });
     });
+
+    describe("complete module programs", () => {
+        it("should tokenize module with imports and type definitions", () => {
+            const code = `import { map, filter, reduce } from "list"
+import { Some, None } from "option"
+
+type User = {
+    name: String,
+    age: Int,
+    email: String
+}
+
+type Status = Active | Inactive | Pending
+
+let createUser = (name, age, email) => {
+    name: name,
+    age: age,
+    email: email
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify import keywords
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "import").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "from").length).toBe(2);
+
+            // Verify type definitions
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(2);
+
+            // Verify function definition
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "let").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize module with exports", () => {
+            const code = `type Result<T, E> = Ok(T) | Error(E)
+
+export let unwrapOr = (result, default) => match result {
+    | Ok(value) => value
+    | Error(_) => default
+}
+
+export let map = (result, f) => match result {
+    | Ok(value) => Ok(f(value))
+    | Error(e) => Error(e)
+}
+
+export { Result, unwrapOr, map }`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify export keywords
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "export").length).toBe(3);
+
+            // Verify pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize module with recursive type definitions", () => {
+            const code = `type Tree<T> = Leaf(T) | Node(Tree<T>, T, Tree<T>)
+
+type List<T> = Cons(T, List<T>) | Nil
+
+let rec sumTree = (tree) => match tree {
+    | Leaf(x) => x
+    | Node(left, value, right) => sumTree(left) + value + sumTree(right)
+}
+
+let rec length = (list) => match list {
+    | Cons(_, tail) => 1 + length(tail)
+    | Nil => 0
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify recursive type definitions
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(2);
+
+            // Verify recursive functions (let rec)
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "rec").length).toBe(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize module combining imports, types, and functions", () => {
+            const code = `import { log } from "console"
+import { map } from "list"
+
+type Point = { x: Float, y: Float }
+type Shape = Circle(Point, Float) | Rectangle(Point, Point)
+
+let area = (shape) => match shape {
+    | Circle(_, radius) => 3.14159 * radius * radius
+    | Rectangle(p1, p2) => (p2.x - p1.x) * (p2.y - p1.y)
+}
+
+let shapes = [
+    Circle({ x: 0.0, y: 0.0 }, 5.0),
+    Rectangle({ x: 0.0, y: 0.0 }, { x: 10.0, y: 20.0 })
+]
+
+let areas = map(shapes, area)`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify structure
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "import").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "let").length).toBe(3);
+            expect(tokens.some((t) => t.type === "FLOAT_LITERAL")).toBe(true);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize module with mutual recursion", () => {
+            const code = `let rec isEven = (n) => {
+    if n == 0 {
+        true
+    } else {
+        isOdd(n - 1)
+    }
+}
+
+let rec isOdd = (n) => {
+    if n == 0 {
+        false
+    } else {
+        isEven(n - 1)
+    }
+}
+
+let numbers = [1, 2, 3, 4, 5]
+let evens = numbers |> filter(isEven)`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify two recursive functions that call each other
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "rec").length).toBe(2);
+            expect(tokens.some((t) => t.type === "IDENTIFIER" && t.value === "isEven")).toBe(true);
+            expect(tokens.some((t) => t.type === "IDENTIFIER" && t.value === "isOdd")).toBe(true);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize module with complex generics", () => {
+            const code = `type Either<L, R> = Left(L) | Right(R)
+type Pair<A, B> = { first: A, second: B }
+type Triple<A, B, C> = { first: A, second: B, third: C }
+
+let makePair = (a, b) => { first: a, second: b }
+
+let swapPair = (pair) => {
+    first: pair.second,
+    second: pair.first
+}
+
+let result: Either<String, Int> = Right(42)`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify generic type parameters
+            expect(tokens.filter((t) => t.type === "LT").length).toBeGreaterThan(3);
+            expect(tokens.filter((t) => t.type === "GT").length).toBeGreaterThan(3);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+    });
+
+    describe("external blocks with usage", () => {
+        it("should tokenize external declarations with unsafe usage", () => {
+            const code = `external log: (String) -> Unit = "console.log"
+external error: (String) -> Unit = "console.error"
+
+let main = () => {
+    unsafe {
+        log("Starting program")
+        error("This is an error")
+    }
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify external declarations
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "external").length).toBe(2);
+
+            // Verify unsafe block
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "unsafe").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize external block syntax", () => {
+            const code = `external from "react" {
+    useState: (a) -> (a, (a) -> Unit) = "useState"
+    useEffect: ((Unit) -> Unit) -> Unit = "useEffect"
+    createElement: (String, a, b) -> c = "createElement"
+}
+
+unsafe {
+    let [count, setCount] = useState(0)
+    useEffect(() => log("Count changed"))
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify external from block
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "external").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "from").length).toBe(1);
+
+            // Verify string literal for module name
+            expect(tokens.some((t) => t.type === "STRING_LITERAL" && t.value === "react")).toBe(true);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize multiple external blocks from different modules", () => {
+            const code = `external from "fs" {
+    readFile: (String, (String) -> Unit) -> Unit = "readFile"
+    writeFile: (String, String) -> Unit = "writeFile"
+}
+
+external from "path" {
+    join: (String, String) -> String = "join"
+    basename: (String) -> String = "basename"
+}
+
+let processFile = (filename) => {
+    unsafe {
+        let path = join("/data", filename)
+        readFile(path, (content) => {
+            log(content)
+        })
+    }
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify multiple external blocks
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "external").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "from").length).toBe(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize overloaded external functions", () => {
+            const code = `external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+external setTimeout: ((Unit) -> Unit, Int) -> Int = "setTimeout"
+external setTimeout: (String, Int) -> Int = "setTimeout"
+
+unsafe {
+    fetch("https://api.example.com")
+    fetch("https://api.example.com", { method: "POST" })
+    setTimeout(() => log("done"), 1000)
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify overloaded externals (same name declared multiple times)
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "external").length).toBe(4);
+
+            // Verify fetch and setTimeout appear multiple times
+            const fetchTokens = tokens.filter((t) => t.type === "IDENTIFIER" && t.value === "fetch");
+            const setTimeoutTokens = tokens.filter((t) => t.type === "IDENTIFIER" && t.value === "setTimeout");
+            expect(fetchTokens.length).toBeGreaterThan(2);
+            expect(setTimeoutTokens.length).toBeGreaterThan(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+    });
+
+    describe("mutable references", () => {
+        it("should tokenize ref creation and dereference", () => {
+            const code = `let counter = ref(0)
+let value = !counter
+log(value)`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify identifiers for ref function
+            expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(3);
+
+            // Verify dereference operator
+            expect(tokens.filter((t) => t.type === "BANG").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize ref assignment", () => {
+            const code = `let x = ref(10)
+x := 20
+x := !x + 1
+let final = !x`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify assignment operator
+            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(2);
+
+            // Verify dereference operators
+            expect(tokens.filter((t) => t.type === "BANG").length).toBe(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize mutable refs in function bodies", () => {
+            const code = `let factorial = (n) => {
+    let result = ref(1)
+    let i = ref(1)
+
+    while !i <= n {
+        result := !result * !i
+        i := !i + 1
+    }
+
+    !result
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify identifiers present (including ref)
+            expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(5);
+
+            // Verify assignment operators
+            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(2);
+
+            // Verify dereference operators
+            expect(tokens.filter((t) => t.type === "BANG").length).toBeGreaterThan(3);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize complex ref expressions with pattern matching", () => {
+            const code = `let state = ref(Some(42))
+
+let update = (newValue) => {
+    state := Some(newValue)
+}
+
+let get = () => match !state {
+    | Some(x) => x
+    | None => 0
+}
+
+update(100)
+let value = get()`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify identifiers, assignment, and dereference
+            expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(8);
+            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "BANG").length).toBe(1);
+
+            // Verify pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+    });
+
+    describe("complex pattern matching", () => {
+        it("should tokenize nested patterns", () => {
+            const code = `let unwrapNested = (value) => match value {
+    | Ok(Some(x)) => x
+    | Ok(None) => 0
+    | Error(Some(msg)) => -1
+    | Error(None) => -2
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify nested constructor patterns
+            expect(tokens.filter((t) => t.type === "LPAREN").length).toBeGreaterThan(4);
+            expect(tokens.filter((t) => t.type === "PIPE").length).toBe(4);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize pattern matching with guards", () => {
+            const code = `let classify = (x) => match x {
+    | n when n < 0 => "negative"
+    | 0 => "zero"
+    | n when n > 0 && n < 10 => "small"
+    | n when n >= 10 => "large"
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify when clauses
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "when").length).toBe(3);
+
+            // Verify comparison operators in guards
+            expect(tokens.some((t) => t.type === "LT")).toBe(true);
+            expect(tokens.some((t) => t.type === "GT")).toBe(true);
+            expect(tokens.some((t) => t.type === "GT_EQ")).toBe(true);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize multiple match expressions in sequence", () => {
+            const code = `let process = (a, b) => {
+    let resultA = match a {
+        | Some(x) => x
+        | None => 0
+    }
+
+    let resultB = match b {
+        | Ok(y) => y
+        | Error(_) => 0
+    }
+
+    match (resultA, resultB) {
+        | (0, 0) => "both empty"
+        | (x, 0) => "first: " & toString(x)
+        | (0, y) => "second: " & toString(y)
+        | (x, y) => "both: " & toString(x + y)
+    }
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify three match expressions
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(3);
+
+            // Verify tuple patterns
+            expect(tokens.filter((t) => t.type === "LPAREN").length).toBeGreaterThan(6);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize deep pattern nesting with various constructors", () => {
+            const code = `type Tree<T> = Leaf(T) | Node(Tree<T>, T, Tree<T>)
+
+let findDeep = (tree) => match tree {
+    | Leaf(x) => Some(x)
+    | Node(Leaf(x), _, _) => Some(x)
+    | Node(_, _, Leaf(x)) => Some(x)
+    | Node(Node(Leaf(x), _, _), _, _) => Some(x)
+    | Node(_, _, Node(_, _, Leaf(x))) => Some(x)
+    | _ => None
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify deeply nested patterns
+            expect(tokens.filter((t) => t.type === "LPAREN").length).toBeGreaterThan(15);
+            expect(tokens.filter((t) => t.type === "PIPE").length).toBeGreaterThan(6);
+
+            // Verify wildcard patterns
+            expect(tokens.filter((t) => t.type === "IDENTIFIER" && t.value === "_").length).toBeGreaterThan(5);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+    });
+
+    describe("multi-feature combinations", () => {
+        it("should tokenize types with pattern matching and pipes", () => {
+            const code = `type Option<T> = Some(T) | None
+
+let map = (opt, f) => match opt {
+    | Some(x) => Some(f(x))
+    | None => None
+}
+
+let numbers = [Some(1), None, Some(3), Some(4)]
+let doubled = numbers
+    |> map(opt => map(opt, x => x * 2))
+    |> filter(opt => match opt {
+        | Some(_) => true
+        | None => false
+    })`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify type definition
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(1);
+
+            // Verify pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(2);
+
+            // Verify pipe operators
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize recursive functions with refs and conditionals", () => {
+            const code = `let rec fibonacci = (n, memo) => {
+    if n <= 1 {
+        n
+    } else {
+        let cached = !memo
+        match cached {
+            | Some(value) => value
+            | None => {
+                let result = fibonacci(n - 1, ref(None)) + fibonacci(n - 2, ref(None))
+                memo := Some(result)
+                result
+            }
+        }
+    }
+}
+
+let fib10 = fibonacci(10, ref(None))`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify recursive function
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "rec").length).toBe(1);
+
+            // Verify identifiers and ref assignment operator
+            expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(10);
+            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(1);
+
+            // Verify conditionals
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "if").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize external declarations with unsafe blocks and error handling", () => {
+            const code = `external from "fs" {
+    readFile: (String, (String) -> Unit) -> Unit = "readFile"
+}
+
+type FileResult = Success(String) | Failure(String)
+
+let safeReadFile = (path) => {
+    let result = ref(Failure("not read yet"))
+
+    unsafe {
+        readFile(path, (content) => {
+            result := Success(content)
+        })
+    }
+
+    !result
+}
+
+let content = safeReadFile("data.txt")
+match content {
+    | Success(text) => log(text)
+    | Failure(err) => error(err)
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify external declaration
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "external").length).toBe(1);
+
+            // Verify unsafe block
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "unsafe").length).toBe(1);
+
+            // Verify type definition and pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize complete program with imports, types, functions, and pipes", () => {
+            const code = `import { map, filter, reduce } from "list"
+import { log } from "console"
+
+type User = { name: String, age: Int, active: Bool }
+type UserStatus = Active | Inactive
+
+let isActive = (user) => user.active
+
+let getActiveUsers = (users) => users
+    |> filter(isActive)
+    |> map(user => user.name)
+
+let users = [
+    { name: "Alice", age: 30, active: true },
+    { name: "Bob", age: 25, active: false },
+    { name: "Charlie", age: 35, active: true }
+]
+
+let activeNames = getActiveUsers(users)
+
+unsafe {
+    log("Active users: " & toString(activeNames))
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify imports
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "import").length).toBe(2);
+
+            // Verify types
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(2);
+
+            // Verify pipes
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
+
+            // Verify unsafe block
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "unsafe").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize list processing pipeline with type definitions", () => {
+            const code = `type Result<T, E> = Ok(T) | Error(E)
+
+let divide = (a, b) => {
+    if b == 0 {
+        Error("division by zero")
+    } else {
+        Ok(a / b)
+    }
+}
+
+let processNumbers = (nums) => {
+    nums
+        |> map(n => divide(n, 2))
+        |> filter(r => match r {
+            | Ok(_) => true
+            | Error(_) => false
+        })
+        |> map(r => match r {
+            | Ok(value) => value
+            | Error(_) => 0
+        })
+        |> reduce((acc, x) => acc + x, 0)
+}
+
+let numbers = [10, 20, 0, 30, 40]
+let result = processNumbers(numbers)`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify type definition
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(1);
+
+            // Verify pipes
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(4);
+
+            // Verify pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(2);
+
+            // Verify division and comparison
+            expect(tokens.some((t) => t.type === "SLASH")).toBe(true);
+            expect(tokens.some((t) => t.type === "EQ_EQ")).toBe(true);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize complex nested expressions with all operators", () => {
+            const code = `let compute = (a, b, c) => {
+    let x = (a + b) * c - (a / b) % c
+    let y = a << 2 >> 1 & 0xFF
+    let z = a == b || c != 0 && a >= b || b <= c
+    let w = [1, 2, 3] |> map(n => n * 2) |> reduce((acc, x) => acc + x, 0)
+
+    {
+        arithmetic: x,
+        bitwise: y,
+        logical: z,
+        pipeline: w
+    }
+}`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify arithmetic operators
+            expect(tokens.some((t) => t.type === "PLUS")).toBe(true);
+            expect(tokens.some((t) => t.type === "STAR")).toBe(true);
+            expect(tokens.some((t) => t.type === "MINUS")).toBe(true);
+            expect(tokens.some((t) => t.type === "SLASH")).toBe(true);
+            expect(tokens.some((t) => t.type === "PERCENT")).toBe(true);
+
+            // Verify bitwise operators
+            expect(tokens.some((t) => t.type === "LT_LT")).toBe(true);
+            expect(tokens.some((t) => t.type === "GT_GT")).toBe(true);
+            expect(tokens.some((t) => t.type === "AMP")).toBe(true);
+
+            // Verify comparison and logical operators
+            expect(tokens.some((t) => t.type === "EQ_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "BANG_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "GT_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "LT_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "PIPE_PIPE")).toBe(true);
+            expect(tokens.some((t) => t.type === "AMP_AMP")).toBe(true);
+
+            // Verify pipe operator
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+    });
+
+    describe("large realistic programs", () => {
+        it("should tokenize a complete data processing module", () => {
+            const code = `import { map, filter, reduce, sort } from "list"
+import { Some, None } from "option"
+
+// Data types
+type Person = {
+    id: Int,
+    name: String,
+    age: Int,
+    email: String,
+    active: Bool
+}
+
+type Validation<T> = Valid(T) | Invalid(String)
+
+// Validation functions
+let validateAge = (age) => {
+    if age >= 0 && age <= 150 {
+        Valid(age)
+    } else {
+        Invalid("Age must be between 0 and 150")
+    }
+}
+
+let validateEmail = (email) => {
+    if email |> contains("@") {
+        Valid(email)
+    } else {
+        Invalid("Invalid email format")
+    }
+}
+
+let validatePerson = (person) => match (validateAge(person.age), validateEmail(person.email)) {
+    | (Valid(_), Valid(_)) => Valid(person)
+    | (Invalid(msg), _) => Invalid(msg)
+    | (_, Invalid(msg)) => Invalid(msg)
+}
+
+// Processing functions
+let getActivePeople = (people) => people
+    |> filter(p => p.active)
+    |> map(p => validatePerson(p))
+    |> filter(v => match v {
+        | Valid(_) => true
+        | Invalid(_) => false
+    })
+    |> map(v => match v {
+        | Valid(person) => person
+        | Invalid(_) => { id: 0, name: "", age: 0, email: "", active: false }
+    })
+
+let sortByAge = (people) => people
+    |> sort((a, b) => a.age - b.age)
+
+// Main processing
+let people = [
+    { id: 1, name: "Alice", age: 30, email: "alice@example.com", active: true },
+    { id: 2, name: "Bob", age: 25, email: "bob@example.com", active: false },
+    { id: 3, name: "Charlie", age: 35, email: "charlie@example.com", active: true }
+]
+
+let result = people
+    |> getActivePeople
+    |> sortByAge
+
+export { Person, Validation, validatePerson, getActivePeople, sortByAge }`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify overall structure
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "import").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "let").length).toBeGreaterThan(6);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "export").length).toBe(1);
+
+            // Verify pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBeGreaterThan(2);
+
+            // Verify pipe operators (at least several)
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(6);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize a module with external interop and complex logic", () => {
+            const code = `external from "fetch" {
+    fetch: (String) -> Promise<Response> = "fetch"
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+}
+
+external from "console" {
+    log: (String) -> Unit = "log"
+    error: (String) -> Unit = "error"
+}
+
+type ApiResponse<T> = Success(T) | Error(String)
+type User = { id: Int, name: String }
+
+let parseJson = (text) => {
+    // Simplified - would use actual JSON parsing
+    Success({ id: 1, name: "Test" })
+}
+
+let fetchUser = (userId) => {
+    let url = "https://api.example.com/users/" & toString(userId)
+    let response = ref(Error("Not fetched"))
+
+    unsafe {
+        fetch(url)
+            |> then(r => r.text())
+            |> then(text => {
+                response := parseJson(text)
+            })
+            |> catch(err => {
+                response := Error("Network error")
+            })
+    }
+
+    !response
+}
+
+let processUsers = (userIds) => {
+    userIds
+        |> map(id => fetchUser(id))
+        |> filter(result => match result {
+            | Success(_) => true
+            | Error(_) => false
+        })
+        |> map(result => match result {
+            | Success(user) => user
+            | Error(_) => { id: 0, name: "Unknown" }
+        })
+}
+
+let main = () => {
+    let ids = [1, 2, 3, 4, 5]
+    let users = processUsers(ids)
+
+    unsafe {
+        log("Fetched " & toString(length(users)) & " users")
+    }
+}
+
+export { fetchUser, processUsers, main }`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify external declarations
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "external").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "from").length).toBe(2);
+
+            // Verify unsafe blocks
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "unsafe").length).toBe(2);
+
+            // Verify identifiers and ref assignment operator
+            expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(20);
+            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBeGreaterThan(1);
+
+            // Verify pipes
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(5);
+
+            // Verify exports
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "export").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+
+        it("should tokenize a functional data structure implementation", () => {
+            const code = `// Immutable linked list implementation
+type List<T> = Cons(T, List<T>) | Nil
+
+let rec length = (list) => match list {
+    | Cons(_, tail) => 1 + length(tail)
+    | Nil => 0
+}
+
+let rec map = (list, f) => match list {
+    | Cons(head, tail) => Cons(f(head), map(tail, f))
+    | Nil => Nil
+}
+
+let rec filter = (list, pred) => match list {
+    | Cons(head, tail) => {
+        if pred(head) {
+            Cons(head, filter(tail, pred))
+        } else {
+            filter(tail, pred)
+        }
+    }
+    | Nil => Nil
+}
+
+let rec foldLeft = (list, acc, f) => match list {
+    | Cons(head, tail) => foldLeft(tail, f(acc, head), f)
+    | Nil => acc
+}
+
+let rec foldRight = (list, acc, f) => match list {
+    | Cons(head, tail) => f(head, foldRight(tail, acc, f))
+    | Nil => acc
+}
+
+let reverse = (list) => foldLeft(list, Nil, (acc, x) => Cons(x, acc))
+
+let append = (list1, list2) => foldRight(list1, list2, (x, acc) => Cons(x, acc))
+
+let flatten = (listOfLists) => foldRight(listOfLists, Nil, (list, acc) => append(list, acc))
+
+// Example usage
+let numbers = Cons(1, Cons(2, Cons(3, Cons(4, Cons(5, Nil)))))
+let doubled = numbers |> map(n => n * 2)
+let evens = numbers |> filter(n => n % 2 == 0)
+let sum = numbers |> foldLeft(0, (acc, x) => acc + x)
+
+export { List, length, map, filter, foldLeft, foldRight, reverse, append, flatten }`;
+            const lexer = new Lexer(code, "test.vf");
+            const tokens = lexer.tokenize();
+
+            // Verify type definition
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(1);
+
+            // Verify multiple recursive functions
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "rec").length).toBeGreaterThan(3);
+
+            // Verify pattern matching
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBeGreaterThan(4);
+
+            // Verify pipes in usage examples
+            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(1);
+
+            // Verify export
+            expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "export").length).toBe(1);
+
+            expect(tokens[tokens.length - 1]?.type).toBe("EOF");
+        });
+    });
 });
