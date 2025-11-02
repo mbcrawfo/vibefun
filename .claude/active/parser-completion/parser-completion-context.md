@@ -1,11 +1,31 @@
-# Parser Completion - Context & Key Files
+# Parser Completion - Context & Key Files (REVISED)
 
 **Created:** 2025-11-02
 **Last Updated:** 2025-11-02
+**Revision:** Critical findings incorporated
 
 ## Overview
 
 This document tracks key files, decisions, and context for completing the vibefun parser implementation to achieve 100% spec coverage.
+
+**CRITICAL UPDATE:** Deep analysis revealed major discrepancies between spec and parser. Plan has been significantly revised.
+
+## Critical Findings Summary
+
+### 🚨 Syntax Mismatch Found
+**Record Update Syntax:**
+- **Spec:** `{ ...person, age: 31 }` (spread syntax)
+- **Parser:** `{ person | age: 31 }` (pipe syntax)
+- **Resolution:** Migrate parser to spec syntax
+- **Impact:** HIGH - requires rewriting existing code
+
+### Missing Features
+1. **List spread** - `[1, 2, ...rest]` - in spec, not parser
+2. **Postfix deref** - `expr!` - in spec, not parser
+
+### Incorrect Plan Assumptions
+- ❌ **RefAssign (`:=`)** - Plan assumed needs work, but ALREADY DONE
+- ❌ **ref() function** - Plan proposed special handling, but works as normal call
 
 ## Key Files
 
@@ -13,57 +33,61 @@ This document tracks key files, decisions, and context for completing the vibefu
 
 #### Parser Core
 - **`packages/core/src/parser/parser.ts`** (main parser implementation)
-  - ~1500 lines of TypeScript
+  - ~2167 lines of TypeScript
   - Recursive descent parser
   - Handles all language constructs
-  - Key methods:
-    - `parseExpression()` - entry point for expressions
-    - `parseBinaryExpression()` - operator precedence climbing
-    - `parsePostfixExpression()` - postfix operators (., [], ())
-    - `parseUnaryExpression()` - prefix operators (!, -)
-    - `parseExport()` - export declarations
-    - `parseDeclaration()` - top-level declarations
+  - **Key methods to modify:**
+    - `parseRecordExpr()` - Lines 775-851 - REWRITE for spread syntax
+    - `parsePrimary()` - Lines 1005-1028 - ADD list spread support
+    - `parseCall()` - Lines 531-575 - ADD postfix ! handling
+    - `parseDeclaration()` - Modify for re-exports
 
 #### AST Definitions
 - **`packages/core/src/types/ast.ts`** (AST node type definitions)
-  - Defines all AST node types
-  - Uses discriminated unions for type safety
-  - BaseNode includes location info for error messages
-  - Need to add: RefExpr, DerefExpr (verify AssignExpr exists)
+  - Current structures:
+    - `RecordUpdate` - may need modification for spread
+    - `ListElement` - ALREADY supports spread! (line 26)
+    - `UnaryOp` with `Deref` - ALREADY exists (line 138)
+    - `BinaryOp` with `RefAssign` - ALREADY exists (line 130)
+  - Need to add:
+    - `ReExportDeclaration` - new node for re-exports
+  - Update:
+    - `Declaration` union to include `ReExportDeclaration`
+    - Possibly `Record` or `RecordUpdate` for spread syntax
 
 #### Parser Entry Point
 - **`packages/core/src/parser/index.ts`** (public API exports)
   - Exports Parser class and parse function
   - Re-exports AST types
+  - Will need to export new `ReExportDeclaration`
 
 ### Test Files
 
 #### Existing Tests (~305 tests)
 - **`packages/core/src/parser/parser.test.ts`** - Basic parser tests
 - **`packages/core/src/parser/expressions.test.ts`** - Expression parsing (~120 tests)
+  - **NEEDS UPDATES:** Record tests using pipe syntax must convert to spread
 - **`packages/core/src/parser/patterns.test.ts`** - Pattern matching (~45 tests)
 - **`packages/core/src/parser/types.test.ts`** - Type expressions (~35 tests)
 - **`packages/core/src/parser/declarations.test.ts`** - Declarations (~50 tests)
+  - Will add re-export tests here
 - **`packages/core/src/parser/overloading.test.ts`** - External overloading (~10 tests)
 - **`packages/core/src/parser/parser-errors.test.ts`** - Error handling (~20 tests)
+  - Will expand significantly
 - **`packages/core/src/parser/parser-integration.test.ts`** - Integration tests (~25 tests)
+  - Will expand significantly
 
 #### New Test Files to Create
-- **`packages/core/src/parser/ref-operations.test.ts`** - Ref type operations (~25 tests)
 - **`packages/core/src/parser/parser-edge-cases.test.ts`** - Edge cases (~10 tests)
-
-#### Test Files to Expand
-- **`parser-errors.test.ts`** - Add ~20 more error recovery tests
-- **`parser-integration.test.ts`** - Add ~20 more integration tests
-- **`declarations.test.ts`** - Add ~10 re-export tests
 
 ### Related Files
 
 #### Lexer
 - **`packages/core/src/lexer/lexer.ts`** - Tokenization
-  - Already handles all operators including `:=` and `!`
-  - Recognizes `ref` keyword
-  - No changes needed for this task
+  - Already handles `DOT_DOT_DOT` token (verified)
+  - Already handles `BANG` token
+  - Already handles `COLON_EQ` token for `:=`
+  - No lexer changes needed
 
 #### Type System
 - **`packages/core/src/types/type.ts`** - Type system definitions
@@ -73,232 +97,327 @@ This document tracks key files, decisions, and context for completing the vibefu
 #### Specification
 - **`vibefun-spec.md`** - Language specification (root)
   - Source of truth for language features
-  - Sections relevant to parser:
-    - Lexical Structure (lines 76-276)
-    - Type System (lines 278-605)
-    - Expressions (lines 607-725)
-    - Functions (lines 727-841)
-    - Pattern Matching (lines 843-958)
-    - Modules (lines 960-1035)
-    - JavaScript Interop (lines 1037-1272)
+  - Key sections:
+    - Lines 404-407: Record spread syntax `{...r, f: v}`
+    - Lines 687-689: List spread syntax `[1, 2, ...rest]`
+    - Lines 256-263, 1554: Ref operations (!x, :=)
+    - Lines 1005-1011: Re-exports
 
 ## Design Decisions
 
-### Ref Operations Implementation
+### Phase 0: Record Spread Syntax (CRITICAL DECISION)
 
-#### Decision: How to parse `!` operator
+#### Decision: Which syntax to use?
+**Question:** Spec shows `{...r, f: v}`, parser has `{r | f: v}`. Which to use?
+**Answer:** Use spec syntax (spread) - user decision
+**Rationale:** Spec is source of truth, spread syntax more familiar to JS developers
 
-**Challenge:** The `!` operator has two meanings:
+#### Decision: AST structure for record spread
+**Options:**
+1. Keep `RecordUpdate` separate, modify parsing
+2. Merge into `Record` with optional spread field
+
+**Current thinking:** Option 1 (keep separate) is cleaner
+- `Record` for construction: `{ x: 1, y: 2 }`
+- `RecordUpdate` for updates: `{ ...base, x: 1 }`
+- Parser distinguishes by presence of spread
+
+**Proposed structure:**
+```typescript
+// Option 1 (RECOMMENDED)
+{ kind: "Record"; fields: RecordField[]; loc: Location }
+{ kind: "RecordUpdate"; base: Expr; updates: RecordField[]; loc: Location }
+
+// Option 2 (Alternative)
+{ kind: "Record"; fields: RecordField[]; spread?: Expr; loc: Location }
+```
+
+#### Implementation challenge: Multiple spreads
+Spec examples don't clarify: `{...a, ...b, x: 1}` - is this valid?
+
+**Proposed semantics:**
+- Multiple spreads allowed
+- Later spreads/fields override earlier ones
+- Order matters: `{...a, x: 1, ...b}` - b.x overrides explicit x
+
+**AST for multiple spreads:**
+```typescript
+// Could support array of spreads
+{ kind: "RecordUpdate"; spreads: Expr[]; updates: RecordField[]; loc: Location }
+
+// Or desugar to nested updates
+{ kind: "RecordUpdate";
+  base: { kind: "RecordUpdate"; base: a, updates: [x: 1] },
+  updates: []
+}
+```
+
+### Phase 1: List Spread
+
+#### Decision: Already supported in AST
+**Finding:** `ListElement` union already includes `Spread` variant (ast.ts line 26)
+**Action:** Just implement parser, no AST changes needed
+
+#### Implementation approach
+```typescript
+// In parseList()
+if (this.check("DOT_DOT_DOT")) {
+    this.advance();
+    const expr = this.parseExpression();
+    elements.push({ kind: "Spread", expr });
+} else {
+    const expr = this.parseExpression();
+    elements.push({ kind: "Element", expr });
+}
+```
+
+### Phase 2: Postfix Dereference
+
+#### Decision: Postfix vs Prefix `!`
+**Challenge:** `!` has two meanings:
 1. Prefix logical NOT: `!true` → `false`
 2. Postfix dereference: `ref!` → value
 
-**Decision:** Context-based parsing
-- Prefix position → Logical NOT
-- Postfix position → Dereference
-
 **Implementation:**
-- `parseUnaryExpression()` handles prefix `!`
-- `parsePostfixExpression()` handles postfix `!`
-- Higher precedence for postfix prevents ambiguity
+- `parseUnary()` handles prefix `!` → `UnaryOp` with `op: "LogicalNot"` ✅ Already done
+- `parseCall()` handles postfix `!` → `UnaryOp` with `op: "Deref"` ❌ Needs implementation
 
-**Examples:**
+**Examples and precedence:**
 ```vibefun
 !x        // LogicalNot(Var("x"))
 x!        // Deref(Var("x"))
-!!x       // LogicalNot(Deref(Var("x")))
+!!x       // LogicalNot(Deref(Var("x"))) - postfix ! binds tighter
 !(!x)     // LogicalNot(LogicalNot(Var("x")))
+x!!       // Deref(Deref(Var("x"))) - double deref, loops through parseCall
 ```
 
-#### Decision: How to parse `ref(value)`
+#### Decision: Postfix ! precedence
+**Precedence:** Same as `.` field access (level 14)
+**Location:** In `parseCall()` loop, after DOT handling
 
-**Decision:** Parse as regular function call
-- `ref` is just an identifier
-- Parser treats it like any function call
-- Type checker gives it special meaning
+**Rationale:** Postfix operators bind tightest, consistent with field access
 
-**Rationale:**
-- No special syntax needed
-- Consistent with functional style
-- Simpler parser logic
+### Phase 3: Re-exports
 
-#### Decision: Assignment operator `:=`
+#### Decision: AST structure
+**Question:** Extend `ExportDeclaration` or create new `ReExportDeclaration`?
+**Answer:** Create new `ReExportDeclaration` - user decision
+**Rationale:** Cleaner separation of concerns
 
-**Implementation:** Binary operator at precedence level 1 (lowest)
-- Right-associative
-- Lower than pipe operator
-
-**Note:** Likely already implemented - need to verify.
-
-### Re-export Implementation
-
-#### Decision: AST representation
-
-**Option A:** Extend ExportDeclaration
+**Structure:**
 ```typescript
-interface ExportDeclaration {
-    type: 'ExportDeclaration';
-    declaration: Declaration | null;
-    exportItems?: ImportItem[];
-    from?: string;
-}
-```
-
-**Option B:** Separate ReExportDeclaration
-```typescript
-interface ReExportDeclaration {
-    type: 'ReExportDeclaration';
-    items: ImportItem[] | null;  // null for *
+export type ReExportDeclaration = {
+    kind: "ReExportDecl";
+    items: ImportItem[] | null;  // null for export *
     from: string;
-}
+    exported: boolean;  // always true for re-exports
+    loc: Location;
+};
 ```
 
-**Decision:** TBD during implementation
-- Option A: Simpler, fewer node types
-- Option B: Clearer separation of concerns
-
-**Rationale:** Check how downstream code (desugarer, type checker) handles exports.
-
-#### Decision: Re-export syntax support
-
-Support all these forms:
-```vibefun
-export { x, y } from "./mod"           // Named
-export { x as y } from "./mod"         // Aliased
-export * from "./mod"                  // Namespace
-export { type T } from "./mod"         // Type
-export { type T, value } from "./mod"  // Mixed
-```
+**Benefits:**
+- Clear distinction: Export vs ReExport
+- Easier for downstream (desugarer, type-checker) to handle
+- No optional fields mixing concepts
+- Explicit AST structure
 
 ### Test Strategy
 
 #### Integration Tests Philosophy
-
-**Goal:** Test realistic programs, not just isolated features
-
-**Approach:**
-- 50-100 line programs
-- Combine multiple features
-- Real-world patterns (counters, list processing, API wrappers)
-
-**Examples:**
-- State management with refs
-- Module systems with re-exports
-- Pipeline composition
-- External API bindings
+**Goal:** Test realistic programs combining multiple features
+**Approach:** 50-100 line programs showcasing:
+- Ref operations in real use cases (counters, state management)
+- Spread operations in data transformations
+- Module organization with re-exports
+- Complex pattern matching scenarios
 
 #### Error Recovery Philosophy
+**Goal:** Helpful error messages for common mistakes
+**Approach:** Test malformed syntax, verify:
+- Error message clarity
+- Location accuracy
+- Helpful suggestions
 
-**Goal:** Ensure helpful error messages
-
-**Approach:**
-- Test common mistakes
-- Verify error location accuracy
-- Check error message quality
-- No need for parser to "recover" (continue parsing after error)
-
-**Current behavior:** Parser throws on first error (acceptable)
+**Note:** Parser throws on first error (no recovery). This is acceptable.
 
 #### Edge Case Philosophy
-
-**Goal:** Ensure parser handles extreme inputs gracefully
-
-**Approach:**
-- Deep nesting (stress test recursion)
-- Large inputs (stress test performance)
-- Unicode edge cases (stress test string handling)
-- Ambiguous syntax (stress test disambiguation)
+**Goal:** Ensure parser handles extremes gracefully
+**Categories:**
+- Deep nesting (stress recursion limits)
+- Large inputs (stress performance)
+- Unicode edge cases (stress string handling)
+- Ambiguous syntax (stress disambiguation logic)
 
 ## Audit Results Summary
 
 From comprehensive parser audit (2025-11-02):
 
-### Coverage Statistics
-| Category | Features | Implemented | Tested | Coverage |
-|----------|----------|-------------|---------|----------|
-| Lexical | 8 | 8 | 8 | 100% |
-| Expressions | 35 | 34 | 34 | 97% |
-| Functions | 7 | 7 | 7 | 100% |
-| Patterns | 9 | 9 | 9 | 100% |
-| Types | 12 | 12 | 12 | 100% |
-| Modules | 7 | 6 | 6 | 86% |
-| Interop | 7 | 7 | 7 | 100% |
-| **TOTAL** | **85** | **83** | **83** | **~98%** |
+### Actual vs Planned Coverage
 
-### Missing Features (Pre-Implementation)
-1. ✗ Ref operations (ref, !, :=)
-2. ✗ Re-exports (`export { x } from "mod"`)
-3. ⚠️ Enhanced test coverage
+**Original assessment:** ~98% complete, ~305 tests
+
+**Revised assessment after deep analysis:**
+
+| Category | Spec Features | Implemented | Tested | Status |
+|----------|---------------|-------------|---------|--------|
+| Lexical | 8 | 8 | 8 | ✅ 100% |
+| Expressions | 35 | 33 | 33 | ⚠️ 94% (missing list spread, postfix !) |
+| Functions | 7 | 7 | 7 | ✅ 100% |
+| Patterns | 9 | 9 | 9 | ✅ 100% |
+| Types | 12 | 12 | 12 | ✅ 100% |
+| Modules | 7 | 6 | 6 | ⚠️ 86% (missing re-exports) |
+| Interop | 7 | 7 | 7 | ✅ 100% |
+| **Records** | - | - | - | ❌ **WRONG SYNTAX** |
+| **TOTAL** | **85** | **82** | **82** | **~96%** |
+
+### Critical Issues (Pre-Fix)
+1. ❌ Record syntax doesn't match spec (pipe vs spread)
+2. ❌ List spread not implemented
+3. ❌ Postfix ! (deref) not implemented
+4. ❌ Re-exports not implemented
+
+### Features Already Complete (Corrections to Original Plan)
+1. ✅ RefAssign (`:=`) - parser.ts lines 299-316
+2. ✅ ref() function - works as normal function call
+3. ✅ Prefix ! (logical NOT) - parser.ts lines 506-521
+4. ✅ All pattern matching features
+5. ✅ All type expression features
 
 ### Parser Quality Assessment
-- **Code Quality:** Excellent
-- **Test Coverage:** Comprehensive (~305 tests)
-- **Error Handling:** Robust with location info
-- **Maintainability:** Well-structured, commented
+- **Code Quality:** Excellent, well-structured
+- **Test Coverage:** Comprehensive but needs syntax fixes
+- **Error Handling:** Robust with good location info
+- **Maintainability:** Very good, clear code
 - **Performance:** Good (no benchmarks yet)
 
 ## Open Questions
 
-### Question 1: Ref operator syntax
-**Q:** Is dereference `!` prefix or postfix?
-**A:** Based on spec examples (`counter!`), it's postfix.
+### Question 1: Record spread precedence
+**Q:** In `{...a, x: 1, ...b}`, does `b.x` override the explicit `x: 1`?
+**A:** Assume yes (later bindings override earlier). Document in spec.
 
-### Question 2: Assignment in expressions
-**Q:** Can `:=` be used in expression context or only statements?
-**A:** Check spec - likely expression (everything is an expression in vibefun).
+### Question 2: Multiple list spreads
+**Q:** Is `[...xs, ...ys, ...zs]` valid?
+**A:** Assume yes. AST supports it.
 
-### Question 3: Re-export namespace imports
-**Q:** Does `export * from "mod"` include types?
-**A:** Need to check spec or decide based on JavaScript behavior.
+### Question 3: Empty spreads
+**Q:** Are `{...}` and `[...]` valid?
+**A:** Should be parse errors. Add to error tests.
 
-### Question 4: Dereference chaining
-**Q:** Is `x!!` valid (double deref)?
-**A:** Should be, if x is a ref to a ref. Parser should support it.
+### Question 4: Spread of non-record/list
+**Q:** What if spread applied to wrong type? `{...42}`
+**A:** Parser should accept, type-checker rejects. Not parser's concern.
 
 ## Dependencies
 
-### No Breaking Changes
-- All changes are additive
-- No modifications to existing AST nodes
-- No changes to existing parser logic
-- Only additions: new nodes, new parsing paths, new tests
+### No Breaking Changes to AST
+Changes are mostly additive:
+1. New `ReExportDeclaration` node (new)
+2. Maybe modify `RecordUpdate` parsing (modify)
+3. Use existing `ListElement` spread support (no change)
+4. Use existing `UnaryOp` Deref support (no change)
+
+### Breaking Changes to Parser
+1. **Record syntax change** - affects existing tests, possibly downstream
+2. All other changes are additive
 
 ### Downstream Impact
-These components may need updates after parser changes:
-1. **Desugarer** (`packages/core/src/desugarer/`) - Handle new AST nodes
-2. **Type Checker** (`packages/core/src/type-checker/`) - Type check refs, re-exports
-3. **Code Generator** - Generate JavaScript for refs
+These components will need updates:
+1. **Desugarer** - Handle record spread, list spread, re-exports
+2. **Type Checker** - Type check spread operations
+3. **Code Generator** - Generate JS for spread operations
 
-**Note:** This task focuses ONLY on parser. Downstream updates are separate tasks.
+**Note:** This task focuses ONLY on parser. Downstream updates are separate.
 
 ## References
 
 ### Specification Sections
-- **Ref Types:** Lines 256-262, 1487 (operators), type system mentions
-- **Re-exports:** Lines 1005-1011 (modules section)
-- **Pattern Matching:** Lines 843-958
-- **JavaScript Interop:** Lines 1037-1272
+- **Record spread:** Lines 404-407
+- **List spread:** Lines 687-689
+- **Ref operations:** Lines 256-263, 1554
+- **Re-exports:** Lines 1005-1011
+- **Pattern matching:** Lines 843-958
+- **Operators:** Lines 1548-1573 (precedence table)
 
 ### Similar Languages
-- **OCaml:** `ref`, `!`, `:=` operators (similar semantics)
-- **F#:** Ref cells with similar syntax
-- **Rust:** Deref operator (different semantics but similar syntax)
+- **JavaScript/TypeScript:** Spread syntax `{...obj}`, `[...arr]`
+- **OCaml:** Record update `{ record with field = value }`
+- **F#:** Record update `{ record with Field = value }`
+- **Rust:** Struct update `Struct { field, ..base }`
+
+### Parser Implementation Patterns
+- **Recursive descent** - Standard approach
+- **Precedence climbing** - For binary operators
+- **Lookahead disambiguation** - For ambiguous syntax
+- **AST-driven** - Structure follows language grammar
 
 ### Code Style
 Follow `.claude/CODING_STANDARDS.md`:
-- No `any` types
-- Explicit return types
-- Functional style preferred
-- Comprehensive tests
-- JSDoc for public APIs
+- No `any` types - STRICT
+- Explicit return types - ALWAYS
+- Functional style preferred - Use when appropriate
+- Comprehensive tests - REQUIRED
+- JSDoc for public APIs - REQUIRED
 
 ## Progress Tracking
 
 Track progress in `parser-completion-tasks.md`.
 
 Update this file when:
-- Key decisions are made
+- Key decisions are made ✅
 - New questions arise
-- Significant context discovered
-- Approach changes
+- Significant context discovered ✅
+- Approach changes ✅
 
-Keep this file up-to-date throughout implementation.
+## Change Log
+
+### 2025-11-02: Deep Analysis & Revision
+- ✅ Identified record syntax mismatch (CRITICAL)
+- ✅ Found missing list spread feature
+- ✅ Corrected RefAssign status (already done)
+- ✅ Found postfix ! missing
+- ✅ Clarified re-export AST design
+- ✅ Revised all phases and tasks
+- ✅ Updated timeline (10-15 hours vs 6-9)
+- ✅ Reordered phases (Phase 0 now critical)
+
+### 2025-11-02: Initial Plan
+- Created original plan (now superseded)
+- Made incorrect assumptions about RefAssign
+- Missed record syntax discrepancy
+- Missed list spread feature
+
+## Implementation Notes
+
+### Critical Path
+1. Phase 0 (Record spread) is MUST-DO-FIRST
+   - Highest risk
+   - Affects existing code
+   - Get it working before adding other features
+
+2. Phase 1 (List spread) is natural follow-up
+   - Similar parsing logic
+   - While in "spread" mindset
+
+3. Phases 2-3 are independent
+   - Can be done in any order
+   - Lower risk
+
+4. Phases 4-5 are final cleanup
+   - Test coverage
+   - Documentation
+   - Validation
+
+### Testing Strategy During Implementation
+- After Phase 0: Run full test suite, fix regressions
+- After each phase: Run relevant test subset
+- Before Phase 5: Run full verification
+
+### Rollback Plan
+If Phase 0 (record spread) proves too difficult:
+- Revert to pipe syntax
+- Update spec to match parser
+- Document decision
+- Continue with other phases
+
+(This is backup only - prefer fixing parser to match spec)
