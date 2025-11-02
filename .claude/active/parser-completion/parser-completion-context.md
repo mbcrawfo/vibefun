@@ -63,7 +63,7 @@ This document tracks key files, decisions, and context for completing the vibefu
 
 ### Test Files
 
-#### Existing Tests (~305 tests)
+#### Existing Tests (~346 tests) - CORRECTED BASELINE
 - **`packages/core/src/parser/parser.test.ts`** - Basic parser tests
 - **`packages/core/src/parser/expressions.test.ts`** - Expression parsing (~120 tests)
   - **NEEDS UPDATES:** Record tests using pipe syntax must convert to spread
@@ -144,10 +144,49 @@ This document tracks key files, decisions, and context for completing the vibefu
 - Order matters: `{...a, x: 1, ...b}` - b.x overrides explicit x
 - Consistent with JavaScript spread operator
 
-**Implementation:** Desugar to nested updates in desugarer (not parser concern)
+**Implementation:** ✅ FINALIZED - Nested RecordUpdate nodes
 ```typescript
-// Parser creates single RecordUpdate with base
-// Desugarer handles multiple spreads by nesting
+// Parser creates nested RecordUpdate nodes for multiple spreads
+// Example: {...a, ...b, x: 1}
+// Becomes: RecordUpdate(RecordUpdate(a, [...b fields]), [x: 1])
+
+// AST structure unchanged:
+{ kind: "RecordUpdate"; record: Expr; updates: RecordField[] }
+
+// Parser strategy:
+// 1. Parse first spread: create RecordUpdate(a, [])
+// 2. Parse second spread: wrap in RecordUpdate(prev, [...b fields])
+// 3. Parse fields: add to updates array of outermost RecordUpdate
+// 4. Desugarer flattens/processes the nesting
+```
+
+**Benefits of this approach:**
+- No AST changes needed - keeps existing structure
+- Parser logic straightforward - recursive nesting
+- Desugarer controls semantics - can optimize
+- Separates concerns cleanly
+
+#### Decision: Spread-only records
+**Question:** Should `{...obj}` with no additional fields be allowed?
+**Answer:** ✅ FINALIZED - Yes, allow for shallow copy use case
+**Rationale:**
+- **Use case:** Shallow copying is common in functional programming
+- **JavaScript consistency:** Matches JS spread behavior
+- **Pragmatic:** Without this, copying requires stdlib function or ugly workarounds
+- **Implementation:** Creates `RecordUpdate(obj, [])` with empty updates
+- **Semantics:** Identity/shallow copy operation
+- **Alternative rejected:** Requiring `Record.copy(obj)` is more verbose, less natural
+
+**Examples:**
+```vibefun
+// Shallow copy
+let copy = {...original}
+
+// Type casting (if needed)
+let typed: SomeType = {...untyped}
+
+// Pass-through with potential future modifications
+let config = {...baseConfig}
 ```
 
 ### Phase 1: List Spread
@@ -199,7 +238,7 @@ x!!       // Deref(Deref(Var("x"))) - double deref, loops through parseCall
 
 #### Decision: AST structure
 **Question:** Extend `ExportDeclaration` or create new `ReExportDeclaration`?
-**Answer:** ✅ FINALIZED - Create new `ReExportDeclaration`
+**Answer:** ✅ FINALIZED - Create new `ReExportDeclaration` (simplified design)
 **Rationale:** Cleaner separation of concerns
 
 **Final structure:**
@@ -208,16 +247,42 @@ export type ReExportDeclaration = {
     kind: "ReExportDecl";
     items: ImportItem[] | null;  // null for export *
     from: string;
-    exported: boolean;  // always true for re-exports
     loc: Location;
 };
 ```
+
+**Design note:** ✅ FINALIZED - `exported` field removed
+- Original plan included `exported: boolean` field
+- Decision: Remove it - redundant since node kind already indicates exported
+- Simpler, cleaner structure
+- Less boilerplate in AST construction
 
 **Benefits:**
 - Clear distinction: Export vs ReExport
 - Easier for downstream (desugarer, type-checker) to handle
 - No optional fields mixing concepts
+- No redundant fields
 - Explicit AST structure
+
+### Phase -1: Error Messages (NEW - ADDED 2025-11-02)
+
+#### Error Message Definitions
+**Objective:** Define exact error messages before implementing error handling
+
+**Error Cases:**
+
+| Syntax Error | Example | Error Message |
+|-------------|---------|---------------|
+| Empty spread in record | `{...}` | "Expected expression after spread operator '...' in record" |
+| Empty spread in list | `[...]` | "Expected expression after spread operator '...' in list" |
+| Invalid spread position | `{..., x: 1}` | "Unexpected comma before spread operator. Spread must come after '{'" |
+| Missing closing brace | `{...obj, x: 1` | "Expected '}' after record fields" |
+| Missing closing bracket | `[...items` | "Expected ']' after list elements" |
+| Spread in wrong context | `let {...x} = y` | (Pattern context - different error, handled by pattern parser) |
+
+**Note:** Multiple spreads like `{...a, ...b}` should **succeed** and create nested RecordUpdate nodes
+
+**Deliverable:** These error messages will be implemented in Phase 0 and Phase 1
 
 ### Test Strategy
 
@@ -318,6 +383,22 @@ From comprehensive parser audit (2025-11-02):
 **Q:** New node or extend existing?
 **A:** ✅ FINALIZED - New ReExportDeclaration node. Better separation.
 
+### Question 8: Multiple spread handling (NEW 2025-11-02)
+**Q:** How to handle `{...a, ...b, x: 1}` in parser? Nested nodes or array of spreads?
+**A:** ✅ FINALIZED - Nested RecordUpdate nodes. Keep AST simple, parser creates nesting.
+
+### Question 9: Spread-only records (NEW 2025-11-02)
+**Q:** Should `{...obj}` with no fields be allowed?
+**A:** ✅ FINALIZED - Yes, for shallow copy use case. Pragmatic choice.
+
+### Question 10: ReExportDeclaration `exported` field (NEW 2025-11-02)
+**Q:** Include redundant `exported: boolean` field (always true)?
+**A:** ✅ FINALIZED - No, remove it. Node kind already indicates it's exported.
+
+### Question 11: Pre-Phase 0 validation (NEW 2025-11-02)
+**Q:** What validation before starting implementation?
+**A:** ✅ FINALIZED - Comprehensive codebase audit + error message definitions (Phase -1).
+
 ## Dependencies
 
 ### No Breaking Changes to AST
@@ -381,13 +462,23 @@ Update this file when:
 
 ## Change Log
 
-### 2025-11-02: User Decision Finalization
+### 2025-11-02: Final User Q&A and Decision Finalization
+- ✅ FINALIZED: Nested RecordUpdate approach for multiple spreads
+- ✅ FINALIZED: Allow spread-only records `{...obj}` for shallow copy use case
+- ✅ FINALIZED: Remove `exported` field from ReExportDeclaration (redundant)
+- ✅ FINALIZED: Add Phase -1 for comprehensive audit and error message definitions
+- ✅ Corrected test baseline: ~346 parser tests (not ~305)
+- ✅ Updated target: ~461 total tests (346 + ~115 new)
+- ✅ All 11 questions now resolved
+- ✅ Plan, context, and tasks documents updated
+
+### 2025-11-02: User Decision Finalization (Initial)
 - ✅ FINALIZED: Use JavaScript rightmost-wins spread semantics
 - ✅ FINALIZED: Accept breaking change (pre-1.0)
 - ✅ FINALIZED: Keep separate RecordUpdate AST node
 - ✅ FINALIZED: Create new ReExportDeclaration node
-- ✅ All open questions resolved
-- ✅ Plan ready for implementation
+- ✅ Questions 1-7 resolved
+- ✅ Plan ready for user Q&A
 
 ### 2025-11-02: Deep Analysis & Revision
 - ✅ Identified record syntax mismatch (CRITICAL)
@@ -408,20 +499,27 @@ Update this file when:
 ## Implementation Notes
 
 ### Critical Path
-1. Phase 0 (Record spread) is MUST-DO-FIRST
+1. **Phase -1 (Preparation) is MUST-DO-FIRST** ✨ NEW
+   - Audit codebase for all affected files
+   - Define error messages before implementing
+   - Verify baseline test count
+   - Prevent surprises in Phase 0
+
+2. Phase 0 (Record spread) is MUST-DO-SECOND
    - Highest risk
    - Affects existing code
    - Get it working before adding other features
+   - Benefits from Phase -1 preparation
 
-2. Phase 1 (List spread) is natural follow-up
+3. Phase 1 (List spread) is natural follow-up
    - Similar parsing logic
    - While in "spread" mindset
 
-3. Phases 2-3 are independent
+4. Phases 2-3 are independent
    - Can be done in any order
    - Lower risk
 
-4. Phases 4-5 are final cleanup
+5. Phases 4-5 are final cleanup
    - Test coverage
    - Documentation
    - Validation

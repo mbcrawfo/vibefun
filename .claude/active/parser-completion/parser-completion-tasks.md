@@ -10,12 +10,63 @@
 Task checklist for completing vibefun parser to 100% spec coverage.
 
 **MAJOR CHANGES:**
+- **Phase -1 added (preparation work) - NEW 2025-11-02**
 - Phase 0 added (record spread migration) - CRITICAL
 - Phase 1 changed (list spread, not refs)
 - Phase 2 scope reduced (only postfix !, RefAssign already done)
-- AST design decisions ✅ FINALIZED by user
-- ~115 new tests planned (was 85)
+- AST design decisions ✅ FINALIZED by user (all 4 decisions)
+- ~118 new tests planned (was 85, adjusted after decisions)
 - All breaking change and semantic decisions resolved
+- Test baseline corrected: ~346 tests (not ~305)
+
+---
+
+## Phase -1: Pre-Implementation Preparation (NEW - ADDED 2025-11-02)
+
+**Status:** 🔜 Not Started
+**Goal:** Audit codebase and define error messages before starting implementation
+**Risk:** LOW - no code changes, just preparation
+
+### -1.1 Comprehensive Codebase Audit
+
+- [ ] Run grep for pipe syntax: `rg '\{\s*\w+\s*\|' --type ts`
+- [ ] Document all affected files and line numbers
+- [ ] Count total instances found
+- [ ] Identify affected test files:
+  - [ ] Parser tests
+  - [ ] Desugarer tests
+  - [ ] Type-checker tests
+  - [ ] Optimizer tests
+  - [ ] Integration tests
+- [ ] Run grep for RecordUpdate references: `rg 'RecordUpdate' --type ts`
+- [ ] Identify ~19 files that reference RecordUpdate
+- [ ] Check if any need updates for nested RecordUpdate approach
+- [ ] Document audit results in context.md under "Phase -1 Audit Results"
+- [ ] Update test migration estimate based on actual count
+
+### -1.2 Error Message Definitions
+
+- [ ] Review error cases from plan.md Phase -1 section
+- [ ] Define exact error message for empty spread in record: `{...}`
+- [ ] Define exact error message for empty spread in list: `[...]`
+- [ ] Define exact error message for invalid spread position: `{..., x: 1}`
+- [ ] Define error message for missing closing brace: `{...obj, x: 1`
+- [ ] Define error message for missing closing bracket: `[...items`
+- [ ] Create error message table in context.md (already added)
+- [ ] Verify error messages are clear, actionable, and helpful
+- [ ] Add suggestions to error messages where applicable
+
+### -1.3 Baseline Test Count Verification
+
+- [ ] Run full test suite: `npm test 2>&1 | grep -E "Test Files|Tests|passing"`
+- [ ] Document current parser test count (verify ~346 tests)
+- [ ] Document current total test count (~1705 tests)
+- [ ] Calculate new target: ~346 + ~118 = ~464 parser tests
+- [ ] Update context.md with verified baseline
+- [ ] Update tasks.md summary with verified numbers
+- [ ] Update plan.md success criteria with correct targets
+
+**Subtotal Phase -1:** ~2 hours preparation work
 
 ---
 
@@ -25,44 +76,55 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 **Goal:** Replace `{r | f: v}` with `{...r, f: v}` to match spec
 **Risk:** HIGH - modifies existing working code
 
-### 0.1 AST Design Decision ✅ FINALIZED
+### 0.1 AST Design Decision ✅ ALL FINALIZED
 
 - [x] ✅ DECISION MADE: Keep separate RecordUpdate node (Option 1)
 - [x] ✅ DECISION MADE: JavaScript rightmost-wins semantics for multiple spreads
 - [x] ✅ DECISION MADE: Accept breaking change (pre-1.0 allows it)
+- [x] ✅ DECISION MADE: Nested RecordUpdate nodes for `{...a, ...b, x: 1}`
+- [x] ✅ DECISION MADE: Allow spread-only records `{...obj}` for shallow copy
 - [ ] Review current `RecordUpdate` AST structure
-- [ ] Review how desugarer/type-checker use RecordUpdate
 - [ ] Confirm AST structure matches finalized decision:
-  - ✅ Keep `{ kind: "RecordUpdate"; base: Expr; updates: RecordField[] }`
-- [ ] Document implementation details in context.md
+  - ✅ Keep `{ kind: "RecordUpdate"; record: Expr; updates: RecordField[] }`
+  - ✅ NO changes needed - use nesting for multiple spreads
+- [ ] Review how desugarer handles RecordUpdate
+- [ ] Document nested RecordUpdate approach in code comments
 
-### 0.2 AST Implementation
+### 0.2 AST Verification (No Changes Needed)
 
-- [ ] Modify AST structure in `packages/core/src/types/ast.ts`
-- [ ] Update `RecordUpdate` or `Record` node as decided
-- [ ] Support multiple spreads if decided
-- [ ] Export types from index.ts
-- [ ] Run type check: `npm run check`
+- [ ] Verify `RecordUpdate` node exists in `packages/core/src/types/ast.ts`
+- [ ] Verify structure: `{ kind: "RecordUpdate"; record: Expr; updates: RecordField[] }`
+- [ ] Confirm no AST modifications needed (nesting approach keeps structure)
+- [ ] Run type check to ensure no issues: `npm run check`
 
 ### 0.3 Parser Implementation - Record Spread
 
 - [ ] Read current `parseRecordExpr()` (lines 775-851)
-- [ ] Identify all pipe-based record update logic to remove
-- [ ] Design new parsing logic for spread syntax
+- [ ] Identify all pipe-based record update logic to remove (lines 794-827)
+- [ ] Design new parsing logic for spread syntax using nested RecordUpdate
 - [ ] Implement spread detection:
   - [ ] Check for `DOT_DOT_DOT` token at start of record
   - [ ] Parse spread expression
-  - [ ] Continue parsing remaining fields
-  - [ ] Handle multiple spreads (✅ JavaScript rightmost-wins semantics)
+  - [ ] For multiple spreads, wrap in nested RecordUpdate nodes
+  - [ ] Continue parsing remaining fields (can be more spreads or regular fields)
+  - [ ] Apply JavaScript rightmost-wins semantics via nesting
+- [ ] Implement nested RecordUpdate construction:
+  - [ ] `{...a}` → `RecordUpdate(a, [])`  ✅ Spread-only allowed
+  - [ ] `{...a, x: 1}` → `RecordUpdate(a, [x: 1])`
+  - [ ] `{...a, ...b}` → `RecordUpdate(RecordUpdate(a, [...b fields]), [])`
+  - [ ] `{...a, ...b, x: 1}` → `RecordUpdate(RecordUpdate(a, [...b fields]), [x: 1])`
 - [ ] Implement disambiguation:
-  - [ ] `{...x}` - record with spread only
+  - [ ] `{...x}` - record with spread only (shallow copy) ✅ ALLOWED
   - [ ] `{...x, y: 1}` - record with spread and fields
   - [ ] `{x: 1}` - normal record construction (unchanged)
 - [ ] Handle edge cases:
-  - [ ] Empty spread: `{...}` - should error (✅ confirmed)
-  - [ ] Multiple spreads: `{...a, ...b, x: 1}` (✅ allowed)
-  - [ ] Spread order: `{...a, x: 1, ...b}` - ✅ b.x overrides (rightmost wins)
-- [ ] Add JSDoc comments explaining spread logic
+  - [ ] Empty spread: `{...}` - error with message from Phase -1
+  - [ ] Multiple spreads: `{...a, ...b, x: 1}` ✅ Create nested RecordUpdate
+  - [ ] Spread order: `{...a, x: 1, ...b}` - nesting preserves rightmost-wins
+- [ ] Add JSDoc comments explaining:
+  - [ ] Spread syntax support
+  - [ ] Nested RecordUpdate approach
+  - [ ] JavaScript rightmost-wins semantics
 - [ ] Run type check: `npm run check`
 
 ### 0.4 Test Migration - Convert Pipe to Spread
@@ -78,33 +140,38 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 
 ### 0.5 New Record Spread Tests
 
-- [ ] Create test section in expressions.test.ts
+- [ ] Create test section in expressions.test.ts for record spreads
 - [ ] Test basic spread:
   - [ ] `{...person, age: 31}`
   - [ ] `{...obj, field: value}`
 - [ ] Test multiple fields:
   - [ ] `{...person, age: 31, name: "Bob"}`
   - [ ] `{...obj, a: 1, b: 2, c: 3}`
-- [ ] Test multiple spreads:
-  - [ ] `{...base, ...overrides}`
-  - [ ] `{...a, ...b, x: 1}`
-  - [ ] `{...a, x: 1, ...b}` - order matters
-- [ ] Test spread only:
-  - [ ] `{...obj}`
-- [ ] Test nested:
+- [ ] Test multiple spreads (creates nested RecordUpdate):
+  - [ ] `{...base, ...overrides}` - verify nested AST
+  - [ ] `{...a, ...b, x: 1}` - verify nested with fields
+  - [ ] `{...a, x: 1, ...b}` - order matters, rightmost wins
+  - [ ] `{...a, ...b, ...c}` - triple nesting
+- [ ] Test spread only (shallow copy use case):
+  - [ ] `{...obj}` ✅ ALLOWED - verify RecordUpdate(obj, [])
+  - [ ] Verify AST structure for spread-only
+- [ ] Test nested spreads:
   - [ ] `{...obj, nested: {...obj.nested, x: 1}}`
-- [ ] Test precedence:
-  - [ ] `{...a, x: 1, ...b}` - b.x overrides explicit x
-  - [ ] `{...a, ...b, ...c}` - rightmost wins
+- [ ] Test precedence and semantics:
+  - [ ] `{...a, x: 1, ...b}` - verify b.x overrides explicit x (via nesting)
+  - [ ] `{x: 1, ...a}` - verify a.x overrides explicit x
 - [ ] Test edge cases:
-  - [ ] Spread with no fields after
+  - [ ] Spread with no fields after: `{...obj, ...obj2}`
   - [ ] Complex expressions in spread: `{...getObj(), x: 1}`
-- [ ] Test errors:
-  - [ ] `{...}` - empty spread (should error)
+  - [ ] Expression as spread source: `{...if cond then a else b, x: 1}`
+- [ ] Test errors with defined messages:
+  - [ ] `{...}` - empty spread (use message from Phase -1)
   - [ ] `{..., x: 1}` - comma before spread
 - [ ] Run tests: `npm test expressions.test.ts`
+- [ ] Verify all tests pass
+- [ ] Verify nested RecordUpdate AST structure in tests
 
-**Subtotal Phase 0:** ~15 new tests + ~5-10 migrated tests
+**Subtotal Phase 0:** ~20 new tests + ~5-10 migrated tests = ~25-30 total
 
 ---
 
@@ -243,16 +310,17 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 ### 3.1 AST Implementation - ReExportDeclaration ✅ FINALIZED DESIGN
 
 - [x] ✅ DECISION MADE: Create new ReExportDeclaration node (not extending ExportDeclaration)
+- [x] ✅ DECISION MADE: Remove `exported` field (redundant - node kind indicates exported)
 - [ ] Add new type in `packages/core/src/types/ast.ts`:
   ```typescript
   export type ReExportDeclaration = {
       kind: "ReExportDecl";
       items: ImportItem[] | null;  // null for export *
       from: string;
-      exported: boolean;  // always true
       loc: Location;
   };
   ```
+  **Note:** `exported: boolean` field removed - redundant since node kind already indicates it's exported
 - [ ] Update `Declaration` type union to include `ReExportDeclaration`
 - [ ] Export from index.ts
 - [ ] Run type check: `npm run check`
@@ -516,14 +584,16 @@ Task checklist for completing vibefun parser to 100% spec coverage.
   - [ ] All features tested
   - [ ] No known gaps
 - [ ] Review test count
-  - [ ] Target: ~395-405 total tests
-  - [ ] Phase 0: ~20 tests (15 new + 5 migrated)
+  - [ ] Baseline: ~346 parser tests (CORRECTED from ~305)
+  - [ ] Phase -1: 0 tests (preparation only)
+  - [ ] Phase 0: ~25-30 tests (20 new + 5-10 migrated)
   - [ ] Phase 1: ~10 tests
   - [ ] Phase 2: ~15 tests
   - [ ] Phase 3: ~10 tests
   - [ ] Phase 4: ~60 tests
-  - [ ] **Total new/updated: ~115 tests**
-  - [ ] **Grand total: ~420 tests**
+  - [ ] **Total new/updated: ~120-125 tests**
+  - [ ] **Target: ~466-471 parser tests** (346 + 120-125)
+  - [ ] **Target: ~1825-1830 total tests** (1705 + 120-125)
 - [ ] Verify no regressions
   - [ ] All existing tests still pass
   - [ ] No behavior changes (except record syntax)
@@ -534,7 +604,8 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 ## Summary Progress
 
 ### By Phase
-- [ ] Phase 0: Record Spread Migration (0/20 tests, HIGH RISK)
+- [ ] Phase -1: Pre-Implementation Preparation (0 tasks, LOW RISK) ✨ NEW
+- [ ] Phase 0: Record Spread Migration (0/25-30 tests, HIGH RISK)
 - [ ] Phase 1: List Spread (0/10 tests, LOW RISK)
 - [ ] Phase 2: Postfix Deref (0/15 tests, LOW RISK)
 - [ ] Phase 3: Re-exports (0/10 tests, LOW RISK)
@@ -542,22 +613,24 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 - [ ] Phase 5: Validation & Docs (0 tasks)
 
 ### Overall
-- **Tests Added/Updated:** 0/~115
-- **Total Tests:** ~305/~420
+- **Tests Added/Updated:** 0/~120-125
+- **Parser Tests:** ~346/~466-471 (baseline CORRECTED)
+- **Total Tests:** ~1705/~1825-1830
 - **Spec Coverage:** 96%/100%
 - **Status:** 🔜 Not Started
-- **Estimated Time:** 10-15 hours
+- **Estimated Time:** 12-17 hours (was 10-15, added Phase -1)
 
 ---
 
 ## Implementation Order (Critical Path)
 
-1. **Phase 0 FIRST** - Record spread (most risky, do early)
-2. **Phase 1** - List spread (while in spread mindset)
-3. **Phase 2** - Postfix ! (independent, anytime)
-4. **Phase 3** - Re-exports (independent, anytime)
-5. **Phase 4** - Enhanced tests (after features work)
-6. **Phase 5** - Validation (final check)
+1. **Phase -1 FIRST** ✨ NEW - Preparation (must understand scope before starting)
+2. **Phase 0** - Record spread (most risky, do early after prep)
+3. **Phase 1** - List spread (while in spread mindset)
+4. **Phase 2** - Postfix ! (independent, anytime)
+5. **Phase 3** - Re-exports (independent, anytime)
+6. **Phase 4** - Enhanced tests (after features work)
+7. **Phase 5** - Validation (final check)
 
 ---
 
@@ -591,7 +664,7 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 
 ## Finalized Decisions Summary
 
-All critical decisions have been made by the user:
+All critical decisions have been made by the user (2025-11-02):
 
 | Decision | Choice | Status |
 |----------|--------|--------|
@@ -599,10 +672,14 @@ All critical decisions have been made by the user:
 | Breaking change | Accept (pre-1.0) | ✅ FINALIZED |
 | Spread semantics | JavaScript rightmost-wins | ✅ FINALIZED |
 | RecordUpdate AST | Keep separate node | ✅ FINALIZED |
+| **Multiple spread handling** | **Nested RecordUpdate nodes** | **✅ FINALIZED** |
+| **Spread-only records** | **Allow `{...obj}` for shallow copy** | **✅ FINALIZED** |
+| **ReExportDeclaration `exported` field** | **Remove it (redundant)** | **✅ FINALIZED** |
+| **Pre-Phase 0 validation** | **Add Phase -1 for audit + error messages** | **✅ FINALIZED** |
 | ReExportDeclaration AST | Create new node | ✅ FINALIZED |
-| Multiple spreads | Allowed | ✅ FINALIZED |
-| Empty spreads | Parse error | ✅ FINALIZED |
+| Multiple spreads allowed | Yes (via nesting) | ✅ FINALIZED |
+| Empty spreads | Parse error with defined message | ✅ FINALIZED |
 
 ---
 
-**Next Steps:** Begin Phase 0 - Implement record spread migration with finalized decisions.
+**Next Steps:** Begin Phase -1 - Comprehensive audit and error message definitions before implementation.

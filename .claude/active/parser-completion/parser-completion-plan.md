@@ -35,6 +35,49 @@
 
 ## Revised Implementation Phases
 
+### Phase -1: Pre-Implementation Preparation (NEW - ADDED 2025-11-02)
+
+**Goal:** Comprehensive audit and error message definitions before starting implementation
+
+**Impact:** LOW RISK - preparation work, no code changes
+
+#### -1.1 Comprehensive Codebase Audit
+**Objective:** Find ALL instances of pipe syntax and RecordUpdate usage
+
+**Tasks:**
+- Run: `rg '\{\s*\w+\s*\|' --type ts --type test` to find all pipe syntax usage
+- Count affected test files (parser, desugarer, type-checker, optimizer)
+- Identify all files that reference RecordUpdate (currently ~19 files)
+- Document audit findings in context.md
+- Estimate true scope of test migration work
+
+#### -1.2 Error Message Definitions
+**Objective:** Define exact error messages before implementing error handling
+
+**Error Cases to Define:**
+
+| Syntax Error | Example | Proposed Error Message |
+|-------------|---------|------------------------|
+| Empty spread in record | `{...}` | "Expected expression after spread operator '...' in record" |
+| Empty spread in list | `[...]` | "Expected expression after spread operator '...' in list" |
+| Invalid spread position | `{..., x: 1}` | "Unexpected comma before spread operator. Spread must come after '{'"|
+| Missing closing brace | `{...obj, x: 1` | "Expected '}' after record fields" |
+| Missing closing bracket | `[...items` | "Expected ']' after list elements" |
+| Multiple spreads parsing | `{...a, ...b}` | (Should succeed - nested RecordUpdate) |
+
+**Deliverable:** Error message table in context.md
+
+#### -1.3 Baseline Test Count Verification
+**Tasks:**
+- Run test suite and confirm current parser test count
+- Document: ~346 parser tests currently (not ~305)
+- Update final target: ~346 + ~115 = ~461 tests (not ~395-405)
+- Update context.md and tasks.md with correct baseline
+
+**Estimated time:** 2 hours
+
+---
+
 ### Phase 0: Record Spread Syntax Migration (NEW - CRITICAL)
 
 **Goal:** Replace `{r | f: v}` with `{...r, f: v}` to match spec
@@ -60,6 +103,17 @@
 
 **Decision:** ✅ FINALIZED - Keep separate RecordUpdate node
 
+**Multiple Spreads:** ✅ FINALIZED - Nested RecordUpdate approach
+- Parser creates nested `RecordUpdate` nodes for `{...a, ...b, x: 1}`
+- AST structure stays: `{ kind: "RecordUpdate"; record: Expr; updates: RecordField[] }`
+- Example: `{...a, ...b, x: 1}` → `RecordUpdate(RecordUpdate(a, [...b fields]), [x: 1])`
+- Desugarer handles the nesting semantics (not parser's concern)
+
+**Spread-Only Records:** ✅ FINALIZED - Allow `{...obj}` for shallow copies
+- Rationale: Enables shallow copy use case, matches JavaScript semantics
+- Pragmatic choice aligned with Vibefun's functional-first-but-practical philosophy
+- Creates `RecordUpdate` with empty updates array
+
 #### 0.2 Parser Implementation
 **File:** `packages/core/src/parser/parser.ts`
 
@@ -68,14 +122,15 @@
 **Add:** Spread-based parsing in `parseRecordExpr()`
 - Check for `DOT_DOT_DOT` token
 - Parse spread expression
-- Parse remaining fields
-- Support multiple spreads: `{...a, ...b, x: 1}`
+- Parse remaining fields (can include more spreads)
+- For multiple spreads, create nested RecordUpdate nodes
 - **Semantics:** ✅ FINALIZED - JavaScript rightmost-wins (later overrides earlier)
 
 **Disambiguation:**
-- `{...x}` - record with spread only
+- `{...x}` - record with spread only (shallow copy) ✅ ALLOWED
 - `{...x, y: 1}` - record with spread and field
 - `{x: 1}` - normal record construction
+- `{...a, ...b, x: 1}` - multiple spreads (nested RecordUpdate nodes)
 
 #### 0.3 Test Migration
 **File:** `packages/core/src/parser/expressions.test.ts`
@@ -84,14 +139,18 @@
 - Convert to `{...r, f: v}` syntax
 - Verify no regressions
 
-#### 0.4 New Spread Tests (~15 tests)
+#### 0.4 New Spread Tests (~18 tests)
 - Basic: `{...person, age: 31}`
 - Multiple fields: `{...person, age: 31, name: "Bob"}`
-- Multiple spreads: `{...base, ...overrides, x: 1}`
-- Spread only: `{...obj}`
+- Multiple spreads: `{...base, ...overrides, x: 1}` (creates nested RecordUpdate)
+- Spread only: `{...obj}` ✅ ALLOWED (shallow copy use case)
+- Multiple spread-only: `{...a, ...b}` (nested)
 - Nested: `{...obj, nested: {...obj.nested, x: 1}}`
-- Precedence: `{...a, x: 1, ...b}` (later spreads override)
-- Edge: empty spread, spread with no fields after
+- Precedence: `{...a, x: 1, ...b}` (later spreads override - rightmost wins)
+- Order matters: `{...a, x: 1, ...b, y: 2}` (b.x overrides explicit x, explicit y overrides b.y)
+- Spread expressions: `{...getObj(), x: 1}`
+- Edge: empty spread `{...}` - should error with defined message from Phase -1
+- Edge: spread with no fields after `{...obj, ...obj2}`
 
 **Estimated time:** 3-4 hours (risky - existing code changes)
 
@@ -216,7 +275,7 @@ else if (this.match("BANG")) {
 #### 3.1 AST Implementation
 **File:** `packages/core/src/types/ast.ts`
 
-**Decision:** ✅ FINALIZED - Create new `ReExportDeclaration` node (not extending existing)
+**Decision:** ✅ FINALIZED - Create new `ReExportDeclaration` node (simplified design)
 
 **Add:**
 ```typescript
@@ -224,10 +283,11 @@ export type ReExportDeclaration = {
     kind: "ReExportDecl";
     items: ImportItem[] | null;  // null for export *
     from: string;
-    exported: boolean;  // always true
     loc: Location;
 };
 ```
+
+**Note:** `exported` field removed - redundant since node kind already indicates it's exported
 
 **Update:** `Declaration` type union to include `ReExportDeclaration`
 
@@ -542,7 +602,10 @@ npm run format     # Prettier formatting
 
 ---
 
-## Timeline Estimate (Revised)
+## Timeline Estimate (Revised with Phase -1)
+
+- **Phase -1** (Pre-implementation prep): 2 hours
+  - Audit codebase, define error messages, verify baseline
 
 - **Phase 0** (Record spread migration): 3-4 hours
   - Risky: modifying existing feature
@@ -558,25 +621,26 @@ npm run format     # Prettier formatting
   - Moderate: new AST node + parsing
 
 - **Phase 4** (Enhanced tests): 3-4 hours
-  - Time-consuming: writing 50+ tests
+  - Time-consuming: writing 60+ tests
 
 - **Phase 5** (Validation & docs): 1 hour
   - Standard: run checks, write docs
 
-**Total: 10-15 hours** for complete implementation
+**Total: 12-17 hours** for complete implementation (was 10-15)
 
 ---
 
 ## Implementation Order (Critical Path)
 
-1. **Phase 0 FIRST** (Record spread) - Most risky, get it done early
-2. **Phase 1** (List spread) - While in "spread parsing" mindset
-3. **Phase 2** (Postfix !) - Independent, can be done anytime
-4. **Phase 3** (Re-exports) - Independent, can be done anytime
-5. **Phase 4** (Enhanced tests) - After all features work
-6. **Phase 5** (Validation) - Final quality check
+1. **Phase -1 FIRST** (Preparation) - Must understand scope before starting
+2. **Phase 0** (Record spread) - Most risky, get it done early after prep
+3. **Phase 1** (List spread) - While in "spread parsing" mindset
+4. **Phase 2** (Postfix !) - Independent, can be done anytime
+5. **Phase 3** (Re-exports) - Independent, can be done anytime
+6. **Phase 4** (Enhanced tests) - After all features work
+7. **Phase 5** (Validation) - Final quality check
 
-**Rationale:** Tackle the riskiest work (record spread) first while fresh. Group similar work (spreads) together.
+**Rationale:** Phase -1 prevents surprises in Phase 0. Tackle the riskiest work (record spread) after understanding full scope. Group similar work (spreads) together.
 
 ---
 
@@ -599,7 +663,11 @@ npm run format     # Prettier formatting
 | JavaScript spread semantics (rightmost wins) | Multiple spreads allowed, later overrides earlier | 2025-11-02 | ✅ FINALIZED |
 | Accept breaking change (pre-1.0) | Pre-1.0 allows breaking changes, simplest approach | 2025-11-02 | ✅ FINALIZED |
 | Keep separate RecordUpdate AST node | Cleaner than merging into Record with optional spread | 2025-11-02 | ✅ FINALIZED |
+| **Nested RecordUpdate for multiple spreads** | **Keep AST simple, parser creates nesting, desugarer handles semantics** | **2025-11-02** | **✅ FINALIZED** |
+| **Allow spread-only records `{...obj}`** | **Enables shallow copy, matches JavaScript, pragmatic** | **2025-11-02** | **✅ FINALIZED** |
+| **Remove `exported` field from ReExportDeclaration** | **Redundant - node kind already indicates exported** | **2025-11-02** | **✅ FINALIZED** |
+| **Add Phase -1 for preparation** | **Audit and error messages prevent surprises in Phase 0** | **2025-11-02** | **✅ FINALIZED** |
 | Create new ReExportDeclaration node | Cleaner separation vs extending ExportDeclaration | 2025-11-02 | ✅ FINALIZED |
 | Implement list spread now | Achieve full spec parity, AST already ready | 2025-11-02 | ✅ FINALIZED |
-| Keep full test scope (~115 new) | Comprehensive coverage worth the effort | 2025-11-02 | ✅ FINALIZED |
-| Phase 0 first | Get risky work done early | 2025-11-02 | ✅ FINALIZED |
+| Keep full test scope (~118 new) | Comprehensive coverage worth the effort | 2025-11-02 | ✅ FINALIZED |
+| Phase -1 then Phase 0 first | Understand scope, then tackle riskiest work early | 2025-11-02 | ✅ FINALIZED |
