@@ -345,7 +345,7 @@ export class Lexer {
 
     /**
      * Read a decimal number (integer or float with optional scientific notation)
-     * Formats: 42, 3.14, 1e10, 3.14e-2
+     * Formats: 42, 3.14, 1e10, 3.14e-2, 1_000_000, 3.141_592
      * @param start - The starting location of the number
      * @returns INT_LITERAL or FLOAT_LITERAL token
      * @throws {LexerError} If number format is invalid
@@ -354,9 +354,23 @@ export class Lexer {
         let value = "";
         let isFloat = false;
 
-        // Read integer part
-        while (this.isDigit(this.peek())) {
-            value += this.advance();
+        // Read integer part (with optional underscores)
+        while (this.isDigit(this.peek()) || this.peek() === "_") {
+            const char = this.peek();
+            if (char === "_") {
+                // Skip underscore, but validate it's between digits
+                const next = this.peek(1);
+                if (!this.isDigit(next)) {
+                    throw new LexerError(
+                        "Invalid number separator: underscore must be between digits",
+                        this.makeLocation(),
+                        "Remove trailing underscore or add more digits",
+                    );
+                }
+                this.advance(); // skip underscore
+            } else {
+                value += this.advance();
+            }
         }
 
         // Check for decimal point (must be followed by a digit)
@@ -364,9 +378,22 @@ export class Lexer {
             isFloat = true;
             value += this.advance(); // consume '.'
 
-            // Read fractional part
-            while (this.isDigit(this.peek())) {
-                value += this.advance();
+            // Read fractional part (with optional underscores)
+            while (this.isDigit(this.peek()) || this.peek() === "_") {
+                const char = this.peek();
+                if (char === "_") {
+                    const next = this.peek(1);
+                    if (!this.isDigit(next)) {
+                        throw new LexerError(
+                            "Invalid number separator: underscore must be between digits",
+                            this.makeLocation(),
+                            "Remove trailing underscore or add more digits",
+                        );
+                    }
+                    this.advance(); // skip underscore
+                } else {
+                    value += this.advance();
+                }
             }
         }
 
@@ -389,9 +416,22 @@ export class Lexer {
                 );
             }
 
-            // Read exponent digits
-            while (this.isDigit(this.peek())) {
-                value += this.advance();
+            // Read exponent digits (with optional underscores)
+            while (this.isDigit(this.peek()) || this.peek() === "_") {
+                const char = this.peek();
+                if (char === "_") {
+                    const next = this.peek(1);
+                    if (!this.isDigit(next)) {
+                        throw new LexerError(
+                            "Invalid number separator: underscore must be between digits",
+                            this.makeLocation(),
+                            "Remove trailing underscore or add more digits",
+                        );
+                    }
+                    this.advance(); // skip underscore
+                } else {
+                    value += this.advance();
+                }
             }
         }
 
@@ -406,7 +446,7 @@ export class Lexer {
 
     /**
      * Read a hexadecimal number (0x prefix)
-     * Format: 0x1A, 0xFF, 0x0
+     * Format: 0x1A, 0xFF, 0x0, 0xFF_AA_BB
      * @param start - The starting location of the number
      * @returns INT_LITERAL token
      * @throws {LexerError} If hex format is invalid
@@ -418,9 +458,23 @@ export class Lexer {
 
         let value = "";
 
-        // Read hex digits
-        while (this.isHexDigit(this.peek())) {
-            value += this.advance();
+        // Read hex digits (with optional underscores)
+        while (this.isHexDigit(this.peek()) || this.peek() === "_") {
+            const char = this.peek();
+            if (char === "_") {
+                // Skip underscore, but validate it's between hex digits
+                const next = this.peek(1);
+                if (!this.isHexDigit(next)) {
+                    throw new LexerError(
+                        "Invalid number separator: underscore must be between hex digits",
+                        this.makeLocation(),
+                        "Remove trailing underscore or add more hex digits",
+                    );
+                }
+                this.advance(); // skip underscore
+            } else {
+                value += this.advance();
+            }
         }
 
         // Must have at least one hex digit
@@ -441,7 +495,7 @@ export class Lexer {
 
     /**
      * Read a binary number (0b prefix)
-     * Format: 0b1010, 0b11111111
+     * Format: 0b1010, 0b11111111, 0b1111_0000
      * @param start - The starting location of the number
      * @returns INT_LITERAL token
      * @throws {LexerError} If binary format is invalid
@@ -453,9 +507,23 @@ export class Lexer {
 
         let value = "";
 
-        // Read binary digits (0 or 1)
-        while (this.peek() === "0" || this.peek() === "1") {
-            value += this.advance();
+        // Read binary digits (0 or 1, with optional underscores)
+        while (this.peek() === "0" || this.peek() === "1" || this.peek() === "_") {
+            const char = this.peek();
+            if (char === "_") {
+                // Skip underscore, but validate it's between binary digits
+                const next = this.peek(1);
+                if (next !== "0" && next !== "1") {
+                    throw new LexerError(
+                        "Invalid number separator: underscore must be between binary digits",
+                        this.makeLocation(),
+                        "Remove trailing underscore or add more binary digits",
+                    );
+                }
+                this.advance(); // skip underscore
+            } else {
+                value += this.advance();
+            }
         }
 
         // Must have at least one binary digit

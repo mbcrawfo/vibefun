@@ -527,3 +527,279 @@ describe("Lexer - Phase 3 Integration", () => {
         });
     });
 });
+
+describe("Lexer - Error Recovery and Handling", () => {
+    describe("error stops tokenization", () => {
+        it("should stop tokenization on invalid character", () => {
+            const lexer = new Lexer("let x = 42 @ y = 10", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/Unexpected character/);
+        });
+
+        it("should stop tokenization on unterminated string", () => {
+            const lexer = new Lexer('let x = "hello', "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/Unterminated string/);
+        });
+
+        it("should stop tokenization on invalid escape sequence", () => {
+            const lexer = new Lexer('"hello\\q"', "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/Invalid escape sequence/);
+        });
+
+        it("should stop tokenization on unterminated multi-line comment", () => {
+            const lexer = new Lexer("let x = 42 /* comment", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/Unterminated multi-line comment/);
+        });
+    });
+
+    describe("error message quality", () => {
+        it("should provide helpful error message for unexpected character", () => {
+            const lexer = new Lexer("@", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("Unexpected character: '@'");
+                expect(lexerError.help).toContain("not valid in vibefun syntax");
+            }
+        });
+
+        it("should provide helpful error message for unterminated string", () => {
+            const lexer = new Lexer('"hello', "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("Unterminated string");
+            }
+        });
+
+        it("should provide helpful error message for invalid hex literal", () => {
+            const lexer = new Lexer("0x", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("Invalid hex literal");
+                expect(lexerError.help).toContain("Add hex digits");
+            }
+        });
+
+        it("should provide helpful error message for invalid binary literal", () => {
+            const lexer = new Lexer("0b", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("Invalid binary literal");
+                expect(lexerError.help).toContain("Add binary digits");
+            }
+        });
+
+        it("should provide helpful error message for invalid scientific notation", () => {
+            const lexer = new Lexer("1e", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("Invalid scientific notation");
+                expect(lexerError.help).toContain("Add at least one digit");
+            }
+        });
+
+        it("should provide helpful error message for unterminated multi-line comment", () => {
+            const lexer = new Lexer("/* comment", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("Unterminated multi-line comment");
+                expect(lexerError.help).toContain("Add closing */");
+            }
+        });
+    });
+
+    describe("error location tracking", () => {
+        it("should track location of error in middle of file", () => {
+            const lexer = new Lexer("let x = @", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location).toMatchObject({
+                    file: "test.vf",
+                    line: 1,
+                    column: 9, // @ is at column 9
+                });
+            }
+        });
+
+        it("should track location of error at end of file", () => {
+            const lexer = new Lexer('"unterminated', "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location?.file).toBe("test.vf");
+                expect(lexerError.location?.line).toBe(1);
+            }
+        });
+
+        it("should track location of error on specific line", () => {
+            const lexer = new Lexer("let x = 1\nlet y = @\nlet z = 3", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location).toMatchObject({
+                    line: 2, // @ is on line 2
+                    column: 9,
+                });
+            }
+        });
+
+        it("should track location of unterminated comment at EOF", () => {
+            const lexer = new Lexer("let x = 1\n/* comment", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                // Error should be reported at the start of the comment
+                expect(lexerError.location?.line).toBe(2);
+            }
+        });
+    });
+
+    describe("error context", () => {
+        it("should include filename in error", () => {
+            const lexer = new Lexer("@", "myfile.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location?.file).toBe("myfile.vf");
+            }
+        });
+
+        it("should use default filename when not provided", () => {
+            const lexer = new Lexer("@");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location?.file).toBe("<input>");
+            }
+        });
+    });
+
+    describe("multiple potential errors", () => {
+        it("should report first error encountered", () => {
+            // Has two errors: @ and # - should report @ first
+            const lexer = new Lexer("@ #", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("@");
+                expect(lexerError.location?.column).toBe(1); // @ is first
+            }
+        });
+
+        it("should report error before valid tokens are skipped", () => {
+            const lexer = new Lexer("let x @ y", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.message).toContain("@");
+            }
+        });
+    });
+
+    describe("edge case errors", () => {
+        it("should handle error at start of file", () => {
+            const lexer = new Lexer("@hello", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location?.column).toBe(1);
+                expect(lexerError.location?.offset).toBe(0);
+            }
+        });
+
+        it("should handle error after whitespace", () => {
+            const lexer = new Lexer("   @", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location?.column).toBe(4); // After 3 spaces
+            }
+        });
+
+        it("should handle error after comment", () => {
+            const lexer = new Lexer("// comment\n@", "test.vf");
+
+            try {
+                lexer.tokenize();
+                expect.fail("Should have thrown an error");
+            } catch (error) {
+                expect(error).toBeInstanceOf(LexerError);
+                const lexerError = error as LexerError;
+                expect(lexerError.location?.line).toBe(2);
+            }
+        });
+    });
+});

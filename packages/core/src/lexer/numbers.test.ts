@@ -513,6 +513,286 @@ describe("Lexer - Numbers in Context", () => {
     });
 });
 
+describe("Lexer - Number Separators (Underscores)", () => {
+    describe("Decimal integers with separators", () => {
+        it("should tokenize integer with single separator", () => {
+            const lexer = new Lexer("1_000", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 1000,
+            });
+        });
+
+        it("should tokenize integer with multiple separators", () => {
+            const lexer = new Lexer("1_000_000", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 1000000,
+            });
+        });
+
+        it("should tokenize large integer with separators", () => {
+            const lexer = new Lexer("999_999_999", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 999999999,
+            });
+        });
+
+        it("should tokenize integer with irregular separator placement", () => {
+            const lexer = new Lexer("12_34_5", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 12345,
+            });
+        });
+
+        it("should throw error on integer starting with underscore", () => {
+            // "_123" would be tokenized as an identifier, not a number
+            const lexer = new Lexer("_123", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "IDENTIFIER",
+                value: "_123",
+            });
+        });
+
+        it("should throw error on integer ending with underscore", () => {
+            const lexer = new Lexer("123_", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
+
+        it("should throw error on integer with trailing underscore before operator", () => {
+            const lexer = new Lexer("123_+", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
+    });
+
+    describe("Decimal floats with separators", () => {
+        it("should tokenize float with separator in integer part", () => {
+            const lexer = new Lexer("1_000.5", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 1000.5,
+            });
+        });
+
+        it("should tokenize float with separator in fractional part", () => {
+            const lexer = new Lexer("3.141_592", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 3.141592,
+            });
+        });
+
+        it("should tokenize float with separators in both parts", () => {
+            const lexer = new Lexer("1_234.567_890", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 1234.56789,
+            });
+        });
+
+        it("should tokenize float with multiple separators", () => {
+            const lexer = new Lexer("3.141_592_653_589_793", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 3.141592653589793,
+            });
+        });
+
+        it("should throw error on float with trailing underscore in fractional part", () => {
+            const lexer = new Lexer("3.14_", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
+    });
+
+    describe("Scientific notation with separators", () => {
+        it("should tokenize scientific notation with separator in mantissa", () => {
+            const lexer = new Lexer("1_000e10", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 1000e10,
+            });
+        });
+
+        it("should tokenize scientific notation with separator in exponent", () => {
+            const lexer = new Lexer("1e1_00", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 1e100,
+            });
+        });
+
+        it("should tokenize scientific notation with separators in both parts", () => {
+            const lexer = new Lexer("1_234.567_8e98", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "FLOAT_LITERAL",
+                value: 1234.5678e98,
+            });
+        });
+
+        it("should throw error on scientific notation with trailing underscore in exponent", () => {
+            const lexer = new Lexer("1e10_", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
+    });
+
+    describe("Hexadecimal with separators", () => {
+        it("should tokenize hex with single separator", () => {
+            const lexer = new Lexer("0xFF_AA", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0xffaa,
+            });
+        });
+
+        it("should tokenize hex with multiple separators", () => {
+            const lexer = new Lexer("0xFF_AA_BB_CC", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0xffaabbcc,
+            });
+        });
+
+        it("should tokenize hex with common byte grouping", () => {
+            const lexer = new Lexer("0xDEAD_BEEF", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0xdeadbeef,
+            });
+        });
+
+        it("should throw error on hex with trailing underscore", () => {
+            const lexer = new Lexer("0xFF_", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
+
+        it("should allow underscore immediately after prefix", () => {
+            const lexer = new Lexer("0x_FF", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0xff,
+            });
+        });
+    });
+
+    describe("Binary with separators", () => {
+        it("should tokenize binary with single separator", () => {
+            const lexer = new Lexer("0b1111_0000", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0b11110000,
+            });
+        });
+
+        it("should tokenize binary with multiple separators", () => {
+            const lexer = new Lexer("0b1010_1010_1010_1010", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0b1010101010101010,
+            });
+        });
+
+        it("should tokenize binary with nibble grouping", () => {
+            const lexer = new Lexer("0b1111_1111_1111_1111", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0b1111111111111111,
+            });
+        });
+
+        it("should throw error on binary with trailing underscore", () => {
+            const lexer = new Lexer("0b1010_", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
+
+        it("should allow underscore immediately after prefix", () => {
+            const lexer = new Lexer("0b_1010", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]!).toMatchObject({
+                type: "INT_LITERAL",
+                value: 0b1010,
+            });
+        });
+    });
+
+    describe("Number separators in context", () => {
+        it("should tokenize expression with separated numbers", () => {
+            const lexer = new Lexer("1_000 + 2_000", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens).toHaveLength(4); // 1000, +, 2000, EOF
+            expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 1000 });
+            expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+            expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 2000 });
+        });
+
+        it("should tokenize mixed formats with separators", () => {
+            const lexer = new Lexer("1_000 0xFF_AA 0b1111_0000 3.14_159", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens).toHaveLength(5); // 4 numbers + EOF
+            expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 1000 });
+            expect(tokens[1]!).toMatchObject({ type: "INT_LITERAL", value: 0xffaa });
+            expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 0b11110000 });
+            expect(tokens[3]!).toMatchObject({ type: "FLOAT_LITERAL", value: 3.14159 });
+        });
+
+        it("should handle separators in function arguments", () => {
+            const lexer = new Lexer("foo(1_000_000)", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens).toHaveLength(5); // foo, (, 1000000, ), EOF
+            expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 1000000 });
+        });
+    });
+});
+
 describe("Lexer - Edge Cases", () => {
     it("should tokenize very large integer", () => {
         const lexer = new Lexer("999999999999999", "test.vf");
