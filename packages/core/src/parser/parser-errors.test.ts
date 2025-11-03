@@ -174,4 +174,132 @@ describe("Parser - Error Handling", () => {
             expect(error.message).toContain("Expected");
         });
     });
+
+    describe("unclosed delimiters (Phase 4.2)", () => {
+        it("reports error for mismatched braces", () => {
+            const error = expectParseError("let x = }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for unexpected closing bracket", () => {
+            const error = expectParseError("let x = ]");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("missing keywords (Phase 4.2)", () => {
+        it("reports error for unexpected keyword", () => {
+            const error = expectParseError("let x = then");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for invalid use of else", () => {
+            const error = expectParseError("let x = else");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("invalid syntax (Phase 4.2)", () => {
+        it("reports error for incomplete expression after operator", () => {
+            const error = expectParseError("let x = 1 + else");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for invalid operand", () => {
+            const error = expectParseError("let x = 1 * then");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("mismatched delimiters (Phase 4.2)", () => {
+        it("reports error for bracket-brace mismatch", () => {
+            const error = expectParseError("let x = { x: [1, 2 }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for paren-bracket mismatch", () => {
+            const error = expectParseError("let x = (a + [b)]");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("missing separators (Phase 4.2)", () => {
+        it("reports error for missing comma in list", () => {
+            const error = expectParseError("let x = [1 2 3]");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for missing comma in record", () => {
+            const error = expectParseError("let x = { x: 1 y: 2 }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for missing statement separator", () => {
+            const error = expectParseError("let x = { let y = 1 let z = 2; z }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("invalid pattern syntax (Phase 4.2)", () => {
+        it("reports error for invalid pattern", () => {
+            const error = expectParseError("let x = match y { | + => 0 }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("type syntax errors (Phase 4.2)", () => {
+        it("reports error for invalid type expression", () => {
+            const error = expectParseError("type Point = { x: }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("spread syntax errors (Phase 4.2)", () => {
+        it("reports error for empty spread in record", () => {
+            const error = expectParseError("let x = {...}");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for empty spread in list", () => {
+            const error = expectParseError("let x = [...]");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+
+        it("reports error for malformed record spread", () => {
+            const error = expectParseError("let x = {..., y: 1}");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe("error message quality (Phase 4.2)", () => {
+        it("provides clear message with location for simple errors", () => {
+            const error = expectParseError("let x = }");
+            expect(error.message).toBeDefined();
+            expect(error.location).toBeDefined();
+            expect(error.location!.line).toBe(1);
+            expect(error.location!.column).toBeGreaterThan(0);
+        });
+
+        it("provides context in complex error", () => {
+            const error = expectParseError("let f = (x) => { let y = x + ; y }");
+            expect(error.message).toBeDefined();
+            expect(error.message.length).toBeGreaterThan(5);
+        });
+    });
 });
