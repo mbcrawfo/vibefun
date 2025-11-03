@@ -566,6 +566,15 @@ export class Parser {
                     field,
                     loc: expr.loc,
                 };
+            }
+            // Postfix dereference: expr!
+            else if (this.match("BANG")) {
+                expr = {
+                    kind: "UnaryOp",
+                    op: "Deref",
+                    expr,
+                    loc: expr.loc,
+                };
             } else {
                 // No more postfix operators
                 break;

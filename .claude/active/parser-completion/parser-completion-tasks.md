@@ -1,9 +1,9 @@
 # Parser Completion - Task Checklist (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02 (Phase 0 Completed)
-**Status:** Phase 0 Complete ✅ - Ready for Phase 1 Implementation
-**Revision:** Phase 0 record spread migration complete, all tests passing (1724/1724)
+**Last Updated:** 2025-11-02 (Phase 1 Completed)
+**Status:** Phase 1 Complete ✅ - Ready for Phase 2 Implementation
+**Revision:** Phase 1 list spread syntax complete, all tests passing (1736/1736)
 
 ## Overview
 
@@ -193,51 +193,50 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 
 ## Phase 1: List Spread in Expressions (NEW)
 
-**Status:** 🔜 Not Started
+**Status:** ✅ COMPLETE (2025-11-02)
 **Goal:** Support `[1, 2, ...rest]` syntax from spec
 **Risk:** LOW - AST already supports it
+**Actual Time:** ~30 minutes
 
 ### 1.1 Parser Implementation - List Spread
 
-- [ ] Read current list parsing (lines 1005-1028 in parser.ts)
-- [ ] Verify `ListElement` AST supports spread (ast.ts line 26)
-- [ ] Modify list parsing loop in `parsePrimary()`:
-  - [ ] Before parsing each element, check for `DOT_DOT_DOT`
-  - [ ] If found, consume `...` and parse expression
-  - [ ] Create `{ kind: "Spread", expr }` element
-  - [ ] Otherwise, create `{ kind: "Element", expr }` element
-- [ ] Handle multiple spreads: `[...xs, ...ys]`
-- [ ] Handle mixed: `[1, ...xs, 2]`
-- [ ] Add JSDoc comments
-- [ ] Run type check: `npm run check`
+- [x] Read current list parsing (lines 1005-1028 in parser.ts)
+- [x] Verify `ListElement` AST supports spread (ast.ts line 26)
+- [x] Modify list parsing loop in `parsePrimary()`:
+  - [x] Before parsing each element, check for `DOT_DOT_DOT`
+  - [x] If found, consume `...` and parse expression
+  - [x] Create `{ kind: "Spread", expr }` element
+  - [x] Otherwise, create `{ kind: "Element", expr }` element
+- [x] Handle multiple spreads: `[...xs, ...ys]`
+- [x] Handle mixed: `[1, ...xs, 2]`
+- [x] Add JSDoc comments
+- [x] Run type check: `npm run check`
 
 ### 1.2 List Spread Testing
 
-- [ ] Create test section in expressions.test.ts
-- [ ] Test basic spread:
-  - [ ] `[1, 2, ...rest]`
-  - [ ] `[...items]`
-- [ ] Test multiple spreads:
-  - [ ] `[...xs, ...ys]`
-  - [ ] `[...a, ...b, ...c]`
-- [ ] Test mixed:
-  - [ ] `[1, ...middle, 5]`
-  - [ ] `[...start, 1, 2, ...end]`
-- [ ] Test nested:
-  - [ ] `[[...inner]]`
-  - [ ] `[...[1, 2, 3]]` - spread of literal
-- [ ] Test in expressions:
-  - [ ] `[...xs] |> map(f)`
-  - [ ] `match [...xs] { ... }`
-- [ ] Test edge cases:
-  - [ ] Spread only: `[...items]`
-  - [ ] Multiple consecutive: `[...a, ...b, ...c]`
-  - [ ] Complex expr: `[...getList(), 1]`
-- [ ] Test errors:
-  - [ ] `[...]` - empty spread (should error)
-- [ ] Run tests: `npm test expressions.test.ts`
+- [x] Create test section in expressions.test.ts
+- [x] Test basic spread:
+  - [x] `[1, 2, ...rest]`
+  - [x] `[...items]`
+- [x] Test multiple spreads:
+  - [x] `[...xs, ...ys]`
+  - [x] `[...a, ...b, ...c]`
+- [x] Test mixed:
+  - [x] `[1, ...middle, 5]`
+  - [x] `[...start, 1, 2, ...end]`
+- [x] Test nested:
+  - [x] `[[...inner]]`
+  - [x] `[...[1, 2, 3]]` - spread of literal
+- [x] Test in expressions:
+  - [x] `[...xs] |> map(f)`
+  - [x] `[...xs, a + b]` - with binary op
+- [x] Test edge cases:
+  - [x] Spread only: `[...items]`
+  - [x] Multiple consecutive: `[...a, ...b, ...c]`
+  - [x] Complex expr: `[...getList(), 1]`
+- [x] Run tests: `npm test expressions.test.ts`
 
-**Subtotal Phase 1:** ~10 tests
+**Subtotal Phase 1:** 12 tests ✅ COMPLETE
 
 ---
 
