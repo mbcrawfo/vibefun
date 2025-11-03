@@ -582,6 +582,8 @@ let log = (msg) => unsafe { console_log(msg) }  // Returns Unit
 
 The `Ref<T>` type represents a **mutable reference cell** containing a value of type `T`. Refs provide controlled mutability in Vibefun's otherwise immutable-by-default language.
 
+**Important:** All refs must be declared with the `mut` keyword.
+
 ```vibefun
 let mut counter: Ref<Int> = ref(0)
 let mut state: Ref<Option<String>> = ref(None)

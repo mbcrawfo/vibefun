@@ -345,7 +345,7 @@ interface ListPattern extends ASTNode {
 interface OrPattern extends ASTNode {
     type: 'OrPattern';
     patterns: Pattern[];
-    // Note: All patterns must bind same variables (enforced in type checker)
+    // Note: Variables cannot be bound in or-patterns (use match if binding needed)
 }
 ```
 
