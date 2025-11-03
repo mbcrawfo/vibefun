@@ -238,7 +238,7 @@ It can span multiple lines.
 ```
 &&    Logical AND
 ||    Logical OR
-!     Logical NOT
+!     Logical NOT (also used for dereference - see Special Operators)
 ```
 
 #### String Operators
@@ -258,8 +258,24 @@ It can span multiple lines.
 ::    List cons
 ...   Spread operator (records, lists)
 .     Record field access / module access
-:=    Reference assignment
-!     Dereference
+```
+
+##### Reference Operators
+
+```
+:=    Reference assignment - updates a mutable reference
+      Type: (Ref<T>, T) -> Unit
+      Example: myRef := newValue
+      See: Mutable References section
+
+!     Dereference / Logical NOT (type-based disambiguation)
+      When applied to Ref<T>: extracts value (type Ref<T> -> T)
+      When applied to Bool: logical negation (type Bool -> Bool)
+      Examples:
+        !myRef    // Dereference: reads value from Ref<Int>
+        !true     // Logical NOT: evaluates to false
+      The compiler automatically determines which operation based on operand type.
+      See: Mutable References section
 ```
 
 #### Punctuation
@@ -337,6 +353,33 @@ The unit type represents "no value" (like `void` in other languages). The only v
 let nothing: Unit = ()
 let log = (msg) => unsafe { console_log(msg) }  // Returns Unit
 ```
+
+### Ref<T> (Mutable References)
+
+The `Ref<T>` type represents a **mutable reference cell** containing a value of type `T`. Refs provide controlled mutability in Vibefun's otherwise immutable-by-default language.
+
+```vibefun
+let mut counter: Ref<Int> = ref(0)
+let mut state: Ref<Option<String>> = ref(None)
+```
+
+Refs are created with the `ref` keyword, read with the dereference operator `!`, and updated with the assignment operator `:=`:
+
+```vibefun
+let mut x = ref(10)   // Create: Ref<Int>
+let value = !x        // Read: Int
+x := 20               // Update: Unit
+```
+
+**Type characteristics:**
+- `Ref<T>` is a **parameterized type** (generic over `T`)
+- All refs must be declared with the `mut` keyword: `let mut x = ref(...)`
+- Refs are **mutable cells**—the reference itself is immutable, but the contained value can change
+- Creating a ref: `ref(value)` has type `Ref<T>` when `value` has type `T`
+- Reading a ref: `!refExpr` has type `T` when `refExpr` has type `Ref<T>`
+- Updating a ref: `refExpr := value` requires `refExpr: Ref<T>` and `value: T`, returns `Unit`
+
+**See also:** The [Mutable References](#mutable-references) section for comprehensive documentation, examples, and usage guidance.
 
 ### Function Types
 
@@ -958,6 +1001,228 @@ match status {
 
 ---
 
+## Mutable References
+
+Vibefun is a functional-first language that encourages immutability and pure functions. However, certain scenarios benefit from controlled mutability—particularly when implementing imperative algorithms or interfacing with mutable JavaScript APIs. **Mutable references** (refs) provide a pragmatic escape hatch for these cases.
+
+> **Design Philosophy**: Refs should be used sparingly. Prefer pure functional alternatives (recursion, `map`, `fold`, etc.) whenever possible. Refs are most appropriate for:
+> - Imperative algorithms where mutation is clearer (loops with accumulators, counters)
+> - Interfacing with JavaScript APIs that expect or return mutable state
+> - Performance-critical code where avoiding allocations is essential
+
+### The Ref<T> Type
+
+A ref is a **mutable cell** containing a value of type `T`. The type is written as `Ref<T>`:
+
+```vibefun
+// A mutable reference to an Int
+let mut counter: Ref<Int> = ref(0)
+
+// A mutable reference to an Option
+let mut state: Ref<Option<String>> = ref(None)
+```
+
+The `Ref<T>` type is parameterized—it wraps a value of any type and allows that value to be read and updated.
+
+### Creating References
+
+Create a mutable reference using the `ref` keyword with the `mut` declaration:
+
+```vibefun
+let mut x = ref(10)         // Ref<Int>
+let mut name = ref("Alice") // Ref<String>
+let mut items = ref([])     // Ref<List<T>>
+```
+
+**Important**: The `mut` keyword is **required** when declaring a ref. This makes mutation explicit and visible at the declaration site.
+
+### Reading References (Dereference)
+
+Read the current value of a ref using the **dereference operator** `!`:
+
+```vibefun
+let mut counter = ref(0)
+let value = !counter  // Read the value: 0
+```
+
+The `!` operator has type `Ref<T> -> T`—it extracts the value from the ref.
+
+### Updating References (Assignment)
+
+Update the value stored in a ref using the **reference assignment operator** `:=`:
+
+```vibefun
+let mut counter = ref(0)
+counter := 5        // Update to 5
+counter := !counter + 1  // Increment: read, add 1, write back
+```
+
+The `:=` operator has type `(Ref<T>, T) -> Unit`—it updates the ref and returns `()`.
+
+### The `!` Operator: Type-Based Disambiguation
+
+The `!` operator serves **two purposes** in Vibefun:
+1. **Logical NOT** when applied to a `Bool`
+2. **Dereference** when applied to a `Ref<T>`
+
+The compiler distinguishes between these uses based on the **type** of the operand:
+
+```vibefun
+// Logical NOT (operand type: Bool)
+let isActive = true
+let isInactive = !isActive  // false
+
+// Dereference (operand type: Ref<Int>)
+let mut counter = ref(42)
+let value = !counter  // 42
+```
+
+This type-based resolution is automatic—you don't need to do anything special. The compiler infers the correct operation from the context.
+
+### Basic Example: Counter
+
+```vibefun
+let mut counter = ref(0)
+
+let increment = () => {
+    counter := !counter + 1
+}
+
+let getCount = () => !counter
+
+increment()
+increment()
+let total = getCount()  // 2
+```
+
+### Example: Imperative Factorial
+
+Refs are useful when translating imperative algorithms:
+
+```vibefun
+let factorial = (n) => {
+    let mut result = ref(1)
+    let mut i = ref(1)
+
+    while !i <= n {
+        result := !result * !i
+        i := !i + 1
+    }
+
+    !result
+}
+
+factorial(5)  // 120
+```
+
+**Compare to the pure functional version:**
+
+```vibefun
+// Preferred functional approach
+let factorial = (n) => {
+    let rec loop = (acc, i) => {
+        if i > n then acc
+        else loop(acc * i, i + 1)
+    }
+    loop(1, 1)
+}
+```
+
+The functional version avoids mutation entirely and is generally preferred in Vibefun code.
+
+### Example: Refs with Variants
+
+Refs can hold any type, including variants:
+
+```vibefun
+let mut state = ref(None)
+
+let setValue = (x) => {
+    state := Some(x)
+}
+
+let getValue = () => match !state {
+    | Some(x) => x
+    | None => 0
+}
+
+setValue(42)
+getValue()  // 42
+```
+
+### Example: Multiple Refs
+
+```vibefun
+let swap = () => {
+    let mut x = ref(10)
+    let mut y = ref(20)
+
+    let temp = !x
+    x := !y
+    y := temp
+
+    (!x, !y)  // (20, 10)
+}
+```
+
+### Example: Refs in Closures
+
+Refs can be captured by closures, enabling stateful functions:
+
+```vibefun
+let makeCounter = () => {
+    let mut count = ref(0)
+
+    let increment = () => {
+        count := !count + 1
+        !count
+    }
+
+    increment
+}
+
+let counter1 = makeCounter()
+counter1()  // 1
+counter1()  // 2
+
+let counter2 = makeCounter()
+counter2()  // 1 (independent state)
+```
+
+### When to Use Refs
+
+✅ **Use refs when:**
+- Implementing imperative algorithms where mutation is natural (loops with accumulators)
+- Interfacing with mutable JavaScript APIs
+- Performance is critical and you need to avoid allocations
+- Porting imperative code from other languages
+
+❌ **Avoid refs when:**
+- A pure functional solution is equally clear (prefer `map`, `fold`, recursion)
+- You're working with data transformations (use immutable operations)
+- The mutation is not performance-critical
+- You can use pattern matching or recursion instead
+
+### Type Checking Rules
+
+The type checker enforces the following rules for refs:
+
+1. **Creating refs**: `ref(value)` has type `Ref<T>` when `value` has type `T`
+2. **Dereferencing**: `!refExpr` has type `T` when `refExpr` has type `Ref<T>`
+3. **Assignment**: `refExpr := value` requires `refExpr: Ref<T>` and `value: T`, returns `Unit`
+
+These rules ensure type safety—you cannot assign a value of the wrong type to a ref, and dereferencing always produces a value of the expected type.
+
+### Best Practices
+
+1. **Declare refs with `mut`**: Always use `let mut x = ref(...)` to make mutation explicit
+2. **Keep refs local**: Avoid exposing refs in public APIs—prefer functions that hide the mutation
+3. **Minimize scope**: Create refs in the smallest scope possible
+4. **Prefer pure functions**: Use refs only when the functional alternative is significantly worse
+5. **Document why**: When you use a ref, comment on why mutation was chosen over immutability
+
+---
+
 ## Modules
 
 Each `.vf` file is a module. Modules provide namespacing and code organization.
@@ -1503,9 +1768,12 @@ match expr { | pattern => body }
 [1, 2, 3]
 expr1 |> expr2
 { let x = 1; x + 1 }
+!refExpr                        // Dereference (read ref value)
+refExpr := value                // Assignment (update ref)
 
 // Types
 Int, Float, String, Bool, Unit
+Ref<T>
 (T1, T2) -> T
 { field: Type }
 Constructor(Type) | Constructor(Type)
