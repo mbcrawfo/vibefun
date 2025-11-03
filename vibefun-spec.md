@@ -2655,6 +2655,8 @@ let handleResult = (result) => match result {
 
 ### List Patterns
 
+List patterns destructure lists, matching on structure and extracting elements.
+
 ```vibefun
 let sum = (list) => match list {
     | [] => 0
@@ -2668,7 +2670,149 @@ let firstTwo = (list) => match list {
 }
 ```
 
+#### Basic List Patterns
+
+```vibefun
+// Empty list
+match list {
+    | [] => "empty"
+    | _ => "non-empty"
+}
+
+// Single element
+match list {
+    | [x] => x
+    | _ => defaultValue
+}
+
+// Multiple specific elements
+match list {
+    | [a, b] => a + b
+    | [a, b, c] => a + b + c
+    | _ => 0
+}
+
+// Head and tail
+match list {
+    | [head, ...tail] => (head, tail)
+    | [] => (defaultHead, [])
+}
+```
+
+#### List Spread Patterns
+
+The spread operator `...` captures the remaining elements:
+
+```vibefun
+// Capture rest of list
+match list {
+    | [first, ...rest] => (first, rest)
+    | [] => (0, [])
+}
+
+// Skip elements with wildcard
+match list {
+    | [first, _, third, ...rest] => (first, third)
+    | _ => (0, 0)
+}
+
+// Discard rest
+match list {
+    | [first, second, ..._] => first + second
+    | _ => 0
+}
+```
+
+**Spread Position Rules:**
+- Spread can only appear **at the end** of a list pattern
+- Only **one spread** allowed per list pattern
+- Spread can be ignored with `_` or bound to a variable
+
+```vibefun
+// ✅ OK: Spread at end
+| [a, b, ...rest] => ...
+
+// ✅ OK: Spread with wildcard
+| [a, b, ..._] => ...
+
+// ❌ Error: Spread in middle
+| [a, ...middle, z] => ...  // Not supported
+
+// ❌ Error: Multiple spreads
+| [a, ...rest1, ...rest2] => ...  // Not supported
+```
+
+#### List Pattern Exhaustiveness
+
+List patterns require handling both empty and non-empty cases:
+
+```vibefun
+// ✅ Exhaustive: handles [] and non-empty
+match list {
+    | [] => "empty"
+    | [_, ..._] => "non-empty"
+}
+
+// ✅ Exhaustive: wildcard catches all
+match list {
+    | [x] => x
+    | _ => 0
+}
+
+// ❌ Non-exhaustive: missing []
+match list {
+    | [x, ...xs] => x
+}
+// Error: Missing pattern: []
+```
+
+#### Matching Specific List Lengths
+
+```vibefun
+match list {
+    | [] => "none"
+    | [_] => "one"
+    | [_, _] => "two"
+    | [_, _, _] => "three"
+    | _ => "many"
+}
+
+// Or use guards for length checks
+match list {
+    | xs when List.length(xs) == 0 => "none"
+    | xs when List.length(xs) <= 3 => "few"
+    | _ => "many"
+}
+```
+
+#### Nested List Patterns
+
+Lists can be nested within other patterns:
+
+```vibefun
+// List of lists
+match matrix {
+    | [[a, b], [c, d]] => a + b + c + d
+    | _ => 0
+}
+
+// List in variant
+match result {
+    | Ok([first, ...rest]) => first
+    | Ok([]) => 0
+    | Err(_) => -1
+}
+
+// List in record
+match data {
+    | { items: [first, second, ..._] } => first + second
+    | { items: _ } => 0
+}
+```
+
 ### Record Patterns
+
+Record patterns destructure record values, extracting fields by name.
 
 ```vibefun
 let greetPerson = (person) => match person {
@@ -2679,7 +2823,136 @@ let greetPerson = (person) => match person {
 let greet = ({ name }) => "Hello " &name
 ```
 
+#### Basic Record Patterns
+
+```vibefun
+// Extract specific fields
+match person {
+    | { name, age } => (name, age)
+}
+
+// Match specific field values
+match person {
+    | { status: "active", id } => id
+    | { status: "inactive", _ } => -1
+    | _ => 0
+}
+
+// Nested field patterns
+match user {
+    | { profile: { name, email } } => (name, email)
+}
+```
+
+#### Partial Record Matching
+
+Record patterns support **partial matching** — you only need to match the fields you care about:
+
+```vibefun
+type Person = { name: String, age: Int, email: String, phone: String }
+
+// Match only name and age (email and phone ignored)
+match person {
+    | { name: "Alice", age } => age
+    | { name, _ } => 0
+}
+
+// Function parameter: extract only needed fields
+let getName = ({ name }) => name  // Other fields ignored
+
+// Works with width subtyping
+let getX = ({ x }) => x
+getX({ x: 1, y: 2, z: 3 })  // OK: extra fields ignored
+```
+
+#### Record Pattern Spread (Not Supported)
+
+Vibefun **does not support** spread patterns in record matching:
+
+```vibefun
+// ❌ Not supported: rest pattern in record
+match person {
+    | { name, ...rest } => (name, rest)  // Not supported
+}
+
+// ✅ Workaround: Extract explicitly or use the whole record
+match person {
+    | { name, age, email } => (name, (age, email))  // Extract all needed
+}
+
+let { name, ...rest } = person  // ❌ Also not supported
+
+// ✅ Alternative: Bind whole record and access fields
+let person = getPerson()
+let name = person.name
+let age = person.age
+```
+
+#### Wildcard in Record Patterns
+
+Use `_` to ignore specific fields:
+
+```vibefun
+// Ignore specific field
+match user {
+    | { name, age: _, email } => (name, email)
+}
+
+// Ignore field entirely (don't mention it)
+match user {
+    | { name, email } => (name, email)  // age field not mentioned = ignored
+}
+
+// Wildcard for the rest (but no binding to remaining fields)
+match point {
+    | { x, y } => x + y  // z field (if exists) ignored
+}
+```
+
+#### Record Patterns with Literal Values
+
+Match records with specific field values:
+
+```vibefun
+match result {
+    | { status: "ok", value } => value
+    | { status: "error", message } => panic(message)
+    | _ => defaultValue
+}
+
+// Multiple literal constraints
+match config {
+    | { enabled: true, mode: "production" } => startProduction()
+    | { enabled: true, mode: "development" } => startDev()
+    | { enabled: false } => ()
+}
+```
+
+#### Record Pattern Exhaustiveness
+
+Record patterns with width subtyping affect exhaustiveness:
+
+```vibefun
+type Status = { code: Int }
+
+// ❌ Non-exhaustive: Int has infinite values
+match status {
+    | { code: 200 } => "ok"
+    | { code: 404 } => "not found"
+}
+// Error: Missing cases
+
+// ✅ Exhaustive: wildcard catches all
+match status {
+    | { code: 200 } => "ok"
+    | { code: 404 } => "not found"
+    | _ => "other"
+}
+```
+
 ### Nested Patterns
+
+Patterns can be arbitrarily nested, allowing deep destructuring of complex data structures.
 
 ```vibefun
 let process = (result) => match result {
@@ -2689,7 +2962,129 @@ let process = (result) => match result {
 }
 ```
 
+#### Nesting Depth
+
+There is **no limit** on pattern nesting depth:
+
+```vibefun
+// Three levels deep
+match data {
+    | Ok(Some([x, ...xs])) => ...
+    | Ok(Some([])) => ...
+    | Ok(None) => ...
+    | Err(_) => ...
+}
+
+// Four levels deep
+match response {
+    | Ok(User({ profile: { name, age } })) => ...
+    | Ok(User({ profile: _ })) => ...
+    | Err(_) => ...
+}
+
+// Very deep nesting (still valid)
+match deeply {
+    | A(B(C(D(E(value))))) => value
+    | _ => defaultValue
+}
+```
+
+#### All Combinations of Nested Patterns
+
+**Variant in variant:**
+```vibefun
+match result {
+    | Ok(Some(x)) => x
+    | Ok(None) => 0
+    | Err(_) => -1
+}
+```
+
+**List in variant:**
+```vibefun
+match result {
+    | Ok([]) => "empty"
+    | Ok([x]) => "single: " & String.fromInt(x)
+    | Ok([x, ...rest]) => "multiple"
+    | Err(_) => "error"
+}
+```
+
+**Record in variant:**
+```vibefun
+match result {
+    | Ok({ value, status: "complete" }) => value
+    | Ok({ value, status }) => defaultValue
+    | Err(_) => errorValue
+}
+```
+
+**Variant in list:**
+```vibefun
+match items {
+    | [Some(a), Some(b), ...rest] => a + b
+    | [Some(a), None, ...rest] => a
+    | [None, ..._] => 0
+    | [] => 0
+}
+```
+
+**Record in list:**
+```vibefun
+match users {
+    | [{ name, age }, ...rest] => (name, age)
+    | [] => ("", 0)
+}
+```
+
+**List in record:**
+```vibefun
+match data {
+    | { items: [first, ...rest], status } => (first, status)
+    | { items: [], status } => (defaultItem, status)
+}
+```
+
+**Nested records:**
+```vibefun
+match person {
+    | { profile: { name, address: { city } } } => (name, city)
+    | { profile: { name } } => (name, "unknown")
+}
+```
+
+**Nested lists:**
+```vibefun
+match matrix {
+    | [[a, b], [c, d]] => a + b + c + d
+    | [[x], [y]] => x + y
+    | _ => 0
+}
+```
+
+#### Pattern Nesting and Exhaustiveness
+
+Exhaustiveness checking works with nested patterns:
+
+```vibefun
+// ✅ Exhaustive: all Result<Option<T>> cases covered
+match result {
+    | Ok(Some(x)) => x
+    | Ok(None) => 0
+    | Err(_) => -1
+}
+
+// ❌ Non-exhaustive: missing Err case
+match result {
+    | Ok(Some(x)) => x
+    | Ok(None) => 0
+}
+// Error: Missing pattern: Err(_)
+```
+
 ### Guards (When Clauses)
+
+Guards add Boolean conditions to patterns, allowing more precise matching based on runtime values.
 
 ```vibefun
 let classify = (n) => match n {
@@ -2700,13 +3095,499 @@ let classify = (n) => match n {
 }
 ```
 
+#### Guard Syntax
+
+```vibefun
+// Guard with variable pattern
+match value {
+    | x when condition => result
+}
+
+// Guard with destructuring pattern
+match list {
+    | [x, ...xs] when x > 0 => process(x, xs)
+    | _ => defaultValue
+}
+
+// Multiple guards on same pattern type
+match number {
+    | n when n < 0 => "negative"
+    | n when n == 0 => "zero"
+    | n when n > 0 => "positive"
+}
+```
+
+#### Variable Scope in Guards
+
+Variables bound in the pattern are **in scope** within the guard expression:
+
+```vibefun
+// Variable x bound in pattern, used in guard
+match opt {
+    | Some(x) when x > 10 => "large"
+    | Some(x) when x > 0 => "small positive"
+    | Some(x) => "non-positive"
+    | None => "none"
+}
+
+// Multiple variables from pattern
+match pair {
+    | (a, b) when a == b => "equal"
+    | (a, b) when a > b => "first larger"
+    | (a, b) => "second larger"
+}
+
+// Nested pattern variables in guard
+match result {
+    | Ok(Some(value)) when value > 0 => value
+    | Ok(Some(value)) => 0
+    | _ => -1
+}
+```
+
+#### Guard Evaluation Order
+
+Guards are evaluated **top to bottom**, and evaluation stops at the first matching pattern with a satisfied guard:
+
+```vibefun
+match n {
+    | x when x < 0 => "negative"    // Checked first
+    | x when x == 0 => "zero"       // Checked second (if first fails)
+    | x when x < 10 => "small"      // Checked third (if first two fail)
+    | x => "large"                  // Checked last (always matches)
+}
+
+// Order matters:
+let value = -5
+// Step 1: Pattern matches (x = -5), guard (x < 0) is true → "negative"
+```
+
+**Important:** The same pattern with different guards is tried in order:
+
+```vibefun
+match x {
+    | n when n > 100 => "very large"
+    | n when n > 10 => "large"
+    | n when n > 0 => "positive"
+    | n => "non-positive"
+}
+```
+
+#### Guard Expression Restrictions
+
+Guards must be **Boolean expressions**:
+
+```vibefun
+// ✅ OK: Boolean expression
+match x {
+    | n when n > 0 && n < 100 => "in range"
+    | _ => "out of range"
+}
+
+// ✅ OK: Function call returning Bool
+match x {
+    | n when isValid(n) => "valid"
+    | _ => "invalid"
+}
+
+// ❌ Error: Non-Boolean guard
+match x {
+    | n when n + 1 => ...  // Error: Int is not Bool
+}
+```
+
+#### Guards Can Reference Outer Scope
+
+Guards can reference variables from outer scopes:
+
+```vibefun
+let threshold = 100
+
+match value {
+    | x when x > threshold => "above threshold"
+    | x => "below threshold"
+}
+
+// Useful for configurable matching
+let filterList = (list, minValue) =>
+    match list {
+        | [] => []
+        | [x, ...xs] when x >= minValue => [x, ...filterList(xs, minValue)]
+        | [_, ...xs] => filterList(xs, minValue)
+    }
+```
+
+#### Guards with Complex Patterns
+
+Guards work with all pattern forms:
+
+```vibefun
+// Guard with record pattern
+match person {
+    | { age, name } when age >= 18 => "Adult: " & name
+    | { age, name } => "Minor: " & name
+}
+
+// Guard with list pattern
+match list {
+    | [x, y, ...rest] when x + y > 100 => "large sum"
+    | [x, y, ..._] => "small sum"
+    | _ => "too few elements"
+}
+
+// Guard with variant pattern
+match result {
+    | Ok(value) when value > 0 => value * 2
+    | Ok(value) => value
+    | Err(_) => 0
+}
+```
+
+#### Guards and Side Effects
+
+Guards **should not** have side effects, but technically can:
+
+```vibefun
+// ⚠️ Not recommended: side effects in guard
+match x {
+    | n when unsafe { console_log("checking"); n > 0 } => "positive"
+    | _ => "non-positive"
+}
+```
+
+**Best practice:** Keep guards **pure** (no side effects). The compiler may evaluate guards multiple times or in any order during pattern compilation.
+
+#### Guards vs Separate Match Arms
+
+Sometimes it's clearer to use separate match arms instead of guards:
+
+```vibefun
+// With guards
+match status {
+    | s when s == "active" || s == "pending" => inProgress()
+    | s when s == "complete" => done()
+    | _ => unknown()
+}
+
+// Without guards (clearer with or-patterns)
+match status {
+    | "active" | "pending" => inProgress()
+    | "complete" => done()
+    | _ => unknown()
+}
+```
+
+**When to use guards:**
+- Numeric ranges: `when x > 0 && x < 100`
+- Complex conditions: `when List.length(xs) > 10`
+- Conditions on multiple variables: `when a == b`
+
+**When to avoid guards:**
+- Simple equality: Use literal patterns instead
+- Exhaustiveness matters: Guards don't contribute to exhaustiveness checking
+
 ### Or Patterns
+
+Or-patterns allow multiple patterns to share the same result expression using the `|` separator within a match arm.
 
 ```vibefun
 match status {
     | "pending" | "loading" => "in progress"
     | "complete" => "done"
     | _ => "unknown"
+}
+```
+
+#### Or-Pattern Syntax
+
+```vibefun
+// Multiple literal patterns
+match value {
+    | 0 | 1 | 2 => "small"
+    | 3 | 4 | 5 => "medium"
+    | _ => "large"
+}
+
+// Constructor patterns
+match result {
+    | Ok(0) | Err("zero") => "zero case"
+    | Ok(n) => "success: " & String.fromInt(n)
+    | Err(msg) => "error: " & msg
+}
+
+// Mixed literal types (if same type)
+match color {
+    | Red | Green | Blue => "primary"
+    | Yellow | Cyan | Magenta => "secondary"
+    | _ => "other"
+}
+```
+
+#### Variable Binding in Or-Patterns
+
+**Rule:** Variables **cannot** be bound in or-patterns. All alternatives in an or-pattern must be **irrefutable patterns** (literals, wildcards, or constructors without bindings).
+
+```vibefun
+// ❌ Error: Cannot bind variables in or-patterns
+match value {
+    | Some(x) | None => x  // Error: x not bound in None branch
+    | _ => 0
+}
+
+// ✅ Solution: Separate arms for each binding pattern
+match value {
+    | Some(x) => x
+    | None => 0
+}
+
+// ✅ OK: No variables bound (all literals)
+match status {
+    | "active" | "pending" | "running" => true
+    | _ => false
+}
+
+// ✅ OK: All alternatives bind no variables
+match shape {
+    | Circle(_) | Square(_) | Triangle(_) => "shape detected"
+    | _ => "unknown"
+}
+```
+
+#### Nesting Or-Patterns
+
+Or-patterns can appear **within** constructor patterns:
+
+```vibefun
+// Or-pattern inside constructor
+match response {
+    | Ok("success" | "completed") => "done"
+    | Ok(msg) => "ok: " & msg
+    | Err(_) => "failed"
+}
+
+// Nested or-patterns
+match event {
+    | Click("button" | "link") => handleInteraction()
+    | Hover("image" | "video") => showPreview()
+    | _ => ()
+}
+```
+
+**Limitation:** Or-patterns as the **top-level pattern** of a match arm cannot themselves be nested in complex ways:
+
+```vibefun
+// ✅ OK: Simple or-pattern at top level
+| Red | Blue => ...
+
+// ✅ OK: Or-pattern inside constructor
+| Some("a" | "b") => ...
+
+// ⚠️  Complex nesting may have limitations
+| (Red | Blue) | Green => ...  // Check implementation support
+```
+
+#### Type Requirements for Or-Patterns
+
+All alternatives in an or-pattern must have **compatible types** that can be unified:
+
+```vibefun
+// ✅ OK: All alternatives are Int
+match x {
+    | 0 | 1 | 2 => "small"
+    | _ => "large"
+}
+
+// ❌ Error: Type mismatch (Int vs String)
+match x {
+    | 0 | "zero" => "zero value"  // Error: incompatible types
+    | _ => "other"
+}
+
+// ✅ OK: All alternatives are same variant type
+match color {
+    | Red | Green | Blue => "RGB"
+    | _ => "other"
+}
+```
+
+### Pattern Type Annotations
+
+Patterns can include type annotations to guide type inference or document expected types:
+
+```vibefun
+// Type annotation in match
+match value {
+    | (x: Int) when x > 0 => "positive"
+    | (x: Int) => "non-positive"
+}
+
+// Type annotation in function parameter pattern
+let process = (x: Option<Int>) => match x {
+    | Some(n) => n * 2
+    | None => 0
+}
+
+// Record pattern with field type annotations
+let extract = ({ name: (name: String), age: (age: Int) }) => (name, age)
+```
+
+**Usage:**
+- Mostly **optional** (type inference usually works)
+- Useful for **disambiguation** when types are ambiguous
+- Helpful for **documentation** in complex patterns
+
+### As-Patterns
+
+**Note:** Vibefun currently **does not support** as-patterns (binding both the whole value and parts).
+
+In languages like OCaml/Haskell, as-patterns look like: `x as Some(value)`
+
+```vibefun
+// ❌ Not supported: as-patterns
+match list {
+    | head :: tail as fullList => ...  // Not supported
+}
+
+// ✅ Workaround: Bind separately
+let fullList = list
+match list {
+    | head :: tail => ...  // Use fullList from outer scope
+}
+
+// ✅ Alternative: Match and rebind
+match list {
+    | head :: tail => {
+        let fullList = head :: tail
+        ...
+    }
+}
+```
+
+### Exhaustiveness Checking
+
+The compiler performs **exhaustiveness checking** to ensure all possible values are handled by match patterns.
+
+#### Exhaustiveness Algorithm
+
+The type checker uses a **pattern matrix algorithm** to determine if a match is exhaustive:
+
+1. **Construct pattern matrix**: Each match arm becomes a row
+2. **Check coverage**: For each possible value of the scrutinee type, verify at least one pattern matches
+3. **Report missing patterns**: If any values are uncovered, report them
+
+**Example: Exhaustive match**
+```vibefun
+// ✅ Exhaustive: all Option values covered
+match opt {
+    | Some(x) => x
+    | None => 0
+}
+
+// ✅ Exhaustive: wildcard catches all remaining
+match n {
+    | 0 => "zero"
+    | _ => "non-zero"
+}
+```
+
+**Example: Non-exhaustive match**
+```vibefun
+// ❌ Non-exhaustive: missing None case
+match opt {
+    | Some(x) => x
+}
+// Error: Non-exhaustive match, missing pattern: None
+
+// ❌ Non-exhaustive: missing cases
+match color {
+    | Red => "red"
+    | Green => "green"
+}
+// Error: Non-exhaustive match, missing pattern: Blue
+```
+
+#### Wildcard Pattern Requirement
+
+For types with infinitely many values (Int, String, records), the compiler **requires** a wildcard or variable pattern:
+
+```vibefun
+// ❌ Non-exhaustive: Int has infinite values
+match n {
+    | 0 => "zero"
+    | 1 => "one"
+    | 2 => "two"
+}
+// Error: Non-exhaustive match, missing cases for other Int values
+
+// ✅ Exhaustive: wildcard catches remaining cases
+match n {
+    | 0 => "zero"
+    | 1 => "one"
+    | _ => "other"
+}
+```
+
+#### Exhaustiveness with Guards
+
+Guards **do not affect** exhaustiveness checking. The compiler analyzes patterns **without** considering guard conditions:
+
+```vibefun
+// ❌ Non-exhaustive: guards don't count toward coverage
+match n {
+    | x when x > 0 => "positive"
+    | x when x < 0 => "negative"
+}
+// Error: Non-exhaustive match
+// Even though guards cover all cases, compiler doesn't analyze guard logic
+
+// ✅ Exhaustive: add fallback pattern
+match n {
+    | x when x > 0 => "positive"
+    | x when x < 0 => "negative"
+    | _ => "zero"
+}
+```
+
+**Rationale:** Analyzing guard expressions for exhaustiveness is undecidable in general. Requiring an explicit fallback pattern ensures soundness.
+
+#### Exhaustiveness Error Messages
+
+The compiler provides helpful error messages with suggested missing patterns:
+
+```vibefun
+match result {
+    | Ok(Some(x)) => x
+    | Ok(None) => 0
+}
+// Error: Non-exhaustive match
+// Missing patterns:
+//   - Err(_)
+// Suggestion: Add pattern | Err(_) => ...
+
+match status {
+    | Pending => "pending"
+}
+// Error: Non-exhaustive match
+// Missing patterns:
+//   - Active
+//   - Complete
+// Suggestion: Add wildcard pattern | _ => ...
+```
+
+#### Unreachable Patterns
+
+The compiler also warns about **unreachable patterns** (patterns that can never match):
+
+```vibefun
+match opt {
+    | Some(x) => x
+    | None => 0
+    | _ => 42  // Warning: Unreachable pattern (all cases already covered)
+}
+
+match n {
+    | _ => "any"
+    | 0 => "zero"  // Warning: Unreachable pattern (wildcard already matches all)
 }
 ```
 

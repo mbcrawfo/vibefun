@@ -35,17 +35,17 @@
 - [x] Operator sections (documented as not supported)
 - [x] Pipe operator associativity and precedence
 
-## Phase 4: Pattern Matching Completeness 🔜
+## Phase 4: Pattern Matching Completeness ✅
 
-**Status:** Not Started
-- [ ] Or-patterns (variable binding, nesting)
-- [ ] Nested patterns (depth, combinations)
-- [ ] Record patterns (spread, partial)
-- [ ] List patterns (spreads, wildcards)
-- [ ] Guards (scope, evaluation order)
-- [ ] Pattern type annotations
-- [ ] As-patterns and other forms
-- [ ] Exhaustiveness checking description
+**Status:** Completed
+- [x] Or-patterns (variable binding, nesting)
+- [x] Nested patterns (depth, combinations)
+- [x] Record patterns (spread, partial)
+- [x] List patterns (spreads, wildcards)
+- [x] Guards (scope, evaluation order)
+- [x] Pattern type annotations
+- [x] As-patterns and other forms
+- [x] Exhaustiveness checking description
 
 ## Phase 5: JavaScript Interop Details 🔜
 
@@ -91,6 +91,6 @@
 
 ## Overall Progress
 
-**Phases Completed:** 3/8 (38%)
-**Current Phase:** Phase 4 - Pattern Matching Completeness (Starting)
-**Tasks Completed:** 38/46 items (83%)
+**Phases Completed:** 4/8 (50%)
+**Current Phase:** Phase 5 - JavaScript Interop Details (Starting)
+**Tasks Completed:** 46/54 items (85%)
