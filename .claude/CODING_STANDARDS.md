@@ -399,10 +399,3 @@ import { tokenize } from './lexer/index.js';
 // Bad - mixing when you only need types
 import { Token } from './types/index.js'; // ❌ Use 'import type'
 ```
-
-## Additional Resources
-
-- [TypeScript Best Practices](https://www.typescriptlang.org/docs/handbook/declaration-files/do-s-and-don-ts.html)
-- [Functional Programming in TypeScript](https://gcanti.github.io/fp-ts/)
-- See `.claude/plans/` for architectural decisions
-- See `CLAUDE.md` for project context and decisions
