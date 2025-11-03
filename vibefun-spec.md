@@ -312,6 +312,128 @@ It can span multiple lines.
 ()  // The unit value (like void in other languages)
 ```
 
+### Lexical Edge Cases and Errors
+
+This section defines lexer behavior for malformed or ambiguous input.
+
+#### Invalid Number Formats
+
+**Multiple decimal points:**
+```vibefun
+1.2.3    // ❌ Lexer error: "Invalid number literal"
+```
+
+**Invalid scientific notation:**
+```vibefun
+1e       // ❌ Lexer error: "Invalid scientific notation (missing exponent)"
+1e+      // ❌ Lexer error: "Invalid scientific notation (missing exponent)"
+3.14e2.5 // ❌ Lexer error: "Exponent must be an integer"
+```
+
+**Invalid hex/binary:**
+```vibefun
+0xGHI    // ❌ Lexer error: "Invalid hexadecimal digit"
+0b1012   // ❌ Lexer error: "Invalid binary digit"
+```
+
+**Underscore placement:**
+```vibefun
+_123     // ✅ OK: identifier, not a number
+123_     // ❌ Lexer error: "Trailing underscore in number"
+_123_    // ✅ OK: identifier
+1__000   // ❌ Lexer error: "Consecutive underscores in number"
+```
+
+**Leading zeros:**
+```vibefun
+0123     // ✅ OK: decimal 123 (NOT octal like JavaScript!)
+00       // ✅ OK: decimal 0
+0.123    // ✅ OK: float 0.123
+```
+
+**Note:** Unlike JavaScript, Vibefun does NOT support octal literals (0o prefix would be needed for octal, but is not currently supported).
+
+#### Number Size Limits
+
+**Integer limits:**
+- Maximum safe integer: `9007199254740991` (2^53 - 1)
+- Minimum safe integer: `-9007199254740991` (-(2^53 - 1))
+- Integers outside this range lose precision (see Error Handling → Integer Overflow)
+
+**Float limits:**
+- Maximum value: approximately `1.7976931348623157e+308`
+- Minimum positive value: approximately `5e-324`
+- Special values: `Infinity`, `-Infinity`, `NaN`
+
+**Literal overflow:**
+```vibefun
+let huge = 1e400    // Lexer accepts, value is Infinity at runtime
+let tiny = 1e-400   // Lexer accepts, value is 0.0 at runtime
+```
+
+#### Invalid String Escapes
+
+**Unknown escape sequences:**
+```vibefun
+"hello\q"    // ❌ Lexer error: "Unknown escape sequence: \q"
+"\k"         // ❌ Lexer error: "Unknown escape sequence: \k"
+```
+
+**Incomplete escape sequences:**
+```vibefun
+"test\x4"    // ❌ Lexer error: "Hex escape requires 2 digits"
+"test\u03"   // ❌ Lexer error: "Unicode escape \uXXXX requires 4 hex digits"
+"test\u{12"  // ❌ Lexer error: "Unterminated unicode escape"
+```
+
+**Invalid unicode:**
+```vibefun
+"\u{110000}"  // ❌ Lexer error: "Unicode code point out of range (max 0x10FFFF)"
+"\u{GGGG}"    // ❌ Lexer error: "Invalid hex digit in unicode escape"
+```
+
+**Unterminated strings:**
+```vibefun
+"hello       // ❌ Lexer error: "Unterminated string"
+```
+
+**Multi-line string without triple quotes:**
+```vibefun
+"line 1
+line 2"      // ❌ Lexer error: "Unterminated string (use """ for multi-line)"
+```
+
+#### Unicode Normalization
+
+**Normalization:** Vibefun source code and string literals use **NFC (Canonical Decomposition, followed by Canonical Composition)** Unicode normalization.
+
+**Identifiers:**
+```vibefun
+café         // ✅ OK: normalized to NFC
+café         // ✅ OK: also normalized to NFC (visually identical)
+```
+
+**Note:** Identifiers that appear identical but have different Unicode representations (combining characters vs precomposed) are normalized to the same identifier.
+
+**String literals:**
+```vibefun
+"café" == "café"  // true (normalized to same NFC representation)
+```
+
+#### Comment Edge Cases
+
+**Unterminated multi-line comment:**
+```vibefun
+/* This comment never ends...
+// ❌ Lexer error: "Unterminated comment"
+```
+
+**Nested comment termination:**
+```vibefun
+/* Outer /* Inner */ Still in outer */  // ✅ OK
+/* /* /* Three levels */ */ */          // ✅ OK
+```
+
 ### Operators
 
 #### Arithmetic Operators
@@ -4803,6 +4925,171 @@ console.log(ref2.value);  // 20 (same object)
 
 Vibefun uses algebraic data types for error handling rather than exceptions.
 
+### Runtime Error Semantics
+
+Vibefun minimizes runtime errors through its type system, but some operations can still fail at runtime. This section defines the behavior of potentially failing operations.
+
+#### Division by Zero
+
+**Integer division** by zero causes a **runtime panic**:
+
+```vibefun
+let result = 10 / 0  // Runtime panic: "Division by zero"
+```
+
+**Float division** by zero follows IEEE 754 semantics:
+
+```vibefefun
+let result = 10.0 / 0.0    // Infinity
+let result = -10.0 / 0.0   // -Infinity
+let result = 0.0 / 0.0     // NaN
+```
+
+**Recommendation:** Use safe division functions that return `Result` or `Option`:
+
+```vibefun
+let safeDivide = (a, b) =>
+    if b == 0
+    then None
+    else Some(a / b)
+```
+
+#### Integer Overflow
+
+Vibefun integers are JavaScript numbers (53-bit safe integers). Operations that exceed `Number.MAX_SAFE_INTEGER` (2^53 - 1) or `Number.MIN_SAFE_INTEGER` (-(2^53 - 1)) **lose precision** but do not panic.
+
+```vibefun
+let maxSafe = 9007199254740991  // 2^53 - 1
+let overflow = maxSafe + 1      // 9007199254740992 (exact)
+let overflow2 = maxSafe + 2     // 9007199254740992 (NOT 9007199254740993 - precision lost!)
+```
+
+**Recommendation:**
+- For large integers, use a BigInt library via FFI
+- The compiler does not warn about overflow
+- Test edge cases with large numbers
+
+#### Float Special Values
+
+Floats follow IEEE 754 semantics with three special values:
+
+**NaN (Not a Number):**
+```vibefun
+let nan = 0.0 / 0.0
+let nan2 = Math.sqrt(-1.0)
+
+// NaN comparisons
+nan == nan      // false (IEEE 754 behavior)
+Float.isNaN(nan)  // true (use this instead)
+```
+
+**Infinity and -Infinity:**
+```vibefun
+let inf = 1.0 / 0.0
+let negInf = -1.0 / 0.0
+
+Float.isInfinite(inf)     // true
+Float.isFinite(42.0)      // true
+Float.isFinite(inf)       // false
+```
+
+**Operations with special values:**
+```vibefun
+inf + 1.0       // Infinity
+inf * 2.0       // Infinity
+inf - inf       // NaN
+inf / inf       // NaN
+0.0 * inf       // NaN
+```
+
+#### Array Bounds
+
+Array access with out-of-bounds indices returns `None`:
+
+```vibefun
+let arr = Array.fromList([1, 2, 3])
+let value = Array.get(arr, 10)  // None (no panic)
+
+unsafe {
+    Array.set(arr, 10, 42)  // Runtime panic: "Index out of bounds"
+}
+```
+
+#### Panic
+
+The `panic` function terminates the program with an error message:
+
+```vibefun
+let panic: (String) -> never
+```
+
+**Behavior:**
+- Throws a JavaScript `Error` with the provided message
+- Unrecoverable (cannot be caught in Vibefun code)
+- Stops program execution immediately
+- Stack trace is preserved for debugging
+
+**When panic is used:**
+- `unwrap()` on `None` or `Err`
+- Division by zero (integer only)
+- Array bounds violations in unsafe code
+- Pattern match failures (non-exhaustive matches)
+- Explicit calls to `panic()`
+
+**Example:**
+```vibefun
+let unwrap = <T>(opt: Option<T>): T =>
+    match opt {
+        | Some(x) => x
+        | None => panic("unwrap called on None")
+    }
+
+let value = unwrap(None)  // Runtime panic: "unwrap called on None"
+```
+
+#### Stack Overflow
+
+Deeply nested recursion can cause stack overflow:
+
+```vibefun
+let rec infiniteLoop = () => infiniteLoop()
+infiniteLoop()  // Runtime error: "Maximum call stack size exceeded"
+```
+
+**Recommendation:**
+- Use tail recursion when possible (though JavaScript may not optimize it)
+- Consider iterative approaches for deep recursion
+- Use trampolining for complex recursive algorithms
+
+#### Out of Memory
+
+Large data structures can exhaust available memory:
+
+```vibefun
+let rec buildHugeList = (n) =>
+    if n == 0
+    then []
+    else n :: buildHugeList(n - 1)
+
+buildHugeList(100000000)  // May cause: "Out of memory"
+```
+
+**Note:** Memory errors are JavaScript runtime errors and cannot be caught in Vibefun.
+
+#### Summary of Error Behaviors
+
+| Operation | Behavior |
+|-----------|----------|
+| Integer division by zero | Panic |
+| Float division by zero | Returns Infinity/NaN (IEEE 754) |
+| Integer overflow | Silent precision loss (no panic) |
+| Array out-of-bounds read | Returns `None` |
+| Array out-of-bounds write | Panic |
+| `panic()` call | Terminate with error |
+| Stack overflow | JavaScript runtime error |
+| Out of memory | JavaScript runtime error |
+| Non-exhaustive pattern match | Compile-time error (prevented) |
+
 ### Result Type
 
 ```vibefun
@@ -4943,6 +5230,251 @@ Float.round: (Float) -> Int
 Float.floor: (Float) -> Int
 Float.ceil: (Float) -> Int
 Float.abs: (Float) -> Float
+Float.isNaN: (Float) -> Bool
+Float.isInfinite: (Float) -> Bool
+Float.isFinite: (Float) -> Bool
+```
+
+### Array Module
+
+The `Array` type is a mutable, fixed-size or growable array backed by JavaScript arrays. Unlike `List<T>`, arrays support efficient random access and in-place updates.
+
+```vibefun
+// Array type (imported from external JavaScript)
+type Array<T> = external
+
+// Construction
+Array.make: <T>(Int, T) -> Array<T>           // Create array of size n with default value
+Array.fromList: <T>(List<T>) -> Array<T>      // Convert list to array
+Array.empty: <T>() -> Array<T>                // Create empty array
+
+// Access
+Array.get: <T>(Array<T>, Int) -> Option<T>    // Safe indexed access
+Array.set: <T>(Array<T>, Int, T) -> Unit      // Update element at index (mutates!)
+Array.length: <T>(Array<T>) -> Int            // Get array length
+
+// Transformation (pure - return new arrays)
+Array.map: <A, B>(Array<A>, (A) -> B) -> Array<B>
+Array.filter: <A>(Array<A>, (A) -> Bool) -> Array<A>
+Array.fold: <A, B>(Array<A>, B, (B, A) -> B) -> B
+
+// Conversion
+Array.toList: <T>(Array<T>) -> List<T>        // Convert array to list
+Array.slice: <T>(Array<T>, Int, Int) -> Array<T>  // Extract subarray
+
+// Mutation (modifies array in-place)
+Array.push: <T>(Array<T>, T) -> Unit          // Append to end
+Array.pop: <T>(Array<T>) -> Option<T>         // Remove from end
+Array.reverse: <T>(Array<T>) -> Unit          // Reverse in-place
+Array.sort: <T>(Array<T>, (T, T) -> Int) -> Unit  // Sort in-place
+```
+
+**Safety note:** Array operations that mutate must be used within `unsafe` blocks or with mutable references, as they violate referential transparency.
+
+**Example:**
+```vibefun
+// Safe: pure operations
+let arr = Array.fromList([1, 2, 3, 4, 5])
+let doubled = Array.map(arr, (x) => x * 2)
+let total = Array.fold(arr, 0, (acc, x) => acc + x)
+
+// Unsafe: mutation
+unsafe {
+    let mut arr = Array.make(3, 0)
+    Array.set(arr, 0, 10)
+    Array.set(arr, 1, 20)
+    Array.set(arr, 2, 30)
+}
+```
+
+### Map Module
+
+The `Map` type provides efficient key-value storage with immutable operations.
+
+```vibefun
+type Map<K, V> = external
+
+// Construction
+Map.empty: <K, V>() -> Map<K, V>
+Map.fromList: <K, V>(List<(K, V)>) -> Map<K, V>
+
+// Access
+Map.get: <K, V>(Map<K, V>, K) -> Option<V>
+Map.has: <K, V>(Map<K, V>, K) -> Bool
+Map.size: <K, V>(Map<K, V>) -> Int
+
+// Modification (returns new map)
+Map.set: <K, V>(Map<K, V>, K, V) -> Map<K, V>
+Map.delete: <K, V>(Map<K, V>, K) -> Map<K, V>
+Map.update: <K, V>(Map<K, V>, K, (Option<V>) -> Option<V>) -> Map<K, V>
+
+// Transformation
+Map.map: <K, A, B>(Map<K, A>, (A) -> B) -> Map<K, B>
+Map.filter: <K, V>(Map<K, V>, (K, V) -> Bool) -> Map<K, V>
+Map.fold: <K, V, A>(Map<K, V>, A, (A, K, V) -> A) -> A
+
+// Conversion
+Map.keys: <K, V>(Map<K, V>) -> List<K>
+Map.values: <K, V>(Map<K, V>) -> List<V>
+Map.toList: <K, V>(Map<K, V>) -> List<(K, V)>
+```
+
+**Example:**
+```vibefun
+let scores = Map.empty()
+    |> Map.set("Alice", 95)
+    |> Map.set("Bob", 87)
+    |> Map.set("Charlie", 92)
+
+match Map.get(scores, "Alice") {
+    | Some(score) => "Alice scored " & String.fromInt(score)
+    | None => "Alice not found"
+}
+```
+
+### Set Module
+
+The `Set` type provides efficient membership testing with immutable operations.
+
+```vibefun
+type Set<T> = external
+
+// Construction
+Set.empty: <T>() -> Set<T>
+Set.fromList: <T>(List<T>) -> Set<T>
+Set.singleton: <T>(T) -> Set<T>
+
+// Access
+Set.has: <T>(Set<T>, T) -> Bool
+Set.size: <T>(Set<T>) -> Int
+Set.isEmpty: <T>(Set<T>) -> Bool
+
+// Modification (returns new set)
+Set.add: <T>(Set<T>, T) -> Set<T>
+Set.delete: <T>(Set<T>, T) -> Set<T>
+
+// Set operations
+Set.union: <T>(Set<T>, Set<T>) -> Set<T>
+Set.intersect: <T>(Set<T>, Set<T>) -> Set<T>
+Set.diff: <T>(Set<T>, Set<T>) -> Set<T>
+Set.isSubset: <T>(Set<T>, Set<T>) -> Bool
+
+// Transformation
+Set.filter: <T>(Set<T>, (T) -> Bool) -> Set<T>
+Set.fold: <T, A>(Set<T>, A, (A, T) -> A) -> A
+
+// Conversion
+Set.toList: <T>(Set<T>) -> List<T>
+```
+
+**Example:**
+```vibefun
+let evens = Set.fromList([2, 4, 6, 8, 10])
+let primes = Set.fromList([2, 3, 5, 7, 11])
+
+let evenPrimes = Set.intersect(evens, primes)  // {2}
+let allNumbers = Set.union(evens, primes)      // {2, 3, 4, 5, 6, 7, 8, 10, 11}
+```
+
+### Math Module
+
+Mathematical functions and constants.
+
+```vibefun
+// Constants
+Math.pi: Float      // 3.141592653589793
+Math.e: Float       // 2.718281828459045
+
+// Trigonometry
+Math.sin: (Float) -> Float
+Math.cos: (Float) -> Float
+Math.tan: (Float) -> Float
+Math.asin: (Float) -> Float
+Math.acos: (Float) -> Float
+Math.atan: (Float) -> Float
+Math.atan2: (Float, Float) -> Float
+
+// Exponential and logarithmic
+Math.exp: (Float) -> Float      // e^x
+Math.log: (Float) -> Float      // Natural logarithm (ln)
+Math.log10: (Float) -> Float    // Base-10 logarithm
+Math.log2: (Float) -> Float     // Base-2 logarithm
+Math.pow: (Float, Float) -> Float
+Math.sqrt: (Float) -> Float
+
+// Rounding
+Math.round: (Float) -> Float
+Math.floor: (Float) -> Float
+Math.ceil: (Float) -> Float
+Math.trunc: (Float) -> Float    // Remove fractional part
+
+// Utility
+Math.abs: (Float) -> Float
+Math.sign: (Float) -> Float     // -1, 0, or 1
+Math.min: (Float, Float) -> Float
+Math.max: (Float, Float) -> Float
+Math.random: () -> Float        // Random number in [0, 1)
+```
+
+**Note:** `Math.random()` is impure and should be used within `unsafe` blocks for proper effect tracking.
+
+**Example:**
+```vibefun
+let circleArea = (radius) => Math.pi * Math.pow(radius, 2.0)
+let distance = (x, y) => Math.sqrt(Math.pow(x, 2.0) + Math.pow(y, 2.0))
+
+unsafe {
+    let randomValue = Math.random()  // Impure operation
+}
+```
+
+### JSON Module
+
+JSON serialization and deserialization with type-safe handling.
+
+```vibefun
+// JSON value representation
+type JSON =
+    | JNull
+    | JBool(Bool)
+    | JNumber(Float)
+    | JString(String)
+    | JArray(List<JSON>)
+    | JObject(Map<String, JSON>)
+
+// Parsing
+JSON.parse: (String) -> Result<JSON, String>
+JSON.stringify: (JSON) -> String
+JSON.stringifyPretty: (JSON, Int) -> String  // With indentation
+
+// Type-safe extraction
+JSON.asNull: (JSON) -> Option<Unit>
+JSON.asBool: (JSON) -> Option<Bool>
+JSON.asNumber: (JSON) -> Option<Float>
+JSON.asString: (JSON) -> Option<String>
+JSON.asArray: (JSON) -> Option<List<JSON>>
+JSON.asObject: (JSON) -> Option<Map<String, JSON>>
+
+// Object field access
+JSON.getField: (JSON, String) -> Option<JSON>
+JSON.getFieldAs: <T>(JSON, String, (JSON) -> Option<T>) -> Option<T>
+```
+
+**Example:**
+```vibefun
+let parseUserAge = (jsonString) =>
+    JSON.parse(jsonString)
+    |> Result.flatMap((json) =>
+        match JSON.getFieldAs(json, "age", JSON.asNumber) {
+            | Some(age) => Ok(Float.toInt(age))
+            | None => Err("Missing or invalid age field")
+        })
+
+// Usage
+match parseUserAge('{"name": "Alice", "age": 30}') {
+    | Ok(age) => "Age: " & String.fromInt(age)
+    | Err(msg) => "Error: " & msg
+}
 ```
 
 ---
@@ -4957,6 +5489,291 @@ Float.abs: (Float) -> Float
 4. **Type Checking**: Core AST + Type Inference
 5. **Optimization**: Optional transformations
 6. **Code Generation**: Core AST → JavaScript
+
+### Desugaring Transformations
+
+The desugaring phase transforms surface syntax (what programmers write) into a simpler core AST. This section documents how each syntactic construct is desugared.
+
+#### List Literals
+
+List literals are desugared to cons operations:
+
+```vibefun
+// Surface syntax
+[1, 2, 3]
+
+// Desugared to
+1 :: 2 :: 3 :: []
+```
+
+**Empty list:**
+```vibefun
+[]  // Remains as [] (primitive)
+```
+
+**List with spread:**
+```vibefun
+// Surface syntax
+[1, 2, ...rest]
+
+// Desugared to
+1 :: 2 :: rest
+```
+
+#### Multi-Argument Functions
+
+Functions with multiple parameters are desugared to nested single-parameter functions (currying):
+
+```vibefun
+// Surface syntax
+let add = (x, y) => x + y
+
+// Desugared to
+let add = (x) => (y) => x + y
+```
+
+**Multi-argument application:**
+```vibefun
+// Surface syntax
+add(10, 20)
+
+// Desugared to
+((add(10))(20))
+```
+
+#### Record Updates
+
+Record update syntax is desugared to record construction:
+
+```vibefun
+// Surface syntax
+{ ...person, age: 31 }
+
+// Desugared to (conceptual - actual implementation may vary)
+{ name: person.name, age: 31, email: person.email }
+```
+
+**Multiple fields:**
+```vibefun
+// Surface syntax
+{ ...person, age: 31, city: "NYC" }
+
+// Desugared to
+{ name: person.name, age: 31, email: person.email, city: "NYC" }
+```
+
+**Multiple spreads (right-to-left evaluation):**
+```vibefun
+// Surface syntax
+{ ...defaults, ...overrides, name: "Alice" }
+
+// Desugared to (fields from right override left)
+{ field1: overrides.field1, field2: overrides.field2, name: "Alice" }
+```
+
+#### Pipe Operator
+
+The pipe operator is desugared to function application:
+
+```vibefun
+// Surface syntax
+value |> f
+
+// Desugared to
+f(value)
+```
+
+**Pipe chains:**
+```vibefun
+// Surface syntax
+x |> f |> g |> h
+
+// Desugared to (left-associative)
+h(g(f(x)))
+```
+
+**Pipe with lambdas:**
+```vibefun
+// Surface syntax
+data |> map((x) => x * 2) |> filter((x) => x > 10)
+
+// Desugared to
+filter(map(data, (x) => x * 2), (x) => x > 10)
+```
+
+#### Composition Operators
+
+Forward and backward composition are desugared to lambda expressions:
+
+```vibefun
+// Surface syntax (forward composition)
+let pipeline = f >> g >> h
+
+// Desugared to
+let pipeline = (x) => h(g(f(x)))
+```
+
+```vibefun
+// Surface syntax (backward composition)
+let pipeline = h << g << f
+
+// Desugared to
+let pipeline = (x) => h(g(f(x)))
+```
+
+#### String Concatenation
+
+The `&` operator for strings is desugared to `String.concat`:
+
+```vibefun
+// Surface syntax
+"hello" & " " & "world"
+
+// Desugared to
+String.concat(String.concat("hello", " "), "world")
+```
+
+**Note:** Type checker ensures operands are strings before desugaring.
+
+#### Pattern Matching
+
+Complex pattern matching is desugared to nested if/switch expressions and destructuring:
+
+**Simple variant matching:**
+```vibefun
+// Surface syntax
+match opt {
+    | Some(x) => x
+    | None => 0
+}
+
+// Desugared to (conceptual)
+if opt.tag == "Some" then opt.value
+else if opt.tag == "None" then 0
+else panic("Non-exhaustive match")
+```
+
+**List pattern matching:**
+```vibefun
+// Surface syntax
+match list {
+    | [] => 0
+    | [x] => x
+    | [x, y, ...rest] => x + y
+}
+
+// Desugared to (conceptual)
+if list.length == 0 then 0
+else if list.length == 1 then list[0]
+else
+    let x = list[0]
+    let y = list[1]
+    let rest = list.slice(2)
+    x + y
+```
+
+**Guards:**
+```vibefun
+// Surface syntax
+match x {
+    | n when n > 0 => "positive"
+    | n when n < 0 => "negative"
+    | _ => "zero"
+}
+
+// Desugared to
+if x > 0 then "positive"
+else if x < 0 then "negative"
+else "zero"
+```
+
+#### If-Without-Else
+
+If expressions without an else clause are desugared to include a Unit-returning else:
+
+```vibefun
+// Surface syntax
+if condition then action()
+
+// Desugared to
+if condition then action() else ()
+```
+
+**Type checking ensures action() returns Unit.**
+
+#### Mutable References
+
+Reference operations are desugared to function calls:
+
+```vibefun
+// Surface syntax
+let mut counter = ref(0)
+let value = !counter
+counter := 5
+
+// Desugared to (conceptual)
+let counter = ref(0)
+let value = deref(counter)
+refAssign(counter, 5)
+```
+
+**Note:** The actual representation of refs is implementation-specific (likely `{ value: T }` objects).
+
+#### Let-Rec Mutual Recursion
+
+Mutually recursive functions are desugared to a single recursive binding:
+
+```vibefun
+// Surface syntax
+let rec isEven = (n) =>
+    if n == 0 then true else isOdd(n - 1)
+and isOdd = (n) =>
+    if n == 0 then false else isEven(n - 1)
+
+// Desugared to (conceptual - creates mutually recursive scope)
+let rec {
+    isEven: (n) => if n == 0 then true else isOdd(n - 1),
+    isOdd: (n) => if n == 0 then false else isEven(n - 1)
+}
+```
+
+#### Implicit Returns
+
+Block expressions with multiple statements return the last expression:
+
+```vibefun
+// Surface syntax
+{
+    let x = 10
+    let y = 20
+    x + y
+}
+
+// Desugared to (explicit return of last expression)
+{
+    let x = 10;
+    let y = 20;
+    return x + y
+}
+```
+
+**Note:** The desugaring ensures the last expression's value is the block's result.
+
+#### Summary of Desugarings
+
+| Surface Syntax | Desugared To |
+|----------------|--------------|
+| `[a, b, c]` | `a :: b :: c :: []` |
+| `(x, y) => e` | `(x) => (y) => e` |
+| `f(a, b)` | `((f(a))(b))` |
+| `{...r, f: v}` | `{f1: r.f1, f: v}` |
+| `x \|> f` | `f(x)` |
+| `f >> g` | `(x) => g(f(x))` |
+| `s1 & s2` | `String.concat(s1, s2)` |
+| `!ref` | `deref(ref)` |
+| `ref := v` | `refAssign(ref, v)` |
+| `if c then e` | `if c then e else ()` |
+| Pattern matching | Nested if/destructuring |
 
 ### JavaScript Target
 
