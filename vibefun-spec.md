@@ -4317,6 +4317,83 @@ let processInt = (n: Int) => n * 2
 let processString = (s: String) => s & s
 ```
 
+#### Overloaded Externals Edge Cases
+
+**Return type differences:**
+```vibefun
+// ✅ OK: Different return types allowed
+external parse: (String) -> Int = "parseInt"
+external parse: (String, Int) -> Int = "parseInt"  // With radix
+
+// Return types can differ completely
+external getValue: (String) -> String = "getValue"
+external getValue: (Int) -> Bool = "getValue"
+```
+
+**Curried vs uncurried overloads:**
+```vibefun
+// ❌ Error: Cannot mix curried and uncurried forms for same function
+external foo: (Int) -> Int = "foo"
+external foo: (Int, Int) -> Int = "foo"  // Different arity: OK
+
+// But this is confusing (same arity, different currying):
+// external bar: (Int) -> (Int) -> Int = "bar"  // Arity 1 (returns function)
+// external bar: (Int, Int) -> Int = "bar"      // Arity 2
+// These are actually the SAME type (auto-currying), so no overloading needed
+```
+
+**Partial application with overloads:**
+```vibefun
+external fetch: (String) -> Promise<Response> = "fetch"
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+
+// Partial application resolves overload immediately
+let fetchWithOptions = fetch("https://api.example.com")
+// Type: (RequestInit) -> Promise<Response>
+// Overload resolution: chose first signature (1 arg provided)
+
+// To use second overload with partial application:
+let fetchPost = (url) => fetch(url, { method: "POST" })
+```
+
+#### Generic External Declarations
+
+External declarations can be generic, allowing JavaScript functions to work with any Vibefun type:
+
+```vibefun
+// Generic external function
+external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils"
+
+// Multiple type parameters
+external zip: <A, B>(Array<A>, Array<B>) -> Array<(A, B)> = "zip"
+
+// Higher-order generic function
+external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose"
+
+// Generic with constraints (implied by usage)
+external sort: <T>(Array<T>, (T, T) -> Int) -> Array<T> = "sort"
+```
+
+**Type parameter resolution:**
+- Type parameters are inferred at call sites
+- No explicit type application syntax (type inference handles it)
+- Generic externals work like generic Vibefun functions
+
+```vibefun
+unsafe {
+    let numbers = [3, 1, 4, 1, 5]
+    let doubled = map(numbers, (x) => x * 2)  // <Int, Int> inferred
+
+    let strings = ["a", "b", "c"]
+    let lengths = map(strings, String.length)  // <String, Int> inferred
+}
+```
+
+**Limitations:**
+- Generic externals cannot be overloaded (each signature must have distinct arity)
+- Type parameters must be consistently used across the function signature
+- No higher-kinded types in external declarations
+
 #### External Type Declarations
 
 Declare the shape of JavaScript objects within external blocks:
@@ -4338,6 +4415,14 @@ external from "node-fetch" {
 
     fetch: (String) -> Promise<Response> = "fetch"
     Headers: Type = "Headers"
+}
+
+// Generic type declarations
+external {
+    type Promise<T> = {
+        then: <U>((T) -> U) -> Promise<U>,
+        catch: ((Error) -> T) -> Promise<T>
+    }
 }
 ```
 
@@ -4368,7 +4453,7 @@ export external from "module" { ... }
 
 ### Unsafe Blocks
 
-All JavaScript interop must occur in `unsafe` blocks.
+All JavaScript interop must occur in `unsafe` blocks, which mark code that interacts with untyped JavaScript.
 
 ```vibefun
 let debug = (msg) => unsafe {
@@ -4381,9 +4466,124 @@ let fetchUser = (id) => unsafe {
 }
 ```
 
+#### Unsafe Block Semantics
+
+```vibefun
+// Basic unsafe block
+unsafe {
+    console_log("Hello, world!")
+}
+
+// Unsafe block as expression (returns value)
+let result = unsafe {
+    let data = fetchData()
+    processData(data)
+}
+
+// Multiple FFI calls in one unsafe block
+unsafe {
+    console_log("Starting...");
+    let result = compute();
+    console_log("Result: " & String.fromInt(result));
+    result
+}
+```
+
+#### Nesting Unsafe Blocks
+
+Unsafe blocks **can be nested** (though usually unnecessary):
+
+```vibefun
+// ✅ OK: Nested unsafe blocks
+unsafe {
+    let x = externalFn1()
+
+    let y = unsafe {
+        externalFn2(x)
+    }
+
+    externalFn3(y)
+}
+
+// But nesting is redundant (outer unsafe applies to inner blocks too)
+// Prefer single unsafe block:
+unsafe {
+    let x = externalFn1()
+    let y = externalFn2(x)
+    externalFn3(y)
+}
+```
+
+**Rules:**
+- Once inside an `unsafe` block, all nested code can call external functions
+- Nesting doesn't add additional meaning (already unsafe)
+- Inner unsafe blocks are allowed but stylistically discouraged
+
+#### Unsafe Block Restrictions
+
+**What requires unsafe:**
+- Calling `external` functions
+- Any expression that directly or indirectly calls FFI
+
+```vibefun
+external log: (String) -> Unit = "console.log"
+
+// ❌ Error: Cannot call external function outside unsafe block
+log("hello")
+
+// ✅ OK: Inside unsafe block
+unsafe { log("hello") }
+
+// ❌ Error: Function calls external, must be marked unsafe at call site
+let greet = (name) => log("Hello, " & name)
+greet("Alice")  // Error: greet calls external function
+
+// ✅ OK: Wrap unsafe code in function
+let greet = (name) => unsafe { log("Hello, " & name) }
+greet("Alice")  // OK: greet handles unsafe internally
+```
+
+**What doesn't require unsafe:**
+- Pure Vibefun code (no external calls)
+- Calling Vibefun functions that internally use unsafe (unsafe is encapsulated)
+
+```vibefun
+// This function uses unsafe internally
+let safeLog = (msg) => unsafe { log(msg) }
+
+// Calling it doesn't require unsafe
+safeLog("hello")  // ✅ OK: unsafe is encapsulated in safeLog
+```
+
+#### Unsafe and Return Values
+
+Values returned from unsafe blocks are **trusted** to have the declared type:
+
+```vibefun
+external parseJson: (String) -> Json = "JSON.parse"
+
+// Return value is trusted to be Json
+let data: Json = unsafe { parseJson('{"key": "value"}') }
+
+// But there's no runtime verification!
+// If parseJson returns something incompatible, undefined behavior may occur
+```
+
+**Best practice:** Wrap FFI calls in checked wrappers when possible:
+
+```vibefun
+let safeParseJson = (str: String): Option<Json> => unsafe {
+    try {
+        Some(parseJson(str))
+    } catch {
+        None  // Catch JS exceptions and return None
+    }
+}
+```
+
 ### Type Safety at Boundaries
 
-Values crossing FFI boundaries are checked:
+Values crossing FFI boundaries require careful handling to maintain type safety.
 
 ```vibefun
 external parseJson: (String) -> Json = "JSON.parse"
@@ -4398,9 +4598,69 @@ let safeParseJson = (str) => unsafe {
 }
 ```
 
+#### Runtime Type Checking Modes
+
+The compiler supports three modes for runtime type checking at FFI boundaries:
+
+**1. `--runtime-checks=ffi` (recommended for development)**
+- Checks values entering/exiting unsafe blocks
+- Validates external function arguments and return values
+- Throws runtime errors on type mismatches
+- Minimal overhead (only at FFI boundaries)
+
+**2. `--runtime-checks=all` (maximum safety)**
+- Checks all values everywhere (including pure Vibefun code)
+- Very thorough but significant performance overhead
+- Useful for debugging type-related issues
+
+**3. `--runtime-checks=none` (production)**
+- No runtime checking (pure compile-time safety)
+- Fastest performance
+- Relies on correct external type annotations
+
+#### Type Checking at FFI Boundaries
+
+When runtime checks are enabled, the compiler inserts checks:
+
+```vibefun
+external fetchData: (String) -> User = "fetchData"
+
+// With runtime checks enabled:
+unsafe {
+    let user = fetchData("alice")
+    // Runtime check verifies user has expected User shape
+    // Throws if JS returns null, wrong type, or missing fields
+}
+
+// Without runtime checks:
+// User is trusted to have correct type (no verification)
+```
+
+#### Handling JavaScript Null and Undefined
+
+JavaScript `null` and `undefined` don't exist in Vibefun's type system. Use `Option` to represent nullable values:
+
+```vibefun
+// Declare external that might return null
+external getUserById: (Int) -> Option<User> = "getUserById"
+
+// Use in Vibefun
+let getUser = (id: Int): Option<User> => unsafe {
+    getUserById(id)  // JS null/undefined → None, value → Some(value)
+}
+
+// If external doesn't declare Option, wrap it:
+external rawGetUser: (Int) -> User = "getUserById"  // May return null!
+
+let safeGetUser = (id: Int): Option<User> => unsafe {
+    let result = rawGetUser(id)
+    if isNull(result) then None else Some(result)
+}
+```
+
 ### Calling Vibefun from JavaScript
 
-Compiled Vibefun functions can be called from JavaScript:
+Compiled Vibefun functions can be called from JavaScript, but you need to understand the calling conventions.
 
 ```javascript
 // Generated JavaScript
@@ -4412,6 +4672,129 @@ add(1)(2);  // 3
 // With partial application
 const increment = add(1);
 increment(5);  // 6
+```
+
+#### Calling Conventions
+
+**Curried functions:**
+```vibefun
+// Vibefun
+let add = (x, y) => x + y
+// Type: (Int) -> (Int) -> Int
+```
+
+```javascript
+// JavaScript
+const add = (x) => (y) => x + y;
+
+// Call as curried:
+add(1)(2);  // 3
+
+// Or partially apply:
+const increment = add(1);
+increment(5);  // 6
+```
+
+**Functions with many arguments:**
+```vibefun
+let calculate = (a, b, c, d) => a + b + c + d
+```
+
+```javascript
+// Nested currying
+const calculate = (a) => (b) => (c) => (d) => a + b + c + d;
+
+calculate(1)(2)(3)(4);  // 10
+
+// Partial application at any level
+const calc1 = calculate(1);
+const calc12 = calc1(2);
+const calc123 = calc12(3);
+calc123(4);  // 10
+```
+
+#### ADT Representation in JavaScript
+
+**Variant types** are compiled to objects with a `tag` field:
+
+```vibefun
+type Option<T> = Some(T) | None
+```
+
+```javascript
+// JavaScript representation
+const Some = (value) => ({ tag: "Some", value });
+const None = { tag: "None" };
+
+// Pattern matching
+function matchOption(opt) {
+    switch (opt.tag) {
+        case "Some":
+            return opt.value;
+        case "None":
+            return null;
+    }
+}
+```
+
+**Records** are compiled to plain JavaScript objects:
+
+```vibefun
+type Person = { name: String, age: Int }
+```
+
+```javascript
+// JavaScript representation
+const person = { name: "Alice", age: 30 };
+
+// Access fields directly
+console.log(person.name);  // "Alice"
+```
+
+#### Constructing Vibefun Values from JS
+
+JavaScript code can construct Vibefun values:
+
+```javascript
+// Construct Option values
+const someValue = { tag: "Some", value: 42 };
+const noneValue = { tag: "None" };
+
+// Construct Result values
+const okValue = { tag: "Ok", value: "success" };
+const errValue = { tag: "Err", value: "error message" };
+
+// Construct records
+const person = { name: "Bob", age: 25, email: "bob@example.com" };
+
+// Call Vibefun function with constructed values
+const process = require('./compiled-vibefun');
+const result = process.handleOption(someValue);
+```
+
+#### Refs in JavaScript
+
+Refs are represented as objects with a `.value` field:
+
+```vibefun
+let mut counter = ref(0)
+```
+
+```javascript
+// JavaScript representation
+const counter = { value: 0 };
+
+// Read ref
+console.log(counter.value);  // 0
+
+// Update ref
+counter.value = 5;
+
+// Refs are mutable objects
+const ref1 = { value: 10 };
+const ref2 = ref1;  // Same ref
+ref1.value = 20;
+console.log(ref2.value);  // 20 (same object)
 ```
 
 ---

@@ -47,15 +47,15 @@
 - [x] As-patterns and other forms
 - [x] Exhaustiveness checking description
 
-## Phase 5: JavaScript Interop Details 🔜
+## Phase 5: JavaScript Interop Details ✅
 
-**Status:** Not Started
-- [ ] External function generic declarations
-- [ ] Overloaded externals edge cases
-- [ ] Unsafe block nesting and restrictions
-- [ ] Type safety at FFI boundaries
-- [ ] Calling Vibefun from JS
-- [ ] String concatenation type rules
+**Status:** Completed
+- [x] External function generic declarations
+- [x] Overloaded externals edge cases
+- [x] Unsafe block nesting and restrictions
+- [x] Type safety at FFI boundaries
+- [x] Calling Vibefun from JS
+- [x] String concatenation type rules
 
 ## Phase 6: Standard Library & Compilation 🔜
 
@@ -91,6 +91,6 @@
 
 ## Overall Progress
 
-**Phases Completed:** 4/8 (50%)
-**Current Phase:** Phase 5 - JavaScript Interop Details (Starting)
-**Tasks Completed:** 46/54 items (85%)
+**Phases Completed:** 5/8 (62.5%)
+**Current Phase:** Phase 6 - Standard Library & Compilation (Starting)
+**Tasks Completed:** 52/54 items (96%)
