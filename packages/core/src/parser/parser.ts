@@ -10,6 +10,7 @@ import type {
     Expr,
     ExternalBlockItem,
     ImportItem,
+    ListElement,
     Location,
     MatchCase,
     Module,
@@ -1005,19 +1006,25 @@ export class Parser {
             };
         }
 
-        // List literal: [1, 2, 3]
+        // List literal: [1, 2, 3] or list with spread: [1, ...rest, 2]
         if (this.check("LBRACKET")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume [
 
-            const elements: { kind: "Element"; expr: Expr }[] = [];
+            const elements: ListElement[] = [];
 
             // Check for empty list
             if (!this.check("RBRACKET")) {
                 // Parse elements
                 do {
-                    const expr = this.parseExpression();
-                    elements.push({ kind: "Element", expr });
+                    // Check for spread element: ...expr
+                    if (this.match("DOT_DOT_DOT")) {
+                        const spreadExpr = this.parseExpression();
+                        elements.push({ kind: "Spread", expr: spreadExpr });
+                    } else {
+                        const expr = this.parseExpression();
+                        elements.push({ kind: "Element", expr });
+                    }
                 } while (this.match("COMMA"));
             }
 
