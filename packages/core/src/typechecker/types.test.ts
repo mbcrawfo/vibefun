@@ -587,7 +587,7 @@ describe("Syntactic Value Restriction", () => {
 
         it("should recognize record with value fields as syntactic value", () => {
             const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
-            const field: CoreRecordField = { name: "x", value, loc: testLoc };
+            const field: CoreRecordField = { kind: "Field", name: "x", value, loc: testLoc };
             const expr: CoreRecord = { kind: "CoreRecord", fields: [field], loc: testLoc };
             expect(isSyntacticValue(expr)).toBe(true);
         });
@@ -596,7 +596,7 @@ describe("Syntactic Value Restriction", () => {
             const func: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
             const arg: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
             const nonValue: CoreApp = { kind: "CoreApp", func, args: [arg], loc: testLoc };
-            const field: CoreRecordField = { name: "x", value: nonValue, loc: testLoc };
+            const field: CoreRecordField = { kind: "Field", name: "x", value: nonValue, loc: testLoc };
             const expr: CoreRecord = { kind: "CoreRecord", fields: [field], loc: testLoc };
             expect(isSyntacticValue(expr)).toBe(false);
         });
@@ -678,7 +678,7 @@ describe("Syntactic Value Restriction", () => {
         it("should reject record update", () => {
             const record: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
             const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
-            const update: CoreRecordField = { name: "x", value, loc: testLoc };
+            const update: CoreRecordField = { kind: "Field", name: "x", value, loc: testLoc };
             const expr: CoreRecordUpdate = { kind: "CoreRecordUpdate", record, updates: [update], loc: testLoc };
             expect(isSyntacticValue(expr)).toBe(false);
         });

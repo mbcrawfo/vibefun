@@ -221,6 +221,7 @@ describe("Expression Equality Utilities", () => {
                 kind: "CoreRecord",
                 fields: [
                     {
+                        kind: "Field",
                         name: "x",
                         value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                         loc: testLoc,
@@ -233,6 +234,7 @@ describe("Expression Equality Utilities", () => {
                 kind: "CoreRecord",
                 fields: [
                     {
+                        kind: "Field",
                         name: "x",
                         value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                         loc: testLoc,
@@ -249,6 +251,7 @@ describe("Expression Equality Utilities", () => {
                 kind: "CoreRecord",
                 fields: [
                     {
+                        kind: "Field",
                         name: "x",
                         value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                         loc: testLoc,
@@ -261,6 +264,7 @@ describe("Expression Equality Utilities", () => {
                 kind: "CoreRecord",
                 fields: [
                     {
+                        kind: "Field",
                         name: "y", // Different!
                         value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                         loc: testLoc,

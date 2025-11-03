@@ -361,11 +361,13 @@ describe("Pipe Operator - With Records", () => {
                 kind: "Record",
                 fields: [
                     {
+                        kind: "Field",
                         name: "x",
                         value: { kind: "IntLit", value: 1, loc: testLoc },
                         loc: testLoc,
                     },
                     {
+                        kind: "Field",
                         name: "y",
                         value: { kind: "IntLit", value: 2, loc: testLoc },
                         loc: testLoc,

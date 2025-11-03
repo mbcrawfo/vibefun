@@ -201,7 +201,14 @@ describe("EtaReductionPass", () => {
                     args: [
                         {
                             kind: "CoreRecord",
-                            fields: [{ name: "x", value: { kind: "CoreVar", name: "x", loc: testLoc }, loc: testLoc }],
+                            fields: [
+                                {
+                                    kind: "Field",
+                                    name: "x",
+                                    value: { kind: "CoreVar", name: "x", loc: testLoc },
+                                    loc: testLoc,
+                                },
+                            ],
                             loc: testLoc,
                         },
                     ],

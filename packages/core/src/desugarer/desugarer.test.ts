@@ -327,11 +327,13 @@ describe("Desugarer - Records", () => {
             kind: "Record",
             fields: [
                 {
+                    kind: "Field",
                     name: "x",
                     value: { kind: "IntLit", value: 1, loc: testLoc },
                     loc: testLoc,
                 },
                 {
+                    kind: "Field",
                     name: "y",
                     value: { kind: "IntLit", value: 2, loc: testLoc },
                     loc: testLoc,
@@ -345,8 +347,8 @@ describe("Desugarer - Records", () => {
 
         expect(result.kind).toBe("CoreRecord");
         expect(record.fields).toHaveLength(2);
-        expect(record.fields[0]!.name).toBe("x");
-        expect(record.fields[0]!.value.kind).toBe("CoreIntLit");
+        expect((record.fields[0]! as { name: string }).name).toBe("x");
+        expect((record.fields[0]! as { value: { kind: string } }).value.kind).toBe("CoreIntLit");
     });
 
     it("should desugar record access", () => {
@@ -590,7 +592,7 @@ describe("Desugarer - Patterns", () => {
         const recordPat = result as CoreRecordPattern;
 
         expect(result.kind).toBe("CoreRecordPattern");
-        expect(recordPat.fields[0]!.name).toBe("x");
+        expect((recordPat.fields[0]! as { name: string }).name).toBe("x");
         expect(recordPat.fields[0]!.pattern.kind).toBe("CoreVarPattern");
     });
 });

@@ -206,6 +206,7 @@ describe("AST Transform Utilities", () => {
                 kind: "CoreRecord",
                 fields: [
                     {
+                        kind: "Field",
                         name: "x",
                         value: {
                             kind: "CoreIntLit",
@@ -215,6 +216,7 @@ describe("AST Transform Utilities", () => {
                         loc: { file: "test", line: 1, column: 1, offset: 0 },
                     },
                     {
+                        kind: "Field",
                         name: "y",
                         value: {
                             kind: "CoreIntLit",
@@ -243,7 +245,14 @@ describe("AST Transform Utilities", () => {
                 const field1 = result.fields[1];
                 expect(field0).toBeDefined();
                 expect(field1).toBeDefined();
-                if (field0 && field1 && field0.value.kind === "CoreIntLit" && field1.value.kind === "CoreIntLit") {
+                if (
+                    field0 &&
+                    field1 &&
+                    field0.kind === "Field" &&
+                    field1.kind === "Field" &&
+                    field0.value.kind === "CoreIntLit" &&
+                    field1.value.kind === "CoreIntLit"
+                ) {
                     expect(field0.value.value).toBe(11);
                     expect(field1.value.value).toBe(12);
                 }

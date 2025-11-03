@@ -89,10 +89,19 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
             case "CoreRecord":
                 return {
                     ...expr,
-                    fields: expr.fields.map((field) => ({
-                        ...field,
-                        value: this.optimizeMatch(field.value),
-                    })),
+                    fields: expr.fields.map((field) => {
+                        if (field.kind === "Field") {
+                            return {
+                                ...field,
+                                value: this.optimizeMatch(field.value),
+                            };
+                        } else {
+                            return {
+                                ...field,
+                                expr: this.optimizeMatch(field.expr),
+                            };
+                        }
+                    }),
                 };
 
             // Record access
@@ -107,10 +116,19 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
                 return {
                     ...expr,
                     record: this.optimizeMatch(expr.record),
-                    updates: expr.updates.map((update) => ({
-                        ...update,
-                        value: this.optimizeMatch(update.value),
-                    })),
+                    updates: expr.updates.map((update) => {
+                        if (update.kind === "Field") {
+                            return {
+                                ...update,
+                                value: this.optimizeMatch(update.value),
+                            };
+                        } else {
+                            return {
+                                ...update,
+                                expr: this.optimizeMatch(update.expr),
+                            };
+                        }
+                    }),
                 };
 
             // Variant

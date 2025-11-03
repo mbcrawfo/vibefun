@@ -227,11 +227,23 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         case "Record":
             return {
                 kind: "CoreRecord",
-                fields: expr.fields.map((field) => ({
-                    name: field.name,
-                    value: desugar(field.value, gen),
-                    loc: field.loc,
-                })),
+                fields: expr.fields.map((field) => {
+                    if (field.kind === "Field") {
+                        return {
+                            kind: "Field",
+                            name: field.name,
+                            value: desugar(field.value, gen),
+                            loc: field.loc,
+                        };
+                    } else {
+                        // Spread in record construction
+                        return {
+                            kind: "Spread",
+                            expr: desugar(field.expr, gen),
+                            loc: field.loc,
+                        };
+                    }
+                }),
                 loc: expr.loc,
             };
 
@@ -249,11 +261,23 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
             return {
                 kind: "CoreRecordUpdate",
                 record: desugar(expr.record, gen),
-                updates: expr.updates.map((field) => ({
-                    name: field.name,
-                    value: desugar(field.value, gen),
-                    loc: field.loc,
-                })),
+                updates: expr.updates.map((field) => {
+                    if (field.kind === "Field") {
+                        return {
+                            kind: "Field",
+                            name: field.name,
+                            value: desugar(field.value, gen),
+                            loc: field.loc,
+                        };
+                    } else {
+                        // Spread in record update
+                        return {
+                            kind: "Spread",
+                            expr: desugar(field.expr, gen),
+                            loc: field.loc,
+                        };
+                    }
+                }),
                 loc: expr.loc,
             };
 

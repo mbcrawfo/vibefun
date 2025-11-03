@@ -910,11 +910,13 @@ describe("Type Inference - Records", () => {
     it("should infer type for simple record", () => {
         // { x: 42, y: "hello" }
         const xField: CoreRecordField = {
+            kind: "Field",
             name: "x",
             value: { kind: "CoreIntLit", value: 42, loc: testLoc },
             loc: testLoc,
         };
         const yField: CoreRecordField = {
+            kind: "Field",
             name: "y",
             value: { kind: "CoreStringLit", value: "hello", loc: testLoc },
             loc: testLoc,
@@ -1045,6 +1047,7 @@ describe("Type Inference - Records", () => {
         // { r with x = 100 }
         const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
         const updateField: CoreRecordField = {
+            kind: "Field",
             name: "x",
             value: { kind: "CoreIntLit", value: 100, loc: testLoc },
             loc: testLoc,
@@ -1085,6 +1088,7 @@ describe("Type Inference - Records", () => {
         // { r with z = 42 }
         const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
         const updateField: CoreRecordField = {
+            kind: "Field",
             name: "z",
             value: { kind: "CoreIntLit", value: 42, loc: testLoc },
             loc: testLoc,
@@ -1118,6 +1122,7 @@ describe("Type Inference - Records", () => {
         // { r with x = "hello" }
         const rVar: CoreVar = { kind: "CoreVar", name: "r", loc: testLoc };
         const updateField: CoreRecordField = {
+            kind: "Field",
             name: "x",
             value: { kind: "CoreStringLit", value: "hello", loc: testLoc },
             loc: testLoc,
@@ -1560,11 +1565,13 @@ describe("Type Inference - Match Expressions", () => {
             kind: "CoreRecord",
             fields: [
                 {
+                    kind: "Field",
                     name: "x",
                     value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                     loc: testLoc,
                 },
                 {
+                    kind: "Field",
                     name: "y",
                     value: { kind: "CoreIntLit", value: 2, loc: testLoc },
                     loc: testLoc,
@@ -1922,8 +1929,8 @@ describe("Type Annotations", () => {
             expr: {
                 kind: "CoreRecord",
                 fields: [
-                    { name: "x", value: { kind: "CoreIntLit", value: 42, loc: testLoc }, loc: testLoc },
-                    { name: "y", value: { kind: "CoreIntLit", value: 100, loc: testLoc }, loc: testLoc },
+                    { kind: "Field", name: "x", value: { kind: "CoreIntLit", value: 42, loc: testLoc }, loc: testLoc },
+                    { kind: "Field", name: "y", value: { kind: "CoreIntLit", value: 100, loc: testLoc }, loc: testLoc },
                 ],
                 loc: testLoc,
             },

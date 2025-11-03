@@ -102,8 +102,13 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
                 const f1 = e1.fields[i];
                 const f2 = e2.fields[i];
                 if (!f1 || !f2) return false;
-                if (f1.name !== f2.name) return false;
-                if (!exprEquals(f1.value, f2.value)) return false;
+                if (f1.kind !== f2.kind) return false;
+                if (f1.kind === "Field" && f2.kind === "Field") {
+                    if (f1.name !== f2.name) return false;
+                    if (!exprEquals(f1.value, f2.value)) return false;
+                } else if (f1.kind === "Spread" && f2.kind === "Spread") {
+                    if (!exprEquals(f1.expr, f2.expr)) return false;
+                }
             }
 
             return true;
@@ -120,8 +125,13 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
                 const u1 = e1.updates[i];
                 const u2 = e2.updates[i];
                 if (!u1 || !u2) return false;
-                if (u1.name !== u2.name) return false;
-                if (!exprEquals(u1.value, u2.value)) return false;
+                if (u1.kind !== u2.kind) return false;
+                if (u1.kind === "Field" && u2.kind === "Field") {
+                    if (u1.name !== u2.name) return false;
+                    if (!exprEquals(u1.value, u2.value)) return false;
+                } else if (u1.kind === "Spread" && u2.kind === "Spread") {
+                    if (!exprEquals(u1.expr, u2.expr)) return false;
+                }
             }
 
             return true;

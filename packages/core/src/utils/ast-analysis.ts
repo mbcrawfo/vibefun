@@ -91,7 +91,13 @@ export function freeVars(expr: CoreExpr): Set<string> {
                 return;
 
             case "CoreRecord":
-                e.fields.forEach((field) => analyzeExpr(field.value, currentBound));
+                e.fields.forEach((field) => {
+                    if (field.kind === "Field") {
+                        analyzeExpr(field.value, currentBound);
+                    } else if (field.kind === "Spread") {
+                        analyzeExpr(field.expr, currentBound);
+                    }
+                });
                 return;
 
             case "CoreRecordAccess":
@@ -100,7 +106,13 @@ export function freeVars(expr: CoreExpr): Set<string> {
 
             case "CoreRecordUpdate":
                 analyzeExpr(e.record, currentBound);
-                e.updates.forEach((update) => analyzeExpr(update.value, currentBound));
+                e.updates.forEach((update) => {
+                    if (update.kind === "Field") {
+                        analyzeExpr(update.value, currentBound);
+                    } else if (update.kind === "Spread") {
+                        analyzeExpr(update.expr, currentBound);
+                    }
+                });
                 return;
 
             case "CoreVariant":

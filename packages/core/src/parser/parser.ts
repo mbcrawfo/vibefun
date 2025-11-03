@@ -769,7 +769,7 @@ export class Parser {
 
     /**
      * Parse record construction or update expression
-     * Syntax: { field: value } or { record | field: value }
+     * Syntax: { field: value } or { ...record, field: value }
      * Note: LBRACE has already been consumed by caller
      */
     private parseRecordExpr(startLoc: Location): Expr {
@@ -783,51 +783,53 @@ export class Parser {
             };
         }
 
-        // Check if it's a record update: { record | field: value }
-        // Lookahead: if we see identifier/expression followed by |, it's an update
-        // For simplicity, we'll try to parse first element and check for |
+        // Check if it starts with spread operator: { ...expr, ... }
+        if (this.check("DOT_DOT_DOT")) {
+            this.advance(); // consume ...
 
-        // Parse first identifier or expression
-        // If followed by PIPE, it's an update
-        // If followed by COLON, it's a field
+            // Parse the spread expression
+            const spreadExpr = this.parseExpression();
 
-        // Check if starts with identifier followed by PIPE (update syntax)
-        if (this.check("IDENTIFIER") && this.peek(1).type === "PIPE") {
-            // Record update: { record | field: value, ... }
-            const recordName = this.advance().value as string;
-            const record: Expr = {
-                kind: "Var",
-                name: recordName,
-                loc: this.peek(-1).loc,
-            };
-
-            this.expect("PIPE", "Expected '|' after record in update");
-
-            // Parse update fields
+            // Collect remaining fields and spreads
             const updates: RecordField[] = [];
-            do {
-                const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
-                this.expect("COLON", "Expected ':' after field name");
-                const value = this.parseExpression();
 
-                updates.push({
-                    name: fieldName,
-                    value,
-                    loc: this.peek(-1).loc,
-                });
-            } while (this.match("COMMA"));
+            while (this.match("COMMA")) {
+                // Check for another spread
+                if (this.check("DOT_DOT_DOT")) {
+                    this.advance(); // consume ...
+                    const expr = this.parseExpression();
+                    updates.push({
+                        kind: "Spread",
+                        expr,
+                        loc: this.peek(-1).loc,
+                    });
+                } else if (this.check("IDENTIFIER")) {
+                    // Regular field
+                    const fieldName = this.advance().value as string;
+                    this.expect("COLON", "Expected ':' after field name");
+                    const value = this.parseExpression();
+                    updates.push({
+                        kind: "Field",
+                        name: fieldName,
+                        value,
+                        loc: this.peek(-1).loc,
+                    });
+                } else {
+                    break; // End of fields
+                }
+            }
 
-            this.expect("RBRACE", "Expected '}' after record update");
+            this.expect("RBRACE", "Expected '}' after record fields");
 
             return {
                 kind: "RecordUpdate",
-                record,
+                record: spreadExpr,
                 updates,
                 loc: startLoc,
             };
         }
 
-        // Otherwise, it's record construction: { field: value, ... }
+        // Otherwise, it's normal record construction: { field: value, ... }
         const fields: RecordField[] = [];
 
         do {
@@ -836,6 +838,7 @@ export class Parser {
             const value = this.parseExpression();
 
             fields.push({
+                kind: "Field",
                 name: fieldName,
                 value,
                 loc: this.peek(-1).loc,
@@ -1059,6 +1062,11 @@ export class Parser {
                 if (["if", "match", "unsafe"].includes(keyword)) {
                     return this.parseBlockExpr(startLoc);
                 }
+            }
+
+            // Check for record spread: { ...expr, ... }
+            if (this.check("DOT_DOT_DOT")) {
+                return this.parseRecordExpr(startLoc);
             }
 
             // Check for record update: { id | ... }

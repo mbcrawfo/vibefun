@@ -184,13 +184,12 @@ export type CoreRecord = {
 };
 
 /**
- * Record field in construction
+ * Core record field - can be a named field or a spread
+ * Spreads are preserved through desugaring for code generation
  */
-export type CoreRecordField = {
-    name: string;
-    value: CoreExpr;
-    loc: Location;
-};
+export type CoreRecordField =
+    | { kind: "Field"; name: string; value: CoreExpr; loc: Location }
+    | { kind: "Spread"; expr: CoreExpr; loc: Location };
 
 /**
  * Record field access

@@ -82,12 +82,11 @@ export type Expr =
 
 /**
  * Record field in record construction or update
+ * Can be either a named field or a spread from another record
  */
-export type RecordField = {
-    name: string;
-    value: Expr;
-    loc: Location;
-};
+export type RecordField =
+    | { kind: "Field"; name: string; value: Expr; loc: Location }
+    | { kind: "Spread"; expr: Expr; loc: Location };
 
 /**
  * Match case with pattern, optional guard, and body

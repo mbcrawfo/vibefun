@@ -546,6 +546,7 @@ describe("typeCheck - Integration Tests", () => {
                     kind: "CoreRecord",
                     fields: [
                         {
+                            kind: "Field",
                             name: "name",
                             value: {
                                 kind: "CoreStringLit",
@@ -555,6 +556,7 @@ describe("typeCheck - Integration Tests", () => {
                             loc: testLoc,
                         },
                         {
+                            kind: "Field",
                             name: "age",
                             value: {
                                 kind: "CoreIntLit",
@@ -1015,6 +1017,7 @@ describe("typeCheck - Integration Tests", () => {
                     kind: "CoreRecord",
                     fields: [
                         {
+                            kind: "Field",
                             name: "name",
                             value: {
                                 kind: "CoreStringLit",
@@ -1024,6 +1027,7 @@ describe("typeCheck - Integration Tests", () => {
                             loc: testLoc,
                         },
                         {
+                            kind: "Field",
                             name: "age",
                             value: {
                                 kind: "CoreIntLit",
@@ -1180,6 +1184,7 @@ describe("typeCheck - Integration Tests", () => {
                     kind: "CoreRecord",
                     fields: [
                         {
+                            kind: "Field",
                             name: "name",
                             value: {
                                 kind: "CoreStringLit",
@@ -1189,6 +1194,7 @@ describe("typeCheck - Integration Tests", () => {
                             loc: testLoc,
                         },
                         {
+                            kind: "Field",
                             name: "age",
                             value: {
                                 kind: "CoreIntLit",
@@ -1221,6 +1227,7 @@ describe("typeCheck - Integration Tests", () => {
                     },
                     updates: [
                         {
+                            kind: "Field",
                             name: "age",
                             value: {
                                 kind: "CoreIntLit",
@@ -1489,6 +1496,7 @@ describe("typeCheck - Integration Tests", () => {
                     kind: "CoreRecord",
                     fields: [
                         {
+                            kind: "Field",
                             name: "x",
                             value: {
                                 kind: "CoreIntLit",
@@ -1498,6 +1506,7 @@ describe("typeCheck - Integration Tests", () => {
                             loc: testLoc,
                         },
                         {
+                            kind: "Field",
                             name: "y",
                             value: {
                                 kind: "CoreIntLit",

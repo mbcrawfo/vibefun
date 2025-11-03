@@ -34,6 +34,7 @@ describe("Record Update - Single Field", () => {
             record: { kind: "Var", name: "person", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "age",
                     value: { kind: "IntLit", value: 31, loc: testLoc },
                     loc: testLoc,
@@ -48,9 +49,9 @@ describe("Record Update - Single Field", () => {
         expect(result.record.kind).toBe("CoreVar");
         expect((result.record as CoreVar).name).toBe("person");
         expect(result.updates).toHaveLength(1);
-        expect(result.updates[0]!.name).toBe("age");
-        expect(result.updates[0]!.value.kind).toBe("CoreIntLit");
-        expect((result.updates[0]!.value as CoreIntLit).value).toBe(31);
+        expect((result.updates[0]! as { name: string }).name).toBe("age");
+        expect((result.updates[0]! as { value: { kind: string } }).value.kind).toBe("CoreIntLit");
+        expect((result.updates[0]! as { value: CoreIntLit }).value.value).toBe(31);
     });
 
     it("should desugar field update with expression", () => {
@@ -60,6 +61,7 @@ describe("Record Update - Single Field", () => {
             record: { kind: "Var", name: "point", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "x",
                     value: {
                         kind: "BinOp",
@@ -82,9 +84,9 @@ describe("Record Update - Single Field", () => {
         const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect(result.updates[0]!.name).toBe("x");
+        expect((result.updates[0]! as { name: string }).name).toBe("x");
         // Value should be desugared BinOp
-        expect(result.updates[0]!.value.kind).toBe("CoreBinOp");
+        expect((result.updates[0]! as { value: { kind: string } }).value.kind).toBe("CoreBinOp");
     });
 });
 
@@ -96,11 +98,13 @@ describe("Record Update - Multiple Fields", () => {
             record: { kind: "Var", name: "person", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "age",
                     value: { kind: "IntLit", value: 31, loc: testLoc },
                     loc: testLoc,
                 },
                 {
+                    kind: "Field",
                     name: "name",
                     value: { kind: "StringLit", value: "Alice", loc: testLoc },
                     loc: testLoc,
@@ -113,10 +117,10 @@ describe("Record Update - Multiple Fields", () => {
 
         expect(result.kind).toBe("CoreRecordUpdate");
         expect(result.updates).toHaveLength(2);
-        expect(result.updates[0]!.name).toBe("age");
-        expect((result.updates[0]!.value as CoreIntLit).value).toBe(31);
-        expect(result.updates[1]!.name).toBe("name");
-        expect((result.updates[1]!.value as CoreStringLit).value).toBe("Alice");
+        expect((result.updates[0]! as { name: string }).name).toBe("age");
+        expect((result.updates[0]! as { value: CoreIntLit }).value.value).toBe(31);
+        expect((result.updates[1]! as { name: string }).name).toBe("name");
+        expect((result.updates[1]! as { value: CoreStringLit }).value.value).toBe("Alice");
     });
 
     it("should desugar three field update", () => {
@@ -126,16 +130,19 @@ describe("Record Update - Multiple Fields", () => {
             record: { kind: "Var", name: "config", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "host",
                     value: { kind: "StringLit", value: "localhost", loc: testLoc },
                     loc: testLoc,
                 },
                 {
+                    kind: "Field",
                     name: "port",
                     value: { kind: "IntLit", value: 8080, loc: testLoc },
                     loc: testLoc,
                 },
                 {
+                    kind: "Field",
                     name: "debug",
                     value: { kind: "BoolLit", value: true, loc: testLoc },
                     loc: testLoc,
@@ -148,9 +155,9 @@ describe("Record Update - Multiple Fields", () => {
 
         expect(result.kind).toBe("CoreRecordUpdate");
         expect(result.updates).toHaveLength(3);
-        expect(result.updates[0]!.name).toBe("host");
-        expect(result.updates[1]!.name).toBe("port");
-        expect(result.updates[2]!.name).toBe("debug");
+        expect((result.updates[0]! as { name: string }).name).toBe("host");
+        expect((result.updates[1]! as { name: string }).name).toBe("port");
+        expect((result.updates[2]! as { name: string }).name).toBe("debug");
     });
 });
 
@@ -162,6 +169,7 @@ describe("Record Update - Nested Updates", () => {
             record: { kind: "Var", name: "inner", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "value",
                     value: { kind: "IntLit", value: 42, loc: testLoc },
                     loc: testLoc,
@@ -175,6 +183,7 @@ describe("Record Update - Nested Updates", () => {
             record: { kind: "Var", name: "outer", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "inner",
                     value: innerUpdate,
                     loc: testLoc,
@@ -186,11 +195,11 @@ describe("Record Update - Nested Updates", () => {
         const result = desugar(outerUpdate) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect(result.updates[0]!.name).toBe("inner");
+        expect((result.updates[0]! as { name: string }).name).toBe("inner");
         // Inner value should be a desugared record update
-        expect(result.updates[0]!.value.kind).toBe("CoreRecordUpdate");
-        expect((result.updates[0]!.value as CoreRecordUpdate).record.kind).toBe("CoreVar");
-        expect(((result.updates[0]!.value as CoreRecordUpdate).record as CoreVar).name).toBe("inner");
+        expect((result.updates[0]! as { value: { kind: string } }).value.kind).toBe("CoreRecordUpdate");
+        expect((result.updates[0]! as { value: CoreRecordUpdate }).value.record.kind).toBe("CoreVar");
+        expect(((result.updates[0]! as { value: CoreRecordUpdate }).value.record as CoreVar).name).toBe("inner");
     });
 
     it("should desugar double nested update", () => {
@@ -200,6 +209,7 @@ describe("Record Update - Nested Updates", () => {
             record: { kind: "Var", name: "c", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "value",
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     loc: testLoc,
@@ -213,6 +223,7 @@ describe("Record Update - Nested Updates", () => {
             record: { kind: "Var", name: "b", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "c",
                     value: innermost,
                     loc: testLoc,
@@ -226,6 +237,7 @@ describe("Record Update - Nested Updates", () => {
             record: { kind: "Var", name: "a", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "b",
                     value: middle,
                     loc: testLoc,
@@ -237,9 +249,13 @@ describe("Record Update - Nested Updates", () => {
         const result = desugar(outer) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        const middleResult = result.updates[0]!.value as CoreRecordUpdate;
+        const middleResult = (result.updates[0]! as { value: unknown }).value as CoreRecordUpdate;
         expect(middleResult.kind).toBe("CoreRecordUpdate");
-        const innermostResult = middleResult.updates[0]!.value as CoreRecordUpdate;
+        const innermostField = middleResult.updates[0]!;
+        const innermostResult =
+            innermostField.kind === "Field"
+                ? (innermostField.value as CoreRecordUpdate)
+                : (innermostField.expr as CoreRecordUpdate);
         expect(innermostResult.kind).toBe("CoreRecordUpdate");
     });
 });
@@ -252,6 +268,7 @@ describe("Record Update - Complex Expressions", () => {
             record: { kind: "Var", name: "obj", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "callback",
                     value: {
                         kind: "Lambda",
@@ -274,7 +291,7 @@ describe("Record Update - Complex Expressions", () => {
         const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect(result.updates[0]!.value.kind).toBe("CoreLambda");
+        expect((result.updates[0]! as { value: { kind: string } }).value.kind).toBe("CoreLambda");
     });
 
     it("should desugar update with match expression", () => {
@@ -284,6 +301,7 @@ describe("Record Update - Complex Expressions", () => {
             record: { kind: "Var", name: "obj", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "result",
                     value: {
                         kind: "Match",
@@ -321,7 +339,7 @@ describe("Record Update - Complex Expressions", () => {
         const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect(result.updates[0]!.value.kind).toBe("CoreMatch");
+        expect((result.updates[0]! as { value: { kind: string } }).value.kind).toBe("CoreMatch");
     });
 
     it("should desugar update with record construction", () => {
@@ -331,16 +349,19 @@ describe("Record Update - Complex Expressions", () => {
             record: { kind: "Var", name: "outer", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "inner",
                     value: {
                         kind: "Record",
                         fields: [
                             {
+                                kind: "Field",
                                 name: "x",
                                 value: { kind: "IntLit", value: 1, loc: testLoc },
                                 loc: testLoc,
                             },
                             {
+                                kind: "Field",
                                 name: "y",
                                 value: { kind: "IntLit", value: 2, loc: testLoc },
                                 loc: testLoc,
@@ -357,8 +378,8 @@ describe("Record Update - Complex Expressions", () => {
         const result = desugar(update) as CoreRecordUpdate;
 
         expect(result.kind).toBe("CoreRecordUpdate");
-        expect(result.updates[0]!.value.kind).toBe("CoreRecord");
-        expect((result.updates[0]!.value as CoreRecord).fields).toHaveLength(2);
+        expect((result.updates[0]! as { value: { kind: string } }).value.kind).toBe("CoreRecord");
+        expect((result.updates[0]! as { value: CoreRecord }).value.fields).toHaveLength(2);
     });
 });
 
@@ -375,6 +396,7 @@ describe("Record Update - Base Record Expressions", () => {
             },
             updates: [
                 {
+                    kind: "Field",
                     name: "value",
                     value: { kind: "IntLit", value: 42, loc: testLoc },
                     loc: testLoc,
@@ -402,6 +424,7 @@ describe("Record Update - Base Record Expressions", () => {
             },
             updates: [
                 {
+                    kind: "Field",
                     name: "value",
                     value: { kind: "IntLit", value: 42, loc: testLoc },
                     loc: testLoc,
@@ -424,11 +447,13 @@ describe("Record Update - Base Record Expressions", () => {
                 kind: "Record",
                 fields: [
                     {
+                        kind: "Field",
                         name: "x",
                         value: { kind: "IntLit", value: 1, loc: testLoc },
                         loc: testLoc,
                     },
                     {
+                        kind: "Field",
                         name: "y",
                         value: { kind: "IntLit", value: 2, loc: testLoc },
                         loc: testLoc,
@@ -438,6 +463,7 @@ describe("Record Update - Base Record Expressions", () => {
             },
             updates: [
                 {
+                    kind: "Field",
                     name: "x",
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     loc: testLoc,
@@ -468,6 +494,7 @@ describe("Record Update - Source Locations", () => {
             record: { kind: "Var", name: "record", loc: testLoc },
             updates: [
                 {
+                    kind: "Field",
                     name: "field",
                     value: { kind: "IntLit", value: 1, loc: testLoc },
                     loc: testLoc,

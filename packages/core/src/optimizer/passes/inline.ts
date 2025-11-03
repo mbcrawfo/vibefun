@@ -210,7 +210,13 @@ export class InlineExpansionPass extends OptimizationPass {
                     return;
 
                 case "CoreRecord":
-                    e.fields.forEach((f) => countInExpr(f.value));
+                    e.fields.forEach((f) => {
+                        if (f.kind === "Field") {
+                            countInExpr(f.value);
+                        } else {
+                            countInExpr(f.expr);
+                        }
+                    });
                     return;
 
                 case "CoreRecordAccess":
@@ -219,7 +225,13 @@ export class InlineExpansionPass extends OptimizationPass {
 
                 case "CoreRecordUpdate":
                     countInExpr(e.record);
-                    e.updates.forEach((u) => countInExpr(u.value));
+                    e.updates.forEach((u) => {
+                        if (u.kind === "Field") {
+                            countInExpr(u.value);
+                        } else {
+                            countInExpr(u.expr);
+                        }
+                    });
                     return;
 
                 case "CoreVariant":

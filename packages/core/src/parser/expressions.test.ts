@@ -1964,36 +1964,37 @@ describe("Parser - Expressions", () => {
 
         describe("record update", () => {
             it("should parse record update with one field", () => {
-                const expr = parseExpression("{ record | x: 10 }");
+                const expr = parseExpression("{ ...record, x: 10 }");
 
                 expect(expr).toMatchObject({
                     kind: "RecordUpdate",
                     record: { kind: "Var", name: "record" },
-                    updates: [{ name: "x", value: { kind: "IntLit", value: 10 } }],
+                    updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 10 } }],
                 });
             });
 
             it("should parse record update with multiple fields", () => {
-                const expr = parseExpression("{ record | x: 10, y: 20 }");
+                const expr = parseExpression("{ ...record, x: 10, y: 20 }");
 
                 expect(expr).toMatchObject({
                     kind: "RecordUpdate",
                     record: { kind: "Var", name: "record" },
                     updates: [
-                        { name: "x", value: { kind: "IntLit", value: 10 } },
-                        { name: "y", value: { kind: "IntLit", value: 20 } },
+                        { kind: "Field", name: "x", value: { kind: "IntLit", value: 10 } },
+                        { kind: "Field", name: "y", value: { kind: "IntLit", value: 20 } },
                     ],
                 });
             });
 
             it("should parse record update with expressions", () => {
-                const expr = parseExpression("{ point | x: point.x + 1 }");
+                const expr = parseExpression("{ ...point, x: point.x + 1 }");
 
                 expect(expr).toMatchObject({
                     kind: "RecordUpdate",
                     record: { kind: "Var", name: "point" },
                     updates: [
                         {
+                            kind: "Field",
                             name: "x",
                             value: {
                                 kind: "BinOp",
@@ -2004,6 +2005,337 @@ describe("Parser - Expressions", () => {
                                     field: "x",
                                 },
                                 right: { kind: "IntLit", value: 1 },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse record spread only (shallow copy)", () => {
+                const expr = parseExpression("{ ...obj }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [],
+                });
+            });
+
+            it("should parse record with multiple spreads", () => {
+                const expr = parseExpression("{ ...a, ...b }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "a" },
+                    updates: [{ kind: "Spread", expr: { kind: "Var", name: "b" } }],
+                });
+            });
+
+            it("should parse record with spread and multiple fields", () => {
+                const expr = parseExpression("{ ...base, x: 1, y: 2 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "base" },
+                    updates: [
+                        { kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } },
+                        { kind: "Field", name: "y", value: { kind: "IntLit", value: 2 } },
+                    ],
+                });
+            });
+
+            it("should parse record with multiple spreads and fields", () => {
+                const expr = parseExpression("{ ...a, ...b, x: 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "a" },
+                    updates: [
+                        { kind: "Spread", expr: { kind: "Var", name: "b" } },
+                        { kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } },
+                    ],
+                });
+            });
+
+            it("should parse record with nested spread", () => {
+                const expr = parseExpression("{ ...obj, nested: { ...obj.nested, x: 1 } }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [
+                        {
+                            kind: "Field",
+                            name: "nested",
+                            value: {
+                                kind: "RecordUpdate",
+                                record: {
+                                    kind: "RecordAccess",
+                                    record: { kind: "Var", name: "obj" },
+                                    field: "nested",
+                                },
+                                updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } }],
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse spread with function call", () => {
+                const expr = parseExpression("{ ...getDefaults(), x: 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: {
+                        kind: "App",
+                        func: { kind: "Var", name: "getDefaults" },
+                        args: [],
+                    },
+                    updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } }],
+                });
+            });
+
+            it("should parse spread with complex expression", () => {
+                const expr = parseExpression("{ ...if condition then a else b, x: 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: {
+                        kind: "If",
+                        condition: { kind: "Var", name: "condition" },
+                        then: { kind: "Var", name: "a" },
+                        else_: { kind: "Var", name: "b" },
+                    },
+                    updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } }],
+                });
+            });
+
+            it("should parse triple spread", () => {
+                const expr = parseExpression("{ ...a, ...b, ...c }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "a" },
+                    updates: [
+                        { kind: "Spread", expr: { kind: "Var", name: "b" } },
+                        { kind: "Spread", expr: { kind: "Var", name: "c" } },
+                    ],
+                });
+            });
+
+            it("should parse spread with string field names", () => {
+                const expr = parseExpression('{ ...obj, name: "Alice", age: 30 }');
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [
+                        { kind: "Field", name: "name", value: { kind: "StringLit", value: "Alice" } },
+                        { kind: "Field", name: "age", value: { kind: "IntLit", value: 30 } },
+                    ],
+                });
+            });
+
+            it("should parse spread in pipeline", () => {
+                const expr = parseExpression("{ ...obj, x: 1 } |> process");
+
+                expect(expr).toMatchObject({
+                    kind: "Pipe",
+                    expr: {
+                        kind: "RecordUpdate",
+                        record: { kind: "Var", name: "obj" },
+                        updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } }],
+                    },
+                    func: { kind: "Var", name: "process" },
+                });
+            });
+
+            it("should parse spread with boolean fields", () => {
+                const expr = parseExpression("{ ...config, enabled: true, debug: false }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "config" },
+                    updates: [
+                        { kind: "Field", name: "enabled", value: { kind: "BoolLit", value: true } },
+                        { kind: "Field", name: "debug", value: { kind: "BoolLit", value: false } },
+                    ],
+                });
+            });
+
+            it("should parse spread with record literal as base", () => {
+                const expr = parseExpression("{ ...{ x: 1, y: 2 }, x: 3 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: {
+                        kind: "Record",
+                        fields: [
+                            { kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } },
+                            { kind: "Field", name: "y", value: { kind: "IntLit", value: 2 } },
+                        ],
+                    },
+                    updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 3 } }],
+                });
+            });
+
+            it("should parse spread with field access", () => {
+                const expr = parseExpression("{ ...obj.nested, x: 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: {
+                        kind: "RecordAccess",
+                        record: { kind: "Var", name: "obj" },
+                        field: "nested",
+                    },
+                    updates: [{ kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } }],
+                });
+            });
+
+            it("should parse spread with computed field value", () => {
+                const expr = parseExpression("{ ...obj, x: y + z, a: b * c }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [
+                        {
+                            kind: "Field",
+                            name: "x",
+                            value: {
+                                kind: "BinOp",
+                                op: "Add",
+                                left: { kind: "Var", name: "y" },
+                                right: { kind: "Var", name: "z" },
+                            },
+                        },
+                        {
+                            kind: "Field",
+                            name: "a",
+                            value: {
+                                kind: "BinOp",
+                                op: "Multiply",
+                                left: { kind: "Var", name: "b" },
+                                right: { kind: "Var", name: "c" },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse spread with lambda field value", () => {
+                const expr = parseExpression("{ ...obj, callback: (x) => x + 1 }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [
+                        {
+                            kind: "Field",
+                            name: "callback",
+                            value: {
+                                kind: "Lambda",
+                                params: [{ kind: "VarPattern", name: "x" }],
+                                body: {
+                                    kind: "BinOp",
+                                    op: "Add",
+                                    left: { kind: "Var", name: "x" },
+                                    right: { kind: "IntLit", value: 1 },
+                                },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse spread with list field value", () => {
+                const expr = parseExpression("{ ...obj, items: [1, 2, 3] }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [
+                        {
+                            kind: "Field",
+                            name: "items",
+                            value: {
+                                kind: "List",
+                                elements: [
+                                    { kind: "Element", expr: { kind: "IntLit", value: 1 } },
+                                    { kind: "Element", expr: { kind: "IntLit", value: 2 } },
+                                    { kind: "Element", expr: { kind: "IntLit", value: 3 } },
+                                ],
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse multiple sequential spreads with fields", () => {
+                const expr = parseExpression("{ ...a, x: 1, ...b, y: 2, ...c }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "a" },
+                    updates: [
+                        { kind: "Field", name: "x", value: { kind: "IntLit", value: 1 } },
+                        { kind: "Spread", expr: { kind: "Var", name: "b" } },
+                        { kind: "Field", name: "y", value: { kind: "IntLit", value: 2 } },
+                        { kind: "Spread", expr: { kind: "Var", name: "c" } },
+                    ],
+                });
+            });
+
+            it("should parse spread with match expression field", () => {
+                const expr = parseExpression("{ ...obj, value: match x { | Some(v) => v | None => 0 } }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "obj" },
+                    updates: [
+                        {
+                            kind: "Field",
+                            name: "value",
+                            value: {
+                                kind: "Match",
+                                expr: { kind: "Var", name: "x" },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it("should parse deeply nested spreads", () => {
+                const expr = parseExpression("{ ...a, b: { ...c, d: { ...e, f: 1 } } }");
+
+                expect(expr).toMatchObject({
+                    kind: "RecordUpdate",
+                    record: { kind: "Var", name: "a" },
+                    updates: [
+                        {
+                            kind: "Field",
+                            name: "b",
+                            value: {
+                                kind: "RecordUpdate",
+                                record: { kind: "Var", name: "c" },
+                                updates: [
+                                    {
+                                        kind: "Field",
+                                        name: "d",
+                                        value: {
+                                            kind: "RecordUpdate",
+                                            record: { kind: "Var", name: "e" },
+                                            updates: [
+                                                {
+                                                    kind: "Field",
+                                                    name: "f",
+                                                    value: { kind: "IntLit", value: 1 },
+                                                },
+                                            ],
+                                        },
+                                    },
+                                ],
                             },
                         },
                     ],

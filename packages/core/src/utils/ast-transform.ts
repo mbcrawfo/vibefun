@@ -103,10 +103,19 @@ export function transformChildren(expr: CoreExpr, fn: Transformer): CoreExpr {
         case "CoreRecord":
             return {
                 ...expr,
-                fields: expr.fields.map((field) => ({
-                    ...field,
-                    value: transformExpr(field.value, fn),
-                })),
+                fields: expr.fields.map((field) => {
+                    if (field.kind === "Field") {
+                        return {
+                            ...field,
+                            value: transformExpr(field.value, fn),
+                        };
+                    } else {
+                        return {
+                            ...field,
+                            expr: transformExpr(field.expr, fn),
+                        };
+                    }
+                }),
             };
 
         // Record access
@@ -121,10 +130,19 @@ export function transformChildren(expr: CoreExpr, fn: Transformer): CoreExpr {
             return {
                 ...expr,
                 record: transformExpr(expr.record, fn),
-                updates: expr.updates.map((update) => ({
-                    ...update,
-                    value: transformExpr(update.value, fn),
-                })),
+                updates: expr.updates.map((update) => {
+                    if (update.kind === "Field") {
+                        return {
+                            ...update,
+                            value: transformExpr(update.value, fn),
+                        };
+                    } else {
+                        return {
+                            ...update,
+                            expr: transformExpr(update.expr, fn),
+                        };
+                    }
+                }),
             };
 
         // Variant
@@ -266,7 +284,13 @@ export function visitExpr(expr: CoreExpr, fn: Visitor): void {
             return;
 
         case "CoreRecord":
-            expr.fields.forEach((field) => visitExpr(field.value, fn));
+            expr.fields.forEach((field) => {
+                if (field.kind === "Field") {
+                    visitExpr(field.value, fn);
+                } else if (field.kind === "Spread") {
+                    visitExpr(field.expr, fn);
+                }
+            });
             return;
 
         case "CoreRecordAccess":
@@ -275,7 +299,13 @@ export function visitExpr(expr: CoreExpr, fn: Visitor): void {
 
         case "CoreRecordUpdate":
             visitExpr(expr.record, fn);
-            expr.updates.forEach((update) => visitExpr(update.value, fn));
+            expr.updates.forEach((update) => {
+                if (update.kind === "Field") {
+                    visitExpr(update.value, fn);
+                } else if (update.kind === "Spread") {
+                    visitExpr(update.expr, fn);
+                }
+            });
             return;
 
         case "CoreVariant":

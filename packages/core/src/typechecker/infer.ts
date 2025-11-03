@@ -980,9 +980,25 @@ function inferRecord(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
 
     // Infer the type of each field
     for (const field of expr.fields) {
-        const fieldResult = inferExpr(currentCtx, field.value);
-        currentCtx = { ...currentCtx, subst: fieldResult.subst };
-        fieldTypes.set(field.name, fieldResult.type);
+        if (field.kind === "Field") {
+            // Handle explicit field
+            const fieldResult = inferExpr(currentCtx, field.value);
+            currentCtx = { ...currentCtx, subst: fieldResult.subst };
+            fieldTypes.set(field.name, fieldResult.type);
+        } else {
+            // Handle spread - infer the spread expression and merge its fields
+            const spreadResult = inferExpr(currentCtx, field.expr);
+            currentCtx = { ...currentCtx, subst: spreadResult.subst };
+
+            // The spread expression should be a record type
+            const spreadType = applySubst(currentCtx.subst, spreadResult.type);
+            if (spreadType.type === "Record") {
+                // Merge fields from the spread expression
+                for (const [fieldName, fieldType] of spreadType.fields) {
+                    fieldTypes.set(fieldName, fieldType);
+                }
+            }
+        }
     }
 
     // Create the record type
@@ -1081,45 +1097,67 @@ function inferRecordUpdate(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
 
     // Infer and check each update
     for (const update of expr.updates) {
-        // Check that the field exists in the original record
-        if (!recordType.fields.has(update.name)) {
-            const availableFields = Array.from(recordType.fields.keys()).join(", ");
-            throw new TypeError(
-                `Cannot update non-existent field '${update.name}'`,
-                update.loc,
-                `Available fields: ${availableFields || "(none)"}`,
-            );
-        }
-
-        // Infer the type of the update value
-        const updateResult = inferExpr(currentCtx, update.value);
-        currentCtx = { ...currentCtx, subst: updateResult.subst };
-
-        // Get the expected field type (after applying current substitution)
-        const originalFieldType = recordType.fields.get(update.name);
-        if (!originalFieldType) {
-            throw new Error(`Field ${update.name} unexpectedly missing from record type`);
-        }
-        const expectedType = applySubst(currentCtx.subst, originalFieldType);
-        const actualType = updateResult.type;
-
-        // Unify the update value type with the field type
-        try {
-            const unifySubst = unify(actualType, expectedType);
-            currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw error;
+        if (update.kind === "Field") {
+            // Handle explicit field update
+            // Check that the field exists in the original record
+            if (!recordType.fields.has(update.name)) {
+                const availableFields = Array.from(recordType.fields.keys()).join(", ");
+                throw new TypeError(
+                    `Cannot update non-existent field '${update.name}'`,
+                    update.loc,
+                    `Available fields: ${availableFields || "(none)"}`,
+                );
             }
-            throw new TypeError(
-                `Type mismatch in record update for field '${update.name}'`,
-                update.loc,
-                `Expected ${typeToString(expectedType)}, but got ${typeToString(actualType)}`,
-            );
-        }
 
-        // Update the field in the new map
-        newFields.set(update.name, applySubst(currentCtx.subst, actualType));
+            // Infer the type of the update value
+            const updateResult = inferExpr(currentCtx, update.value);
+            currentCtx = { ...currentCtx, subst: updateResult.subst };
+
+            // Get the expected field type (after applying current substitution)
+            const originalFieldType = recordType.fields.get(update.name);
+            if (!originalFieldType) {
+                throw new Error(`Field ${update.name} unexpectedly missing from record type`);
+            }
+            const expectedType = applySubst(currentCtx.subst, originalFieldType);
+            const actualType = updateResult.type;
+
+            // Unify the update value type with the field type
+            try {
+                const unifySubst = unify(actualType, expectedType);
+                currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
+            } catch (error) {
+                if (error instanceof TypeError) {
+                    throw error;
+                }
+                throw new TypeError(
+                    `Type mismatch in record update for field '${update.name}'`,
+                    update.loc,
+                    `Expected ${typeToString(expectedType)}, but got ${typeToString(actualType)}`,
+                );
+            }
+
+            // Update the field in the new map
+            newFields.set(update.name, applySubst(currentCtx.subst, actualType));
+        } else {
+            // Handle spread update - infer the spread expression type
+            const spreadResult = inferExpr(currentCtx, update.expr);
+            currentCtx = { ...currentCtx, subst: spreadResult.subst };
+
+            // The spread expression should be a record type
+            const spreadType = applySubst(currentCtx.subst, spreadResult.type);
+            if (spreadType.type !== "Record") {
+                throw new TypeError(
+                    `Cannot spread non-record type in record update`,
+                    update.loc,
+                    `Expected a record type, but got ${typeToString(spreadType)}`,
+                );
+            }
+
+            // Merge fields from the spread expression into the new fields map
+            for (const [fieldName, fieldType] of spreadType.fields) {
+                newFields.set(fieldName, fieldType);
+            }
+        }
     }
 
     // Create the updated record type

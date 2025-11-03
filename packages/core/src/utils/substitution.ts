@@ -311,10 +311,19 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
             case "CoreRecord":
                 return {
                     ...e,
-                    fields: e.fields.map((field) => ({
-                        ...field,
-                        value: substExpr(field.value),
-                    })),
+                    fields: e.fields.map((field) => {
+                        if (field.kind === "Field") {
+                            return {
+                                ...field,
+                                value: substExpr(field.value),
+                            };
+                        } else {
+                            return {
+                                ...field,
+                                expr: substExpr(field.expr),
+                            };
+                        }
+                    }),
                 };
 
             case "CoreRecordAccess":
@@ -327,10 +336,19 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
                 return {
                     ...e,
                     record: substExpr(e.record),
-                    updates: e.updates.map((update) => ({
-                        ...update,
-                        value: substExpr(update.value),
-                    })),
+                    updates: e.updates.map((update) => {
+                        if (update.kind === "Field") {
+                            return {
+                                ...update,
+                                value: substExpr(update.value),
+                            };
+                        } else {
+                            return {
+                                ...update,
+                                expr: substExpr(update.expr),
+                            };
+                        }
+                    }),
                 };
 
             case "CoreVariant":

@@ -362,7 +362,7 @@ describe("Parser - Integration", () => {
 
                 export let distance = (p1, p2) => (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y)
 
-                export let translate = (point, dx, dy) => { point | x: point.x + dx, y: point.y + dy }
+                export let translate = (point, dx, dy) => { ...point, x: point.x + dx, y: point.y + dy }
             `;
             const module = parseModule(source);
 
@@ -510,7 +510,7 @@ describe("Parser - Integration", () => {
         it("parses record construction and update", () => {
             const source = `
                 let point = { x: 10, y: 20 }
-                let movedPoint = { point | x: point.x + 5 }
+                let movedPoint = { ...point, x: point.x + 5 }
             `;
             const module = parseModule(source);
 

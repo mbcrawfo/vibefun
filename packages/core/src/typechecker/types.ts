@@ -507,7 +507,14 @@ export function isSyntacticValue(expr: CoreExpr): boolean {
 
         // Records are syntactic values if all field values are
         case "CoreRecord":
-            return expr.fields.every((field) => isSyntacticValue(field.value));
+            return expr.fields.every((field) => {
+                if (field.kind === "Field") {
+                    return isSyntacticValue(field.value);
+                } else {
+                    // Spread field: the expression must be a syntactic value
+                    return isSyntacticValue(field.expr);
+                }
+            });
 
         // Type annotations: check the inner expression
         case "CoreTypeAnnotation":
