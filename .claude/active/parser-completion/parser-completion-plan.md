@@ -1,9 +1,9 @@
 # Parser Completion Plan (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02 (Deep Analysis + User Decisions)
-**Status:** Ready to implement - All decisions finalized
-**Revision:** Critical issues identified, plan updated, user decisions incorporated
+**Last Updated:** 2025-11-02 (Phase -1 Completed)
+**Status:** Phase -1 Complete ✅ - Ready for Phase 0 implementation
+**Revision:** Phase -1 audit completed, migration scope verified (10 items), timeline adjusted
 
 ## Critical Findings from Deep Analysis
 
@@ -35,46 +35,55 @@
 
 ## Revised Implementation Phases
 
-### Phase -1: Pre-Implementation Preparation (NEW - ADDED 2025-11-02)
+### Phase -1: Pre-Implementation Preparation ✅ COMPLETE (2025-11-02)
 
 **Goal:** Comprehensive audit and error message definitions before starting implementation
 
 **Impact:** LOW RISK - preparation work, no code changes
 
-#### -1.1 Comprehensive Codebase Audit
+**Status:** ✅ COMPLETE
+**Actual Time:** ~2 hours
+
+#### -1.1 Comprehensive Codebase Audit ✅ COMPLETE
 **Objective:** Find ALL instances of pipe syntax and RecordUpdate usage
 
-**Tasks:**
-- Run: `rg '\{\s*\w+\s*\|' --type ts --type test` to find all pipe syntax usage
-- Count affected test files (parser, desugarer, type-checker, optimizer)
-- Identify all files that reference RecordUpdate (currently ~19 files)
-- Document audit findings in context.md
-- Estimate true scope of test migration work
+**Results:**
+- ✅ Found **45 occurrences** of pipe syntax across **15 files**
+- ✅ Migration scope: **10 items total**
+  - **5 parser test cases** (expressions.test.ts: 3, parser-integration.test.ts: 2)
+  - **5 code comments** (parser.ts: 4, core-ast.ts: 1)
+- ✅ Desugarer tests (13 tests): **NO MIGRATION NEEDED** - AST-based validators only
+- ✅ Type-checker: **2 false positives** (string templates, not syntax)
+- ✅ No example `.vf` files exist - no external migration needed
+- ✅ Downstream impact: **MINIMAL** (LOW RISK confirmed)
 
-#### -1.2 Error Message Definitions
+**Key Insight:** Desugarer tests validate integration but don't need syntax migration
+
+#### -1.2 Error Message Definitions ✅ COMPLETE
 **Objective:** Define exact error messages before implementing error handling
 
-**Error Cases to Define:**
+**Error Messages Defined:**
 
-| Syntax Error | Example | Proposed Error Message |
-|-------------|---------|------------------------|
+| Syntax Error | Example | Error Message |
+|-------------|---------|---------------|
 | Empty spread in record | `{...}` | "Expected expression after spread operator '...' in record" |
 | Empty spread in list | `[...]` | "Expected expression after spread operator '...' in list" |
-| Invalid spread position | `{..., x: 1}` | "Unexpected comma before spread operator. Spread must come after '{'"|
+| Invalid spread position | `{..., x: 1}` | "Unexpected comma before spread operator. Spread must come after '{'" |
 | Missing closing brace | `{...obj, x: 1` | "Expected '}' after record fields" |
 | Missing closing bracket | `[...items` | "Expected ']' after list elements" |
-| Multiple spreads parsing | `{...a, ...b}` | (Should succeed - nested RecordUpdate) |
+| Multiple spreads parsing | `{...a, ...b}` | ✅ Should succeed - creates nested RecordUpdate |
 
-**Deliverable:** Error message table in context.md
+**Deliverable:** ✅ Error message table documented in context.md
 
-#### -1.3 Baseline Test Count Verification
-**Tasks:**
-- Run test suite and confirm current parser test count
-- Document: ~346 parser tests currently (not ~305)
-- Update final target: ~346 + ~115 = ~461 tests (not ~395-405)
-- Update context.md and tasks.md with correct baseline
+#### -1.3 Baseline Test Count Verification ✅ COMPLETE
+**Verified Baselines:**
+- ✅ Current parser tests: **346** (verified via grep)
+- ✅ Current total tests: **1705** (verified via npm test)
+- ✅ Target parser tests: **~466-471** (346 + 120-125 new)
+- ✅ Target total tests: **~1825-1830** (1705 + 120-125 new)
+- ✅ All documents updated with correct baselines
 
-**Estimated time:** 2 hours
+**Phase -1 Complete ✅** - Full audit results documented in context.md
 
 ---
 
@@ -152,7 +161,7 @@
 - Edge: empty spread `{...}` - should error with defined message from Phase -1
 - Edge: spread with no fields after `{...obj, ...obj2}`
 
-**Estimated time:** 3-4 hours (risky - existing code changes)
+**Estimated time:** 4-5 hours (adjusted from 3-4 hours to account for 5 comment updates + risky code changes)
 
 ---
 
@@ -604,15 +613,14 @@ npm run format     # Prettier formatting
 
 ## Timeline Estimate (Revised with Phase -1)
 
-- **Phase -1** (Pre-implementation prep): 2 hours
-  - Audit codebase, define error messages, verify baseline
+- **Phase -1** (Preparation): ✅ 2 hours COMPLETE
+  - Audit, error messages, baseline verification
 
-- **Phase 0** (Record spread migration): 3-4 hours
-  - Risky: modifying existing feature
-  - Need to update existing tests
+- **Phase 0** (Record spread): 4-5 hours
+  - High risk: existing code changes + comment updates
 
 - **Phase 1** (List spread): 1-2 hours
-  - Straightforward: AST ready
+  - Simple: straightforward addition
 
 - **Phase 2** (Postfix !): 1-2 hours
   - Simple: clean postfix operator
@@ -626,21 +634,22 @@ npm run format     # Prettier formatting
 - **Phase 5** (Validation & docs): 1 hour
   - Standard: run checks, write docs
 
-**Total: 12-17 hours** for complete implementation (was 10-15)
+**Total: 13-19 hours** for complete implementation (Phase -1: 2h ✅ complete | Remaining: 11-17h)
+**Confidence: 95%** (up from 85% pre-audit)
 
 ---
 
 ## Implementation Order (Critical Path)
 
-1. **Phase -1 FIRST** (Preparation) - Must understand scope before starting
-2. **Phase 0** (Record spread) - Most risky, get it done early after prep
+1. ~~**Phase -1**~~ (Preparation) - ✅ COMPLETE - Understood full scope
+2. **Phase 0 NEXT** (Record spread) - Most risky, tackle immediately ⬅️ START HERE
 3. **Phase 1** (List spread) - While in "spread parsing" mindset
 4. **Phase 2** (Postfix !) - Independent, can be done anytime
 5. **Phase 3** (Re-exports) - Independent, can be done anytime
 6. **Phase 4** (Enhanced tests) - After all features work
 7. **Phase 5** (Validation) - Final quality check
 
-**Rationale:** Phase -1 prevents surprises in Phase 0. Tackle the riskiest work (record spread) after understanding full scope. Group similar work (spreads) together.
+**Rationale:** Phase -1 complete - migration scope verified (10 items), downstream impact minimal (LOW RISK). Now tackle the riskiest work (record spread) with full understanding of scope. Group similar work (spreads) together.
 
 ---
 

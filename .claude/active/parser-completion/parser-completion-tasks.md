@@ -1,9 +1,9 @@
 # Parser Completion - Task Checklist (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02 (Deep Analysis + User Decisions)
-**Status:** Ready to Start - All decisions finalized
-**Revision:** Critical findings incorporated, plan completely revised, all user decisions finalized
+**Last Updated:** 2025-11-02 (Phase -1 Completed)
+**Status:** Phase -1 Complete - Ready for Phase 0 Implementation
+**Revision:** Phase -1 audit completed, migration scope verified (10 items), timeline adjusted
 
 ## Overview
 
@@ -23,50 +23,65 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 
 ## Phase -1: Pre-Implementation Preparation (NEW - ADDED 2025-11-02)
 
-**Status:** 🔜 Not Started
+**Status:** ✅ COMPLETE (2025-11-02)
 **Goal:** Audit codebase and define error messages before starting implementation
 **Risk:** LOW - no code changes, just preparation
+**Actual Time:** ~2 hours
 
-### -1.1 Comprehensive Codebase Audit
+### -1.1 Comprehensive Codebase Audit ✅ COMPLETE
 
-- [ ] Run grep for pipe syntax: `rg '\{\s*\w+\s*\|' --type ts`
-- [ ] Document all affected files and line numbers
-- [ ] Count total instances found
-- [ ] Identify affected test files:
-  - [ ] Parser tests
-  - [ ] Desugarer tests
-  - [ ] Type-checker tests
-  - [ ] Optimizer tests
-  - [ ] Integration tests
-- [ ] Run grep for RecordUpdate references: `rg 'RecordUpdate' --type ts`
-- [ ] Identify ~19 files that reference RecordUpdate
-- [ ] Check if any need updates for nested RecordUpdate approach
-- [ ] Document audit results in context.md under "Phase -1 Audit Results"
-- [ ] Update test migration estimate based on actual count
+- [x] Run grep for pipe syntax: `rg '\{\s*\w+\s*\|' --type ts`
+- [x] Document all affected files and line numbers
+- [x] Count total instances found: **45 occurrences across 15 files**
+- [x] Identify affected test files:
+  - [x] Parser tests: **5 test cases** (expressions.test.ts: 3, parser-integration.test.ts: 2)
+  - [x] Desugarer tests: **13 tests** (records.test.ts - NO MIGRATION NEEDED, AST-based)
+  - [x] Type-checker tests: **2 false positives** (string templates, not syntax)
+  - [x] Optimizer tests: None found
+  - [x] Integration tests: Already counted in parser tests
+- [x] Run grep for RecordUpdate references: `rg 'RecordUpdate' --type ts`
+- [x] Identify files that reference RecordUpdate
+- [x] Check if any need updates for nested RecordUpdate approach: **Minimal impact confirmed**
+- [x] Document audit results in context.md under "Phase -1 Audit Results"
+- [x] Update test migration estimate based on actual count: **10 items (5 tests + 5 comments)**
 
-### -1.2 Error Message Definitions
+**Key Findings:**
+- Migration scope: **5 parser tests + 5 code comments = 10 items**
+- Desugarer tests are **integration validators only** - no migration needed
+- No example `.vf` files exist - no external migration
+- Downstream impact: **MINIMAL** (LOW RISK confirmed)
 
-- [ ] Review error cases from plan.md Phase -1 section
-- [ ] Define exact error message for empty spread in record: `{...}`
-- [ ] Define exact error message for empty spread in list: `[...]`
-- [ ] Define exact error message for invalid spread position: `{..., x: 1}`
-- [ ] Define error message for missing closing brace: `{...obj, x: 1`
-- [ ] Define error message for missing closing bracket: `[...items`
-- [ ] Create error message table in context.md (already added)
-- [ ] Verify error messages are clear, actionable, and helpful
-- [ ] Add suggestions to error messages where applicable
+### -1.2 Error Message Definitions ✅ COMPLETE
 
-### -1.3 Baseline Test Count Verification
+- [x] Review error cases from plan.md Phase -1 section
+- [x] Define exact error message for empty spread in record: `{...}`
+- [x] Define exact error message for empty spread in list: `[...]`
+- [x] Define exact error message for invalid spread position: `{..., x: 1}`
+- [x] Define error message for missing closing brace: `{...obj, x: 1`
+- [x] Define error message for missing closing bracket: `[...items`
+- [x] Create error message table in context.md (already added)
+- [x] Verify error messages are clear, actionable, and helpful
+- [x] Add suggestions to error messages where applicable
 
-- [ ] Run full test suite: `npm test 2>&1 | grep -E "Test Files|Tests|passing"`
-- [ ] Document current parser test count (verify ~346 tests)
-- [ ] Document current total test count (~1705 tests)
-- [ ] Calculate new target: ~346 + ~118 = ~464 parser tests
-- [ ] Update context.md with verified baseline
-- [ ] Update tasks.md summary with verified numbers
-- [ ] Update plan.md success criteria with correct targets
+**All error messages defined in context.md Phase -1 section.**
 
-**Subtotal Phase -1:** ~2 hours preparation work
+### -1.3 Baseline Test Count Verification ✅ COMPLETE
+
+- [x] Run full test suite: `npm test 2>&1 | grep -E "Test Files|Tests|passing"`
+- [x] Document current parser test count: **346 tests** (VERIFIED)
+- [x] Document current total test count: **1705 tests**
+- [x] Calculate new target: **~346 + ~120-125 = ~466-471 parser tests**
+- [x] Update context.md with verified baseline
+- [x] Update tasks.md summary with verified numbers
+- [x] Update plan.md success criteria with correct targets
+
+**Verified Baselines:**
+- Current parser tests: **346** ✅
+- Current total tests: **1705** ✅
+- Target parser tests: **~466-471** ✅
+- Target total tests: **~1825-1830** ✅
+
+**Subtotal Phase -1:** ~2 hours preparation work ✅ COMPLETE
 
 ---
 
@@ -171,7 +186,8 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 - [ ] Verify all tests pass
 - [ ] Verify nested RecordUpdate AST structure in tests
 
-**Subtotal Phase 0:** ~20 new tests + ~5-10 migrated tests = ~25-30 total
+**Subtotal Phase 0:** ~20 new tests + ~5 migrated tests + ~5 comment updates = ~30 total items
+**Estimated Time:** 4-5 hours (adjusted from 3-4 hours for comment updates)
 
 ---
 
@@ -604,28 +620,29 @@ Task checklist for completing vibefun parser to 100% spec coverage.
 ## Summary Progress
 
 ### By Phase
-- [ ] Phase -1: Pre-Implementation Preparation (0 tasks, LOW RISK) ✨ NEW
-- [ ] Phase 0: Record Spread Migration (0/25-30 tests, HIGH RISK)
-- [ ] Phase 1: List Spread (0/10 tests, LOW RISK)
-- [ ] Phase 2: Postfix Deref (0/15 tests, LOW RISK)
-- [ ] Phase 3: Re-exports (0/10 tests, LOW RISK)
-- [ ] Phase 4: Enhanced Tests (0/60 tests, MEDIUM RISK)
-- [ ] Phase 5: Validation & Docs (0 tasks)
+- [x] Phase -1: Pre-Implementation Preparation ✅ COMPLETE (~2 hours)
+- [ ] Phase 0: Record Spread Migration (0/30 items, HIGH RISK) - 4-5 hours
+- [ ] Phase 1: List Spread (0/10 tests, LOW RISK) - 1-2 hours
+- [ ] Phase 2: Postfix Deref (0/15 tests, LOW RISK) - 1-2 hours
+- [ ] Phase 3: Re-exports (0/10 tests, LOW RISK) - 1-2 hours
+- [ ] Phase 4: Enhanced Tests (0/60 tests, MEDIUM RISK) - 3-4 hours
+- [ ] Phase 5: Validation & Docs (0 tasks) - 1 hour
 
 ### Overall
 - **Tests Added/Updated:** 0/~120-125
-- **Parser Tests:** ~346/~466-471 (baseline CORRECTED)
-- **Total Tests:** ~1705/~1825-1830
+- **Parser Tests:** 346/~466-471 (baseline VERIFIED ✅)
+- **Total Tests:** 1705/~1825-1830 (baseline VERIFIED ✅)
 - **Spec Coverage:** 96%/100%
-- **Status:** 🔜 Not Started
-- **Estimated Time:** 12-17 hours (was 10-15, added Phase -1)
+- **Status:** Phase -1 Complete ✅ - Ready for Phase 0
+- **Estimated Time:** 13-19 hours total (Phase -1: 2h ✅ | Remaining: 11-17h)
+- **Confidence:** 95% (up from 85% pre-audit)
 
 ---
 
 ## Implementation Order (Critical Path)
 
-1. **Phase -1 FIRST** ✨ NEW - Preparation (must understand scope before starting)
-2. **Phase 0** - Record spread (most risky, do early after prep)
+1. ~~**Phase -1**~~ - ✅ COMPLETE - Preparation (audit + error messages)
+2. **Phase 0 NEXT** - Record spread (most risky, do early after prep) ⬅️ START HERE
 3. **Phase 1** - List spread (while in spread mindset)
 4. **Phase 2** - Postfix ! (independent, anytime)
 5. **Phase 3** - Re-exports (independent, anytime)

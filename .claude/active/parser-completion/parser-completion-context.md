@@ -1,8 +1,8 @@
 # Parser Completion - Context & Key Files (REVISED)
 
 **Created:** 2025-11-02
-**Last Updated:** 2025-11-02 (Deep Analysis + User Decisions)
-**Revision:** Critical findings incorporated, all decisions finalized
+**Last Updated:** 2025-11-02 (Phase -1 Audit Completed)
+**Revision:** Phase -1 audit completed, migration scope verified, plan validated
 
 ## Overview
 
@@ -353,6 +353,146 @@ From comprehensive parser audit (2025-11-02):
 - **Maintainability:** Very good, clear code
 - **Performance:** Good (no benchmarks yet)
 
+## Phase -1 Audit Results (COMPLETED 2025-11-02)
+
+### Execution Summary
+✅ **Phase -1 complete** - Comprehensive codebase audit performed
+- **Date completed:** 2025-11-02
+- **Scope:** All parser tests, implementation files, and downstream impacts
+- **Outcome:** Migration scope CONFIRMED, plan validated
+
+### Test Baseline Verification ✅
+- **Current parser tests**: **346 tests** (VERIFIED via `grep -rh "it(" src/parser/*.test.ts | wc -l`)
+- **Total project tests**: 1705 tests across 67 files
+- **Plan baseline**: 346 ✅ ACCURATE
+- **Target after completion**: ~466-471 tests (+120-125 new tests)
+
+### Migration Scope Analysis - EXACT NUMBERS
+
+#### 1. Parser Test Migrations (5 test cases)
+**File: `expressions.test.ts`** (3 tests with pipe syntax)
+- Line 1967: `"{ record | x: 10 }"`
+- Line 1977: `"{ record | x: 10, y: 20 }"`
+- Line 1990: `"{ point | x: point.x + 1 }"`
+
+**File: `parser-integration.test.ts`** (2 tests with pipe syntax)
+- Line 365: Integration test with record update
+- Line 513: Integration test with record update
+
+**Action**: Change syntax from `{ record | field: value }` to `{ ...record, field: value }`
+
+#### 2. Code Comment Updates (5 comments)
+**File: `parser.ts`** (4 comments)
+- Line 772: Function documentation comment
+- Line 786: Logic comment
+- Line 796: Syntax comment
+- Line 1064: Logic comment
+
+**File: `core-ast.ts`** (1 comment)
+- Line 207: Type documentation comment
+
+**Action**: Update comments to reflect spread syntax instead of pipe syntax
+
+#### 3. Desugarer Tests - NO MIGRATION NEEDED ✅
+**File: `records.test.ts`** (13 tests)
+- ✅ These tests work with **AST nodes**, not source syntax
+- ✅ Tests verify desugarer transforms `RecordUpdate` AST → `CoreRecordUpdate`
+- ✅ **No changes needed** - AST structure remains the same
+- ✅ These tests **validate** that parser changes don't break desugarer integration
+
+**Critical insight**: Desugarer tests are integration validators, not migration targets
+
+#### 4. False Positives (2 occurrences)
+**File: `infer.ts`** (2 occurrences)
+- Lines 1048, 1090: String interpolation `Available fields: ${...}`
+- Not actual record syntax - just string templates in error messages
+- **No action needed**
+
+### Migration Scope Summary
+
+| Category | Count | Plan Estimate | Status |
+|----------|-------|---------------|--------|
+| Parser test cases | 5 | 5-10 | ✅ Within estimate |
+| Code comments | 5 | Not originally counted | ➕ Additional work identified |
+| Desugarer tests | 13 (no migration) | Unclear in plan | ✅ Clarified - validators only |
+| False positives | 2 | N/A | ✅ Identified and excluded |
+| **Total work items** | **10** | **5-10** | ✅ **ACCURATE** |
+
+### Downstream Impact Assessment
+
+#### Parser Changes Required:
+1. **`parseRecordExpr()`** method - REWRITE for spread syntax
+2. AST node modification: Change `RecordUpdate.record` field name or keep as-is
+3. Update error messages for record syntax
+
+#### Desugarer Impact: **MINIMAL** ✅
+- Desugarer already handles `RecordUpdate` AST nodes
+- May need minor updates if AST field names change
+- `records.test.ts` will validate desugarer still works correctly
+- **Tests serve as regression validators**
+
+#### Type Checker Impact: **MINIMAL** ✅
+- Type checker works with Core AST (after desugaring)
+- No changes needed unless Core AST changes
+- String templates in error messages not affected
+
+#### Lexer Impact: **NONE** ✅
+- `DOT_DOT_DOT` token already exists
+- No lexer changes needed for Phase 0
+
+### Risk Assessment: LOW RISK ✅
+
+**Reasons:**
+- ✅ Migration scope is small and manageable (10 items)
+- ✅ No example files exist yet (no external migration needed)
+- ✅ Desugarer tests don't need migration (clarifies scope significantly)
+- ✅ Implementation is localized to one parser method
+- ✅ Downstream impact is minimal and well-understood
+
+### Timeline Adjustment
+
+**Phase 0 effort breakdown:**
+- 5 parser test migrations: ~30 min
+- 5 comment updates: ~10 min
+- Write ~20 new tests: ~2-2.5 hours
+- Parser implementation: ~1-1.5 hours
+- Verify desugarer tests still pass: ~10 min
+- **Total Phase 0**: ~4-5 hours (was 3-4 hours)
+
+**Recommendation**: ✅ Add 30-60 min buffer for comment updates → **Phase 0: 4-5 hours**
+
+### Key Insights from Audit
+
+1. ✅ **Plan estimate was accurate**: "5-10 migrated tests" → actual is 10 items (5 tests + 5 comments)
+2. ✅ **Desugarer tests are integration validators**: They test AST transformations, not syntax - no migration needed
+3. ✅ **No example files**: No `.vf` example files exist yet - nothing to migrate beyond tests
+4. ✅ **Localized changes**: All changes confined to parser and its tests
+5. ✅ **False positives identified**: String templates in type checker excluded from migration
+
+### Validation Checklist for Phase 0
+
+When implementing Phase 0, verify:
+- [ ] All 5 parser tests updated and passing
+- [ ] All 5 comments updated to reflect new syntax
+- [ ] ~20 new tests written for record spread
+- [ ] Parser implementation complete
+- [ ] **Desugarer tests (13 tests) still pass** - validates integration
+- [ ] Full test suite passes (1705 tests)
+- [ ] No regressions in type checker or other components
+
+### Confidence Level
+
+**95%** (up from 85% pre-audit)
+
+The Phase -1 audit confirms:
+- ✅ Plan is well-scoped and realistic
+- ✅ Migration scope is within estimates
+- ✅ Downstream impact is minimal
+- ✅ No surprises discovered
+- ✅ Timeline is accurate with small buffer added
+
+**Phase 0 is ready to execute.**
+
 ## Resolved Questions (All Finalized)
 
 ### Question 1: Record spread precedence
@@ -461,6 +601,17 @@ Update this file when:
 - Approach changes ✅
 
 ## Change Log
+
+### 2025-11-02: Phase -1 Audit Completed
+- ✅ COMPLETED: Comprehensive codebase audit
+- ✅ VERIFIED: Test baseline at 346 parser tests
+- ✅ CONFIRMED: Migration scope is 10 items (5 tests + 5 comments)
+- ✅ CLARIFIED: Desugarer tests (13 tests) are integration validators, no migration needed
+- ✅ IDENTIFIED: 2 false positives in type checker (string templates, not syntax)
+- ✅ ASSESSED: Downstream impact is MINIMAL (LOW RISK)
+- ✅ ADJUSTED: Phase 0 timeline from 3-4 hours to 4-5 hours (comment updates)
+- ✅ VALIDATED: Plan is ready to execute with 95% confidence
+- ✅ Added Phase -1 Audit Results section with complete findings
 
 ### 2025-11-02: Final User Q&A and Decision Finalization
 - ✅ FINALIZED: Nested RecordUpdate approach for multiple spreads
