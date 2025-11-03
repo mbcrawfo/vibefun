@@ -238,9 +238,8 @@ describe("Parser - Unicode Edge Cases", () => {
             });
         });
 
-        // SKIPPED: String concatenation operator (++) not yet implemented (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse RTL string in expression", () => {
-            const expr = parseExpression('"مرحبا" ++ " عالم"');
+        it("should parse RTL string in expression", () => {
+            const expr = parseExpression('"مرحبا" & " عالم"');
 
             expect(expr.kind).toBe("BinOp");
             if (expr.kind === "BinOp") {

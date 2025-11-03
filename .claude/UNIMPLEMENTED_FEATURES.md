@@ -159,16 +159,16 @@ a |> b >> c << d  // Complex chains
 
 ## String Concatenation
 
-### Status: ⚠️ Implementation Unclear
+### Status: ✅ Implemented
 
-**Description:** String concatenation operator `++` may not be fully implemented.
+**Description:** String concatenation operator `&` is fully implemented.
 
 **Example:**
 ```vibefun
-"hello" ++ " world"
+"hello" & " world"
 ```
 
-**Status:** Needs testing to confirm if implemented
+**Status:** Implemented and tested
 
 ---
 

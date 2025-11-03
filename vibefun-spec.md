@@ -682,7 +682,7 @@ map([1, 2, 3], double) // Higher-order function
 1 + 2                  // Arithmetic
 x == y                 // Comparison
 true && false          // Logical
-"hello" &" world"    // String concatenation
+"hello" & " world"   // String concatenation
 ```
 
 ### If Expressions

@@ -116,7 +116,7 @@ let multiline = """
 """
 
 // String concatenation with & operator
-let greeting = "Hello, " &"world!"
+let greeting = "Hello, " & "world!"
 ```
 
 #### Numeric Literals

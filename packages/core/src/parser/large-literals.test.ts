@@ -178,16 +178,15 @@ describe("Parser - Large Literal Edge Cases", () => {
             }
         });
 
-        // SKIPPED: String concatenation operator (++) not yet implemented
-        it.skip("should parse very large string in expression", () => {
+        it("should parse very large string in expression", () => {
             const largeString = "hello ".repeat(1000); // ~6KB
-            const source = `"${largeString}" ++ " world"`;
+            const source = `"${largeString}" & " world"`;
 
             const expr = parseExpression(source);
 
             expect(expr.kind).toBe("BinOp");
             if (expr.kind === "BinOp") {
-                expect(expr.op).toBe("++");
+                expect(expr.op).toBe("Concat");
                 expect(expr.left).toMatchObject({
                     kind: "StringLit",
                 });
