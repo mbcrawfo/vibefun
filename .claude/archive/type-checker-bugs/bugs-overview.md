@@ -13,12 +13,12 @@
 
 | Bug # | Issue | Tests | Complexity | Status | Doc |
 |-------|-------|-------|------------|--------|-----|
-| **1** | External declarations not in declarationTypes | 1 | Low | ✅ Fixed | [bug-1-external-declarations.md](./bug-1-external-declarations.md) |
-| **2** | Recursive CoreLetDecl not supported | 1 | Medium | ✅ Fixed | [bug-2-recursive-let.md](./bug-2-recursive-let.md) |
-| **3** | Mutual recursion env not updated | 1 | Medium | ✅ Fixed | [bug-3-mutual-recursion.md](./bug-3-mutual-recursion.md) |
-| **4** | Multiple declarations can't reference each other | 2 | Medium | ✅ Fixed | [bug-4-environment-threading.md](./bug-4-environment-threading.md) |
-| **5** | Exhaustiveness on polymorphic lambda params | 3 | High | ✅ Fixed | [bug-5-polymorphic-exhaustiveness.md](./bug-5-polymorphic-exhaustiveness.md) |
-| **6** | Record field access in lambdas | 1 | High | ✅ Fixed | [bug-6-record-patterns.md](./bug-6-record-patterns.md) |
+| **1** | External declarations not in declarationTypes | 1 | Low | ✅ Fixed | [bug-1-external-declarations.md](bug-1-external-declarations.md) |
+| **2** | Recursive CoreLetDecl not supported | 1 | Medium | ✅ Fixed | [bug-2-recursive-let.md](bug-2-recursive-let.md) |
+| **3** | Mutual recursion env not updated | 1 | Medium | ✅ Fixed | [bug-3-mutual-recursion.md](bug-3-mutual-recursion.md) |
+| **4** | Multiple declarations can't reference each other | 2 | Medium | ✅ Fixed | [bug-4-environment-threading.md](bug-4-environment-threading.md) |
+| **5** | Exhaustiveness on polymorphic lambda params | 3 | High | ✅ Fixed | [bug-5-polymorphic-exhaustiveness.md](bug-5-polymorphic-exhaustiveness.md) |
+| **6** | Record field access in lambdas | 1 | High | ✅ Fixed | [bug-6-record-patterns.md](bug-6-record-patterns.md) |
 
 ## Recommended Fix Order
 
