@@ -12,7 +12,7 @@
 - **Key Features:** Algebraic data types, pattern matching, immutability by default, explicit JavaScript interop
 - **File Extension:** `.vf`
 
-**For comprehensive language details, syntax, semantics, and examples, see [vibefun-spec.md](./vibefun-spec.md).**
+**For comprehensive language details, syntax, semantics, and examples, see [Language Specification](./docs/spec/).**
 
 ## Core Project Directives
 
@@ -21,7 +21,7 @@ These directives guide all development work on the vibefun project:
 1. **Coding Standards**: Before writing any code, review `.claude/CODING_STANDARDS.md` to understand the project's coding conventions, naming patterns, and best practices
 2. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
 3. **Follow the Language Specification**:
-    - `./vibefun-spec.md` is the source of truth for how the language should function.
+    - `./docs/spec/` contains the authoritative language specification for how Vibefun should function.
     - If you find a conflict between the code behavior and the language spec, always ask for clarification of the correct behavior.
     - When planning a feature where you have been instructed to change the language, always update the language spec to match.
 4. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
@@ -67,7 +67,7 @@ The vibefun language design is based on these core principles:
 - **Explicit JavaScript interop** - Clear FFI boundaries with `external` and `unsafe`
 - **Developer experience** - Clear error messages, readable generated code, fast compilation
 
-**For detailed language specification, see [vibefun-spec.md](./vibefun-spec.md).**
+**For detailed language specification, see the [Language Specification](./docs/spec/).**
 
 ## Project Structure
 
@@ -130,7 +130,7 @@ vibefun/
 - **Type system**: Scoped to externals only - no impact on Hindley-Milner inference for pure vibefun code
 - **Alternative**: Pure vibefun code uses pattern matching or different function names instead of overloading
 
-See `vibefun-spec.md` (JavaScript Interop → Overloaded External Functions) for complete details.
+See [JavaScript Interop: External Declarations](./docs/spec/10-javascript-interop/external-declarations.md) for complete details on overloaded external functions.
 
 ### Type Checker Implementation
 - **Algorithm**: Constraint-based Hindley-Milner inference (Algorithm W)
@@ -179,7 +179,7 @@ external log: (String) -> Unit = "console.log"
 unsafe { log("Hello!") }
 ```
 
-**See [vibefun-spec.md](./vibefun-spec.md) for complete syntax, semantics, type system details, and standard library.**
+**See the [Language Specification](./docs/spec/) for complete syntax, semantics, type system details, and standard library.**
 
 ## Development Workflow
 
@@ -260,7 +260,7 @@ vibefun run src/main.vf            # Compile and run
 ## Documentation Resources
 
 ### Language Documentation
-- **[vibefun-spec.md](./vibefun-spec.md)** - Complete language specification (syntax, types, semantics, standard library)
+- **[Language Specification](./docs/spec/)** - Complete language specification organized by topic (syntax, types, semantics, standard library)
 
 ### Design Documents
 - **[.claude/design/language-design.md](.claude/design/language-design.md)** - Original language design exploration
