@@ -568,6 +568,9 @@ export class Parser {
                 };
             }
             // Postfix dereference: expr!
+            // Used to dereference mutable references: ref! gets the value
+            // Chainable: ref!! for double dereference
+            // Spec Reference: vibefun-spec.md lines 256-263
             else if (this.match("BANG")) {
                 expr = {
                     kind: "UnaryOp",
@@ -779,7 +782,25 @@ export class Parser {
 
     /**
      * Parse record construction or update expression
-     * Syntax: { field: value } or { ...record, field: value }
+     *
+     * Syntax:
+     * - Construction: { field: value, ... }
+     * - Update: { ...record, field: value, ... }
+     * - Multiple spreads: { ...base, ...overrides, field: value }
+     * - Shallow copy: { ...record }
+     *
+     * Semantics:
+     * - Multiple spreads use rightmost-wins (JavaScript semantics)
+     * - Later fields/spreads override earlier ones
+     * - Example: { ...a, x: 1, ...b } - b.x overrides explicit x: 1
+     *
+     * Implementation:
+     * - Uses RecordField union (Field | Spread) in updates array
+     * - Spreads are added as Spread elements, preserving order
+     * - Order in updates array determines override precedence
+     *
+     * Spec Reference: vibefun-spec.md lines 404-407
+     *
      * Note: LBRACE has already been consumed by caller
      */
     private parseRecordExpr(startLoc: Location): Expr {
@@ -1015,7 +1036,10 @@ export class Parser {
             };
         }
 
-        // List literal: [1, 2, 3] or list with spread: [1, ...rest, 2]
+        // List literal with optional spread elements
+        // Syntax: [1, 2, 3] or [1, ...rest, 2] or [...items]
+        // Supports multiple spreads: [...a, ...b, x, ...c]
+        // Spec Reference: vibefun-spec.md lines 687-689
         if (this.check("LBRACKET")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume [
@@ -1024,7 +1048,7 @@ export class Parser {
 
             // Check for empty list
             if (!this.check("RBRACKET")) {
-                // Parse elements
+                // Parse elements (can be regular Element or Spread)
                 do {
                     // Check for spread element: ...expr
                     if (this.match("DOT_DOT_DOT")) {
