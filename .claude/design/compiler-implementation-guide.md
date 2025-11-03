@@ -4,7 +4,7 @@
 **Last Updated:** 2025-11-03
 **Audience:** Compiler implementers and language developers
 
-This guide provides detailed technical specifications for implementing a Vibefun compiler. It complements the [Vibefun Language Specification](./vibefun-spec.md) with implementation-specific details, algorithms, and strategies.
+This guide provides detailed technical specifications for implementing a Vibefun compiler. It complements the [Vibefun Language Specification](../../vibefun-spec.md) with implementation-specific details, algorithms, and strategies.
 
 ---
 
@@ -1866,7 +1866,7 @@ When implementing a Vibefun compiler, ensure you have:
 
 **End of Compiler Implementation Guide**
 
-For the language specification, see [vibefun-spec.md](./vibefun-spec.md).
+For the language specification, see [vibefun-spec.md](../../vibefun-spec.md).
 
-For general project information, see [CLAUDE.md](./CLAUDE.md).
+For general project information, see [CLAUDE.md](../../CLAUDE.md).
 
