@@ -1613,6 +1613,14 @@ export class Parser {
         if (this.check("KEYWORD") && this.peek().value === "export") {
             exported = true;
             this.advance(); // consume 'export'
+
+            // Skip newlines
+            while (this.match("NEWLINE"));
+
+            // Check for re-export: export { x } from "..." or export * from "..."
+            if (this.check("LBRACE") || this.check("STAR")) {
+                return this.parseReExportDecl();
+            }
         }
 
         // Skip newlines
@@ -2162,6 +2170,73 @@ export class Parser {
 
         return {
             kind: "ImportDecl",
+            items,
+            from,
+            loc: startLoc,
+        };
+    }
+
+    /**
+     * Parse re-export declaration
+     * Syntax: export { name, type T, name as alias } from "module"
+     *         export * from "module"
+     */
+    private parseReExportDecl(): Declaration {
+        const startLoc = this.peek().loc;
+
+        let items: ImportItem[] | null = null;
+
+        // export *
+        if (this.match("STAR")) {
+            // Namespace re-export (items = null)
+            items = null;
+        }
+        // export { ... }
+        else if (this.match("LBRACE")) {
+            items = [];
+
+            // Allow empty re-export: export {} from "./mod"
+            if (!this.check("RBRACE")) {
+                do {
+                    // Check for type re-export
+                    let isType = false;
+                    if (this.check("KEYWORD") && this.peek().value === "type") {
+                        isType = true;
+                        this.advance();
+                    }
+
+                    const nameToken = this.expect("IDENTIFIER", "Expected export name");
+                    const name = nameToken.value as string;
+
+                    // Optional: as alias
+                    let alias: string | undefined;
+                    if (this.check("KEYWORD") && this.peek().value === "as") {
+                        this.advance(); // consume 'as'
+                        const aliasToken = this.expect("IDENTIFIER", "Expected alias name");
+                        alias = aliasToken.value as string;
+                    }
+
+                    items.push({ name, ...(alias !== undefined && { alias }), isType });
+                } while (this.match("COMMA"));
+            }
+
+            this.expect("RBRACE", "Expected '}' after export items");
+        } else {
+            throw this.error("Expected '{' or '*' after 'export'", this.peek().loc);
+        }
+
+        // Expect from
+        this.expect("KEYWORD", "Expected 'from' after export items");
+        if (this.peek(-1).value !== "from") {
+            throw this.error("Expected 'from' keyword", this.peek(-1).loc);
+        }
+
+        // Parse module path
+        const fromToken = this.expect("STRING_LITERAL", "Expected module path");
+        const from = fromToken.value as string;
+
+        return {
+            kind: "ReExportDecl",
             items,
             from,
             loc: startLoc,

@@ -297,7 +297,19 @@ export type Declaration =
           exported: boolean;
           loc: Location;
       }
-    | { kind: "ImportDecl"; items: ImportItem[]; from: string; loc: Location };
+    | { kind: "ImportDecl"; items: ImportItem[]; from: string; loc: Location }
+    | {
+          kind: "ReExportDecl";
+          items: ImportItem[] | null; // null for export *
+          from: string;
+          loc: Location;
+      };
+
+/**
+ * Re-export declaration: export { x } from "./mod" or export * from "./mod"
+ * Uses ImportItem[] for named re-exports (with optional aliases)
+ * Uses null for namespace re-exports (export *)
+ */
 
 /**
  * Type definition body

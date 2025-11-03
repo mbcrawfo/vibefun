@@ -540,4 +540,143 @@ describe("Parser - Declarations", () => {
             expect(module.declarations[2]?.kind).toBe("LetDecl");
         });
     });
+
+    describe("re-export declarations", () => {
+        it("parses named re-export", () => {
+            const decl = parseDecl('export { x } from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [{ name: "x", isType: false }],
+                from: "./mod",
+            });
+        });
+
+        it("parses multiple named re-exports", () => {
+            const decl = parseDecl('export { x, y, z } from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [
+                    { name: "x", isType: false },
+                    { name: "y", isType: false },
+                    { name: "z", isType: false },
+                ],
+                from: "./mod",
+            });
+        });
+
+        it("parses aliased re-export", () => {
+            const decl = parseDecl('export { x as y } from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [{ name: "x", alias: "y", isType: false }],
+                from: "./mod",
+            });
+        });
+
+        it("parses multiple aliased re-exports", () => {
+            const decl = parseDecl('export { x as a, y as b } from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [
+                    { name: "x", alias: "a", isType: false },
+                    { name: "y", alias: "b", isType: false },
+                ],
+                from: "./mod",
+            });
+        });
+
+        it("parses namespace re-export", () => {
+            const decl = parseDecl('export * from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: null,
+                from: "./mod",
+            });
+        });
+
+        it("parses namespace re-export from parent", () => {
+            const decl = parseDecl('export * from "../parent/mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: null,
+                from: "../parent/mod",
+            });
+        });
+
+        it("parses type re-export", () => {
+            const decl = parseDecl('export { type T } from "./types"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [{ name: "T", isType: true }],
+                from: "./types",
+            });
+        });
+
+        it("parses multiple type re-exports", () => {
+            const decl = parseDecl('export { type T, type U } from "./types"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [
+                    { name: "T", isType: true },
+                    { name: "U", isType: true },
+                ],
+                from: "./types",
+            });
+        });
+
+        it("parses mixed type and value re-exports", () => {
+            const decl = parseDecl('export { type T, value } from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [
+                    { name: "T", isType: true },
+                    { name: "value", isType: false },
+                ],
+                from: "./mod",
+            });
+        });
+
+        it("parses mixed with multiple types and values", () => {
+            const decl = parseDecl('export { type T, type U, a, b } from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [
+                    { name: "T", isType: true },
+                    { name: "U", isType: true },
+                    { name: "a", isType: false },
+                    { name: "b", isType: false },
+                ],
+                from: "./mod",
+            });
+        });
+
+        it("parses empty re-export", () => {
+            const decl = parseDecl('export {} from "./mod"');
+            expect(decl).toMatchObject({
+                kind: "ReExportDecl",
+                items: [],
+                from: "./mod",
+            });
+        });
+
+        it("parses re-export with relative paths", () => {
+            const decl1 = parseDecl('export { x } from "./sibling"');
+            expect(decl1).toMatchObject({
+                kind: "ReExportDecl",
+                from: "./sibling",
+            });
+
+            const decl2 = parseDecl('export { x } from "../parent"');
+            expect(decl2).toMatchObject({
+                kind: "ReExportDecl",
+                from: "../parent",
+            });
+
+            const decl3 = parseDecl('export { x } from "../../grandparent"');
+            expect(decl3).toMatchObject({
+                kind: "ReExportDecl",
+                from: "../../grandparent",
+            });
+        });
+    });
 });
