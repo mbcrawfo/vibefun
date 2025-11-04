@@ -8,6 +8,7 @@ Vibefun expressions form the core computational units of the language. Every exp
 2. **[Control Flow](./control-flow.md)** - If and match expressions
 3. **[Data Literals](./data-literals.md)** - Records and lists
 4. **[Functions and Composition](./functions-composition.md)** - Lambdas, blocks, and pipes
+5. **[Evaluation Order](./evaluation-order.md)** - Evaluation order guarantees and semantics
 
 ## Overview
 

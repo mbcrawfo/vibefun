@@ -379,3 +379,189 @@ let main = () => {
 
 ---
 
+## Module Runtime Behavior
+
+This section specifies the runtime guarantees for module initialization and execution.
+
+### Top-Level Expression Evaluation
+
+Modules can contain top-level expressions that execute during initialization.
+
+**Evaluation order:**
+- Top-level expressions in a module are evaluated **sequentially** (top to bottom)
+- Each expression is evaluated exactly once during module initialization
+- Side effects occur in source code order
+
+**Example:**
+```vibefun
+// config.vf
+export let apiEndpoint = "https://api.example.com"
+
+// This runs during module initialization
+log("Initializing config module...")
+
+mut connectionCount = 0
+
+export let getConnectionCount = () => !connectionCount
+
+export let incrementConnections = () => {
+  connectionCount := !connectionCount + 1
+}
+
+// This also runs during initialization
+log("Config module initialized")
+```
+
+**Guarantee:** When `config.vf` is imported, both `log` statements execute once, in order, before any importing code continues.
+
+### Module Caching
+
+**Singleton semantics:** Each module is initialized **exactly once** per program execution, regardless of how many times it's imported.
+
+**Example:**
+```vibefun
+// counter.vf
+mut count = 0
+
+export let increment = () => {
+  count := !count + 1;
+  !count
+}
+
+// moduleA.vf
+import { increment } from './counter'
+let a = increment()  // 1
+
+// moduleB.vf
+import { increment } from './counter'
+let b = increment()  // 2 (same counter!)
+
+// main.vf
+import './moduleA'
+import './moduleB'
+// counter.vf initialized only once
+// Both moduleA and moduleB share the same counter instance
+```
+
+**Implications:**
+- Module-level mutable state (via `mut`) is shared across all imports
+- Top-level initialization code runs only once, even with multiple imports
+- Re-importing doesn't re-run initialization
+
+### Error Propagation
+
+**Initialization errors:** If a module throws an error during initialization, the error propagates to the importer.
+
+**Behavior:**
+```vibefun
+// config.vf
+export let setting = if validConfig()
+  then loadConfig()
+  else panic("Invalid configuration!")
+
+// main.vf
+import { setting } from './config'
+// If config.vf panics, main.vf also fails to initialize
+```
+
+**Semantics:**
+1. During initialization, if a module expression panics or throws:
+   - Module initialization **stops immediately**
+   - The error propagates to the importing module
+   - The importing module fails to initialize
+   - Error propagates up the import chain
+
+2. **Failed module state:**
+   - Module is marked as "failed to initialize"
+   - Subsequent access attempts may re-throw the error (implementation-defined)
+   - Program typically terminates with the initialization error
+
+**Example:**
+```
+main.vf → imports → utils.vf → imports → config.vf (panics)
+
+Initialization order:
+1. Start initializing config.vf
+2. Panic during config.vf initialization
+3. utils.vf initialization fails (propagated error)
+4. main.vf initialization fails (propagated error)
+5. Program terminates with error message pointing to config.vf
+```
+
+**Best practice:** Validate configuration and fail fast during module initialization for clear error messages. Don't defer validation to runtime if it can be checked during initialization.
+
+### Re-Export Semantics
+
+Re-exports create transparent bindings to exported values from other modules.
+
+**Direct re-export:**
+```vibefun
+// list.vf
+export let map = (fn, list) => ...
+export let filter = (pred, list) => ...
+
+// index.vf
+export { map, filter } from './list'
+// Equivalent to:
+// import { map, filter } from './list'
+// export let map = map
+// export let filter = filter
+```
+
+**Wildcard re-export:**
+```vibefun
+// utils/index.vf
+export * from './string'
+export * from './array'
+export * from './math'
+
+// Imports all exports from string, array, and math modules
+// and re-exports them from utils/index.vf
+```
+
+**Transitive re-exports:**
+- Re-exported bindings are treated as if they were defined in the re-exporting module
+- Type information is preserved through re-exports
+- Re-exports can be re-exported again (unlimited depth)
+
+**Example:**
+```vibefun
+// core.vf
+export let add = (x, y) => x + y
+
+// utils.vf
+export { add } from './core'
+export let multiply = (x, y) => x * y
+
+// main.vf
+import { add, multiply } from './utils'
+// Both add (re-exported from core) and multiply (defined in utils) are available
+```
+
+**Name conflicts:**
+- If wildcard re-export causes name conflict, it's a **compile-time error**
+- Explicit re-export can rename to avoid conflicts:
+
+```vibefun
+// index.vf
+export { map } from './array'
+export { map as mapList } from './list'  // Rename to avoid conflict
+```
+
+### Module Initialization Summary
+
+**Guarantees:**
+1. **Once-only initialization**: Each module initializes exactly once
+2. **Dependency order**: Dependencies initialize before dependents (acyclic case)
+3. **Sequential evaluation**: Top-level expressions evaluate in source order
+4. **Error propagation**: Initialization errors propagate to importers
+5. **Caching**: Initialized modules are cached and shared across all imports
+6. **Re-export transparency**: Re-exported bindings behave identically to direct exports
+
+**Implementation Notes:**
+- Modules may be compiled separately, but initialization order is preserved at runtime
+- Module caching is per-program-execution (not persistent across runs)
+- Hot module reloading (if supported) would require re-initialization
+
+---
+
