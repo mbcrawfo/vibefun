@@ -147,3 +147,301 @@ let describe = (opt) => match opt {
 }
 ```
 
+See the [Pattern Matching](../05-pattern-matching/) section for complete documentation.
+
+---
+
+## While Loops
+
+While loops provide imperative-style iteration when working with mutable references. They are expressions that return `Unit`.
+
+### Syntax
+
+```vibefun
+while condition {
+    body
+}
+```
+
+### Semantics
+
+- **Condition:** Must have type `Bool`
+- **Body:** Executed repeatedly while condition is `true`, must have type `Unit`
+- **Return value:** The entire while expression has type `Unit`
+- **Evaluation:** Condition is checked before each iteration (pre-test loop)
+
+### Examples
+
+**Basic while loop:**
+
+```vibefun
+let mut i = ref(0)
+
+while !i < 10 {
+    unsafe { console.log(String.fromInt(!i)) }
+    i := !i + 1
+}
+// Prints: 0 1 2 3 4 5 6 7 8 9
+```
+
+**Factorial with while loop:**
+
+```vibefun
+let factorial = (n: Int): Int => {
+    let mut result = ref(1)
+    let mut i = ref(1)
+
+    while !i <= n {
+        result := !result * !i
+        i := !i + 1
+    }
+
+    !result
+}
+
+factorial(5)  // 120
+```
+
+**Early termination pattern:**
+
+While loops don't have `break`, but you can use a boolean flag:
+
+```vibefun
+let mut i = ref(0)
+let mut found = ref(false)
+
+while !i < 100 && !(!found) {
+    if someCondition(!i) then {
+        found := true
+    } else {
+        i := !i + 1
+    }
+}
+```
+
+### Type Checking Rules
+
+1. Condition expression must have type `Bool`
+2. Body must have type `Unit`
+3. The while expression has type `Unit`
+4. All mutations must use `Ref<T>` with the `:=` operator
+
+**Type errors:**
+
+```vibefun
+// ❌ Error: condition must be Bool
+while 42 {  // Error: Expected Bool, got Int
+    ()
+}
+
+// ❌ Error: body must be Unit
+let mut x = ref(0)
+while !x < 10 {
+    !x + 1  // Error: Body has type Int, expected Unit
+}
+
+// ✅ OK: assign result to ref
+while !x < 10 {
+    x := !x + 1  // OK: := returns Unit
+}
+```
+
+### Functional Alternative
+
+While loops are useful for performance-critical code or when interfacing with imperative JavaScript, but recursive functions are often more idiomatic:
+
+```vibefun
+// While loop (imperative)
+let sum = (n: Int): Int => {
+    let mut total = ref(0)
+    let mut i = ref(1)
+
+    while !i <= n {
+        total := !total + !i
+        i := !i + 1
+    }
+
+    !total
+}
+
+// Recursive function (functional)
+let rec sum = (n: Int): Int =>
+    if n <= 0 then 0 else n + sum(n - 1)
+
+// Or using List.fold
+let sum = (n: Int): Int =>
+    List.fold(List.range(1, n + 1), 0, (acc, x) => acc + x)
+```
+
+**When to use while loops:**
+- Performance-critical tight loops
+- Interfacing with imperative JavaScript code
+- When mutation is clearer than recursion
+- Implementing low-level algorithms
+
+**When to use recursion:**
+- Working with immutable data structures
+- Expressing mathematical recurrence relations
+- Leveraging pattern matching
+- Most list/tree processing
+
+### Performance Notes
+
+- While loops are typically faster than recursion in JavaScript (no stack frames)
+- However, JavaScript engines optimize tail recursion in some cases
+- Prefer functional style unless profiling shows performance issues
+
+---
+
+## For Loops
+
+**Status:** For loops are **not currently supported** in Vibefun.
+
+Use one of these alternatives instead:
+
+**For-each style (recommended):**
+
+```vibefun
+// Use List.map for transformations
+List.map([1, 2, 3], (x) => x * 2)
+
+// Use List.fold for accumulation
+List.fold([1, 2, 3], 0, (acc, x) => acc + x)
+
+// Use List.filter for selection
+List.filter([1, 2, 3, 4], (x) => x % 2 == 0)
+```
+
+**Range-based iteration:**
+
+```vibefun
+// Use List.range for numeric iteration
+let rec range = (start: Int, end: Int): List<Int> =>
+    if start >= end then []
+    else [start, ...range(start + 1, end)]
+
+// Then use with map/fold
+range(0, 10) |> List.map((i) => i * i)
+
+// Or while loop for imperative style
+let mut i = ref(0)
+while !i < 10 {
+    // loop body
+    i := !i + 1
+}
+```
+
+**Future consideration:** For loops may be added in a future version with syntax like:
+
+```vibefun
+// Hypothetical future syntax (not implemented)
+for x in list {
+    // body
+}
+```
+
+---
+
+## Async/Await
+
+**Status:** Async/await is **reserved for future implementation** but not currently supported.
+
+The keywords `async` and `await` are reserved and cannot be used as identifiers, but the feature is not yet implemented.
+
+**Current alternatives for asynchronous code:**
+
+Use JavaScript interop with `external` declarations and Promises:
+
+```vibefun
+// Declare Promise-returning JavaScript function
+external fetch: (String) -> Promise<Response> = "fetch" from "global"
+
+// Use with .then() via JavaScript interop
+unsafe {
+    fetch("https://api.example.com/data")
+        .then((response) => response.json())
+        .then((data) => console.log(data))
+}
+```
+
+**Future syntax (planned):**
+
+```vibefun
+// Hypothetical future syntax (not implemented)
+async let fetchData = (url: String): Promise<String> => {
+    let response = await fetch(url)
+    let data = await response.json()
+    data
+}
+```
+
+**Timeline:** Async/await support is planned for a future release. Track the feature request in the project roadmap.
+
+---
+
+## Try/Catch
+
+**Status:** Try/catch is **not a Vibefun language feature**.
+
+Vibefun uses `Result<T, E>` and `Option<T>` for error handling instead of exceptions.
+
+**Error handling in Vibefun:**
+
+```vibefun
+// Use Result for operations that may fail
+let divide = (a: Int, b: Int): Result<Int, String> =>
+    if b == 0
+    then Err("Division by zero")
+    else Ok(a / b)
+
+// Chain operations with flatMap
+let compute = (x: Int, y: Int): Result<Int, String> =>
+    divide(x, y)
+        |> Result.flatMap((r) => divide(r, 2))
+        |> Result.map((r) => r + 1)
+
+// Handle errors with pattern matching
+match compute(10, 0) {
+    | Ok(value) => unsafe { console.log("Result: " & String.fromInt(value)) }
+    | Err(msg) => unsafe { console.log("Error: " & msg) }
+}
+```
+
+**JavaScript interop with try/catch:**
+
+When calling JavaScript code that may throw exceptions, wrap it in `unsafe` blocks and convert to `Result`:
+
+```vibefun
+external jsonParse: (String) -> external = "JSON.parse" from "global"
+
+let parseJSON = (jsonString: String): Result<external, String> =>
+    unsafe {
+        try {
+            Ok(jsonParse(jsonString))
+        } catch (e) {
+            Err("Parse error: " & e.message)
+        }
+    }
+```
+
+**Note:** The `try/catch` syntax in the example above is **JavaScript syntax within an `unsafe` block**, not Vibefun syntax. Vibefun code cannot use try/catch; use `Result` instead.
+
+**See also:**
+- [Error Handling](../09-error-handling.md) - Complete error handling guide
+- [Result Module](../11-stdlib/result.md) - Result type and combinators
+- [Option Module](../11-stdlib/option.md) - Option type for nullable values
+
+---
+
+## Summary
+
+**Supported control flow:**
+- ✅ **If expressions** - Conditional branching with `if/then/else`
+- ✅ **Match expressions** - Pattern matching with exhaustiveness checking
+- ✅ **While loops** - Imperative iteration with mutable references
+
+**Not supported (use alternatives):**
+- ❌ **For loops** - Use `List.map`, `List.fold`, or while loops
+- ❌ **Async/await** - Reserved for future; use JavaScript Promises via interop
+- ❌ **Try/catch** - Use `Result<T, E>` and `Option<T>` for error handling
+
