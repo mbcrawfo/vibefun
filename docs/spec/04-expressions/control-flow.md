@@ -246,6 +246,104 @@ while !x < 10 {
 }
 ```
 
+### Desugaring Transformation
+
+While loops are **syntactic sugar** that desugar to recursive functions during compilation. This transformation is performed during the desugaring phase, before code generation.
+
+**Surface syntax:**
+```vibefun
+while condition {
+    body
+}
+```
+
+**Core AST representation (desugared form):**
+```vibefun
+let rec __while_loop = () =>
+    if condition then {
+        body;
+        __while_loop()
+    } else ()
+
+__while_loop()
+```
+
+**Example transformation:**
+
+```vibefun
+// Source code:
+let mut i = ref(0)
+while !i < 10 {
+    i := !i + 1
+}
+
+// Desugars to:
+let mut i = ref(0)
+let rec __while_loop_1 = () =>
+    if !i < 10 then {
+        i := !i + 1;
+        __while_loop_1()
+    } else ()
+
+__while_loop_1()
+```
+
+**Notes on desugaring:**
+- Each while loop generates a unique recursive function name (e.g., `__while_loop_1`, `__while_loop_2`)
+- The condition and body are captured in the closure
+- Variables referenced in the condition/body are captured by the recursive function
+- The body expression must end with a semicolon (`;`) before the recursive call to ensure proper sequencing
+- The else branch returns `()` (Unit), so the entire expression has type `Unit`
+
+### Evaluation Semantics
+
+The evaluation of a while loop follows these precise steps:
+
+1. **Evaluate the condition** expression
+2. **If condition is `true`:**
+   - Evaluate the body expression (discarding its result, which must be `Unit`)
+   - Return to step 1 (re-evaluate the condition)
+3. **If condition is `false`:**
+   - Stop iteration and return `()` (Unit)
+
+**Step-by-step evaluation example:**
+
+```vibefun
+let mut x = ref(0)
+while !x < 3 {
+    x := !x + 1
+}
+
+// Evaluation trace:
+// 1. Evaluate condition: !x < 3 → 0 < 3 → true
+//    Execute body: x := !x + 1 → x := 0 + 1 → x now holds 1
+// 2. Evaluate condition: !x < 3 → 1 < 3 → true
+//    Execute body: x := !x + 1 → x := 1 + 1 → x now holds 2
+// 3. Evaluate condition: !x < 3 → 2 < 3 → true
+//    Execute body: x := !x + 1 → x := 2 + 1 → x now holds 3
+// 4. Evaluate condition: !x < 3 → 3 < 3 → false
+//    Stop iteration, return ()
+```
+
+**Important semantic properties:**
+
+- **Pre-test loop:** The condition is always evaluated **before** the body, so the body may execute zero times
+- **Short-circuit:** Each iteration re-evaluates the condition fresh; changes to refs in the body affect the next condition evaluation
+- **Scope:** The while loop body creates a new scope, but captured variables (refs) retain their identity across iterations
+- **Return value:** While loops always return `()` regardless of how many iterations execute
+- **No break/continue:** Vibefun does not support `break` or `continue` keywords; use conditional logic with refs to exit early
+
+**Zero-iteration example:**
+
+```vibefun
+let mut x = ref(10)
+while !x < 5 {
+    // This body never executes
+    x := !x + 1
+}
+// Returns () immediately, x remains 10
+```
+
 ### Functional Alternative
 
 While loops are useful for performance-critical code or when interfacing with imperative JavaScript, but recursive functions are often more idiomatic:
@@ -297,48 +395,9 @@ let sum = (n: Int): Int =>
 
 **Status:** For loops are **not currently supported** in Vibefun.
 
-Use one of these alternatives instead:
+For loops may be added in a future version. Until then, use functional list operations (`List.map`, `List.fold`, `List.filter`) or while loops for iteration.
 
-**For-each style (recommended):**
-
-```vibefun
-// Use List.map for transformations
-List.map([1, 2, 3], (x) => x * 2)
-
-// Use List.fold for accumulation
-List.fold([1, 2, 3], 0, (acc, x) => acc + x)
-
-// Use List.filter for selection
-List.filter([1, 2, 3, 4], (x) => x % 2 == 0)
-```
-
-**Range-based iteration:**
-
-```vibefun
-// Use List.range for numeric iteration
-let rec range = (start: Int, end: Int): List<Int> =>
-    if start >= end then []
-    else [start, ...range(start + 1, end)]
-
-// Then use with map/fold
-range(0, 10) |> List.map((i) => i * i)
-
-// Or while loop for imperative style
-let mut i = ref(0)
-while !i < 10 {
-    // loop body
-    i := !i + 1
-}
-```
-
-**Future consideration:** For loops may be added in a future version with syntax like:
-
-```vibefun
-// Hypothetical future syntax (not implemented)
-for x in list {
-    // body
-}
-```
+**See:** **[Future Features: For Loops](../13-appendix/future-features.md#for-loops)** for alternatives and future design considerations.
 
 ---
 
@@ -346,36 +405,16 @@ for x in list {
 
 **Status:** Async/await is **reserved for future implementation** but not currently supported.
 
-The keywords `async` and `await` are reserved and cannot be used as identifiers, but the feature is not yet implemented.
-
-**Current alternatives for asynchronous code:**
-
-Use JavaScript interop with `external` declarations and Promises:
+The keywords `async` and `await` are **reserved** and cannot be used as identifiers.
 
 ```vibefun
-// Declare Promise-returning JavaScript function
-external fetch: (String) -> Promise<Response> = "fetch" from "global"
-
-// Use with .then() via JavaScript interop
-unsafe {
-    fetch("https://api.example.com/data")
-        .then((response) => response.json())
-        .then((data) => console.log(data))
-}
+// ❌ Parse error: 'async' is a reserved keyword
+let async = 42
 ```
 
-**Future syntax (planned):**
+**Current alternatives:** Use JavaScript Promises through external declarations and unsafe blocks.
 
-```vibefun
-// Hypothetical future syntax (not implemented)
-async let fetchData = (url: String): Promise<String> => {
-    let response = await fetch(url)
-    let data = await response.json()
-    data
-}
-```
-
-**Timeline:** Async/await support is planned for a future release. Track the feature request in the project roadmap.
+**See:** **[Future Features: Async/Await](../13-appendix/future-features.md#asyncawait)** for workarounds and future design considerations.
 
 ---
 

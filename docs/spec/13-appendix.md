@@ -2,6 +2,16 @@
 
 ## Appendix
 
+### Contents
+
+- [Syntax Summary](#syntax-summary)
+- [Keywords Reference](#keywords-reference)
+- [Operators Reference](#operators-reference)
+- [File Organization Best Practices](#file-organization-best-practices)
+- **[Future Features](./future-features.md)** - Reserved keywords and planned features
+
+---
+
 ### Syntax Summary
 
 ```vibefun

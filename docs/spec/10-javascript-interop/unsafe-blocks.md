@@ -38,6 +38,79 @@ unsafe {
 }
 ```
 
+#### JavaScript Syntax in Unsafe Blocks
+
+Within `unsafe` blocks, you can use **limited JavaScript syntax** for interoperating with JavaScript code:
+
+**Allowed:**
+- Vibefun expressions (the default)
+- Calling external functions
+- JavaScript try/catch blocks (for exception handling)
+- JavaScript property access and method calls through external declarations
+
+```vibefun
+// ✅ Try/catch is allowed in unsafe blocks
+unsafe {
+    try {
+        riskyOperation()
+    } catch (error) {
+        handleError(error)
+    }
+}
+
+// ✅ Calling JavaScript methods
+external setTimeout: ((Unit) -> Unit, Int) -> Int = "setTimeout" from "global"
+unsafe {
+    setTimeout(() => { log("Hello") }, 1000)
+}
+```
+
+**Not allowed (use external declarations instead):**
+- Raw JavaScript `if`, `for`, `while` statements (use Vibefun control flow)
+- JavaScript `var`, `let`, `const` declarations (use Vibefun `let`)
+- JavaScript `function` declarations (use Vibefun functions)
+- JavaScript classes and prototypes
+- JavaScript operators that differ from Vibefun (e.g., `===`, `++`, `+=`)
+
+```vibefun
+// ❌ JavaScript syntax not supported
+unsafe {
+    var x = 10  // Error: Use 'let x = 10'
+    if (condition) { }  // Error: Use Vibefun 'if condition then ...'
+    for (let i = 0; i < 10; i++) { }  // Error: Use while loop or List operations
+}
+
+// ✅ Use Vibefun syntax instead
+unsafe {
+    let x = 10
+    if condition then { ... } else { ... }
+    // Use while loops or functional operations
+}
+```
+
+**Best practice:** Keep unsafe blocks minimal and use external declarations for complex JavaScript integration:
+
+```vibefun
+// ❌ Attempting complex JavaScript in unsafe block
+unsafe {
+    try {
+        const response = await fetch(url)  // Error: await not supported
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+// ✅ Declare JavaScript functions externally
+external fetchJson: (String) -> Promise<Json> = "fetchJson" from "./api"
+unsafe {
+    fetchJson(url)
+        .then((data) => processData(data))
+        .catch((error) => handleError(error))
+}
+```
+
 #### Nesting Unsafe Blocks
 
 Unsafe blocks **can be nested** (though usually unnecessary):

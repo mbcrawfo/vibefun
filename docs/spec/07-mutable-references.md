@@ -35,6 +35,54 @@ let mut items = ref([])     // Ref<List<T>>
 
 **Important**: The `mut` keyword is **required** when declaring a ref. This makes mutation explicit and visible at the declaration site.
 
+#### Mut Keyword Requirement
+
+Bindings that hold refs **must** use the `mut` keyword. Omitting it is a **compile-time error**:
+
+```vibefun
+// ❌ Error: ref bindings must use 'let mut'
+let x = ref(0)
+// Error: Cannot bind Ref<Int> without 'mut' keyword
+// Suggestion: Use 'let mut x = ref(0)'
+
+// ✅ OK: Correct syntax with mut
+let mut x = ref(0)
+```
+
+**Rationale:** The `mut` keyword serves as a visual marker that indicates "this binding can be updated." It helps readers quickly identify mutable state in the codebase.
+
+**Scope of mutation:**
+
+The `mut` keyword indicates that the **ref itself can be reassigned** (though refs are typically not reassigned—they're mutated using `:=`):
+
+```vibefun
+let mut x = ref(0)
+
+// ✅ OK: Update the ref's contents
+x := 5
+
+// ✅ OK: Reassign the binding to a new ref
+x = ref(10)  // Less common, but allowed
+
+// Contrast with immutable binding:
+let y = 42
+// y = 43  // ❌ Error: Cannot reassign immutable binding
+```
+
+However, in practice, refs are almost never reassigned—they're mutated using `:=`:
+
+```vibefun
+let mut counter = ref(0)
+
+// Common pattern: mutate the ref's contents
+counter := !counter + 1  // ✅ Typical usage
+
+// Rare: reassigning to a new ref
+counter = ref(100)  // Uncommon, usually not needed
+```
+
+**Best practice:** The `mut` keyword signals "this is mutable state"—use it sparingly and prefer immutable alternatives when possible.
+
 ### Reading References (Dereference)
 
 Read the current value of a ref using the **dereference operator** `!`:
