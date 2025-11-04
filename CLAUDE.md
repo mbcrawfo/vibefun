@@ -265,7 +265,7 @@ vibefun run src/main.vf            # Compile and run
 ### Design Documents
 - **[.claude/design/language-design.md](.claude/design/language-design.md)** - Original language design exploration
 - **[.claude/design/type-system.md](.claude/design/type-system.md)** - Detailed type system design and algorithms
-- **[.claude/design/compiler-architecture.md](.claude/archive/compiler-architecture.md)** - Compiler pipeline design
+- **[.claude/design/compiler-implementation-guide.md](.claude/archive/compiler-architecture.md)** - Compiler design
 
 ### Additional Instructions
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md
