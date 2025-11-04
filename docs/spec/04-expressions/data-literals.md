@@ -228,8 +228,8 @@ x :: xs                // Cons
 #### List Literals
 
 ```vibefun
-// Empty list
-let empty = []  // Type: List<T> (polymorphic)
+// Empty list (needs type annotation or context)
+let empty: List<Int> = []  // Explicit type annotation
 
 // List with elements
 let numbers = [1, 2, 3, 4, 5]  // Type: List<Int>
@@ -241,23 +241,46 @@ let mixed = [1, "hello"]  // ❌ Error: Expected Int, got String
 
 #### Empty List Type Inference
 
-The empty list `[]` has a **polymorphic type** `List<T>` where `T` is a type variable that will be inferred from context:
+The empty list literal `[]` **as an expression** has polymorphic type `List<T>`, but due to the value restriction, **binding it to a variable** creates a monomorphic type:
 
 ```vibefun
-// Type inferred from annotation
+// ✅ Type inferred from annotation
 let empty: List<Int> = []  // List<Int>
 
-// Type inferred from usage
-let withAppend = List.append([], [1, 2, 3])  // List<Int> (inferred from [1,2,3])
+// ✅ Type inferred from usage
+let withElements = [1, ...[] ]  // List<Int> (inferred from 1)
 
-// Type inferred from function return type
+// ✅ Type inferred from function return type
 let getEmptyInts: () -> List<Int> = () => []
 
-// Polymorphic empty list (type not determined)
-let ambiguous = []  // List<T> (monomorphic T due to value restriction)
+// ❌ Problematic: value restriction applies
+let ambiguous = []  // List<T> where T is a fresh monomorphic type variable
+
+// First use of 'ambiguous' fixes its type
+let nums = [1, ...ambiguous]  // T := Int, so ambiguous: List<Int>
+let strs = ["hello", ...ambiguous]  // ❌ Error: ambiguous is already List<Int>
 ```
 
-**Note:** Due to the [value restriction](#value-restriction-and-polymorphism), `let empty = []` creates a **monomorphic** list with an unknown element type, not a fully polymorphic list. Add a type annotation if you need a specific element type.
+**Value Restriction Explanation:**
+
+- The expression `[]` itself is polymorphic: `List<T>` for any T
+- However, `let x = []` **binds a non-syntactic value** (the empty list)
+- The value restriction prevents generalizing `x` to be polymorphic
+- Result: `x` gets a **fresh monomorphic type variable**, not a polymorphic type
+- The first use of `x` determines what that type variable becomes
+
+**Workaround:** Use a function to maintain polymorphism:
+
+```vibefun
+// Polymorphic function returning empty list
+let empty = <T>(): List<T> => []
+
+// Each call gets a fresh type
+let nums: List<Int> = empty()     // List<Int>
+let strs: List<String> = empty()  // List<String>
+```
+
+Or simply use `[]` directly where needed instead of binding it.
 
 #### List Spread Operator
 

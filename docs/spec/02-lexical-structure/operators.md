@@ -159,6 +159,8 @@ café         // ✅ OK: also normalized to NFC (visually identical)
 &     String concatenation
 ```
 
+**Note:** The `&` operator is syntactic sugar that is desugared to `String.concat(s1, s2)` during compilation. See [Desugaring](../12-compilation/desugaring.md) for details.
+
 ### Special Operators
 
 ```
