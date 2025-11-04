@@ -309,6 +309,88 @@ let triple = (1, 2, 3)
 let numbers = [1, 2, 3, 4, 5]  // List<Int>
 ```
 
+**Arity mismatch in destructuring:**
+
+Destructuring must match the exact number of tuple elements. Arity mismatches are **compile-time errors**:
+
+```vibefun
+let pair = (10, 20)
+
+// ❌ Too few variables
+let (x) = pair
+// Error: Cannot destructure tuple of size 2 into pattern with 1 variable
+//   Expected: (T1, T2)
+//   Got pattern: (x)
+//
+//   let (x) = pair
+//       ^^^
+//   Help: Tuple has 2 elements, provide 2 variables: let (x, y) = pair
+
+// ❌ Too many variables
+let (x, y, z) = pair
+// Error: Cannot destructure tuple of size 2 into pattern with 3 variables
+//   Expected: (T1, T2)
+//   Got pattern: (x, y, z)
+//
+//   let (x, y, z) = pair
+//       ^^^^^^^^^
+//   Help: Tuple has 2 elements, provide 2 variables: let (x, y) = pair
+
+// ✅ Correct arity
+let (x, y) = pair  // OK: matches tuple size
+```
+
+**Arity in pattern matching:**
+
+Pattern match arms must also have correct arity:
+
+```vibefun
+let triple = (1, 2, 3)
+
+match triple {
+    // ❌ Wrong arity in pattern
+    | (x, y) => x + y
+    // Error: Pattern has 2 elements but value has type (Int, Int, Int)
+    //   Expected pattern with 3 elements
+    //
+    //   | (x, y) => x + y
+    //     ^^^^^^
+}
+
+match triple {
+    // ✅ Correct arity
+    | (x, y, z) => x + y + z
+
+    // ✅ Can use wildcards for unused elements
+    | (x, _, z) => x + z
+}
+```
+
+**Wildcards don't change arity:**
+
+Wildcard patterns (`_`) still count toward arity - they must match the tuple size:
+
+```vibefun
+let pair = (10, 20)
+
+// ✅ OK: 2 patterns for 2 elements
+let (x, _) = pair      // Bind first, ignore second
+
+// ✅ OK: Ignore both
+let (_, _) = pair
+
+// ❌ Wrong arity even with wildcards
+let (x, _, _) = pair   // Error: 3 patterns for 2-tuple
+```
+
+**Rationale:**
+
+Arity checking at compile time:
+1. **Catches bugs early**: Prevents runtime index-out-of-bounds errors
+2. **Clear error messages**: Points to exact mismatch location
+3. **Type safety**: Ensures destructuring matches tuple shape
+4. **No silent failures**: All elements must be explicitly handled (or ignored with `_`)
+
 **Tuple type equivalence:**
 
 Tuples are structurally typed - two tuple types with the same element types in the same order are equivalent:
@@ -319,6 +401,10 @@ let b: (Int, String) = a  // ✅ Same type
 
 // Different order = different type
 let c: (String, Int) = a  // ❌ Error: (Int, String) ≠ (String, Int)
+
+// Different arity = different type
+let d: (Int, String, Bool) = (1, "hi", true)
+let e: (Int, String) = d   // ❌ Error: Different tuple sizes
 ```
 
 #### Implementation Notes

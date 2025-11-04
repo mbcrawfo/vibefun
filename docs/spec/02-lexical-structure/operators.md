@@ -159,7 +159,47 @@ café         // ✅ OK: also normalized to NFC (visually identical)
 &     String concatenation
 ```
 
-**Note:** The `&` operator is syntactic sugar that is desugared to `String.concat(s1, s2)` during compilation. See [Desugaring](../12-compilation/desugaring.md) for details.
+**Type signature:**
+```vibefun
+(&): (String, String) -> String
+```
+
+**Type enforcement:** The `&` operator is **strictly typed** - both operands must be of type `String`. There is **no automatic type coercion** from other types.
+
+**Valid usage:**
+```vibefun
+"hello" & " " & "world"           // ✅ OK → "hello world"
+"Age: " & String.fromInt(42)      // ✅ OK → "Age: 42"
+"Pi: " & String.fromFloat(3.14)   // ✅ OK → "Pi: 3.14"
+```
+
+**Invalid usage (compile-time errors):**
+```vibefun
+"Age: " & 42                      // ❌ Type error: Int is not String
+"Count: " & 100                   // ❌ Type error: Int is not String
+123 & "hello"                     // ❌ Type error: Int is not String
+true & "value"                    // ❌ Type error: Bool is not String
+
+// Error message:
+// Type mismatch in binary operation
+//   Operator & expects: (String, String) -> String
+//   Left operand: String
+//   Right operand: Int
+//
+//   "Age: " & 42
+//             ^^
+//   Help: Use String.fromInt(42) to convert Int to String
+```
+
+**Rationale:** Explicit conversion is required to prevent accidental type coercion bugs common in dynamically-typed languages. This makes type errors caught at compile time rather than producing unexpected string representations at runtime.
+
+**Conversion functions:**
+- `String.fromInt: (Int) -> String`
+- `String.fromFloat: (Float) -> String`
+- `String.fromBool: (Bool) -> String`
+- See [String module](../11-stdlib/string.md) for complete API
+
+**Note:** The `&` operator is syntactic sugar that is desugared to `String.concat(s1, s2)` during compilation. The type checker validates operand types **before** desugaring. See [Desugaring](../12-compilation/desugaring.md) for details.
 
 ### Special Operators
 

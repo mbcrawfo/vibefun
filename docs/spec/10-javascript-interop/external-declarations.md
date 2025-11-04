@@ -4,6 +4,152 @@
 
 The `external` keyword declares JavaScript values with their types.
 
+#### Opaque JavaScript Types
+
+When interfacing with JavaScript, Vibefun provides several **opaque types** that represent JavaScript values without exposing their internal structure. These types can only be used within `unsafe` blocks or passed to `external` functions.
+
+##### JsObject
+
+Represents an arbitrary JavaScript object with unknown structure:
+
+```vibefun
+external process_env: JsObject = "process.env" from "process"
+external fetch_options: JsObject = "..." from "..."
+
+unsafe {
+    let env = process_env  // JsObject - opaque, structure unknown
+}
+```
+
+**Characteristics:**
+- **Opaque**: Cannot access fields or methods directly in Vibefun code
+- **Usage**: Pass to external functions that expect JavaScript objects
+- **Type safety**: Minimal - represents "any JavaScript object"
+- **Operations**: Can only be passed to externals or stored; no direct field access
+
+**When to use:**
+- When JavaScript API expects an options object with unknown/dynamic structure
+- For third-party library objects you don't want to fully type
+- As a type-safe alternative to `Any` when you know it's an object
+
+##### Json
+
+Represents JSON values (parsed or to-be-serialized):
+
+```vibefun
+external from "JSON" {
+    parse: (String) -> Json = "parse"
+    stringify: (Json) -> String = "stringify"
+}
+
+unsafe {
+    let data = Json.parse("{\"name\": \"Alice\"}")  // Json
+    let text = Json.stringify(data)                 // String
+}
+```
+
+**Characteristics:**
+- **Opaque**: Represents JSON-compatible data (objects, arrays, primitives)
+- **Type safety**: Guarantees JSON-serializability but not specific structure
+- **Operations**: Can be passed to `JSON.stringify`, returned from `JSON.parse`
+
+**See also:** `/docs/spec/11-stdlib/json.md` for the standard library JSON module.
+
+##### Promise\<T\>
+
+Represents JavaScript Promises for asynchronous operations:
+
+```vibefun
+external fetch: (String) -> Promise<Response> = "fetch"
+external then: <A, B>(Promise<A>, (A) -> B) -> Promise<B> = "then"
+
+unsafe {
+    let promise = fetch("https://api.example.com")  // Promise<Response>
+}
+```
+
+**Characteristics:**
+- **Generic**: Parameterized by the resolved value type `T`
+- **Opaque**: Cannot directly access promise internals
+- **Operations**: Use external `.then()`, `.catch()`, or `await` (future feature)
+
+**Type safety:** The type parameter `T` represents what the promise resolves to, providing type safety for async chains.
+
+##### Error
+
+Represents JavaScript Error objects:
+
+```vibefun
+external from "Error" {
+    Error: (String) -> Error = "Error"
+    message: (Error) -> String = "message"
+    stack: (Error) -> String = "stack"
+}
+
+unsafe {
+    let err = Error("Something went wrong")
+    let msg = message(err)  // String
+}
+```
+
+**Characteristics:**
+- **Opaque**: Represents JavaScript Error instances
+- **Usage**: For JavaScript exception handling in unsafe blocks
+- **Type safety**: Guarantees it's an Error object, but structure is opaque
+
+**Best practice:** Prefer `Result<T, E>` types in pure Vibefun code for error handling.
+
+##### Any
+
+Represents a completely unconstrained JavaScript value (escape hatch):
+
+```vibefun
+external process_argv: Any = "process.argv"
+external console_log: (Any) -> Unit = "console.log"
+
+unsafe {
+    let mysterious = process_argv  // Any - could be anything!
+    console_log(mysterious)        // Accepts Any
+}
+```
+
+**Characteristics:**
+- **Completely opaque**: No guarantees about what the value is
+- **Least type-safe**: Equivalent to TypeScript's `any` or `unknown`
+- **Operations**: Can only pass to externals that accept `Any`
+
+**When to use:**
+- **Last resort** when JavaScript API is too dynamic to type
+- Debugging or prototyping
+- Wrapping highly polymorphic JS libraries
+
+**Warning:** `Any` bypasses type safety. Prefer specific types (`JsObject`, `Json`, etc.) or properly typed external declarations when possible.
+
+##### Type Safety Summary
+
+| Type | Safety Level | Use Case |
+|------|-------------|----------|
+| `Int`, `String`, etc. | High | Primitive JavaScript values with known types |
+| Vibefun types | High | Structured data within Vibefun code |
+| `Promise<T>` | Medium | Async operations with known result type |
+| `Json` | Medium | JSON data with unknown structure |
+| `JsObject` | Low | Arbitrary JS objects |
+| `Error` | Low | JavaScript exceptions |
+| `Any` | None | Complete escape hatch (use sparingly) |
+
+**General principle:** Use the **most specific type possible**. Define explicit record types or variants when you know the structure:
+
+```vibefun
+// Instead of:
+external fetch: (String) -> Promise<Any> = "fetch"
+
+// Prefer:
+external {
+    type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<Json> }
+    fetch: (String) -> Promise<Response> = "fetch"
+}
+```
+
 #### Single External Declarations
 
 ```vibefun

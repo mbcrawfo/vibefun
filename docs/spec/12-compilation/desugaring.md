@@ -156,55 +156,163 @@ String.concat(String.concat("hello", " "), "world")
 
 #### Pattern Matching
 
-Complex pattern matching is desugared to nested if/switch expressions and destructuring:
+Complex pattern matching is desugared to nested if/switch expressions and destructuring. Pattern matching follows **first-match semantics**: patterns are evaluated top-to-bottom, and the first matching pattern's body is executed.
 
-**Simple variant matching:**
+##### Evaluation Semantics
+
+Pattern matching evaluation follows this order:
+
+1. **Evaluate the scrutinee** (the expression being matched) once
+2. **Test patterns top-to-bottom** in the order they appear
+3. **For each pattern**:
+   - Check if the pattern matches the scrutinee value
+   - If the pattern has a guard (`when`), evaluate the guard expression
+   - If both pattern and guard match, execute the body and return its value
+4. **If no pattern matches**, the match is non-exhaustive (compile-time error if detected, runtime panic if not)
+
+**Important properties:**
+- **First-match wins**: If multiple patterns could match, only the first one executes
+- **Scrutinee evaluated once**: Side effects in the matched expression happen exactly once
+- **Guards evaluated in order**: A guard is only evaluated if its pattern matches
+- **Guards can fail**: If a pattern matches but its guard returns `false`, matching continues to the next pattern
+
+##### Simple variant matching
+
+**Surface syntax:**
 ```vibefun
-// Surface syntax
 match opt {
     | Some(x) => x
     | None => 0
 }
-
-// Desugared to (conceptual)
-if opt.tag == "Some" then opt.value
-else if opt.tag == "None" then 0
-else panic("Non-exhaustive match")
 ```
 
-**List pattern matching:**
+**Desugared semantics (implementation-agnostic):**
+```
+1. Evaluate opt once (call it $scrutinee)
+2. Check if $scrutinee is a Some constructor:
+   - If yes: bind x to the wrapped value, evaluate body (x), return result
+3. Check if $scrutinee is a None constructor:
+   - If yes: evaluate body (0), return result
+4. If neither matched: panic "Non-exhaustive match" (should be caught at compile time)
+```
+
+**Note:** The exact representation of variant tags (string tags, numeric tags, etc.) is implementation-specific. The semantics above describe the **behavior**, not the implementation.
+
+##### List pattern matching
+
+**Surface syntax:**
 ```vibefun
-// Surface syntax
 match list {
     | [] => 0
     | [x] => x
     | [x, y, ...rest] => x + y
 }
-
-// Desugared to (conceptual)
-if list.length == 0 then 0
-else if list.length == 1 then list[0]
-else
-    let x = list[0]
-    let y = list[1]
-    let rest = list.slice(2)
-    x + y
 ```
 
-**Guards:**
+**Desugared semantics:**
+```
+1. Evaluate list once (call it $scrutinee)
+2. Check if $scrutinee is empty:
+   - If yes: evaluate body (0), return result
+3. Check if $scrutinee has exactly one element:
+   - If yes: bind x to first element, evaluate body (x), return result
+4. Check if $scrutinee has two or more elements:
+   - If yes: bind x to first, y to second, rest to remaining elements
+   - Evaluate body (x + y), return result
+```
+
+**List pattern properties:**
+- List length is checked at match time
+- Elements are bound to variables only if the pattern matches
+- Rest patterns (`...rest`) bind to a list of remaining elements (may be empty)
+
+##### Pattern Guards
+
+Guards are boolean expressions evaluated **after** a pattern matches:
+
+**Surface syntax:**
 ```vibefun
-// Surface syntax
 match x {
     | n when n > 0 => "positive"
     | n when n < 0 => "negative"
     | _ => "zero"
 }
-
-// Desugared to
-if x > 0 then "positive"
-else if x < 0 then "negative"
-else "zero"
 ```
+
+**Desugared semantics:**
+```
+1. Evaluate x once (call it $scrutinee)
+2. Pattern: n (binds to $scrutinee), Guard: n > 0
+   - Bind n to $scrutinee
+   - Evaluate guard: n > 0
+   - If guard is true: evaluate body ("positive"), return result
+   - If guard is false: continue to next pattern
+3. Pattern: n (binds to $scrutinee), Guard: n < 0
+   - Bind n to $scrutinee
+   - Evaluate guard: n < 0
+   - If guard is true: evaluate body ("negative"), return result
+   - If guard is false: continue to next pattern
+4. Pattern: _ (always matches)
+   - Evaluate body ("zero"), return result
+```
+
+**Guard evaluation rules:**
+- Guards are **only evaluated if the pattern matches**
+- Guards are evaluated in **top-to-bottom order**
+- A failing guard **does not** make the match non-exhaustive (matching continues to next pattern)
+- Guards **must be pure expressions** (no side effects) for predictable behavior
+- Multiple patterns with guards on the same value are evaluated sequentially until one succeeds
+
+**Example with overlapping patterns:**
+```vibefun
+match value {
+    | Some(x) when x > 10 => "big"
+    | Some(x) when x > 0 => "small"  // Only checked if first guard fails
+    | Some(x) => "non-positive"       // Only checked if both guards fail
+    | None => "nothing"
+}
+```
+
+Order of evaluation:
+1. Check if `value` is `Some` and `x > 10` → if yes, return "big"
+2. Check if `value` is `Some` and `x > 0` → if yes, return "small"
+3. Check if `value` is `Some` (no guard) → if yes, return "non-positive"
+4. Check if `value` is `None` → if yes, return "nothing"
+
+##### Nested Pattern Matching
+
+Nested patterns are flattened into sequential checks:
+
+**Surface syntax:**
+```vibefun
+match result {
+    | Ok(Some(x)) => x
+    | Ok(None) => 0
+    | Err(e) => -1
+}
+```
+
+**Desugared semantics:**
+```
+1. Evaluate result once (call it $scrutinee)
+2. Check if $scrutinee is Ok:
+   - If yes: extract inner value (call it $inner)
+   - Check if $inner is Some:
+     - If yes: bind x to wrapped value, evaluate body (x), return result
+     - If no: continue to next pattern
+3. Check if $scrutinee is Ok:
+   - If yes: extract inner value (call it $inner)
+   - Check if $inner is None:
+     - If yes: evaluate body (0), return result
+     - If no: continue to next pattern
+4. Check if $scrutinee is Err:
+   - If yes: bind e to error value, evaluate body (-1), return result
+```
+
+**Nested pattern properties:**
+- Outer patterns are checked first, then inner patterns
+- Nested pattern variables are only bound if all levels match
+- Arbitrary nesting depth is supported (limited by compiler/stack constraints)
 
 #### If-Without-Else
 

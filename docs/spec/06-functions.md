@@ -131,6 +131,148 @@ add(1)         // ✅ Partial application → (Int) -> Int
 add(1, 2, 3)   // ❌ Type error: expected 2 args, got 3
 ```
 
+#### Arity Validation Semantics
+
+Arity checking occurs **at compile time** during type checking. The type checker validates that function applications provide the correct number of arguments based on the function's type.
+
+##### Compile-Time Arity Checking
+
+```vibefun
+let add: (Int, Int) -> Int = (x, y) => x + y
+
+// Type checker knows add has type (Int) -> (Int) -> Int
+// which means it accepts 2 arguments total
+
+// Full application - OK
+let result = add(1, 2)  // Type checks: (Int) -> Int applied to Int → Int
+
+// Partial application - OK
+let increment = add(1)  // Type checks: (Int) -> (Int) -> Int applied to Int → (Int) -> Int
+
+// Too many arguments - Compile-time error
+let wrong = add(1, 2, 3)
+// Error: Cannot apply type Int to non-function type Int
+// Function 'add' expects 2 arguments, but 3 were provided
+// Type: (Int, Int) -> Int
+```
+
+**How it works:**
+1. The type checker represents `add` as type `(Int) -> (Int) -> Int`
+2. When it sees `add(1, 2)`, it checks:
+   - Apply `add` to `1`: yields type `(Int) -> Int` ✅
+   - Apply result to `2`: yields type `Int` ✅
+3. When it sees `add(1, 2, 3)`, it checks:
+   - Apply `add` to `1`: yields type `(Int) -> Int` ✅
+   - Apply result to `2`: yields type `Int` ✅
+   - Apply `Int` (not a function!) to `3`: **Type error** ❌
+
+**This means:** Over-application is caught at compile time because you can't apply arguments to non-function types.
+
+##### Partial Application Chains
+
+Partial application chains are validated at each application site:
+
+```vibefun
+let add3 = (x, y, z) => x + y + z
+// Type: (Int, Int, Int) -> Int
+// Internal: (Int) -> (Int) -> (Int) -> Int
+
+// Gradually apply arguments
+let step1 = add3(1)        // (Int, Int) -> Int
+let step2 = step1(2)       // (Int) -> Int
+let result = step2(3)      // Int
+
+// Type checker validates each step:
+// 1. add3(1): (Int) -> (Int) -> (Int) -> Int applied to Int → (Int) -> (Int) -> Int ✅
+// 2. step1(2): (Int) -> (Int) -> Int applied to Int → (Int) -> Int ✅
+// 3. step2(3): (Int) -> Int applied to Int → Int ✅
+```
+
+**Over-application in chains:**
+```vibefun
+let add = (x, y) => x + y  // (Int, Int) -> Int
+
+let partial = add(1)       // (Int) -> Int
+let wrong = partial(2, 3)  // ❌ Error: partial expects 1 argument, got 2
+// Error: Function of type (Int) -> Int expects 1 argument, but 2 were provided
+```
+
+**Under-application in chains:**
+```vibefun
+let add3 = (x, y, z) => x + y + z
+
+let partial = add3(1)      // (Int, Int) -> Int
+let result = partial(2)    // (Int) -> Int (still partial!)
+// ✅ OK: returns a function, not a value
+```
+
+##### Type Inference with Partial Application
+
+The type checker infers the most general type and validates applications:
+
+```vibefun
+// Inferred function type
+let add = (x, y) => x + y
+// Inferred: (Int) -> (Int) -> Int (if used with Ints)
+
+// Partial application inference
+let increment = add(1)
+// Inferred type: (Int) -> Int
+
+// The type checker ensures:
+let result = increment(5)      // ✅ OK: (Int) -> Int applied to Int → Int
+let wrong = increment(5, 6)    // ❌ Error: function expects 1 arg, got 2
+```
+
+**Generic functions:**
+```vibefun
+let map = (list, f) => ...  // Inferred: <A, B>(List<A>, (A) -> B) -> List<B>
+
+// Partial application preserves polymorphism
+let mapNumbers = map([1, 2, 3])  // ((Int) -> B) -> List<B>
+
+// Type checker validates the partial application:
+let doubled = mapNumbers((x) => x * 2)  // List<Int>
+```
+
+##### Error Messages
+
+When arity mismatches occur, the compiler provides clear error messages:
+
+**Too many arguments:**
+```vibefun
+let add = (x, y) => x + y
+add(1, 2, 3)
+
+// Error: Arity mismatch in function application
+//   Function 'add' has type (Int, Int) -> Int
+//   Expected 2 arguments, but 3 were provided
+//   Cannot apply argument of type Int to non-function type Int
+//
+//   add(1, 2, 3)
+//          ^
+//   Note: add(1, 2) is already fully applied and returns Int
+```
+
+**Wrong argument types:**
+```vibefun
+let add = (x, y) => x + y
+add(1, "hello")
+
+// Error: Type mismatch in function application
+//   Function 'add' expects argument of type Int
+//   But got: String
+//
+//   add(1, "hello")
+//          ^^^^^^^
+```
+
+**Too few arguments** (not an error - returns a function):
+```vibefun
+let add = (x, y) => x + y
+let partial = add(1)  // ✅ OK: partial has type (Int) -> Int
+```
+
 #### Type Inference with Currying
 
 The type checker infers curried types automatically:

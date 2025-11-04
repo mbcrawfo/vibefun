@@ -121,9 +121,41 @@ import { Button, Input } from './components'
 // Resolves to: ./components/index.vf
 ```
 
-#### Circular Dependencies
+#### Module Initialization Order
 
-Vibefun **allows** circular module dependencies, with these semantics:
+Vibefun modules are initialized in dependency order. Understanding initialization is crucial for avoiding runtime errors, especially with circular dependencies.
+
+##### Normal (Acyclic) Module Initialization
+
+When modules form a directed acyclic graph (DAG), initialization is straightforward:
+
+**Example:**
+```
+main.vf → utils.vf → stdlib.vf
+```
+
+**Initialization order:**
+1. `stdlib.vf` (no dependencies)
+2. `utils.vf` (depends only on stdlib)
+3. `main.vf` (depends on utils)
+
+**Semantics:**
+- Each module is initialized exactly once, in topological order
+- When a module is initialized, all its dependencies are **already fully initialized**
+- All imported bindings are available and have their defined values
+
+**Process:**
+1. Parse and type-check all modules
+2. Build dependency graph
+3. Topologically sort modules
+4. Initialize in sorted order:
+   - Execute module's top-level code
+   - Bind exported values
+   - Mark module as "initialized"
+
+##### Circular Dependencies
+
+Vibefun **allows** circular module dependencies, but they require careful handling:
 
 ```vibefun
 // moduleA.vf
@@ -135,14 +167,85 @@ import { functionA } from './moduleA'
 export let functionB = (x) => if x > 0 then functionA(x - 1) else 0
 ```
 
-**Initialization order:**
-1. Modules are topologically sorted where possible
-2. Circular dependencies create **initialization cycles**
-3. During a cycle, imported bindings may be **undefined** until fully initialized
-4. The compiler **warns** about circular dependencies but allows them
+**Dependency cycle:** A → B → A
 
-**Best practice:** Avoid circular dependencies when possible. If needed, use explicit initialization or redesign with a shared module:
+**Initialization semantics:**
 
+When a circular dependency is detected, the compiler uses **deferred initialization**:
+
+1. **First pass**: Create bindings for all exports (initialized to `undefined` or temporary values)
+2. **Second pass**: Execute module bodies in arbitrary order within the cycle
+3. **Resolution**: Once all modules in the cycle complete, bindings resolve to their actual values
+
+**Critical insight:** During initialization, imported bindings from modules in the same cycle may be **temporarily unbound** or hold placeholder values.
+
+**What "undefined" means:**
+- At the JavaScript runtime level, circular imports may be `undefined` during initialization
+- Calling such functions during module initialization will cause runtime errors
+- **After all modules initialize**, bindings are fully resolved and safe to use
+
+**Example of the problem:**
+```vibefun
+// moduleA.vf
+import { functionB } from './moduleB'
+
+// This runs during module initialization!
+let result = functionB(10)  // ❌ Runtime error: functionB is undefined
+
+export let functionA = (x) => functionB(x) + 1  // ✅ OK: called later
+```
+
+**Why it fails:**
+1. Compiler starts initializing `moduleA`
+2. Encounters import of `functionB` from `moduleB`
+3. Starts initializing `moduleB`
+4. `moduleB` imports `functionA` from `moduleA` (cycle detected!)
+5. `functionA` doesn't exist yet (still initializing `moduleA`)
+6. `functionB` gets a placeholder/undefined reference
+7. Back in `moduleA`, calling `functionB(10)` at module-level fails
+
+**Safe pattern:**
+```vibefun
+// moduleA.vf
+import { functionB } from './moduleB'
+
+// Don't call during initialization - just define the function
+export let functionA = (x) => functionB(x) + 1  // ✅ Safe
+
+// Later, in application code:
+let result = functionA(10)  // ✅ Safe: all modules initialized
+```
+
+##### Compiler Behavior
+
+**The compiler:**
+1. **Detects** circular dependencies during module graph analysis
+2. **Warns** about circular dependencies:
+   ```
+   Warning: Circular dependency detected
+     moduleA.vf → moduleB.vf → moduleA.vf
+
+   Circular imports may cause runtime errors if bindings are accessed
+   during module initialization. Ensure imports are only used in function
+   bodies, not at module top-level.
+   ```
+3. **Allows** the code to compile (doesn't error)
+4. **Generates** initialization code that handles cycles at runtime
+
+**Type-only circular imports are safe:**
+```vibefun
+// moduleA.vf
+import type { TypeB } from './moduleB'  // ✅ Safe: types erased at runtime
+
+// moduleB.vf
+import type { TypeA } from './moduleA'  // ✅ Safe
+```
+
+Type imports don't participate in runtime initialization, so circular type imports never cause problems.
+
+##### Best Practices
+
+**1. Avoid circular dependencies:**
 ```vibefun
 // Instead of A ↔ B circular dependency:
 // Create C as shared dependency: A → C ← B
@@ -156,6 +259,45 @@ import type { SharedType } from './shared'
 // moduleB.vf
 import type { SharedType } from './shared'
 ```
+
+**2. If circular dependencies are necessary:**
+- Only define functions/values, don't call them during initialization
+- Move initialization logic into explicit initialization functions
+- Call initialization functions after all modules load
+
+```vibefun
+// moduleA.vf
+import { initB } from './moduleB'
+
+let mut initialized = ref(false)
+
+export let init = () => {
+    if !initialized then {
+        initB()
+        initialized := true
+    }
+}
+
+export let functionA = (x) => ...
+```
+
+**3. Use type-only imports when possible:**
+```vibefun
+// Import types for annotations, import values separately
+import type { User } from './types'
+import { processUser } from './logic'  // Different module
+```
+
+##### Initialization Order Summary
+
+| Scenario | Initialization Behavior | Safety |
+|----------|------------------------|--------|
+| Acyclic dependencies | Topological order, all deps initialized first | ✅ Safe |
+| Circular dependencies, functions only | Arbitrary order within cycle, functions defined but not called | ✅ Safe if no top-level calls |
+| Circular dependencies with top-level calls | Undefined binding errors possible | ❌ Unsafe - runtime errors |
+| Type-only circular imports | Types erased, no runtime initialization | ✅ Always safe |
+
+**Recommendation:** Structure code to avoid circular dependencies. If unavoidable, ensure imported functions are only called after all modules initialize (e.g., in application entry point, not at module top-level).
 
 #### Path Mappings (vibefun.json)
 
