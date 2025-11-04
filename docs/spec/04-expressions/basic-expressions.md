@@ -299,36 +299,21 @@ See [Data Literals](./data-literals.md) for details.
 
 ## Operator Precedence and Associativity
 
-Operators are evaluated according to precedence and associativity rules.
+Operators are evaluated according to precedence and associativity rules. See the [**Operators Reference**](../13-appendix.md#operators-reference) in the Appendix for the complete precedence table.
 
-### Precedence Table (High to Low)
+### Key Precedence Rules
 
-| Precedence | Operators | Associativity | Description |
-|------------|-----------|---------------|-------------|
-| 1 (highest) | `.` | Left | Field/module access |
-| 2 | `!` (prefix) | Right | Logical NOT / Dereference |
-| 3 | `-` (prefix) | Right | Unary negation |
-| 4 | `*` `/` `%` | Left | Multiplicative |
-| 5 | `+` `-` | Left | Additive |
-| 6 | `::` | Right | List cons |
-| 7 | `&` | Left | String concatenation |
-| 8 | `==` `!=` `<` `>` `<=` `>=` | Left | Comparison |
-| 9 | `&&` | Left | Logical AND |
-| 10 | `\|\|` | Left | Logical OR |
-| 11 | `\|>` | Left | Pipe operator |
-| 12 | `>>` `<<` | Right | Composition |
-| 13 | `:=` | Right | Reference assignment |
-| 14 (lowest) | `=>` | Right | Lambda/function |
+**Higher precedence values bind more tightly**: Field access `.` (precedence 16) binds tightest, while lambda arrow `=>` (precedence 0) binds loosest.
 
-### Associativity
+**Associativity examples:**
 
-**Left-associative:**
+Left-associative:
 ```vibefun
 a + b + c      // Parses as: (a + b) + c
 a * b / c      // Parses as: (a * b) / c
 ```
 
-**Right-associative:**
+Right-associative:
 ```vibefun
 a :: b :: c    // Parses as: a :: (b :: c)
 f >> g >> h    // Parses as: f >> (g >> h)
@@ -336,7 +321,7 @@ f >> g >> h    // Parses as: f >> (g >> h)
 
 ### Parentheses for Grouping
 
-Use parentheses to override precedence or clarify intent.
+Use parentheses to override precedence or clarify intent:
 
 ```vibefun
 (a + b) * c          // Force addition before multiplication

@@ -60,7 +60,7 @@ let age = person.age    // 30
 let address = person.address.city
 let nested = config.server.host.name
 
-// Field access has highest precedence (see operator table)
+// Field access has highest precedence (see Operators Reference in Appendix)
 person.name & " Smith"  // Equivalent to: (person.name) & " Smith"
 ```
 
@@ -325,7 +325,7 @@ let list = [2, 3, 4]
 let newList = 1 :: list  // [1, 2, 3, 4]
 
 // Type: (T, List<T>) -> List<T>
-// Right-associative (see operator precedence table)
+// Right-associative (see Operators Reference in Appendix)
 
 // Building lists with cons
 let numbers = 1 :: 2 :: 3 :: []  // [1, 2, 3]

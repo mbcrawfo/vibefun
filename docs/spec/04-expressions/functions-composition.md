@@ -300,11 +300,11 @@ function(value)
 
 #### Pipe Precedence and Associativity
 
-**Precedence:** 2 (very low, second-lowest after `:=`)
+**Precedence:** 3 (very low - see [Operators Reference](../13-appendix.md#operators-reference))
 **Associativity:** Left
 
 This means:
-- Pipe binds **very loosely** (evaluated last, after most other operators)
+- Pipe binds **very loosely** (evaluated after most other operators)
 - Pipe chains evaluate **left to right**
 
 ```vibefun
