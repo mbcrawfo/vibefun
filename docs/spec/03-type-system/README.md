@@ -5,13 +5,14 @@ Vibefun uses a Hindley-Milner type system extended with generics, union types, a
 ## Contents
 
 1. **[Primitive Types](./primitive-types.md)** - Int, Float, String, Bool, Unit, Ref<T>, and function types
-2. **[Type Inference](./type-inference.md)** - Type variables, polymorphism, inference rules, and value restriction
-3. **[Record Types](./record-types.md)** - Structural records with width subtyping
-4. **[Variant Types](./variant-types.md)** - Sum types and tagged unions with nominal typing
-5. **[Generic Types](./generic-types.md)** - Parametric polymorphism and generic functions
-6. **[Union Types](./union-types.md)** - Union types for variants and literals
-7. **[Recursive Types](./recursive-types.md)** - Recursive and mutually recursive type definitions
-8. **[Type Aliases](./type-aliases.md)** - Type aliases and annotations
+2. **[Tuple Types](./tuples.md)** - Fixed-size, heterogeneous product types with positional elements
+3. **[Type Inference](./type-inference.md)** - Type variables, polymorphism, inference rules, and value restriction
+4. **[Record Types](./record-types.md)** - Structural records with width subtyping
+5. **[Variant Types](./variant-types.md)** - Sum types and tagged unions with nominal typing
+6. **[Generic Types](./generic-types.md)** - Parametric polymorphism and generic functions
+7. **[Union Types](./union-types.md)** - Union types for variants and literals
+8. **[Recursive Types](./recursive-types.md)** - Recursive and mutually recursive type definitions
+9. **[Type Aliases](./type-aliases.md)** - Type aliases and annotations
 
 ## Type System Design
 
