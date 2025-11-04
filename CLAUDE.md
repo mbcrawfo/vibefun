@@ -12,7 +12,7 @@
 - **Key Features:** Algebraic data types, pattern matching, immutability by default, explicit JavaScript interop
 - **File Extension:** `.vf`
 
-**For comprehensive language details, syntax, semantics, and examples, see [Language Specification](./docs/spec/).**
+**For comprehensive language details, see the [Language Specification](./docs/spec/) - start with [.agent-map.md](./docs/spec/.agent-map.md) for quick navigation to specific topics.**
 
 ## Core Project Directives
 
@@ -55,19 +55,6 @@ When exiting plan mode with an accepted plan:
 - Check `.claude/active/[task-name]/` for existing tasks
 - Read all three files before proceeding
 - Update "Last Updated" timestamps
-
-## Language Design Summary
-
-The vibefun language design is based on these core principles:
-
-- **Functional-first with pragmatic escape hatches** - Immutability and pure functions by default
-- **Strong static typing with inference** - Hindley-Milner type system minimizes annotations
-- **Algebraic data types** - Sum types (variants) and product types (records)
-- **Pattern matching** - Exhaustive matching with compiler guarantees
-- **Explicit JavaScript interop** - Clear FFI boundaries with `external` and `unsafe`
-- **Developer experience** - Clear error messages, readable generated code, fast compilation
-
-**For detailed language specification, see the [Language Specification](./docs/spec/).**
 
 ## Project Structure
 
@@ -145,41 +132,6 @@ See [JavaScript Interop: External Declarations](./docs/spec/10-javascript-intero
 - **Error reporting**: Type mismatch, undefined variables, non-exhaustive patterns with helpful suggestions
 
 See `.claude/active/type-checker/` for detailed implementation documentation.
-
-## Quick Language Reference
-
-### File Extension
-- Source files: `.vf`
-- Each file is a module
-
-### Naming Conventions
-- Types & Constructors: `PascalCase`
-- Functions & Variables: `camelCase`
-
-### Simple Examples
-
-```vibefun
-// Functions
-let add = (x, y) => x + y
-
-// Types
-type Option<T> = Some(T) | None
-
-// Pattern matching
-match option {
-    | Some(x) => x
-    | None => 0
-}
-
-// Pipe operator
-data |> filter(pred) |> map(transform) |> sum
-
-// JavaScript interop
-external log: (String) -> Unit = "console.log"
-unsafe { log("Hello!") }
-```
-
-**See the [Language Specification](./docs/spec/) for complete syntax, semantics, type system details, and standard library.**
 
 ## Development Workflow
 

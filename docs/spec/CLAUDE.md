@@ -1,201 +1,264 @@
-# Vibefun Specification Documentation Layout
+# Vibefun Specification Documentation Guide
 
-This document describes the organization and structure of the Vibefun language specification documentation.
+This document explains how to navigate and maintain the Vibefun language specification.
 
-## Overview
+## Quick Start: Finding Information
 
-The specification has been organized into **~35 focused files** grouped by topic to improve navigation, maintainability, and comprehension. The original monolithic `vibefun-spec.md` (5,958 lines) has been restructured into a hierarchical documentation system.
+**Start with [.agent-map.md](./.agent-map.md)**
 
-## Organization Principles
+The agent map is optimized for fast, query-oriented navigation to find relevant spec files without reading everything. It includes:
+- Quick lookup table (topic → file)
+- Query-based index ("How do I...?", "What is...?", "Can I...?")
+- File relationship maps (which files to read together)
+- Special topics index (edge cases, gotchas, common misconceptions)
 
-### 1. Logical Grouping
-Related content is grouped into folders with a `README.md` serving as a section index:
-- Large sections (>400 lines with multiple subtopics) → folders with multiple files
-- Medium sections (~200-400 lines, cohesive) → single files
-- Small sections (<200 lines) → combined or single files
+**For Sequential Learning**: Start with **[README.md](./README.md)** for the full table of contents and read sections in order.
 
-### 2. Numbered Prefixes
-Top-level sections use numbered prefixes (01-, 02-, etc.) to establish a logical reading order that mirrors the learning path:
-1. Introduction → Language basics
-2. Lexical Structure → How code is tokenized
-3. Type System → Core type theory
-4. Expressions → Building blocks
-5. Pattern Matching → Data deconstruction
-6-9. Language features (Functions, Refs, Modules, Errors)
-10. JavaScript Interop → Practical integration
-11. Standard Library → Available tools
-12. Compilation → Implementation details
-13. Appendix → Reference material
+## Agent Map Design Philosophy
 
-### 3. Child Folders for Complex Topics
-Sections with many subsections are organized into folders:
-- `02-lexical-structure/` - 3 files covering tokens, operators, and rules
-- `03-type-system/` - 8 files for different type system aspects
-- `04-expressions/` - 4 files for expression categories
-- `05-pattern-matching/` - 4 files for pattern types and features
-- `10-javascript-interop/` - 4 files for interop mechanisms
-- `11-stdlib/` - 9 files, one per module or module group
-- `12-compilation/` - 3 files for compilation phases
+The `.agent-map.md` file is designed specifically for AI agent efficiency:
 
-## Directory Structure
+### 1. Query-Oriented Organization
+Instead of organizing by file structure, the map organizes by **question patterns**:
+- "How do I define a function?" → Direct file references
+- "What is the value restriction?" → Type inference file
+- "Can I use loops?" → Control flow + future features
 
+This matches how agents naturally search for information.
+
+### 2. Context Efficiency
+The map provides maximum directional value with minimal tokens:
+- **Fast scanning**: Agents find relevant files in seconds
+- **No redundancy**: Points to information rather than duplicating it
+- **Concise descriptions**: Just enough context to route queries
+
+### 3. Relationship Awareness
+The map shows which files work together for complex topics:
+- Type system + pattern matching + exhaustiveness checking
+- Functions + expressions + evaluation order
+- Mutability + type inference (value restriction)
+
+This helps agents understand when to read multiple files for complete context.
+
+### 4. Specialization by Use Case
+Different sections serve different agent needs:
+- **Quick Lookup**: Fast topic-to-file mapping
+- **Query Index**: Natural language question routing
+- **Relationship Map**: Multi-file reading guidance
+- **Special Topics**: Edge cases and gotchas
+
+## Specification Structure Overview
+
+The specification is organized into **~51 markdown files** grouped into **13 numbered sections**:
+
+1. **01-introduction.md** - Language philosophy and goals
+2. **02-lexical-structure/** - Tokens, operators, syntax rules (3 files)
+3. **03-type-system/** - Hindley-Milner + extensions (9 files)
+4. **04-expressions/** - Evaluation, control flow, literals (5 files)
+5. **05-pattern-matching/** - Match semantics, exhaustiveness (4 files)
+6. **06-functions.md** - First-class, curried, recursive functions
+7. **07-mutable-references.md** - Ref<T> and value restriction
+8. **08-modules.md** - File-based modules, imports/exports
+9. **09-error-handling.md** - Result/Option philosophy
+10. **10-javascript-interop/** - FFI, unsafe blocks, type safety (4 files)
+11. **11-stdlib/** - Standard library modules (9 files)
+12. **12-compilation/** - Pipeline, desugaring, codegen (3 files)
+13. **13-appendix.md** - Syntax reference, future features (2 files)
+
+**Key principle**: Folders contain related files with a `README.md` index; standalone files are cohesive single topics.
+
+## Maintaining the Agent Map
+
+**CRITICAL**: The `.agent-map.md` file must stay synchronized with the specification content.
+
+### When to Update the Map
+
+Update `.agent-map.md` whenever you:
+
+1. **Add new spec files**
+   - Add entry to Quick Lookup Table
+   - Add to Query-Based Index if it answers common questions
+   - Update File Relationship Map if it relates to other files
+   - Add to Special Topics if it covers edge cases
+
+2. **Remove or rename spec files**
+   - Remove/update all references in Quick Lookup Table
+   - Update Query-Based Index entries
+   - Update File Relationship Map
+   - Update cross-references in other sections
+
+3. **Restructure folders**
+   - Update all file paths in Quick Lookup Table
+   - Verify Query-Based Index paths are correct
+   - Update Structural Overview
+
+4. **Add new language features**
+   - Add to Quick Lookup Table
+   - Add relevant queries to Query-Based Index
+   - Update "Can I...?" section if feature was previously unavailable
+   - Remove from future-features.md and update references
+
+5. **Change major semantics**
+   - Update Special Topics Index if edge cases change
+   - Update Common Misconceptions if behavior changes
+   - Verify Query-Based Index answers are still accurate
+
+6. **Discover common agent queries**
+   - Add new patterns to Query-Based Index
+   - Add synonyms to Quick Lookup Table
+   - Update relationship guidance if agents frequently need multiple files
+
+### Validation Checklist
+
+Before committing changes to the spec, verify:
+
+- [ ] All spec files are represented in Quick Lookup Table
+- [ ] File paths are accurate (test links if possible)
+- [ ] Query-Based Index covers common question patterns
+- [ ] File Relationship Map reflects current cross-references
+- [ ] Special Topics Index includes known edge cases
+- [ ] Structural Overview matches actual folder structure
+- [ ] No dead links to removed/renamed files
+- [ ] New features removed from future-features.md
+
+### Maintenance Workflow
+
+When making spec changes:
+
+```bash
+# 1. Make your spec changes (add/edit/remove .md files)
+# 2. Update .agent-map.md accordingly
+# 3. Verify links work by checking file paths
+# 4. Test by asking a common question and seeing if map routes correctly
+# 5. Commit spec changes and map updates together
 ```
-docs/spec/
-├── README.md                              # Main index and table of contents
-├── CLAUDE.md                              # This file - layout documentation
-│
-├── 01-introduction.md                     # Language intro & philosophy (52 lines)
-│
-├── 02-lexical-structure/                  # Tokenization (443 lines → 3 files)
-│   ├── README.md                          # Section overview
-│   ├── basic-structure.md                 # Files, comments, whitespace, ASI
-│   ├── tokens.md                          # Keywords, identifiers, literals
-│   └── operators.md                       # Operators, punctuation, edge cases
-│
-├── 03-type-system/                        # Type theory (1,002 lines → 8 files)
-│   ├── README.md                          # Type system overview
-│   ├── primitive-types.md                 # Int, Float, String, Bool, Unit, Ref, Function
-│   ├── type-inference.md                  # Variables, polymorphism, inference, value restriction
-│   ├── record-types.md                    # Structural records with width subtyping
-│   ├── variant-types.md                   # Sum types and tagged unions
-│   ├── generic-types.md                   # Parametric polymorphism
-│   ├── union-types.md                     # Union type features
-│   ├── recursive-types.md                 # Recursive and mutually recursive types
-│   └── type-aliases.md                    # Type aliases and annotations
-│
-├── 04-expressions/                        # Core expressions (969 lines → 4 files)
-│   ├── README.md                          # Expressions overview
-│   ├── basic-expressions.md               # Literals, variables, calls, operators
-│   ├── control-flow.md                    # If and match expressions
-│   ├── data-literals.md                   # Records and lists
-│   └── functions-composition.md           # Lambdas, blocks, pipes
-│
-├── 05-pattern-matching/                   # Pattern matching (998 lines → 4 files)
-│   ├── README.md                          # Pattern matching overview
-│   ├── pattern-basics.md                  # Match, literal, variable, wildcard
-│   ├── data-patterns.md                   # Variant, list, record patterns
-│   ├── advanced-patterns.md               # Nested, guards, or-patterns, as-patterns
-│   └── exhaustiveness.md                  # Type checking and exhaustiveness
-│
-├── 06-functions.md                        # Functions (232 lines)
-├── 07-mutable-references.md               # Ref<T> (350 lines)
-├── 08-modules.md                          # Module system (237 lines)
-├── 09-error-handling.md                   # Error handling (230 lines)
-│
-├── 10-javascript-interop/                 # JS interop (619 lines → 4 files)
-│   ├── README.md                          # Interop overview
-│   ├── external-declarations.md           # Declaring JS functions
-│   ├── unsafe-blocks.md                   # Controlled side effects
-│   ├── type-safety.md                     # FFI boundary safety
-│   └── calling-conventions.md             # JS calling Vibefun
-│
-├── 11-stdlib/                             # Standard library (328 lines → 9 files)
-│   ├── README.md                          # Stdlib overview
-│   ├── list.md                            # List module
-│   ├── option.md                          # Option module
-│   ├── result.md                          # Result module
-│   ├── string.md                          # String module
-│   ├── numeric.md                         # Int and Float modules
-│   ├── array.md                           # Array module
-│   ├── collections.md                     # Map and Set modules
-│   ├── math.md                            # Math module
-│   └── json.md                            # JSON module
-│
-├── 12-compilation/                        # Compilation (344 lines → 3 files)
-│   ├── README.md                          # Compilation overview
-│   ├── desugaring.md                      # Surface to core transformations
-│   ├── codegen.md                         # JavaScript output and source maps
-│   └── runtime.md                         # Runtime type checking
-│
-└── 13-appendix.md                         # Reference material (130 lines)
-```
 
-## File Naming Conventions
+## File Organization Principles
 
-- **Folders**: Descriptive kebab-case names (e.g., `javascript-interop`, `type-system`)
-- **Files**: Descriptive kebab-case names (e.g., `basic-expressions.md`, `type-inference.md`)
-- **READMEs**: Each folder contains a `README.md` with section overview and links to child documents
+### Numbered Prefixes
+Top-level sections use numbered prefixes (01-, 02-, etc.) to establish a logical reading order for sequential learning.
 
-## Content Organization Within Folders
+### Folder vs File Decision
+- **Folder**: Use when section has 3+ distinct subtopics or exceeds ~400 lines
+- **Single file**: Use for cohesive topics under ~400 lines
+- **Combined files**: Related modules (Int+Float, Map+Set) are grouped to reduce file proliferation
 
-Each folder follows a consistent structure:
-
-1. **README.md** (required)
-   - Section title and brief description
-   - Table of contents linking to all child documents
-   - Overview of key concepts covered
-
-2. **Child documents** (2-9 files)
-   - Focused on specific subtopics
-   - Typically 50-500 lines each
-   - Self-contained but may reference other docs
-
-## Navigation
-
-### Entry Points
-- **[README.md](./README.md)**: Start here for complete table of contents
-- **Folder READMEs**: Overview and index for each major section
-- **Root CLAUDE.md**: Links to `./docs/spec/` in project instructions
+### Child Folder Structure
+Each folder contains:
+1. `README.md` - Section overview and links to child documents
+2. Child documents (2-9 files) - Focused subtopics (50-500 lines each)
 
 ### Cross-References
-Documentation uses relative links:
+Use relative links between documents:
 ```markdown
 See [Type Inference](../03-type-system/type-inference.md) for details.
 See the [Pattern Matching](../05-pattern-matching/) section.
 ```
 
-## Benefits of This Structure
-
-1. **Improved Navigation**: Find specific topics quickly without scrolling through thousands of lines
-2. **Better Comprehension**: Focused documents are easier to read and understand
-3. **Maintainability**: Update specific sections without affecting others
-4. **Modularity**: Each file can be read independently
-5. **Discoverability**: READMEs provide clear entry points and overview
-6. **Version Control**: Smaller files produce cleaner diffs
-
 ## Updating the Specification
 
-When updating the spec:
+### Small Changes
+Edit the relevant file directly. Update `.agent-map.md` if the change:
+- Adds new queryable information
+- Changes behavior that affects "Can I...?" queries
+- Introduces new edge cases or gotchas
 
-1. **Small changes**: Edit the relevant file directly
-2. **New subsection**: Add to appropriate folder or create new file
-3. **Reorganization**: Update folder README and cross-references
-4. **New major section**: Add numbered folder with README and child docs
-5. **Always update**: Main README.md table of contents if structure changes
+### New Subsections
+1. Add to appropriate folder or create new file
+2. Update folder's README.md if adding to existing folder
+3. Add to `.agent-map.md` Quick Lookup Table
+4. Add relevant queries to Query-Based Index
+5. Update main `README.md` if needed
+
+### Reorganization
+1. Move/rename files as needed
+2. Update all folder READMEs
+3. Update cross-references in affected documents
+4. **Update all references in `.agent-map.md`** (paths, relationships)
+5. Update main `README.md` table of contents
+
+### New Major Section
+1. Add numbered folder (e.g., `14-new-section/`)
+2. Create folder README.md with overview and links
+3. Create child documents
+4. Add complete section to `.agent-map.md`:
+   - Quick Lookup entries for all new files
+   - Query-Based Index for common questions
+   - Relationship Map if connects to other sections
+5. Update main `README.md` table of contents
+
+## Benefits of This Documentation System
+
+1. **Dual Navigation**: Sequential learning (README.md) + fast lookup (.agent-map.md)
+2. **AI-Optimized**: Agent map designed for query-based information retrieval
+3. **Maintainability**: Small focused files, clear cross-references
+4. **Discoverability**: Multiple entry points and navigation strategies
+5. **Context Efficiency**: Minimal tokens to find maximum information
+6. **Version Control**: Smaller files produce cleaner diffs
 
 ## Relationship to Project Documentation
 
-This specification documentation (`docs/spec/`) is referenced from:
-- **Root `CLAUDE.md`**: Links to spec as authoritative language reference
+This specification (`docs/spec/`) is referenced from:
+- **Root `CLAUDE.md`**: Links to spec and agent map
 - **Root `vibefun-spec.md`**: DELETED (replaced by this structure)
 
 The specification is distinct from:
-- **Implementation documentation**: In source code comments and tests
+- **Implementation documentation**: In source code and tests
 - **Project planning**: In `.claude/` folder
-- **User-facing docs**: Future `docs/guide/` or similar
+- **User-facing docs**: Future `docs/guide/` or website
 
-## Design Decisions
+## Examples of Good Map Maintenance
 
-### Why numbered prefixes?
-Establishes a clear reading order for newcomers learning the language progressively.
+### Example 1: Adding a New Type Feature
 
-### Why separate folders vs single files?
-Folders used when:
-- Section exceeds ~400 lines
-- Contains 3+ distinct subtopics
-- Subtopics can be read independently
+```markdown
+# Spec change: Add docs/spec/03-type-system/row-polymorphism.md
 
-### Why group some modules (numeric, collections)?
-Related modules that are conceptually similar and relatively short (e.g., Int + Float, Map + Set) are combined to reduce file proliferation while maintaining clarity.
+# Agent map updates needed:
+1. Quick Lookup Table:
+   | Row polymorphism | `03-type-system/row-polymorphism.md` |
 
-### Why keep some sections as single files (Functions, Modules)?
-These sections (200-400 lines) are cohesive single topics that don't benefit from further subdivision. Breaking them apart would fragment the reading experience.
+2. Query-Based Index ("What is...?"):
+   | What is row polymorphism? | `03-type-system/row-polymorphism.md` |
 
-## Future Considerations
+3. File Relationship Map:
+   Add to "Core Type System Journey" after generic-types.md
 
-Potential additions as the language evolves:
-- `14-effects/` - If effect system is added
-- `15-traits/` - If trait/type class system is added
-- `16-async/` - If async/await is formalized
-- `examples/` - Extended examples and patterns
-- `migration/` - Version migration guides
+4. Special Topics Index (if applicable):
+   Add any edge cases or gotchas
+```
+
+### Example 2: Removing a Planned Feature
+
+```markdown
+# Spec change: Remove trait system from 13-appendix/future-features.md
+# (decided to implement immediately)
+
+# Agent map updates needed:
+1. Move from "Future Considerations" to Quick Lookup Table
+2. Update "Can I...?" section (change "planned" to actual file reference)
+3. Add to Query-Based Index
+4. Add relationship guidance if traits interact with other systems
+```
+
+### Example 3: Discovering Common Query
+
+```markdown
+# Notice agents frequently ask: "How do I handle null values from JS?"
+
+# Agent map updates:
+1. Add to Query-Based Index ("How do I...?"):
+   | Handle null values from JS? | `11-stdlib/option.md`, `10-javascript-interop/type-safety.md` |
+
+2. Consider adding to Special Topics if it's a common gotcha
+```
+
+## Summary
+
+**For Navigation**: Use `.agent-map.md` for fast, query-based lookup.
+
+**For Maintenance**: Keep `.agent-map.md` synchronized with all spec changes.
+
+**For Learning**: Use `README.md` for sequential, comprehensive reading.
+
+The agent map is the **primary tool** for efficient specification navigation. Keep it current, accurate, and optimized for query-based information retrieval.
