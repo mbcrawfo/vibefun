@@ -356,6 +356,46 @@ unsafe {
 - Type parameters must be consistently used across the function signature
 - No higher-kinded types in external declarations
 
+#### Opaque JavaScript Type Constructors
+
+When interfacing with JavaScript classes or constructor functions, you can declare them as opaque types using the `Type` identifier:
+
+```vibefun
+external from "node-fetch" {
+    Headers: Type = "Headers"
+    Request: Type = "Request"
+    Response: Type = "Response"
+}
+```
+
+**The `Type` identifier:**
+- **Not a keyword**: `Type` is a PascalCase identifier with special semantics in external blocks
+- **Purpose**: Declares an opaque JavaScript constructor or class that cannot be instantiated or inspected from pure Vibefun code
+- **Usage**: Only meaningful in external declarations; treated as a regular identifier elsewhere
+- **Type safety**: The declared binding can only be passed to external functions that expect it
+
+**Example:**
+
+```vibefun
+external from "node-fetch" {
+    Headers: Type = "Headers"
+    newHeaders: (Unit) -> Headers = "Headers"  // Constructor wrapper
+    append: (Headers, String, String) -> Unit = "append"
+}
+
+unsafe {
+    let headers = newHeaders()  // Creates a Headers instance
+    append(headers, "Content-Type", "application/json")
+}
+```
+
+**When to use `Type`:**
+- JavaScript classes/constructors you don't want to fully type as records
+- Third-party library types with complex internal structure
+- Objects that should remain opaque to Vibefun code
+
+**Alternative:** For types with known structure, use record type declarations instead (see next section).
+
 #### External Type Declarations
 
 Declare the shape of JavaScript objects within external blocks:

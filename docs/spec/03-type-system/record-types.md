@@ -184,3 +184,73 @@ getX({ x: 42, y: 100 })  // OK: extra fields allowed
 getX({ y: 100 })  // ❌ Error: missing required field x
 ```
 
+#### Field Shorthand and Type Inference
+
+Record literals support **field shorthand** syntax where `{ name, age }` is equivalent to `{ name: name, age: age }` when variables with matching names are in scope.
+
+**Typing rules:**
+The type checker uses the variable's type for the corresponding record field type. No special typing rules are needed—it's simply syntactic sugar that desugars before type checking.
+
+```vibefun
+// Variables with known types
+let name: String = "Alice"
+let age: Int = 30
+
+// Field shorthand
+let person = { name, age }
+// Type: { name: String, age: Int }
+
+// Equivalent to explicit syntax
+let personExplicit = { name: name, age: age }
+// Same type: { name: String, age: Int }
+```
+
+**Type inference with shorthand:**
+
+```vibefun
+// Shorthand with inferred variable types
+let x = 10        // Inferred: Int
+let y = 20        // Inferred: Int
+let point = { x, y }
+// Inferred type: { x: Int, y: Int }
+
+// Mixed shorthand and explicit fields
+let name = "Bob"
+let user = { name, age: 25, active: true }
+// Inferred type: { name: String, age: Int, active: Bool }
+```
+
+**Shorthand with width subtyping:**
+
+Field shorthand works seamlessly with width subtyping:
+
+```vibefun
+type Person = { name: String, age: Int }
+
+let name = "Alice"
+let age = 30
+let email = "alice@example.com"
+
+// Shorthand creates record with extra field
+let user = { name, age, email }
+// Type: { name: String, age: Int, email: String }
+
+// Can be used where Person is expected (width subtyping)
+let person: Person = user  // ✅ OK: has name and age (email ignored)
+```
+
+**Shorthand in function parameters:**
+
+```vibefun
+// Destructuring with shorthand in function body
+let makePerson = (name, age, email) => {
+    // Create record using parameter values with shorthand
+    { name, age, email }
+}
+// Type: (String, Int, String) -> { name: String, age: Int, email: String }
+
+// Call site
+let p = makePerson("Bob", 25, "bob@example.com")
+// Type: { name: String, age: Int, email: String }
+```
+

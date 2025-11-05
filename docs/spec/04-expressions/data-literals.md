@@ -141,6 +141,20 @@ let extended = { name, age, email: "alice@example.com" }
 let makePerson = (name, age, email) => { name, age, email }
 ```
 
+**Type inference with field shorthand:**
+The type checker uses the variable's type for the record field type. The shorthand `{ name, age }` creates a record where:
+- Field `name` has the same type as variable `name`
+- Field `age` has the same type as variable `age`
+
+```vibefun
+let name: String = "Alice"
+let age: Int = 30
+let person = { name, age }  // Type: { name: String, age: Int }
+```
+
+**Lexer behavior:**
+Field shorthand requires no special lexer logic. The lexer tokenizes identifiers and commas normally; the parser recognizes the shorthand pattern when a field name appears without `: value`.
+
 #### Record Type Inference
 
 The type checker infers record types from their structure:
@@ -374,5 +388,51 @@ let withTrailing = [
     "two",
     "three",  // Trailing comma OK
 ]
+```
+
+### Trailing Commas
+
+Trailing commas are permitted in both list and record literals to improve version control diffs and make adding/removing elements easier.
+
+**Records with trailing commas:**
+```vibefun
+let person = {
+    name: "Alice",
+    age: 30,
+    email: "alice@example.com",   // ✅ Trailing comma allowed
+}
+
+// Single-line also allows trailing comma
+let point = { x: 10, y: 20, }     // ✅ OK
+```
+
+**Lists with trailing commas:**
+```vibefun
+let numbers = [
+    1,
+    2,
+    3,   // ✅ Trailing comma allowed
+]
+
+// Single-line also allows trailing comma
+let items = [1, 2, 3,]            // ✅ OK
+```
+
+**Why trailing commas are useful:**
+- **Version control**: Adding a new field/element doesn't modify the previous line
+- **Consistency**: All lines can follow the same pattern (value + comma)
+- **Refactoring**: Easier to reorder elements without worrying about commas
+
+**Lexer behavior:**
+The lexer tokenizes trailing commas as regular `COMMA` tokens. The parser accepts and ignores trailing commas in list and record literals.
+
+**Example version control benefit:**
+```diff
+ let config = {
+     timeout: 5000,
+-    retries: 3
++    retries: 3,      // Only comma added (not semantic change)
++    maxDelay: 10000  // New line is clean addition
+ }
 ```
 

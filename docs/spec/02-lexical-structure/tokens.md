@@ -2,15 +2,17 @@
 
 ## Keywords
 
-Vibefun has 17 reserved keywords:
+Vibefun has 19 reserved keywords:
 
 ```
 let       mut       type      if
 then      else      match     when
 rec       and       import    export
 external  unsafe    from      as
-ref
+ref       try       catch
 ```
+
+**Note:** `try` and `catch` are used in unsafe blocks for JavaScript exception handling interop.
 
 Additional reserved for future use:
 ```
@@ -65,7 +67,17 @@ false
 0.5
 1e10        // Scientific notation (10000000000)
 3.14e-2     // (0.0314)
+1e010       // Leading zeros in exponents allowed (equivalent to 1e10)
 ```
+
+**Decimal point rules:**
+- Float literals must have at least one digit before AND after the decimal point
+- Leading decimal (`.5`) is not allowed
+- Trailing decimal (`5.`) is not allowed
+
+**Scientific notation:**
+- Exponents may have leading zeros (e.g., `1e010` is equivalent to `1e10`)
+- Leading zeros in exponents do not have special meaning and are ignored
 
 ### String Literals
 
@@ -93,6 +105,9 @@ It can span multiple lines.
 - `\xHH` - Hex escape (e.g., `\x41` = 'A')
 - `\uXXXX` - Unicode escape (e.g., `\u03B1` = 'α')
 - `\u{XXXXXX}` - Long unicode escape (e.g., `\u{1F600}` = '😀')
+
+**Unicode normalization:**
+String literal values are normalized to NFC (Canonical Decomposition followed by Canonical Composition) during lexical analysis. The token value contains the normalized form, ensuring that visually identical strings have identical representations.
 
 ### Unit Literal
 

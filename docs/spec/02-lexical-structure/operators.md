@@ -44,9 +44,23 @@ _123_    // ✅ OK: identifier
 ### Number Size Limits
 
 **Integer limits:**
-- Maximum safe integer: `9007199254740991` (2^53 - 1)
-- Minimum safe integer: `-9007199254740991` (-(2^53 - 1))
-- Integers outside this range lose precision (see Error Handling → Integer Overflow)
+- Maximum safe integer: `9007199254740991` (2^53 - 1, `Number.MAX_SAFE_INTEGER`)
+- Minimum safe integer: `-9007199254740991` (-(2^53 - 1), `Number.MIN_SAFE_INTEGER`)
+- Integers outside this range lose precision when converted to JavaScript numbers at runtime
+
+**Lexer behavior:**
+The lexer accepts integer literals of any size. Values exceeding `Number.MAX_SAFE_INTEGER` will lose precision when converted to JavaScript numbers at runtime. The lexer does not warn or error on large integers.
+
+**Example:**
+```vibefun
+let big = 9007199254740992          // Lexer accepts
+// Runtime: loses precision (9007199254740992 may become 9007199254740992 or 9007199254740993)
+
+let huge = 999999999999999999999    // Lexer accepts
+// Runtime: loses precision significantly
+```
+
+**Recommendation:** For precise large integer arithmetic, consider using a BigInt library via JavaScript interop.
 
 **Float limits:**
 - Maximum value: approximately `1.7976931348623157e+308`
@@ -95,18 +109,22 @@ line 2"      // ❌ Lexer error: "Unterminated string (use """ for multi-line)"
 
 **Normalization:** Vibefun source code and string literals use **NFC (Canonical Decomposition, followed by Canonical Composition)** Unicode normalization.
 
+**When normalization occurs:** The lexer applies NFC normalization to identifiers and string literals during tokenization. This ensures that visually identical text has identical internal representation.
+
 **Identifiers:**
 ```vibefun
-café         // ✅ OK: normalized to NFC
+café         // ✅ OK: normalized to NFC during lexical analysis
 café         // ✅ OK: also normalized to NFC (visually identical)
 ```
 
-**Note:** Identifiers that appear identical but have different Unicode representations (combining characters vs precomposed) are normalized to the same identifier.
+**Note:** Identifiers that appear identical but have different Unicode representations (combining characters vs precomposed) are normalized to the same identifier during tokenization.
 
 **String literals:**
 ```vibefun
-"café" == "café"  // true (normalized to same NFC representation)
+"café" == "café"  // true (normalized to same NFC representation during lexical analysis)
 ```
+
+String comparison is simple byte-for-byte comparison because normalization has already occurred in the lexer.
 
 ### Comment Edge Cases
 
@@ -132,6 +150,16 @@ café         // ✅ OK: also normalized to NFC (visually identical)
 *     Multiplication
 /     Division
 %     Modulo
+```
+
+**Unary minus (`-`):**
+The lexer emits a single `MINUS` token for all `-` characters. The parser determines whether the minus represents unary negation (e.g., `-x`) or binary subtraction (e.g., `a - b`) based on expression context. Whitespace around `-` is not significant for lexical analysis.
+
+**Examples:**
+```vibefun
+-42        // Unary negation (parser determines from context)
+x - y      // Binary subtraction (parser determines from context)
+- x        // Also unary negation (whitespace doesn't matter to lexer)
 ```
 
 ### Comparison Operators

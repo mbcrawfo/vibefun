@@ -5,6 +5,9 @@
 Vibefun source files use the `.vf` extension. Each file is a module.
 
 **Encoding:** UTF-8
+
+**Unicode Normalization:** The lexer applies NFC (Canonical Decomposition followed by Canonical Composition) normalization to identifiers and string literals during tokenization. Source files need not be pre-normalized—normalization is performed incrementally as tokens are processed.
+
 **Line Endings:** LF (`\n`) or CRLF (`\r\n`)
 
 ## Comments

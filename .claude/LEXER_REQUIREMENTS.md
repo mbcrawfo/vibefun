@@ -12,7 +12,7 @@ This document provides a comprehensive specification of all lexical requirements
 
 ## 2. Keywords
 
-### Active Keywords (17)
+### Active Keywords (19)
 These keywords are reserved and cannot be used as identifiers:
 
 ```
@@ -20,8 +20,12 @@ let       mut       type      if
 then      else      match     when
 rec       and       import    export
 external  unsafe    from      as
-ref
+ref       try       catch
 ```
+
+**Note**: `try` and `catch` are used in unsafe blocks for JavaScript exception handling interop.
+
+**Spec Reference**: `docs/spec/02-lexical-structure/tokens.md` - Keywords section
 
 ### Reserved for Future Use (8)
 These keywords are reserved for potential future language features and cannot be used as identifiers:
@@ -1083,116 +1087,11 @@ Before considering the lexer complete, verify:
 
 ---
 
-## 16. Spec Clarifications Needed
-
-The following ambiguities exist in the language specification and should be resolved before finalizing the lexer implementation:
-
-### 16.1 `try` and `catch` Keywords
-
-**Status**: ⚠️ Requires Clarification
-
-**Context**: The spec mentions `try`/`catch` syntax in unsafe blocks for JavaScript interop:
-
-```vibefun
-unsafe {
-    try {
-        riskyOperation()
-    } catch (error) {
-        handleError(error)
-    }
-}
-```
-
-**Question**: Should `try` and `catch` be:
-1. **Reserved keywords** (like `async`, `await`)?
-2. **Contextual keywords** (only recognized inside `unsafe` blocks)?
-3. **Regular identifiers** that have special meaning in unsafe blocks?
-
-**Impact**: High - affects the keyword list in Section 2
-
-**Recommendation**: Add `try` and `catch` to either the active keywords or reserved keywords list once spec clarifies their status.
-
----
-
-### 16.2 `Type` Keyword/Identifier
-
-**Status**: ⚠️ Requires Clarification
-
-**Context**: The spec shows `Type` used in external declarations:
-
-```vibefun
-external {
-    Headers: Type = "Headers"
-    Request: Type = "Request"
-}
-```
-
-**Question**: Is `Type` a:
-1. **Reserved keyword**?
-2. **Type constructor name** (just PascalCase identifier)?
-3. **Contextual keyword** (only in external declarations)?
-
-**Impact**: Medium - affects the keyword list in Section 2
-
-**Recommendation**: Clarify whether `Type` should be tokenized as a keyword or as a regular identifier.
-
----
-
-### 16.3 String Literal NFC Normalization
-
-**Status**: ⚠️ Requires Clarification
-
-**Context**: The spec states that string literals should use NFC normalization, and that:
-
-```vibefun
-"café" == "café"  // true (normalized to same NFC representation)
-```
-
-**Question**: Should the lexer:
-1. **Normalize string literal VALUES** during tokenization (so both strings have identical token values)?
-2. **Preserve original values** and let runtime comparison normalize them?
-
-**Example Impact**:
-```vibefun
-let s1 = "café"  // Composed form (U+00E9)
-let s2 = "café"  // Decomposed form (U+0065 U+0301)
-
-// If lexer normalizes:
-s1 === s2  // true (both normalized to same bytes in token)
-
-// If lexer doesn't normalize:
-s1 === s2  // depends on runtime string comparison
-```
-
-**Impact**: Medium - affects string literal processing in Section 4.4 and Section 14.1
-
-**Recommendation**: Clarify whether lexer should normalize string literal values or if this is a runtime concern.
-
----
-
-### 16.4 Unary Minus Whitespace Rule
-
-**Status**: ℹ️ Informational
-
-**Context**: The spec appendix mentions:
-
-> Unary minus disambiguation: The parser distinguishes unary `-x` from binary `a - b` based on context. Unary minus requires no whitespace: `-x`, not `- x`. Binary minus requires an expression on the left: `a - b`.
-
-**Question**: Does the lexer need to:
-1. **Track whitespace around `-`** to help parser distinguish?
-2. **Always emit `MINUS` token** and let parser determine meaning purely from context?
-
-**Impact**: Low - the lexer likely always emits `MINUS`, but guidance would be helpful
-
-**Recommendation**: Confirm that lexer treats all `-` as `MINUS` token regardless of whitespace, with parser handling disambiguation.
-
----
-
 ## Summary
 
 The vibefun lexer is a comprehensive component that must handle:
 
-- **25 keywords** (17 active + 8 reserved)
+- **27 keywords** (19 active + 8 reserved)
 - **5 literal types** with extensive validation
 - **30+ operators** including complex multi-character operators
 - **Unicode support** with NFC normalization
