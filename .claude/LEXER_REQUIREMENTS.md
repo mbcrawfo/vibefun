@@ -101,6 +101,27 @@ false
 - Values outside this range lose precision at runtime (not a lexer error)
 - All digits in hex/binary must be valid for their base
 
+#### Edge Cases
+```vibefun
+// ✅ Maximum safe integer
+9007199254740991      // Exactly Number.MAX_SAFE_INTEGER
+
+// ⚠️  Lexer accepts, but runtime loses precision
+9007199254740992      // Beyond MAX_SAFE_INTEGER
+99999999999999999999  // Very large number
+
+// ✅ Hexadecimal maximum safe integer
+0x1FFFFFFFFFFFFF      // Max safe integer in hex
+
+// ✅ Leading zeros (NOT octal in vibefun!)
+0123                  // Decimal 123, not octal 83
+
+// ✅ Underscore separators
+1_000_000_000         // Clear grouping
+0xFF_FF_FF_FF         // Hex with separators
+0b1111_0000_1111_0000 // Binary with separators
+```
+
 **Token Type**: `INT_LITERAL`
 **Value**: Numeric value (number or bigint)
 
@@ -135,6 +156,29 @@ false
 - Non-integer exponent: `3.14e2.5`
 - Trailing underscore: `3.14_`
 - Consecutive underscores: `3.1__4`
+
+#### Edge Cases
+```vibefun
+// ✅ Very large exponents (become Infinity at runtime)
+1e308                 // Approximately Number.MAX_VALUE
+1e309                 // ⚠️  Becomes Infinity at runtime
+
+// ✅ Very small exponents (become 0 at runtime)
+1e-324                // Approximately Number.MIN_VALUE
+1e-325                // ⚠️  Becomes 0 at runtime
+
+// ✅ Leading zeros in exponent
+1e010                 // Equivalent to 1e10
+1.5e+00               // Equivalent to 1.5
+1.23e-05              // Scientific notation with leading zero
+
+// ✅ Various valid formats
+.5                    // ❌ NOT valid - must have digit before decimal
+0.5                   // ✅ Valid
+5.                    // ❌ NOT valid - must have digit after decimal
+5.0                   // ✅ Valid
+1_234.567_89          // ✅ Valid with underscores
+```
 
 **Token Type**: `FLOAT_LITERAL`
 **Value**: Numeric value (number)
@@ -199,6 +243,43 @@ line 2"         // Error: use """ for multi-line
 line"""         // Multi-line string
 ```
 
+#### Edge Cases
+```vibefun
+// ✅ Empty strings
+""                    // Empty single-line string
+""""""                // Empty multi-line string
+
+// ✅ Whitespace-only strings
+"   "                 // Single-line with spaces
+"""
+
+"""                   // Multi-line with whitespace
+
+// ✅ Escape sequence at end of string
+"test\\"              // Ends with backslash character
+"path\\file"          // Backslash in middle and end
+
+// ✅ Unicode surrogate pairs (via \u{} syntax)
+"\u{1F600}"           // 😀 emoji (handled as single code point)
+"\u{1F469}\u{200D}\u{1F4BB}"  // 👩‍💻 woman technologist (combining)
+
+// ❌ Manual surrogate pairs NOT supported
+"\uD83D\uDE00"        // Not valid - use \u{1F600} instead
+
+// ✅ All escape sequences work in multi-line strings
+"""
+Line 1\nLine 2
+Tab:\tHere
+Unicode:\u{1F600}
+"""
+
+// ✅ Multi-line strings preserve indentation
+"""
+    Indented
+    Text
+"""                   // Includes all whitespace
+```
+
 **Token Type**: `STRING_LITERAL`
 **Value**: String with all escape sequences processed
 
@@ -221,6 +302,8 @@ line"""         // Multi-line string
 /     Division
 %     Modulo
 ```
+
+**Note on Unary vs Binary Minus**: The lexer always emits a `MINUS` token regardless of whether `-` is used as unary negation or binary subtraction. The parser determines the meaning based on context (whether an expression precedes it). See Section 16.4 for spec clarification on whitespace rules.
 
 ### 5.2 Comparison Operators
 ```
@@ -281,6 +364,29 @@ line"""         // Multi-line string
 
 **Implementation Note**: Always try to match the longest possible operator first.
 
+### Operator Lookahead Priority Table
+
+When a character could start multiple operators, check in this order (longest first):
+
+| Start Char | Check First | Then Check | Finally |
+|------------|-------------|------------|---------|
+| `:` | `:=` | `::` | `:` |
+| `=` | `==` | `=>` | `=` |
+| `>` | `>=` | `>>` | `>` |
+| `<` | `<=` | `<<` | `<` |
+| `\|` | `\|\|` | `\|>` | `\|` |
+| `&` | `&&` | | `&` |
+| `!` | `!=` | | `!` |
+| `-` | `->` | | `-` |
+| `.` | `...` | | `.` |
+
+**Implementation Strategy**:
+1. Read the first character
+2. Peek at the next character(s)
+3. Try to match the longest possible operator first
+4. Fall back to shorter operators if longer match fails
+5. Finally emit single-character operator token
+
 ### Suggested Token Types
 ```
 PLUS, MINUS, STAR, SLASH, PERCENT
@@ -309,11 +415,53 @@ DOT, ASSIGN
 - **Parentheses**: Grouping, tuples, function calls
 - **Braces**: Blocks, records, match branches
 - **Brackets**: Lists, arrays
-- **Comma**: Separates items in lists, tuples, function parameters
+- **Comma**: Separates items in lists, tuples, function parameters, record fields
 - **Semicolon**: Statement separator (often inserted automatically)
 - **Colon**: Type annotations, pattern matching
 - **Pipe**: Variant constructors, match cases
 - **Equals**: Assignment, definitions
+
+### Trailing Commas
+Trailing commas are **allowed** in lists and records for improved version control diffs:
+
+```vibefun
+// ✅ List with trailing comma
+let numbers = [
+    1,
+    2,
+    3,  // Trailing comma allowed
+]
+
+// ✅ Record with trailing comma
+let config = {
+    timeout: 5000,
+    retries: 3,  // Trailing comma allowed
+}
+
+// ✅ Function parameters (parser concern, but lexer tokenizes normally)
+fn(
+    arg1,
+    arg2,  // Trailing comma allowed
+)
+```
+
+**Lexer Impact**: The lexer tokenizes commas normally; the parser handles trailing comma validation.
+
+### Field Shorthand in Records
+Records support **field shorthand** syntax where a field name can be used without explicitly specifying the value when a variable with the same name is in scope:
+
+```vibefun
+let name = "Alice"
+let age = 30
+
+// ✅ Field shorthand
+let person = { name, age }
+
+// Equivalent to:
+let person = { name: name, age: age }
+```
+
+**Lexer Impact**: The lexer handles this naturally by tokenizing identifiers and commas. No special lexer logic is required - the parser interprets the shorthand syntax.
 
 ## 7. Comments
 
@@ -445,8 +593,28 @@ let f = someFunction(arg1, arg2)
 
 ### Lexer Requirements
 The lexer should either:
-1. **Track newlines**: Emit `NEWLINE` tokens that the parser uses for ASI
+1. **Track newlines** (Recommended): Emit `NEWLINE` tokens that the parser uses for ASI
 2. **Insert semicolons**: Insert `SEMICOLON` tokens based on ASI rules
+
+**Recommendation**: Approach #1 (emitting `NEWLINE` tokens) is recommended because:
+- Gives the parser maximum flexibility in handling ASI
+- Simpler lexer logic (just emit newlines, don't interpret)
+- Easier to debug (newlines are explicit in token stream)
+- Better error recovery (parser has full context)
+
+**Approach #1 Implementation**:
+```typescript
+// When encountering \n or \r\n:
+if (this.peek() === '\n' || (this.peek() === '\r' && this.peekNext() === '\n')) {
+    this.addToken('NEWLINE', null);
+    // Update line counter
+    this.line++;
+    this.column = 0;
+}
+```
+
+**Approach #2 Implementation** (if chosen):
+The lexer would need to look at the previous token and next token to decide whether to insert a semicolon. This requires more complex logic and knowledge of expression boundaries.
 
 The parser must handle ASI logic, but the lexer needs to preserve newline information.
 
@@ -537,12 +705,11 @@ line"""         // Multi-line string
 ### 10.4 Operator Disambiguation
 
 ```vibefun
-// Ensure correct tokenization
-x>=y       // GT_GT, EQUALS (not GTE!)
-// Actually, maximal munch: GTE, not GT_GT + EQUALS
+// Maximal munch always applies - match longest possible token
+x>=y       // GTE (single token)
 
-// With spaces
-x > = y    // GT, EQUALS (assignment to comparison result)
+// With spaces, tokens are separated
+x > = y    // GT, EQUALS (three separate tokens)
 
 // Arrow vs minus + greater
 x->y       // ARROW (function type or lambda)
@@ -720,15 +887,19 @@ For production lexers, continuing after errors and reporting multiple issues is 
 ### 14.1 Unicode Normalization
 
 **NFC (Canonical Decomposition + Composition)**:
-- Apply to all identifiers
-- Apply to string literals
-- Ensures `"café"` and `"café"` (different encodings) are equal
+- **Identifiers**: MUST be normalized to NFC during tokenization
+- **String Literals**: Normalization behavior requires spec clarification (see Section 16.3)
 
 ```vibefun
-// These are the same identifier after NFC normalization
-let café = 42;   // Composed form
-let café = 100;  // Decomposed form - error: duplicate definition
+// Identifiers: These are the same after NFC normalization
+let café = 42;   // Composed form (U+00E9)
+let café = 100;  // Decomposed form (U+0065 U+0301) - error: duplicate definition
+
+// String literals: Behavior to be clarified
+"café" == "café"  // Should this be true? See Section 16.3
 ```
+
+**Implementation Note**: Currently, it's unclear whether the lexer should normalize string literal VALUES during tokenization, or if normalization is a runtime concern. Identifiers must definitely be normalized.
 
 ### 14.2 Nested Comments
 
@@ -758,7 +929,12 @@ let r = ref 42
 !r              // Dereference -> 42
 ```
 
-The lexer produces a single `BANG` token. The type checker determines the meaning.
+**Lexer Behavior**: The lexer ALWAYS produces a single `BANG` token, regardless of context or what follows. The lexer does not attempt to distinguish between logical NOT and dereference - this distinction is made by the type checker during semantic analysis.
+
+**Implementation Note**:
+- Emit `BANG` token when encountering `!`
+- Check for `!=` (emit `NEQ` instead if followed by `=`)
+- Otherwise, always emit `BANG` and let the type checker handle disambiguation
 
 ### 14.4 Leading Zeros in Decimal
 
@@ -904,6 +1080,111 @@ Before considering the lexer complete, verify:
 - [ ] 90%+ test coverage
 - [ ] All tests passing
 - [ ] Performance acceptable on large files (>10K LOC)
+
+---
+
+## 16. Spec Clarifications Needed
+
+The following ambiguities exist in the language specification and should be resolved before finalizing the lexer implementation:
+
+### 16.1 `try` and `catch` Keywords
+
+**Status**: ⚠️ Requires Clarification
+
+**Context**: The spec mentions `try`/`catch` syntax in unsafe blocks for JavaScript interop:
+
+```vibefun
+unsafe {
+    try {
+        riskyOperation()
+    } catch (error) {
+        handleError(error)
+    }
+}
+```
+
+**Question**: Should `try` and `catch` be:
+1. **Reserved keywords** (like `async`, `await`)?
+2. **Contextual keywords** (only recognized inside `unsafe` blocks)?
+3. **Regular identifiers** that have special meaning in unsafe blocks?
+
+**Impact**: High - affects the keyword list in Section 2
+
+**Recommendation**: Add `try` and `catch` to either the active keywords or reserved keywords list once spec clarifies their status.
+
+---
+
+### 16.2 `Type` Keyword/Identifier
+
+**Status**: ⚠️ Requires Clarification
+
+**Context**: The spec shows `Type` used in external declarations:
+
+```vibefun
+external {
+    Headers: Type = "Headers"
+    Request: Type = "Request"
+}
+```
+
+**Question**: Is `Type` a:
+1. **Reserved keyword**?
+2. **Type constructor name** (just PascalCase identifier)?
+3. **Contextual keyword** (only in external declarations)?
+
+**Impact**: Medium - affects the keyword list in Section 2
+
+**Recommendation**: Clarify whether `Type` should be tokenized as a keyword or as a regular identifier.
+
+---
+
+### 16.3 String Literal NFC Normalization
+
+**Status**: ⚠️ Requires Clarification
+
+**Context**: The spec states that string literals should use NFC normalization, and that:
+
+```vibefun
+"café" == "café"  // true (normalized to same NFC representation)
+```
+
+**Question**: Should the lexer:
+1. **Normalize string literal VALUES** during tokenization (so both strings have identical token values)?
+2. **Preserve original values** and let runtime comparison normalize them?
+
+**Example Impact**:
+```vibefun
+let s1 = "café"  // Composed form (U+00E9)
+let s2 = "café"  // Decomposed form (U+0065 U+0301)
+
+// If lexer normalizes:
+s1 === s2  // true (both normalized to same bytes in token)
+
+// If lexer doesn't normalize:
+s1 === s2  // depends on runtime string comparison
+```
+
+**Impact**: Medium - affects string literal processing in Section 4.4 and Section 14.1
+
+**Recommendation**: Clarify whether lexer should normalize string literal values or if this is a runtime concern.
+
+---
+
+### 16.4 Unary Minus Whitespace Rule
+
+**Status**: ℹ️ Informational
+
+**Context**: The spec appendix mentions:
+
+> Unary minus disambiguation: The parser distinguishes unary `-x` from binary `a - b` based on context. Unary minus requires no whitespace: `-x`, not `- x`. Binary minus requires an expression on the left: `a - b`.
+
+**Question**: Does the lexer need to:
+1. **Track whitespace around `-`** to help parser distinguish?
+2. **Always emit `MINUS` token** and let parser determine meaning purely from context?
+
+**Impact**: Low - the lexer likely always emits `MINUS`, but guidance would be helpful
+
+**Recommendation**: Confirm that lexer treats all `-` as `MINUS` token regardless of whitespace, with parser handling disambiguation.
 
 ---
 
