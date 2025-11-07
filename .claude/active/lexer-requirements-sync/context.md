@@ -1,6 +1,6 @@
 # Lexer Requirements Sync - Context
 
-**Last Updated**: 2025-11-07
+**Last Updated**: 2025-01-07
 
 ## Key Files
 
@@ -97,12 +97,26 @@ Both patterns need to be updated for token renames. The codebase uses string lit
 ## Performance Considerations
 
 Unicode normalization with `.normalize('NFC')` adds performance overhead:
-- Called on every identifier
-- Called on every string literal
+- Called on every identifier (in `readIdentifier()`)
+- Called on every string literal (in `readSingleLineString()` and `readMultiLineString()`)
 
-For large files (>10K LOC), this could be noticeable. May need:
-- Performance benchmarking after implementation
-- Optimization to only normalize non-ASCII identifiers/strings
-- Caching of normalized values
+For large files (>10K LOC), this could be noticeable.
 
-Current plan: Implement as specified, monitor performance, optimize if needed.
+**Benchmark Plan** (after Phase 4):
+```bash
+# Create test file with many identifiers and strings
+# Measure compilation time before/after normalization
+time node packages/cli/dist/index.js compile large-test.vf
+```
+
+**Optimization Options** (if performance issue detected):
+1. Only normalize non-ASCII identifiers/strings:
+   ```typescript
+   if (/[^\x00-\x7F]/.test(value)) {
+       value = value.normalize('NFC');
+   }
+   ```
+2. Cache normalized values (more complex, likely unnecessary)
+3. Profile to identify actual bottlenecks
+
+**Current Approach**: Implement as specified (correctness first), measure performance, optimize only if necessary. Most real-world code is primarily ASCII, so impact likely minimal.
