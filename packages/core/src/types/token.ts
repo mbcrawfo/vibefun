@@ -143,3 +143,24 @@ export const BOOL_LITERALS: ReadonlySet<string> = new Set(["true", "false"]);
 export function isBoolLiteral(str: string): boolean {
     return BOOL_LITERALS.has(str);
 }
+
+/**
+ * Reserved keywords for future language features
+ */
+export const RESERVED_KEYWORDS: ReadonlySet<string> = new Set([
+    "async",
+    "await",
+    "trait",
+    "impl",
+    "where",
+    "do",
+    "yield",
+    "return",
+]);
+
+/**
+ * Check if a string is a reserved keyword
+ */
+export function isReservedKeyword(str: string): boolean {
+    return RESERVED_KEYWORDS.has(str);
+}

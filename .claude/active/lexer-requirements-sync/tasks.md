@@ -22,25 +22,25 @@
   - [x] `git checkout -b lexer-requirements-sync`
   - [x] Verify clean working directory (clean)
 
-## Phase 1: Add Missing Keywords ⏳
+## Phase 1: Add Missing Keywords ✅
 
-- [ ] Update token.ts
-  - [ ] Add "try" to Keyword type
-  - [ ] Add "catch" to Keyword type
-- [ ] Update lexer.ts
-  - [ ] Add "try" to KEYWORDS Set
-  - [ ] Add "catch" to KEYWORDS Set
-- [ ] Update identifiers.test.ts
-  - [ ] Add "and" to keyword test array
-  - [ ] Add "try" to keyword test array
-  - [ ] Add "catch" to keyword test array
-  - [ ] Update test assertion from "16" to "19"
-- [ ] Verify implementation
-  - [ ] Run `npm test -w @vibefun/core -- identifiers.test`
-  - [ ] All tests pass
-- [ ] Commit changes
-  - [ ] `git add .`
-  - [ ] `git commit -m "feat(lexer): add missing keywords 'try' and 'catch'"`
+- [x] Update token.ts
+  - [x] Add "try" to Keyword type
+  - [x] Add "catch" to Keyword type
+- [x] Update lexer.ts (KEYWORDS Set is in token.ts)
+  - [x] Add "try" to KEYWORDS Set
+  - [x] Add "catch" to KEYWORDS Set
+- [x] Update identifiers.test.ts
+  - [x] Add "and" to keyword test array
+  - [x] Add "try" to keyword test array
+  - [x] Add "catch" to keyword test array
+  - [x] Update test assertion from "16" to "19"
+- [x] Verify implementation
+  - [x] Run `npm run verify` - all checks passed
+  - [x] All 1869 tests pass (up from 1866)
+- [x] Commit changes
+  - [x] `git add .`
+  - [x] `git commit` with comprehensive message (89f9d0b)
 
 ## Phase 2: Reserved Keywords ⏳
 

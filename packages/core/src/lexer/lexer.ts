@@ -35,7 +35,7 @@
 
 import type { Location, Token } from "../types/index.js";
 
-import { isBoolLiteral, isKeyword } from "../types/token.js";
+import { isBoolLiteral, isKeyword, isReservedKeyword } from "../types/token.js";
 import { LexerError } from "../utils/index.js";
 
 /**
@@ -186,6 +186,15 @@ export class Lexer {
         // Read identifier characters
         while (!this.isAtEnd() && this.isIdentifierContinue(this.peek())) {
             value += this.advance();
+        }
+
+        // Check if it's a reserved keyword (error if true)
+        if (isReservedKeyword(value)) {
+            throw new LexerError(
+                `'${value}' is a reserved keyword for future language features`,
+                start,
+                "Reserved keywords cannot be used as identifiers",
+            );
         }
 
         // Check if it's a keyword
