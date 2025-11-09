@@ -527,7 +527,7 @@ describe("Lexer - Strings in Context", () => {
         const lexer = new Lexer('let name = "Alice"', "test.vf");
         const tokens = lexer.tokenize();
 
-        expect(tokens.map((t) => t.type)).toEqual(["KEYWORD", "IDENTIFIER", "EQ", "STRING_LITERAL", "EOF"]);
+        expect(tokens.map((t) => t.type)).toEqual(["KEYWORD", "IDENTIFIER", "EQUALS", "STRING_LITERAL", "EOF"]);
     });
 });
 

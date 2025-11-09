@@ -784,21 +784,24 @@ export class Lexer {
      * GT_GT (composition) rather than two separate GT tokens.
      *
      * Operator Precedence Table (by length, checked first to last):
-     * - 3-character: ... (spread)
-     * - 2-character: ==, !=, <=, >=, |>, >>, <<, ->, =>, ::, :=, &&, ||
-     * - 1-character: +, -, *, /, %, <, >, =, !, (, ), {, }, [, ], ,, ., :, ;, |, &
+     * - 3-character: ... (SPREAD)
+     * - 2-character: == (EQ), != (NEQ), <= (LTE), >= (GTE), |> (PIPE_GT), >> (GT_GT),
+     *                 << (LT_LT), -> (ARROW), => (FAT_ARROW), :: (CONS), := (ASSIGN),
+     *                 && (AND), || (OR)
+     * - 1-character: = (EQUALS), + (PLUS), - (MINUS), * (STAR), / (SLASH), % (PERCENT),
+     *                < (LT), > (GT), ! (BANG), & (AMPERSAND), | (PIPE), and punctuation
      *
      * The algorithm checks for longer operators first, consuming them if found.
      * If no multi-character operator matches, it falls back to single-character
-     * operators. This ensures "==" is parsed as EQ_EQ, not EQ followed by EQ.
+     * operators. This ensures "==" is parsed as EQ, not EQUALS followed by EQUALS.
      *
      * @returns A token representing the operator or punctuation
      * @throws {LexerError} If an unrecognized character is encountered
      *
      * @example
-     * // ">=" is tokenized as GT_EQ (not GT + EQ)
+     * // ">=" is tokenized as GTE (not GT + EQUALS)
      * // ">>>" would be tokenized as GT_GT + GT (no 3-char >>> operator)
-     * // "..." is tokenized as DOT_DOT_DOT (not DOT + DOT + DOT)
+     * // "..." is tokenized as SPREAD (not DOT + DOT + DOT)
      */
     private readOperatorOrPunctuation(): Token {
         const start = this.makeLocation();
@@ -811,29 +814,29 @@ export class Lexer {
             this.advance();
             this.advance();
             this.advance();
-            return { type: "DOT_DOT_DOT", value: "...", loc: start };
+            return { type: "SPREAD", value: "...", loc: start };
         }
 
         // Two-character operators
         if (char === "=" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "EQ_EQ", value: "==", loc: start };
+            return { type: "EQ", value: "==", loc: start };
         }
         if (char === "!" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "BANG_EQ", value: "!=", loc: start };
+            return { type: "NEQ", value: "!=", loc: start };
         }
         if (char === "<" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "LT_EQ", value: "<=", loc: start };
+            return { type: "LTE", value: "<=", loc: start };
         }
         if (char === ">" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "GT_EQ", value: ">=", loc: start };
+            return { type: "GTE", value: ">=", loc: start };
         }
         if (char === "|" && next === ">") {
             this.advance();
@@ -863,22 +866,22 @@ export class Lexer {
         if (char === ":" && next === ":") {
             this.advance();
             this.advance();
-            return { type: "COLON_COLON", value: "::", loc: start };
+            return { type: "CONS", value: "::", loc: start };
         }
         if (char === ":" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "COLON_EQ", value: ":=", loc: start };
+            return { type: "ASSIGN", value: ":=", loc: start };
         }
         if (char === "&" && next === "&") {
             this.advance();
             this.advance();
-            return { type: "AMP_AMP", value: "&&", loc: start };
+            return { type: "AND", value: "&&", loc: start };
         }
         if (char === "|" && next === "|") {
             this.advance();
             this.advance();
-            return { type: "PIPE_PIPE", value: "||", loc: start };
+            return { type: "OR", value: "||", loc: start };
         }
 
         // Single-character operators and punctuation
@@ -900,7 +903,7 @@ export class Lexer {
             case ">":
                 return { type: "GT", value: ">", loc: start };
             case "=":
-                return { type: "EQ", value: "=", loc: start };
+                return { type: "EQUALS", value: "=", loc: start };
             case "!":
                 return { type: "BANG", value: "!", loc: start };
             case "(":
@@ -926,7 +929,7 @@ export class Lexer {
             case "|":
                 return { type: "PIPE", value: "|", loc: start };
             case "&":
-                return { type: "AMP", value: "&", loc: start };
+                return { type: "AMPERSAND", value: "&", loc: start };
 
             default:
                 throw new LexerError(

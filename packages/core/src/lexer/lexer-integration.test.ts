@@ -18,7 +18,7 @@ describe("Lexer - Integration Tests", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD", // let
                 "IDENTIFIER", // add
-                "EQ", // =
+                "EQUALS", // =
                 "LPAREN", // (
                 "IDENTIFIER", // x
                 "COMMA", // ,
@@ -48,7 +48,7 @@ describe("Lexer - Integration Tests", () => {
                 "RPAREN", // )
                 "ARROW", // ->
                 "IDENTIFIER", // Int
-                "EQ", // =
+                "EQUALS", // =
                 "LPAREN", // (
                 "IDENTIFIER", // x
                 "COMMA", // ,
@@ -76,7 +76,7 @@ describe("Lexer - Integration Tests", () => {
             // Verify key tokens
             expect(tokens[0]?.type).toBe("KEYWORD"); // let
             expect(tokens[1]?.type).toBe("IDENTIFIER"); // factorial
-            expect(tokens.some((t) => t.type === "LT_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "LTE")).toBe(true);
         });
     });
 
@@ -89,7 +89,7 @@ describe("Lexer - Integration Tests", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD", // type
                 "IDENTIFIER", // Point
-                "EQ", // =
+                "EQUALS", // =
                 "LBRACE", // {
                 "IDENTIFIER", // x
                 "COLON", // :
@@ -114,7 +114,7 @@ describe("Lexer - Integration Tests", () => {
                 "LT", // <
                 "IDENTIFIER", // T
                 "GT", // >
-                "EQ", // =
+                "EQUALS", // =
                 "IDENTIFIER", // Some
                 "LPAREN", // (
                 "IDENTIFIER", // T
@@ -404,12 +404,12 @@ let y = 2`;
             const lexer = new Lexer(code, "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.some((t) => t.type === "EQ_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "BANG_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "GT_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "LT_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "AMP_AMP")).toBe(true);
-            expect(tokens.some((t) => t.type === "PIPE_PIPE")).toBe(true);
+            expect(tokens.some((t) => t.type === "EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "NEQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "GTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "LTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "AND")).toBe(true);
+            expect(tokens.some((t) => t.type === "OR")).toBe(true);
         });
 
         it("should tokenize shift operators", () => {
@@ -508,7 +508,7 @@ let olderAlice = updateAge(alice, 31)`;
             const lexer = new Lexer(code, "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.some((t) => t.type === "DOT_DOT_DOT")).toBe(true);
+            expect(tokens.some((t) => t.type === "SPREAD")).toBe(true);
         });
     });
 
@@ -812,7 +812,7 @@ let final = !x`;
             const tokens = lexer.tokenize();
 
             // Verify assignment operator
-            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(2);
 
             // Verify dereference operators
             expect(tokens.filter((t) => t.type === "BANG").length).toBe(2);
@@ -839,7 +839,7 @@ let final = !x`;
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(5);
 
             // Verify assignment operators
-            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(2);
 
             // Verify dereference operators
             expect(tokens.filter((t) => t.type === "BANG").length).toBeGreaterThan(3);
@@ -866,7 +866,7 @@ let value = get()`;
 
             // Verify identifiers, assignment, and dereference
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(8);
-            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(1);
             expect(tokens.filter((t) => t.type === "BANG").length).toBe(1);
 
             // Verify pattern matching
@@ -910,7 +910,7 @@ let value = get()`;
             // Verify comparison operators in guards
             expect(tokens.some((t) => t.type === "LT")).toBe(true);
             expect(tokens.some((t) => t.type === "GT")).toBe(true);
-            expect(tokens.some((t) => t.type === "GT_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "GTE")).toBe(true);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -1028,7 +1028,7 @@ let fib10 = fibonacci(10, ref(None))`;
 
             // Verify identifiers and ref assignment operator
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(10);
-            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(1);
 
             // Verify conditionals
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "if").length).toBe(1);
@@ -1159,7 +1159,7 @@ let result = processNumbers(numbers)`;
 
             // Verify division and comparison
             expect(tokens.some((t) => t.type === "SLASH")).toBe(true);
-            expect(tokens.some((t) => t.type === "EQ_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "EQ")).toBe(true);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -1191,15 +1191,15 @@ let result = processNumbers(numbers)`;
             // Verify bitwise operators
             expect(tokens.some((t) => t.type === "LT_LT")).toBe(true);
             expect(tokens.some((t) => t.type === "GT_GT")).toBe(true);
-            expect(tokens.some((t) => t.type === "AMP")).toBe(true);
+            expect(tokens.some((t) => t.type === "AMPERSAND")).toBe(true);
 
             // Verify comparison and logical operators
-            expect(tokens.some((t) => t.type === "EQ_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "BANG_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "GT_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "LT_EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "PIPE_PIPE")).toBe(true);
-            expect(tokens.some((t) => t.type === "AMP_AMP")).toBe(true);
+            expect(tokens.some((t) => t.type === "EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "NEQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "GTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "LTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OR")).toBe(true);
+            expect(tokens.some((t) => t.type === "AND")).toBe(true);
 
             // Verify pipe operator
             expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
@@ -1365,7 +1365,7 @@ export { fetchUser, processUsers, main }`;
 
             // Verify identifiers and ref assignment operator
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(20);
-            expect(tokens.filter((t) => t.type === "COLON_EQ").length).toBeGreaterThan(1);
+            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBeGreaterThan(1);
 
             // Verify pipes
             expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(5);

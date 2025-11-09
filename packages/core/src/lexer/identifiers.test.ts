@@ -360,7 +360,7 @@ describe("Lexer - Boolean Literals", () => {
 
         expect(tokens[0]?.type).toBe("KEYWORD");
         expect(tokens[1]?.type).toBe("IDENTIFIER");
-        expect(tokens[2]?.type).toBe("EQ");
+        expect(tokens[2]?.type).toBe("EQUALS");
         expect(tokens[3]).toMatchObject({
             type: "BOOL_LITERAL",
             value: true,

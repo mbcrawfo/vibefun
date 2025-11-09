@@ -50,20 +50,20 @@ export type Token =
     | { type: "PERCENT"; value: string; loc: Location }
 
     // Operators - Comparison
-    | { type: "EQ_EQ"; value: string; loc: Location }
-    | { type: "BANG_EQ"; value: string; loc: Location }
+    | { type: "EQ"; value: string; loc: Location }
+    | { type: "NEQ"; value: string; loc: Location }
     | { type: "LT"; value: string; loc: Location }
     | { type: "GT"; value: string; loc: Location }
-    | { type: "LT_EQ"; value: string; loc: Location }
-    | { type: "GT_EQ"; value: string; loc: Location }
+    | { type: "LTE"; value: string; loc: Location }
+    | { type: "GTE"; value: string; loc: Location }
 
     // Operators - Logical
-    | { type: "AMP_AMP"; value: string; loc: Location }
-    | { type: "PIPE_PIPE"; value: string; loc: Location }
+    | { type: "AND"; value: string; loc: Location }
+    | { type: "OR"; value: string; loc: Location }
     | { type: "BANG"; value: string; loc: Location }
 
     // Operators - String
-    | { type: "AMP"; value: string; loc: Location }
+    | { type: "AMPERSAND"; value: string; loc: Location }
 
     // Operators - Pipe and Composition
     | { type: "PIPE_GT"; value: string; loc: Location }
@@ -71,9 +71,9 @@ export type Token =
     | { type: "LT_LT"; value: string; loc: Location }
 
     // Assignment and Special Operators
-    | { type: "EQ"; value: string; loc: Location }
-    | { type: "COLON_EQ"; value: string; loc: Location }
-    | { type: "COLON_COLON"; value: string; loc: Location }
+    | { type: "EQUALS"; value: string; loc: Location }
+    | { type: "ASSIGN"; value: string; loc: Location }
+    | { type: "CONS"; value: string; loc: Location }
 
     // Punctuation
     | { type: "LPAREN"; value: string; loc: Location }
@@ -84,7 +84,7 @@ export type Token =
     | { type: "RBRACKET"; value: string; loc: Location }
     | { type: "COMMA"; value: string; loc: Location }
     | { type: "DOT"; value: string; loc: Location }
-    | { type: "DOT_DOT_DOT"; value: string; loc: Location }
+    | { type: "SPREAD"; value: string; loc: Location }
     | { type: "COLON"; value: string; loc: Location }
     | { type: "SEMICOLON"; value: string; loc: Location }
     | { type: "ARROW"; value: string; loc: Location }

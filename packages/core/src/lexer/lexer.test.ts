@@ -387,7 +387,7 @@ describe("Lexer - Phase 3 Integration", () => {
             const lexer = new Lexer("let x = true", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["KEYWORD", "IDENTIFIER", "EQ", "BOOL_LITERAL", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["KEYWORD", "IDENTIFIER", "EQUALS", "BOOL_LITERAL", "EOF"]);
             expect(tokens[0]?.value).toBe("let");
             expect(tokens[1]?.value).toBe("x");
             expect(tokens[3]?.value).toBe(true);
@@ -432,12 +432,12 @@ describe("Lexer - Phase 3 Integration", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD",
                 "IDENTIFIER",
-                "EQ",
+                "EQUALS",
                 "BOOL_LITERAL",
                 "NEWLINE",
                 "KEYWORD",
                 "IDENTIFIER",
-                "EQ",
+                "EQUALS",
                 "BOOL_LITERAL",
                 "EOF",
             ]);
@@ -496,7 +496,7 @@ describe("Lexer - Phase 3 Integration", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD",
                 "IDENTIFIER",
-                "EQ",
+                "EQUALS",
                 "LPAREN",
                 "IDENTIFIER",
                 "COMMA",
