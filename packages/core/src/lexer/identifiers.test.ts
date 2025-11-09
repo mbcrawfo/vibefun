@@ -154,6 +154,166 @@ describe("Lexer - Identifiers", () => {
         });
     });
 
+    describe("emoji identifiers", () => {
+        it("should tokenize single emoji as identifier", () => {
+            const lexer = new Lexer("🚀", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens).toHaveLength(2); // IDENTIFIER + EOF
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🚀",
+            });
+        });
+
+        it("should tokenize rocket emoji identifier", () => {
+            const lexer = new Lexer("🌟", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🌟",
+            });
+        });
+
+        it("should tokenize boom emoji identifier", () => {
+            const lexer = new Lexer("💥", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "💥",
+            });
+        });
+
+        it("should tokenize fire emoji identifier", () => {
+            const lexer = new Lexer("🔥", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🔥",
+            });
+        });
+
+        it("should tokenize multiple emoji as single identifier", () => {
+            const lexer = new Lexer("🚀🌟", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens).toHaveLength(2); // IDENTIFIER + EOF
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🚀🌟",
+            });
+        });
+
+        it("should tokenize emoji mixed with letters", () => {
+            const lexer = new Lexer("rocket🚀", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "rocket🚀",
+            });
+        });
+
+        it("should tokenize emoji mixed with Greek letters", () => {
+            const lexer = new Lexer("π🚀", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "π🚀",
+            });
+        });
+
+        it("should tokenize emoji starting identifier with numbers", () => {
+            const lexer = new Lexer("🚀123", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🚀123",
+            });
+        });
+
+        it("should tokenize complex emoji with skin tone modifier", () => {
+            const lexer = new Lexer("👨‍💻", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "👨‍💻",
+            });
+        });
+
+        it("should tokenize thumbs up with skin tone", () => {
+            const lexer = new Lexer("👍🏽", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "👍🏽",
+            });
+        });
+
+        it("should handle emoji in let binding", () => {
+            const lexer = new Lexer("let 🚀 = 42", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]?.type).toBe("KEYWORD");
+            expect(tokens[1]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🚀",
+            });
+            expect(tokens[2]?.type).toBe("OP_EQUALS");
+            expect(tokens[3]).toMatchObject({
+                type: "INT_LITERAL",
+                value: 42,
+            });
+        });
+
+        it("should handle emoji in function definition", () => {
+            const lexer = new Lexer("let 🌟 = () => 123", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[1]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "🌟",
+            });
+        });
+
+        it("should separate emoji identifiers with whitespace", () => {
+            const lexer = new Lexer("🚀 🌟 💥", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens).toHaveLength(4); // 3 identifiers + EOF
+            expect(tokens[0]?.value).toBe("🚀");
+            expect(tokens[1]?.value).toBe("🌟");
+            expect(tokens[2]?.value).toBe("💥");
+        });
+
+        it("should tokenize emoji with underscore", () => {
+            const lexer = new Lexer("_🚀", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "_🚀",
+            });
+        });
+
+        it("should tokenize emoji between underscores", () => {
+            const lexer = new Lexer("_🚀_", "test.vf");
+            const tokens = lexer.tokenize();
+
+            expect(tokens[0]).toMatchObject({
+                type: "IDENTIFIER",
+                value: "_🚀_",
+            });
+        });
+    });
+
     describe("multiple identifiers", () => {
         it("should tokenize space-separated identifiers", () => {
             const lexer = new Lexer("foo bar baz", "test.vf");
@@ -218,7 +378,7 @@ describe("Lexer - Identifiers", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]?.value).toBe("x");
-            expect(tokens[1]?.type).toBe("PLUS");
+            expect(tokens[1]?.type).toBe("OP_PLUS");
             expect(tokens[2]?.value).toBe("y");
         });
     });
@@ -360,7 +520,7 @@ describe("Lexer - Boolean Literals", () => {
 
         expect(tokens[0]?.type).toBe("KEYWORD");
         expect(tokens[1]?.type).toBe("IDENTIFIER");
-        expect(tokens[2]?.type).toBe("EQUALS");
+        expect(tokens[2]?.type).toBe("OP_EQUALS");
         expect(tokens[3]).toMatchObject({
             type: "BOOL_LITERAL",
             value: true,

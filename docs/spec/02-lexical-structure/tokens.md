@@ -22,24 +22,40 @@ where     do        yield     return
 
 ## Identifiers
 
-**Syntax:** Identifiers start with a Unicode letter or underscore, followed by letters, digits, or underscores.
+**Syntax:** Identifiers start with a Unicode letter, emoji, or underscore, followed by letters, emoji, digits, combining marks, or underscores.
 
-**Pattern:** `[a-zA-Z_\p{L}][a-zA-Z0-9_\p{L}]*`
+**Pattern:** `[a-zA-Z_\p{L}\p{Emoji_Presentation}][a-zA-Z0-9_\p{L}\p{M}\p{Emoji_Presentation}\u200D]*`
+
+**Supported Characters:**
+- ASCII letters: `a-z`, `A-Z`
+- Unicode letters: `\p{L}` (all Unicode letter categories)
+- Emoji: `\p{Emoji_Presentation}` (emoji displayed as pictographs)
+- Digits: `0-9` (in continuation only)
+- Underscore: `_`
+- Combining marks: `\p{M}` (for accents and diacritics)
+- Zero-Width Joiner: `\u200D` (for complex emoji sequences)
 
 **Examples:**
 ```vibefun
 x
 userName
 _private
-café
-αβγ
-変数
+café             // Latin with accents
+αβγ              // Greek letters
+変数             // Japanese characters
+🚀               // Single emoji
+rocket🚀         // Mixed emoji and letters
+π🌟             // Greek letter + emoji
+👨‍💻            // Complex emoji with ZWJ (man technologist)
+_🔥_            // Emoji with underscores
 ```
 
 **Conventions:**
 - Variables and functions: `camelCase`
 - Types and constructors: `PascalCase`
 - Constants: `camelCase`
+
+**Note:** Emoji support enables expressive identifiers for mathematical symbols, domain-specific notation, and visual markers. Complex emoji with skin tone modifiers and zero-width joiners are fully supported.
 
 ## Literals
 

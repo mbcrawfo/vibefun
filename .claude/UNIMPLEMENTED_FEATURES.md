@@ -2,7 +2,7 @@
 
 This document catalogs language features that were discovered to be unimplemented during parser edge case test development.
 
-**Last Updated:** 2025-11-02
+**Last Updated:** 2025-11-09
 
 ## Summary
 
@@ -10,45 +10,31 @@ During implementation of comprehensive parser edge case tests, several language 
 
 ---
 
-## Lexer Limitations
+## Lexer Features
 
 ### Emoji Identifiers
 
-**Status:** ❌ Not Supported
+**Status:** ✅ **IMPLEMENTED** (as of 2025-11-09)
 
-**Description:** The lexer does not accept emoji characters as valid identifier characters.
+**Description:** The lexer fully supports emoji characters as valid identifier characters, including complex emoji with skin tone modifiers and zero-width joiners.
 
-**Examples that fail:**
+**Supported examples:**
 ```vibefun
 let 🚀 = 42
 let 🌟 = () => "hello"
-```
-
-**Current behavior:** Throws `LexerError: Unexpected character: '�'`
-
-**Note:** The lexer DOES support:
-- Greek letters: `π`, `α`, `β`, `θ`, etc.
-- Math subscripts/superscripts: `x₁`, `x²`
-- CJK characters: `变量`, `変数`, `변수`
-- Other Unicode identifier characters per Unicode standard
-
-### Emoji in Type/Constructor Names
-
-**Status:** ❌ Not Supported
-
-**Description:** Emoji cannot be used in type names or variant constructor names.
-
-**Examples that fail:**
-```vibefun
 type 🚀 = Int
 type Result = 🚀(Int) | 💥
+let 👨‍💻 = "developer"    // Complex emoji with ZWJ
+let π🚀 = 3.14             // Mixed Unicode and emoji
 ```
 
-**Workaround:** Use Greek letters or other supported Unicode characters:
-```vibefun
-type Π = Int
-type Result = Σ(Int) | Δ
-```
+**Implementation details:**
+- Pattern: `[a-zA-Z_\p{L}\p{Emoji_Presentation}][a-zA-Z0-9_\p{L}\p{M}\p{Emoji_Presentation}\u200D]*`
+- Supports: All emoji with `\p{Emoji_Presentation}`, combining marks, and zero-width joiners
+- Works in: Variable names, type names, constructor names, and field names
+- See: `docs/spec/02-lexical-structure/tokens.md` for full specification
+
+**Tests:** Comprehensive test coverage in `packages/core/src/lexer/identifiers.test.ts`
 
 ---
 
@@ -75,33 +61,34 @@ map<String, Int>(fn, list)
 
 ### Reference Assignment (`:=`)
 
-**Status:** ❌ Not Yet Implemented
+**Status:** ✅ **IMPLEMENTED IN LEXER** (Parser status unknown)
 
-**Description:** The ref assignment operator is not yet implemented in the parser.
+**Description:** The ref assignment operator is fully implemented in the lexer and tokenizes correctly as `OP_ASSIGN`.
 
-**Example that doesn't work:**
-```vibefun
-x := 42
+**Lexer support:**
+```typescript
+// Lexer emits OP_ASSIGN token correctly
+":=" → { type: "OP_ASSIGN", value: ":=" }
 ```
+
+**Tests:** See `packages/core/src/lexer/operators.test.ts` (line 532-542)
+
+**Note:** The lexer correctly tokenizes `:=`. Parser support for the assignment expression has not been verified in this review.
 
 ### Postfix Dereference (`x!`)
 
-**Status:** ❌ Not Yet Implemented
+**Status:** ⚠️ **NOT IN SPEC** (Working as designed)
 
-**Description:** Postfix dereference syntax is not implemented. Only prefix `!` works (as logical NOT).
+**Description:** Postfix dereference syntax is not part of the Vibefun language specification. Only **prefix** `!` is documented and supported for both logical NOT and dereferencing.
 
-**Example that doesn't work:**
+**Language design:**
 ```vibefun
-x!      // Postfix deref
-obj.field!
+!x      // Prefix: logical NOT (for Bool) or dereference (for Ref<T>)
 ```
 
-**Current behavior:** `x!` parses as `!(x)` (prefix logical NOT)
+**Specification:** See `docs/spec/02-lexical-structure/operators.md` (lines 253-261) and `docs/spec/07-mutable-references.md` - only prefix `!` is documented.
 
-**Workaround:** Use prefix `!` operator:
-```vibefun
-!x      // Works (logical NOT or deref depending on type)
-```
+**Conclusion:** This is not a missing feature - the language intentionally uses prefix-only syntax for the `!` operator.
 
 ---
 
@@ -141,19 +128,21 @@ let updated = { ...original, x: 42 }
 **Current behavior:**
 - `|>` creates a `Pipe` node (not `BinOp`)
 - `>>` and `<<` create composition operators as `BinOp` with ops "ForwardCompose" and "BackwardCompose"
-- Reverse pipe `<|` may not be implemented
+- **Reverse pipe `<|` is NOT implemented** (not in spec)
 
 **Working:**
 ```vibefun
 data |> process |> transform  // Works
 f >> g                         // Works (forward compose)
+g << f                         // Works (backward compose)
 ```
 
-**Needs verification:**
+**Not supported:**
 ```vibefun
-x <| y  // Reverse pipe
-a |> b >> c << d  // Complex chains
+x <| y  // Reverse pipe - NOT IN SPEC, not implemented
 ```
+
+**Specification:** See `docs/spec/02-lexical-structure/operators.md` (lines 233-243) - only documents `|>`, `>>`, and `<<`. Reverse pipe `<|` is not part of the language design.
 
 ---
 

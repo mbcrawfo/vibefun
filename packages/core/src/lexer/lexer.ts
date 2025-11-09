@@ -48,7 +48,7 @@ export class Lexer {
     private position: number = 0; // Current position in source (0-indexed)
     private line: number = 1; // Current line number (1-indexed)
     private column: number = 1; // Current column number (1-indexed)
-    private readonly source: string;
+    private readonly source: readonly string[];
     private readonly filename: string;
 
     /**
@@ -63,7 +63,9 @@ export class Lexer {
      * ```
      */
     constructor(source: string, filename: string = "<input>") {
-        this.source = source;
+        // Convert source to array of characters to properly handle
+        // multi-byte Unicode characters like emoji (which are surrogate pairs)
+        this.source = Array.from(source);
         this.filename = filename;
     }
 
@@ -150,29 +152,33 @@ export class Lexer {
 
     /**
      * Check if a character can start an identifier
-     * Identifiers can start with Unicode letters or underscore
+     * Identifiers can start with Unicode letters, emoji, or underscore
      * @param char - The character to check
      * @returns true if char can start an identifier
      */
     private isIdentifierStart(char: string): boolean {
         if (char === "_") return true;
-        // Check if it's a Unicode letter using Unicode property escapes
+        // Check if it's a Unicode letter or emoji using Unicode property escapes
         // \p{L} matches any Unicode letter character
-        return /\p{L}/u.test(char);
+        // \p{Emoji_Presentation} matches emoji that display as emoji by default
+        return /[\p{L}\p{Emoji_Presentation}]/u.test(char);
     }
 
     /**
      * Check if a character can continue an identifier
-     * Identifiers can continue with Unicode letters, digits, combining marks, or underscore
+     * Identifiers can continue with Unicode letters, emoji, digits, combining marks, or underscore
      * @param char - The character to check
      * @returns true if char can continue an identifier
      */
     private isIdentifierContinue(char: string): boolean {
         if (char === "_") return true;
         if (char >= "0" && char <= "9") return true;
-        // Check if it's a Unicode letter or combining mark
+        // Check if it's a Unicode letter, emoji, or combining mark
         // \p{L} = Letters, \p{M} = Marks (including combining characters)
-        return /[\p{L}\p{M}]/u.test(char);
+        // \p{Emoji_Presentation} = Emoji displayed as emoji by default
+        // U+200D = Zero-Width Joiner for complex emoji sequences
+        if (char === "\u200D") return true; // ZWJ for emoji sequences like 👨‍💻
+        return /[\p{L}\p{M}\p{Emoji_Presentation}]/u.test(char);
     }
 
     /**
