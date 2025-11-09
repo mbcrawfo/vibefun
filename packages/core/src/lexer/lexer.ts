@@ -607,7 +607,6 @@ export class Lexer {
 
         this.advance(); // consume closing "
 
-        // TODO: String normalization behavior may need spec clarification
         // Unicode NFC normalization for consistent string comparison
         value = value.normalize("NFC");
 
@@ -640,7 +639,6 @@ export class Lexer {
                 this.advance();
                 this.advance();
 
-                // TODO: String normalization behavior may need spec clarification
                 // Unicode NFC normalization for consistent string comparison
                 value = value.normalize("NFC");
 
