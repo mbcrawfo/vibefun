@@ -88,6 +88,29 @@ describe("Lexer - Decimal Integers", () => {
             value: 123,
         });
     });
+
+    it("should tokenize 0999 as decimal (would be invalid octal)", () => {
+        // 0999 would be invalid in octal (9 is not an octal digit)
+        // Verify we treat as decimal: 999
+        const lexer = new Lexer("0999", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens[0]!).toMatchObject({
+            type: "INT_LITERAL",
+            value: 999,
+        });
+    });
+
+    it("should tokenize 007 as decimal 7", () => {
+        // Classic case: 007 should be decimal 7, not octal 7
+        const lexer = new Lexer("007", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens[0]!).toMatchObject({
+            type: "INT_LITERAL",
+            value: 7,
+        });
+    });
 });
 
 describe("Lexer - Decimal Floats", () => {
