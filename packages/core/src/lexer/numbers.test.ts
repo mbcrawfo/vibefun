@@ -76,6 +76,18 @@ describe("Lexer - Decimal Integers", () => {
         expect(tokens[1]!).toMatchObject({ type: "PLUS", value: "+" });
         expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 20 });
     });
+
+    it("should tokenize leading zeros as decimal (not octal)", () => {
+        // Unlike JavaScript, Vibefun treats leading zeros as decimal
+        // 0123 should equal 123 (not octal 83)
+        const lexer = new Lexer("0123", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens[0]!).toMatchObject({
+            type: "INT_LITERAL",
+            value: 123,
+        });
+    });
 });
 
 describe("Lexer - Decimal Floats", () => {
@@ -117,6 +129,16 @@ describe("Lexer - Decimal Floats", () => {
         expect(tokens).toHaveLength(3); // 3, ., EOF
         expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 3 });
         expect(tokens[1]!).toMatchObject({ type: "DOT", value: "." });
+    });
+
+    it("should NOT tokenize dot followed by number as float", () => {
+        // ".5" should be tokenized as dot operator followed by integer 5
+        const lexer = new Lexer(".5", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens).toHaveLength(3); // ., 5, EOF
+        expect(tokens[0]!).toMatchObject({ type: "DOT", value: "." });
+        expect(tokens[1]!).toMatchObject({ type: "INT_LITERAL", value: 5 });
     });
 
     it("should tokenize float with leading zeros", () => {
@@ -201,6 +223,39 @@ describe("Lexer - Scientific Notation", () => {
         const lexer = new Lexer("1e+x", "test.vf");
 
         expect(() => lexer.tokenize()).toThrow(LexerError);
+    });
+
+    it("should tokenize scientific notation with leading zeros in exponent", () => {
+        // 1e010 is equivalent to 1e10
+        const lexer = new Lexer("1e010", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens[0]!).toMatchObject({
+            type: "FLOAT_LITERAL",
+            value: 1e10,
+        });
+    });
+
+    it("should tokenize scientific notation with explicit +0 exponent", () => {
+        // 1.5e+00 is equivalent to 1.5
+        const lexer = new Lexer("1.5e+00", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens[0]!).toMatchObject({
+            type: "FLOAT_LITERAL",
+            value: 1.5,
+        });
+    });
+
+    it("should tokenize scientific notation with negative exponent and leading zero", () => {
+        // 1.23e-05 is valid scientific notation
+        const lexer = new Lexer("1.23e-05", "test.vf");
+        const tokens = lexer.tokenize();
+
+        expect(tokens[0]!).toMatchObject({
+            type: "FLOAT_LITERAL",
+            value: 1.23e-5,
+        });
     });
 });
 
