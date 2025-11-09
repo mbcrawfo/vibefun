@@ -144,7 +144,7 @@ describe("Lexer - Single-Line Comments", () => {
 
         expect(tokens).toHaveLength(4); // x, /, y, EOF
         expect(tokens[0]?.type).toBe("IDENTIFIER");
-        expect(tokens[1]?.type).toBe("SLASH");
+        expect(tokens[1]?.type).toBe("OP_SLASH");
         expect(tokens[2]?.type).toBe("IDENTIFIER");
     });
 

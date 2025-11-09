@@ -73,7 +73,7 @@ describe("Lexer - Decimal Integers", () => {
 
         expect(tokens).toHaveLength(4); // 10, +, 20, EOF
         expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 10 });
-        expect(tokens[1]!).toMatchObject({ type: "PLUS", value: "+" });
+        expect(tokens[1]!).toMatchObject({ type: "OP_PLUS", value: "+" });
         expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 20 });
     });
 
@@ -350,7 +350,7 @@ describe("Lexer - Hexadecimal Literals", () => {
 
         expect(tokens).toHaveLength(4); // 0xFF, +, 0x10, EOF
         expect(tokens[0]!.value).toBe(255);
-        expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+        expect(tokens[1]!).toMatchObject({ type: "OP_PLUS" });
         expect(tokens[2]!.value).toBe(16);
     });
 });
@@ -439,7 +439,7 @@ describe("Lexer - Binary Literals", () => {
 
         expect(tokens).toHaveLength(4); // 0b1010, +, 0b0101, EOF
         expect(tokens[0]!.value).toBe(10);
-        expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+        expect(tokens[1]!).toMatchObject({ type: "OP_PLUS" });
         expect(tokens[2]!.value).toBe(5);
     });
 });
@@ -496,9 +496,9 @@ describe("Lexer - Numbers in Context", () => {
 
         expect(tokens).toHaveLength(6); // 10, +, 20, *, 3.5, EOF
         expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 10 });
-        expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+        expect(tokens[1]!).toMatchObject({ type: "OP_PLUS" });
         expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 20 });
-        expect(tokens[3]!).toMatchObject({ type: "STAR" });
+        expect(tokens[3]!).toMatchObject({ type: "OP_STAR" });
         expect(tokens[4]!).toMatchObject({ type: "FLOAT_LITERAL", value: 3.5 });
     });
 
@@ -823,7 +823,7 @@ describe("Lexer - Number Separators (Underscores)", () => {
 
             expect(tokens).toHaveLength(4); // 1000, +, 2000, EOF
             expect(tokens[0]!).toMatchObject({ type: "INT_LITERAL", value: 1000 });
-            expect(tokens[1]!).toMatchObject({ type: "PLUS" });
+            expect(tokens[1]!).toMatchObject({ type: "OP_PLUS" });
             expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 2000 });
         });
 

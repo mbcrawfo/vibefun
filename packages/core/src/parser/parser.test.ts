@@ -55,7 +55,7 @@ describe("Parser - Core", () => {
             const peek = getPrivate(parser, "peek");
 
             const token = peek(1);
-            expect(token.type).toBe("PLUS");
+            expect(token.type).toBe("OP_PLUS");
         });
 
         it("should peek at EOF when at end", () => {
@@ -87,7 +87,7 @@ describe("Parser - Core", () => {
 
             // Current token should now be +
             const next = peek();
-            expect(next.type).toBe("PLUS");
+            expect(next.type).toBe("OP_PLUS");
         });
 
         it("should advance through all tokens", () => {
@@ -178,7 +178,7 @@ describe("Parser - Core", () => {
             expect(token.value).toBe(42);
 
             // Should have advanced
-            expect(peek().type).toBe("PLUS");
+            expect(peek().type).toBe("OP_PLUS");
         });
 
         it("should return null if token does not match", () => {

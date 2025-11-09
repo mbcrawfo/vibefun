@@ -18,7 +18,7 @@ describe("Lexer - Integration Tests", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD", // let
                 "IDENTIFIER", // add
-                "EQUALS", // =
+                "OP_EQUALS", // =
                 "LPAREN", // (
                 "IDENTIFIER", // x
                 "COMMA", // ,
@@ -26,7 +26,7 @@ describe("Lexer - Integration Tests", () => {
                 "RPAREN", // )
                 "FAT_ARROW", // =>
                 "IDENTIFIER", // x
-                "PLUS", // +
+                "OP_PLUS", // +
                 "IDENTIFIER", // y
                 "EOF",
             ]);
@@ -48,7 +48,7 @@ describe("Lexer - Integration Tests", () => {
                 "RPAREN", // )
                 "ARROW", // ->
                 "IDENTIFIER", // Int
-                "EQUALS", // =
+                "OP_EQUALS", // =
                 "LPAREN", // (
                 "IDENTIFIER", // x
                 "COMMA", // ,
@@ -56,7 +56,7 @@ describe("Lexer - Integration Tests", () => {
                 "RPAREN", // )
                 "FAT_ARROW", // =>
                 "IDENTIFIER", // x
-                "PLUS", // +
+                "OP_PLUS", // +
                 "IDENTIFIER", // y
                 "EOF",
             ]);
@@ -89,7 +89,7 @@ describe("Lexer - Integration Tests", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD", // type
                 "IDENTIFIER", // Point
-                "EQUALS", // =
+                "OP_EQUALS", // =
                 "LBRACE", // {
                 "IDENTIFIER", // x
                 "COLON", // :
@@ -111,10 +111,10 @@ describe("Lexer - Integration Tests", () => {
             expect(tokens.map((t) => t.type)).toEqual([
                 "KEYWORD", // type
                 "IDENTIFIER", // Option
-                "LT", // <
+                "OP_LT", // <
                 "IDENTIFIER", // T
-                "GT", // >
-                "EQUALS", // =
+                "OP_GT", // >
+                "OP_EQUALS", // =
                 "IDENTIFIER", // Some
                 "LPAREN", // (
                 "IDENTIFIER", // T
@@ -176,12 +176,12 @@ describe("Lexer - Integration Tests", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // data
-                "PIPE_GT", // |>
+                "OP_PIPE_GT", // |>
                 "IDENTIFIER", // filter
                 "LPAREN", // (
                 "IDENTIFIER", // pred
                 "RPAREN", // )
-                "PIPE_GT", // |>
+                "OP_PIPE_GT", // |>
                 "IDENTIFIER", // map
                 "LPAREN", // (
                 "IDENTIFIER", // transform
@@ -385,15 +385,15 @@ let y = 2`;
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "INT_LITERAL",
-                "PLUS",
+                "OP_PLUS",
                 "INT_LITERAL",
-                "STAR",
+                "OP_STAR",
                 "INT_LITERAL",
-                "SLASH",
+                "OP_SLASH",
                 "INT_LITERAL",
-                "MINUS",
+                "OP_MINUS",
                 "INT_LITERAL",
-                "PERCENT",
+                "OP_PERCENT",
                 "INT_LITERAL",
                 "EOF",
             ]);
@@ -419,9 +419,9 @@ let y = 2`;
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER",
-                "LT_LT",
+                "OP_LT_LT",
                 "INT_LITERAL",
-                "GT_GT",
+                "OP_GT_GT",
                 "INT_LITERAL",
                 "EOF",
             ]);

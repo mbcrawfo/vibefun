@@ -305,7 +305,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]?.type).toBe("IDENTIFIER");
-            expect(tokens[1]?.type).toBe("PLUS");
+            expect(tokens[1]?.type).toBe("OP_PLUS");
             expect(tokens[2]?.type).toBe("IDENTIFIER");
         });
 
@@ -315,9 +315,9 @@ describe("Lexer - Single-Character Punctuation", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER",
-                "PLUS",
+                "OP_PLUS",
                 "IDENTIFIER",
-                "STAR",
+                "OP_STAR",
                 "IDENTIFIER",
                 "EOF",
             ]);
@@ -329,9 +329,9 @@ describe("Lexer - Single-Character Punctuation", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER",
-                "PLUS",
+                "OP_PLUS",
                 "IDENTIFIER",
-                "MINUS",
+                "OP_MINUS",
                 "IDENTIFIER",
                 "EOF",
             ]);
@@ -592,32 +592,32 @@ describe("Lexer - Multi-Character Operators", () => {
             const lexer = new Lexer("= =", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens[0]?.type).toBe("EQUALS");
-            expect(tokens[1]?.type).toBe("EQUALS");
+            expect(tokens[0]?.type).toBe("OP_EQUALS");
+            expect(tokens[1]?.type).toBe("OP_EQUALS");
         });
 
         it("should distinguish != from ! followed by =", () => {
             const lexer = new Lexer("! =", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens[0]?.type).toBe("BANG");
-            expect(tokens[1]?.type).toBe("EQUALS");
+            expect(tokens[0]?.type).toBe("OP_BANG");
+            expect(tokens[1]?.type).toBe("OP_EQUALS");
         });
 
         it("should distinguish -> from - followed by >", () => {
             const lexer = new Lexer("- >", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens[0]?.type).toBe("MINUS");
-            expect(tokens[1]?.type).toBe("GT");
+            expect(tokens[0]?.type).toBe("OP_MINUS");
+            expect(tokens[1]?.type).toBe("OP_GT");
         });
 
         it("should distinguish => from = followed by >", () => {
             const lexer = new Lexer("= >", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens[0]?.type).toBe("EQUALS");
-            expect(tokens[1]?.type).toBe("GT");
+            expect(tokens[0]?.type).toBe("OP_EQUALS");
+            expect(tokens[1]?.type).toBe("OP_GT");
         });
 
         it("should distinguish |> from | followed by >", () => {
@@ -625,7 +625,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]?.type).toBe("PIPE");
-            expect(tokens[1]?.type).toBe("GT");
+            expect(tokens[1]?.type).toBe("OP_GT");
         });
 
         it("should distinguish ... from .. followed by .", () => {
@@ -643,14 +643,14 @@ describe("Lexer - Multi-Character Operators", () => {
             const lexer = new Lexer("a == b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "EQ", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_EQ", "IDENTIFIER", "EOF"]);
         });
 
         it("should tokenize inequality comparison", () => {
             const lexer = new Lexer("a != b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "NEQ", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_NEQ", "IDENTIFIER", "EOF"]);
         });
 
         it("should tokenize function type signature", () => {
@@ -668,7 +668,7 @@ describe("Lexer - Multi-Character Operators", () => {
                 "IDENTIFIER",
                 "FAT_ARROW",
                 "IDENTIFIER",
-                "PLUS",
+                "OP_PLUS",
                 "INT_LITERAL",
                 "EOF",
             ]);
@@ -680,9 +680,9 @@ describe("Lexer - Multi-Character Operators", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER",
-                "PIPE_GT",
+                "OP_PIPE_GT",
                 "IDENTIFIER",
-                "PIPE_GT",
+                "OP_PIPE_GT",
                 "IDENTIFIER",
                 "EOF",
             ]);
@@ -692,14 +692,14 @@ describe("Lexer - Multi-Character Operators", () => {
             const lexer = new Lexer("a && b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "AND", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_AND", "IDENTIFIER", "EOF"]);
         });
 
         it("should tokenize logical or", () => {
             const lexer = new Lexer("a || b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OR", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_OR", "IDENTIFIER", "EOF"]);
         });
 
         it("should tokenize spread operator", () => {
@@ -717,11 +717,11 @@ describe("Lexer - Multi-Character Operators", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER",
-                "GTE",
+                "OP_GTE",
                 "INT_LITERAL",
-                "AND",
+                "OP_AND",
                 "IDENTIFIER",
-                "LTE",
+                "OP_LTE",
                 "INT_LITERAL",
                 "EOF",
             ]);
@@ -747,11 +747,11 @@ describe("Lexer - Multi-Character Operators", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER",
-                "ASSIGN",
+                "OP_ASSIGN",
                 "IDENTIFIER",
                 "FAT_ARROW",
                 "IDENTIFIER",
-                "PLUS",
+                "OP_PLUS",
                 "INT_LITERAL",
                 "EOF",
             ]);
@@ -788,9 +788,9 @@ describe("Lexer - Operator Edge Cases", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // a
-                "PLUS", // +
-                "PLUS", // +
-                "PLUS", // +
+                "OP_PLUS", // +
+                "OP_PLUS", // +
+                "OP_PLUS", // +
                 "IDENTIFIER", // b
                 "EOF",
             ]);
@@ -802,9 +802,9 @@ describe("Lexer - Operator Edge Cases", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // a
-                "MINUS", // -
-                "MINUS", // -
-                "MINUS", // -
+                "OP_MINUS", // -
+                "OP_MINUS", // -
+                "OP_MINUS", // -
                 "IDENTIFIER", // b
                 "EOF",
             ]);
@@ -816,8 +816,8 @@ describe("Lexer - Operator Edge Cases", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // a
-                "STAR", // *
-                "STAR", // *
+                "OP_STAR", // *
+                "OP_STAR", // *
                 "IDENTIFIER", // b
                 "EOF",
             ]);
@@ -838,14 +838,14 @@ describe("Lexer - Operator Edge Cases", () => {
             const lexer = new Lexer("a==b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "EQ", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_EQ", "IDENTIFIER", "EOF"]);
         });
 
         it("should tokenize != correctly without spaces", () => {
             const lexer = new Lexer("a!=b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "NEQ", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_NEQ", "IDENTIFIER", "EOF"]);
         });
 
         it("should tokenize arrow correctly without spaces", () => {
@@ -863,7 +863,7 @@ describe("Lexer - Operator Edge Cases", () => {
                 "IDENTIFIER",
                 "FAT_ARROW",
                 "IDENTIFIER",
-                "PLUS",
+                "OP_PLUS",
                 "INT_LITERAL",
                 "EOF",
             ]);
@@ -875,7 +875,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const lexer = new Lexer("a- >b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "MINUS", "GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_MINUS", "OP_GT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle minus immediately followed by greater than (->)", () => {
@@ -890,7 +890,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const lexer = new Lexer("a= >b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "EQUALS", "GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_EQUALS", "OP_GT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle equals immediately followed by greater than (=>)", () => {
@@ -905,7 +905,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const lexer = new Lexer("a| >b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "PIPE", "GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "PIPE", "OP_GT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle pipe immediately followed by greater than (|>)", () => {
@@ -913,14 +913,14 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: |> should be tokenized as PIPE_GT
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "PIPE_GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_PIPE_GT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle bang followed by equals (! =)", () => {
             const lexer = new Lexer("a! =b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "BANG", "EQUALS", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_BANG", "OP_EQUALS", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle bang immediately followed by equals (!=)", () => {
@@ -928,7 +928,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: != should be tokenized as NEQ
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "NEQ", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_NEQ", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle double equals with extra equals (===)", () => {
@@ -936,14 +936,14 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Should be == followed by =
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "EQ", "EQUALS", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_EQ", "OP_EQUALS", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle colon followed by equals (: =)", () => {
             const lexer = new Lexer("a: =b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "COLON", "EQUALS", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "COLON", "OP_EQUALS", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle colon immediately followed by equals (:=)", () => {
@@ -951,7 +951,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: := should be tokenized as ASSIGN
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "ASSIGN", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_ASSIGN", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle colon followed by colon (: :)", () => {
@@ -966,14 +966,20 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: :: should be tokenized as CONS
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "CONS", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_CONS", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle ampersand followed by ampersand (& &)", () => {
             const lexer = new Lexer("a& &b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "AMPERSAND", "AMPERSAND", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual([
+                "IDENTIFIER",
+                "OP_AMPERSAND",
+                "OP_AMPERSAND",
+                "IDENTIFIER",
+                "EOF",
+            ]);
         });
 
         it("should handle ampersand immediately followed by ampersand (&&)", () => {
@@ -981,7 +987,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: && should be tokenized as AND
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "AND", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_AND", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle pipe followed by pipe (| |)", () => {
@@ -996,14 +1002,14 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: || should be tokenized as OR
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OR", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_OR", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle less than followed by less than (< <)", () => {
             const lexer = new Lexer("a< <b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "LT", "LT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_LT", "OP_LT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle less than immediately followed by less than (<<)", () => {
@@ -1011,14 +1017,14 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: << should be tokenized as LT_LT
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "LT_LT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_LT_LT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle greater than followed by greater than (> >)", () => {
             const lexer = new Lexer("a> >b", "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "GT", "GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_GT", "OP_GT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle greater than immediately followed by greater than (>>)", () => {
@@ -1026,7 +1032,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Longest match: >> should be tokenized as GT_GT
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "GT_GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_GT_GT", "IDENTIFIER", "EOF"]);
         });
 
         it("should handle triple greater than (>>>)", () => {
@@ -1034,7 +1040,7 @@ describe("Lexer - Operator Edge Cases", () => {
             const tokens = lexer.tokenize();
 
             // Should be >> followed by >
-            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "GT_GT", "GT", "IDENTIFIER", "EOF"]);
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "OP_GT_GT", "OP_GT", "IDENTIFIER", "EOF"]);
         });
     });
 
@@ -1077,13 +1083,13 @@ describe("Lexer - Operator Edge Cases", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // a
-                "EQ", // ==
+                "OP_EQ", // ==
                 "IDENTIFIER", // b
-                "NEQ", // !=
+                "OP_NEQ", // !=
                 "IDENTIFIER", // c
-                "LTE", // <=
+                "OP_LTE", // <=
                 "IDENTIFIER", // d
-                "GTE", // >=
+                "OP_GTE", // >=
                 "IDENTIFIER", // e
                 "EOF",
             ]);
@@ -1095,9 +1101,9 @@ describe("Lexer - Operator Edge Cases", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // a
-                "PIPE_GT", // |>
+                "OP_PIPE_GT", // |>
                 "IDENTIFIER", // b
-                "PIPE_GT", // |>
+                "OP_PIPE_GT", // |>
                 "IDENTIFIER", // c
                 "ARROW", // ->
                 "IDENTIFIER", // d
@@ -1115,9 +1121,9 @@ describe("Lexer - Operator Edge Cases", () => {
 
             expect(tokens.map((t) => t.type)).toEqual([
                 "IDENTIFIER", // x
-                "ASSIGN", // :=
+                "OP_ASSIGN", // :=
                 "IDENTIFIER", // y
-                "EQ", // ==
+                "OP_EQ", // ==
                 "IDENTIFIER", // z
                 "EOF",
             ]);
