@@ -163,15 +163,16 @@ export class Lexer {
 
     /**
      * Check if a character can continue an identifier
-     * Identifiers can continue with Unicode letters, digits, or underscore
+     * Identifiers can continue with Unicode letters, digits, combining marks, or underscore
      * @param char - The character to check
      * @returns true if char can continue an identifier
      */
     private isIdentifierContinue(char: string): boolean {
         if (char === "_") return true;
         if (char >= "0" && char <= "9") return true;
-        // Check if it's a Unicode letter
-        return /\p{L}/u.test(char);
+        // Check if it's a Unicode letter or combining mark
+        // \p{L} = Letters, \p{M} = Marks (including combining characters)
+        return /[\p{L}\p{M}]/u.test(char);
     }
 
     /**
@@ -187,6 +188,10 @@ export class Lexer {
         while (!this.isAtEnd() && this.isIdentifierContinue(this.peek())) {
             value += this.advance();
         }
+
+        // Unicode NFC normalization ensures consistent representation
+        // Example: café (U+00E9 composed) === café (U+0065+U+0301 decomposed)
+        value = value.normalize("NFC");
 
         // Check if it's a reserved keyword (error if true)
         if (isReservedKeyword(value)) {
@@ -602,6 +607,10 @@ export class Lexer {
 
         this.advance(); // consume closing "
 
+        // TODO: String normalization behavior may need spec clarification
+        // Unicode NFC normalization for consistent string comparison
+        value = value.normalize("NFC");
+
         return {
             type: "STRING_LITERAL",
             value,
@@ -630,6 +639,10 @@ export class Lexer {
                 this.advance();
                 this.advance();
                 this.advance();
+
+                // TODO: String normalization behavior may need spec clarification
+                // Unicode NFC normalization for consistent string comparison
+                value = value.normalize("NFC");
 
                 return {
                     type: "STRING_LITERAL",
