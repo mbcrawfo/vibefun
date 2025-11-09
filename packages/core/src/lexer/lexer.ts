@@ -777,10 +777,28 @@ export class Lexer {
     }
 
     /**
-     * Read an operator or punctuation token using longest-match algorithm
-     * Handles multi-character operators (e.g., ==, ->, ...)
-     * @returns A token for the operator or punctuation
-     * @throws {LexerError} If an unexpected character is encountered
+     * Read an operator or punctuation token using maximal munch algorithm
+     *
+     * The maximal munch (longest match) algorithm ensures that multi-character
+     * operators are tokenized correctly. For example, ">>" is tokenized as
+     * GT_GT (composition) rather than two separate GT tokens.
+     *
+     * Operator Precedence Table (by length, checked first to last):
+     * - 3-character: ... (spread)
+     * - 2-character: ==, !=, <=, >=, |>, >>, <<, ->, =>, ::, :=, &&, ||
+     * - 1-character: +, -, *, /, %, <, >, =, !, (, ), {, }, [, ], ,, ., :, ;, |, &
+     *
+     * The algorithm checks for longer operators first, consuming them if found.
+     * If no multi-character operator matches, it falls back to single-character
+     * operators. This ensures "==" is parsed as EQ_EQ, not EQ followed by EQ.
+     *
+     * @returns A token representing the operator or punctuation
+     * @throws {LexerError} If an unrecognized character is encountered
+     *
+     * @example
+     * // ">=" is tokenized as GT_EQ (not GT + EQ)
+     * // ">>>" would be tokenized as GT_GT + GT (no 3-char >>> operator)
+     * // "..." is tokenized as DOT_DOT_DOT (not DOT + DOT + DOT)
      */
     private readOperatorOrPunctuation(): Token {
         const start = this.makeLocation();
