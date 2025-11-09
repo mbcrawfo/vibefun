@@ -158,7 +158,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "PLUS",
+                type: "OP_PLUS",
                 value: "+",
             });
         });
@@ -168,7 +168,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "MINUS",
+                type: "OP_MINUS",
                 value: "-",
             });
         });
@@ -178,7 +178,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "STAR",
+                type: "OP_STAR",
                 value: "*",
             });
         });
@@ -188,7 +188,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "SLASH",
+                type: "OP_SLASH",
                 value: "/",
             });
         });
@@ -198,7 +198,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "PERCENT",
+                type: "OP_PERCENT",
                 value: "%",
             });
         });
@@ -210,7 +210,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "LT",
+                type: "OP_LT",
                 value: "<",
             });
         });
@@ -220,7 +220,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "GT",
+                type: "OP_GT",
                 value: ">",
             });
         });
@@ -230,7 +230,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "EQUALS",
+                type: "OP_EQUALS",
                 value: "=",
             });
         });
@@ -240,7 +240,7 @@ describe("Lexer - Single-Character Punctuation", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "BANG",
+                type: "OP_BANG",
                 value: "!",
             });
         });
@@ -425,7 +425,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "EQ",
+                type: "OP_EQ",
                 value: "==",
             });
         });
@@ -435,7 +435,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "NEQ",
+                type: "OP_NEQ",
                 value: "!=",
             });
         });
@@ -445,7 +445,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "LTE",
+                type: "OP_LTE",
                 value: "<=",
             });
         });
@@ -455,7 +455,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "GTE",
+                type: "OP_GTE",
                 value: ">=",
             });
         });
@@ -467,7 +467,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "AMPERSAND",
+                type: "OP_AMPERSAND",
                 value: "&",
             });
         });
@@ -479,7 +479,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "GT_GT",
+                type: "OP_GT_GT",
                 value: ">>",
             });
         });
@@ -489,7 +489,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "LT_LT",
+                type: "OP_LT_LT",
                 value: "<<",
             });
         });
@@ -523,7 +523,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "PIPE_GT",
+                type: "OP_PIPE_GT",
                 value: "|>",
             });
         });
@@ -535,7 +535,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "ASSIGN",
+                type: "OP_ASSIGN",
                 value: ":=",
             });
         });
@@ -547,7 +547,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "CONS",
+                type: "OP_CONS",
                 value: "::",
             });
         });
@@ -559,7 +559,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "AND",
+                type: "OP_AND",
                 value: "&&",
             });
         });
@@ -569,7 +569,7 @@ describe("Lexer - Multi-Character Operators", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]).toMatchObject({
-                type: "OR",
+                type: "OP_OR",
                 value: "||",
             });
         });

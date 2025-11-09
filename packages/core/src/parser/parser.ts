@@ -282,7 +282,7 @@ export class Parser {
     private parsePipe(): Expr {
         let expr = this.parseRefAssign();
 
-        while (this.match("PIPE_GT")) {
+        while (this.match("OP_PIPE_GT")) {
             const func = this.parseRefAssign();
             expr = {
                 kind: "Pipe",
@@ -302,7 +302,7 @@ export class Parser {
     private parseRefAssign(): Expr {
         const expr = this.parseCons();
 
-        if (this.match("ASSIGN")) {
+        if (this.match("OP_ASSIGN")) {
             const value = this.parseRefAssign(); // Right-associative
             return {
                 kind: "BinOp",
@@ -323,7 +323,7 @@ export class Parser {
     private parseCons(): Expr {
         const expr = this.parseLogicalOr();
 
-        if (this.match("CONS")) {
+        if (this.match("OP_CONS")) {
             const tail = this.parseCons(); // Right-associative
             return {
                 kind: "ListCons",
@@ -343,7 +343,7 @@ export class Parser {
     private parseLogicalOr(): Expr {
         let left = this.parseLogicalAnd();
 
-        while (this.match("OR")) {
+        while (this.match("OP_OR")) {
             const right = this.parseLogicalAnd();
             left = {
                 kind: "BinOp",
@@ -364,7 +364,7 @@ export class Parser {
     private parseLogicalAnd(): Expr {
         let left = this.parseEquality();
 
-        while (this.match("AND")) {
+        while (this.match("OP_AND")) {
             const right = this.parseEquality();
             left = {
                 kind: "BinOp",
@@ -385,9 +385,9 @@ export class Parser {
     private parseEquality(): Expr {
         let left = this.parseComparison();
 
-        while (this.match("EQ", "NEQ")) {
+        while (this.match("OP_EQ", "OP_NEQ")) {
             const opToken = this.peek(-1);
-            const op = opToken.type === "EQ" ? "Equal" : "NotEqual";
+            const op = opToken.type === "OP_EQ" ? "Equal" : "NotEqual";
             const right = this.parseComparison();
             left = {
                 kind: "BinOp",
@@ -408,14 +408,14 @@ export class Parser {
     private parseComparison(): Expr {
         let left = this.parseComposition();
 
-        while (this.match("LT", "LTE", "GT", "GTE")) {
+        while (this.match("OP_LT", "OP_LTE", "OP_GT", "OP_GTE")) {
             const opToken = this.peek(-1);
             const op =
-                opToken.type === "LT"
+                opToken.type === "OP_LT"
                     ? "LessThan"
-                    : opToken.type === "LTE"
+                    : opToken.type === "OP_LTE"
                       ? "LessEqual"
-                      : opToken.type === "GT"
+                      : opToken.type === "OP_GT"
                         ? "GreaterThan"
                         : "GreaterEqual";
             const right = this.parseComposition();
@@ -438,9 +438,9 @@ export class Parser {
     private parseComposition(): Expr {
         let left = this.parseAdditive();
 
-        while (this.match("GT_GT", "LT_LT")) {
+        while (this.match("OP_GT_GT", "OP_LT_LT")) {
             const opToken = this.peek(-1);
-            const op = opToken.type === "GT_GT" ? "ForwardCompose" : "BackwardCompose";
+            const op = opToken.type === "OP_GT_GT" ? "ForwardCompose" : "BackwardCompose";
             const right = this.parseAdditive();
             left = {
                 kind: "BinOp",
@@ -461,9 +461,9 @@ export class Parser {
     private parseAdditive(): Expr {
         let left = this.parseMultiplicative();
 
-        while (this.match("PLUS", "MINUS", "AMPERSAND")) {
+        while (this.match("OP_PLUS", "OP_MINUS", "OP_AMPERSAND")) {
             const opToken = this.peek(-1);
-            const op = opToken.type === "PLUS" ? "Add" : opToken.type === "MINUS" ? "Subtract" : "Concat";
+            const op = opToken.type === "OP_PLUS" ? "Add" : opToken.type === "OP_MINUS" ? "Subtract" : "Concat";
             const right = this.parseMultiplicative();
             left = {
                 kind: "BinOp",
@@ -484,9 +484,9 @@ export class Parser {
     private parseMultiplicative(): Expr {
         let left = this.parseUnary();
 
-        while (this.match("STAR", "SLASH", "PERCENT")) {
+        while (this.match("OP_STAR", "OP_SLASH", "OP_PERCENT")) {
             const opToken = this.peek(-1);
-            const op = opToken.type === "STAR" ? "Multiply" : opToken.type === "SLASH" ? "Divide" : "Modulo";
+            const op = opToken.type === "OP_STAR" ? "Multiply" : opToken.type === "OP_SLASH" ? "Divide" : "Modulo";
             const right = this.parseUnary();
             left = {
                 kind: "BinOp",
@@ -506,12 +506,12 @@ export class Parser {
      */
     private parseUnary(): Expr {
         // Check for unary operators
-        if (this.match("MINUS", "BANG")) {
+        if (this.match("OP_MINUS", "OP_BANG")) {
             const opToken = this.peek(-1);
             const startLoc = opToken.loc;
             const expr = this.parseUnary(); // Right-associative (unary operators can stack)
 
-            const op = opToken.type === "MINUS" ? "Negate" : "LogicalNot";
+            const op = opToken.type === "OP_MINUS" ? "Negate" : "LogicalNot";
 
             return {
                 kind: "UnaryOp",
@@ -571,7 +571,7 @@ export class Parser {
             // Used to dereference mutable references: ref! gets the value
             // Chainable: ref!! for double dereference
             // Spec Reference: vibefun-spec.md lines 256-263
-            else if (this.match("BANG")) {
+            else if (this.match("OP_BANG")) {
                 expr = {
                     kind: "UnaryOp",
                     op: "Deref",
@@ -1537,7 +1537,7 @@ export class Parser {
             const name = token.value as string;
 
             // Type application: List<T>, Option<Int>, Map<K, V>
-            if (this.check("LT")) {
+            if (this.check("OP_LT")) {
                 this.advance(); // consume <
 
                 const args: TypeExpr[] = [];
@@ -1546,18 +1546,18 @@ export class Parser {
                 } while (this.match("COMMA"));
 
                 // Handle >> as two > tokens for nested generics
-                if (this.check("GT_GT")) {
+                if (this.check("OP_GT_GT")) {
                     // Split >> into > and >
                     // Consume one > and leave the other for the outer type application
                     const token = this.advance();
                     // Insert a synthetic GT token for the outer level
                     this.tokens.splice(this.current, 0, {
-                        type: "GT",
+                        type: "OP_GT",
                         value: ">",
                         loc: token.loc,
                     });
                 } else {
-                    this.expect("GT", "Expected '>' after type arguments");
+                    this.expect("OP_GT", "Expected '>' after type arguments");
                 }
 
                 // Constructor is the identifier we just parsed
@@ -1642,7 +1642,7 @@ export class Parser {
             while (this.match("NEWLINE"));
 
             // Check for re-export: export { x } from "..." or export * from "..."
-            if (this.check("LBRACE") || this.check("STAR")) {
+            if (this.check("LBRACE") || this.check("OP_STAR")) {
                 return this.parseReExportDecl();
             }
         }
@@ -1705,7 +1705,7 @@ export class Parser {
         }
 
         // Expect =
-        this.expect("EQUALS", "Expected '=' after let pattern");
+        this.expect("OP_EQUALS", "Expected '=' after let pattern");
 
         // Parse value expression
         const firstValue = this.parseExpression();
@@ -1760,7 +1760,7 @@ export class Parser {
                     this.parseTypeExpr();
                 }
 
-                this.expect("EQUALS", "Expected '=' after pattern in 'and' binding");
+                this.expect("OP_EQUALS", "Expected '=' after pattern in 'and' binding");
 
                 const bindingValue = this.parseExpression();
 
@@ -1806,27 +1806,27 @@ export class Parser {
 
         // Parse type parameters: <T, U, V>
         const params: string[] = [];
-        if (this.match("LT")) {
+        if (this.match("OP_LT")) {
             do {
                 const paramToken = this.expect("IDENTIFIER", "Expected type parameter");
                 params.push(paramToken.value as string);
             } while (this.match("COMMA"));
 
             // Handle >> as two > tokens for nested generics
-            if (this.check("GT_GT")) {
+            if (this.check("OP_GT_GT")) {
                 const token = this.advance();
                 this.tokens.splice(this.current, 0, {
-                    type: "GT",
+                    type: "OP_GT",
                     value: ">",
                     loc: token.loc,
                 });
             } else {
-                this.expect("GT", "Expected '>' after type parameters");
+                this.expect("OP_GT", "Expected '>' after type parameters");
             }
         }
 
         // Expect =
-        this.expect("EQUALS", "Expected '=' after type name");
+        this.expect("OP_EQUALS", "Expected '=' after type name");
 
         // Parse type definition
         const definition = this.parseTypeDefinition();
@@ -2006,7 +2006,7 @@ export class Parser {
         const typeExpr = this.parseTypeExpr();
 
         // Expect =
-        this.expect("EQUALS", "Expected '=' after external type");
+        this.expect("OP_EQUALS", "Expected '=' after external type");
 
         // Parse JS name (string literal)
         const jsNameToken = this.expect("STRING_LITERAL", "Expected string literal for JS name");
@@ -2087,7 +2087,7 @@ export class Parser {
             const name = nameToken.value as string;
 
             // Expect =
-            this.expect("EQUALS", "Expected '=' after type name");
+            this.expect("OP_EQUALS", "Expected '=' after type name");
 
             // Parse type expression
             const typeExpr = this.parseTypeExpr();
@@ -2111,7 +2111,7 @@ export class Parser {
         const typeExpr = this.parseTypeExpr();
 
         // Expect =
-        this.expect("EQUALS", "Expected '=' after type");
+        this.expect("OP_EQUALS", "Expected '=' after type");
 
         // Parse JS name (string literal)
         const jsNameToken = this.expect("STRING_LITERAL", "Expected string literal for JS name");
@@ -2138,7 +2138,7 @@ export class Parser {
         const items: ImportItem[] = [];
 
         // import * as Name
-        if (this.match("STAR")) {
+        if (this.match("OP_STAR")) {
             this.expect("KEYWORD", "Expected 'as' after '*'");
             if (this.peek(-1).value !== "as") {
                 throw this.error("Expected 'as' after '*'", this.peek(-1).loc);
@@ -2211,7 +2211,7 @@ export class Parser {
         let items: ImportItem[] | null = null;
 
         // export *
-        if (this.match("STAR")) {
+        if (this.match("OP_STAR")) {
             // Namespace re-export (items = null)
             items = null;
         }

@@ -43,37 +43,37 @@ export type Token =
     | { type: "KEYWORD"; value: string; keyword: Keyword; loc: Location }
 
     // Operators - Arithmetic
-    | { type: "PLUS"; value: string; loc: Location }
-    | { type: "MINUS"; value: string; loc: Location }
-    | { type: "STAR"; value: string; loc: Location }
-    | { type: "SLASH"; value: string; loc: Location }
-    | { type: "PERCENT"; value: string; loc: Location }
+    | { type: "OP_PLUS"; value: string; loc: Location }
+    | { type: "OP_MINUS"; value: string; loc: Location }
+    | { type: "OP_STAR"; value: string; loc: Location }
+    | { type: "OP_SLASH"; value: string; loc: Location }
+    | { type: "OP_PERCENT"; value: string; loc: Location }
 
     // Operators - Comparison
-    | { type: "EQ"; value: string; loc: Location }
-    | { type: "NEQ"; value: string; loc: Location }
-    | { type: "LT"; value: string; loc: Location }
-    | { type: "GT"; value: string; loc: Location }
-    | { type: "LTE"; value: string; loc: Location }
-    | { type: "GTE"; value: string; loc: Location }
+    | { type: "OP_EQ"; value: string; loc: Location }
+    | { type: "OP_NEQ"; value: string; loc: Location }
+    | { type: "OP_LT"; value: string; loc: Location }
+    | { type: "OP_GT"; value: string; loc: Location }
+    | { type: "OP_LTE"; value: string; loc: Location }
+    | { type: "OP_GTE"; value: string; loc: Location }
 
     // Operators - Logical
-    | { type: "AND"; value: string; loc: Location }
-    | { type: "OR"; value: string; loc: Location }
-    | { type: "BANG"; value: string; loc: Location }
+    | { type: "OP_AND"; value: string; loc: Location }
+    | { type: "OP_OR"; value: string; loc: Location }
+    | { type: "OP_BANG"; value: string; loc: Location }
 
     // Operators - String
-    | { type: "AMPERSAND"; value: string; loc: Location }
+    | { type: "OP_AMPERSAND"; value: string; loc: Location }
 
     // Operators - Pipe and Composition
-    | { type: "PIPE_GT"; value: string; loc: Location }
-    | { type: "GT_GT"; value: string; loc: Location }
-    | { type: "LT_LT"; value: string; loc: Location }
+    | { type: "OP_PIPE_GT"; value: string; loc: Location }
+    | { type: "OP_GT_GT"; value: string; loc: Location }
+    | { type: "OP_LT_LT"; value: string; loc: Location }
 
     // Assignment and Special Operators
-    | { type: "EQUALS"; value: string; loc: Location }
-    | { type: "ASSIGN"; value: string; loc: Location }
-    | { type: "CONS"; value: string; loc: Location }
+    | { type: "OP_EQUALS"; value: string; loc: Location }
+    | { type: "OP_ASSIGN"; value: string; loc: Location }
+    | { type: "OP_CONS"; value: string; loc: Location }
 
     // Punctuation
     | { type: "LPAREN"; value: string; loc: Location }

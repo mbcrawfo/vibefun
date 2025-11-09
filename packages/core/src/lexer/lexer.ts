@@ -821,37 +821,37 @@ export class Lexer {
         if (char === "=" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "EQ", value: "==", loc: start };
+            return { type: "OP_EQ", value: "==", loc: start };
         }
         if (char === "!" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "NEQ", value: "!=", loc: start };
+            return { type: "OP_NEQ", value: "!=", loc: start };
         }
         if (char === "<" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "LTE", value: "<=", loc: start };
+            return { type: "OP_LTE", value: "<=", loc: start };
         }
         if (char === ">" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "GTE", value: ">=", loc: start };
+            return { type: "OP_GTE", value: ">=", loc: start };
         }
         if (char === "|" && next === ">") {
             this.advance();
             this.advance();
-            return { type: "PIPE_GT", value: "|>", loc: start };
+            return { type: "OP_PIPE_GT", value: "|>", loc: start };
         }
         if (char === ">" && next === ">") {
             this.advance();
             this.advance();
-            return { type: "GT_GT", value: ">>", loc: start };
+            return { type: "OP_GT_GT", value: ">>", loc: start };
         }
         if (char === "<" && next === "<") {
             this.advance();
             this.advance();
-            return { type: "LT_LT", value: "<<", loc: start };
+            return { type: "OP_LT_LT", value: "<<", loc: start };
         }
         if (char === "-" && next === ">") {
             this.advance();
@@ -866,22 +866,22 @@ export class Lexer {
         if (char === ":" && next === ":") {
             this.advance();
             this.advance();
-            return { type: "CONS", value: "::", loc: start };
+            return { type: "OP_CONS", value: "::", loc: start };
         }
         if (char === ":" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "ASSIGN", value: ":=", loc: start };
+            return { type: "OP_ASSIGN", value: ":=", loc: start };
         }
         if (char === "&" && next === "&") {
             this.advance();
             this.advance();
-            return { type: "AND", value: "&&", loc: start };
+            return { type: "OP_AND", value: "&&", loc: start };
         }
         if (char === "|" && next === "|") {
             this.advance();
             this.advance();
-            return { type: "OR", value: "||", loc: start };
+            return { type: "OP_OR", value: "||", loc: start };
         }
 
         // Single-character operators and punctuation
@@ -889,23 +889,23 @@ export class Lexer {
 
         switch (char) {
             case "+":
-                return { type: "PLUS", value: "+", loc: start };
+                return { type: "OP_PLUS", value: "+", loc: start };
             case "-":
-                return { type: "MINUS", value: "-", loc: start };
+                return { type: "OP_MINUS", value: "-", loc: start };
             case "*":
-                return { type: "STAR", value: "*", loc: start };
+                return { type: "OP_STAR", value: "*", loc: start };
             case "/":
-                return { type: "SLASH", value: "/", loc: start };
+                return { type: "OP_SLASH", value: "/", loc: start };
             case "%":
-                return { type: "PERCENT", value: "%", loc: start };
+                return { type: "OP_PERCENT", value: "%", loc: start };
             case "<":
-                return { type: "LT", value: "<", loc: start };
+                return { type: "OP_LT", value: "<", loc: start };
             case ">":
-                return { type: "GT", value: ">", loc: start };
+                return { type: "OP_GT", value: ">", loc: start };
             case "=":
-                return { type: "EQUALS", value: "=", loc: start };
+                return { type: "OP_EQUALS", value: "=", loc: start };
             case "!":
-                return { type: "BANG", value: "!", loc: start };
+                return { type: "OP_BANG", value: "!", loc: start };
             case "(":
                 return { type: "LPAREN", value: "(", loc: start };
             case ")":
@@ -929,7 +929,7 @@ export class Lexer {
             case "|":
                 return { type: "PIPE", value: "|", loc: start };
             case "&":
-                return { type: "AMPERSAND", value: "&", loc: start };
+                return { type: "OP_AMPERSAND", value: "&", loc: start };
 
             default:
                 throw new LexerError(

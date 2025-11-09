@@ -153,7 +153,7 @@ String comparison is simple byte-for-byte comparison because normalization has a
 ```
 
 **Unary minus (`-`):**
-The lexer emits a single `MINUS` token for all `-` characters. The parser determines whether the minus represents unary negation (e.g., `-x`) or binary subtraction (e.g., `a - b`) based on expression context. Whitespace around `-` is not significant for lexical analysis.
+The lexer emits a single `OP_MINUS` token for all `-` characters. The parser determines whether the minus represents unary negation (e.g., `-x`) or binary subtraction (e.g., `a - b`) based on expression context. Whitespace around `-` is not significant for lexical analysis.
 
 **Examples:**
 ```vibefun

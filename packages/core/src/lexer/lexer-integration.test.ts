@@ -76,7 +76,7 @@ describe("Lexer - Integration Tests", () => {
             // Verify key tokens
             expect(tokens[0]?.type).toBe("KEYWORD"); // let
             expect(tokens[1]?.type).toBe("IDENTIFIER"); // factorial
-            expect(tokens.some((t) => t.type === "LTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_LTE")).toBe(true);
         });
     });
 
@@ -131,8 +131,8 @@ describe("Lexer - Integration Tests", () => {
             const tokens = lexer.tokenize();
 
             expect(tokens[0]?.type).toBe("KEYWORD"); // type
-            expect(tokens.some((t) => t.type === "LT")).toBe(true);
-            expect(tokens.some((t) => t.type === "GT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_LT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_GT")).toBe(true);
             expect(tokens.some((t) => t.type === "PIPE")).toBe(true);
         });
     });
@@ -198,7 +198,7 @@ describe("Lexer - Integration Tests", () => {
             const lexer = new Lexer(code, "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(3);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBe(3);
             expect(tokens.filter((t) => t.type === "FAT_ARROW").length).toBe(3);
         });
     });
@@ -329,7 +329,7 @@ let main = () => {
             expect(tokens.some((t) => t.type === "IDENTIFIER")).toBe(true);
             expect(tokens.some((t) => t.type === "STRING_LITERAL")).toBe(true);
             expect(tokens.some((t) => t.type === "INT_LITERAL")).toBe(true);
-            expect(tokens.some((t) => t.type === "PIPE_GT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_PIPE_GT")).toBe(true);
             expect(tokens.some((t) => t.type === "FAT_ARROW")).toBe(true);
             expect(tokens.some((t) => t.type === "NEWLINE")).toBe(true);
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
@@ -404,12 +404,12 @@ let y = 2`;
             const lexer = new Lexer(code, "test.vf");
             const tokens = lexer.tokenize();
 
-            expect(tokens.some((t) => t.type === "EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "NEQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "GTE")).toBe(true);
-            expect(tokens.some((t) => t.type === "LTE")).toBe(true);
-            expect(tokens.some((t) => t.type === "AND")).toBe(true);
-            expect(tokens.some((t) => t.type === "OR")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_NEQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_GTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_LTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_AND")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_OR")).toBe(true);
         });
 
         it("should tokenize shift operators", () => {
@@ -675,8 +675,8 @@ let result: Either<String, Int> = Right(42)`;
             const tokens = lexer.tokenize();
 
             // Verify generic type parameters
-            expect(tokens.filter((t) => t.type === "LT").length).toBeGreaterThan(3);
-            expect(tokens.filter((t) => t.type === "GT").length).toBeGreaterThan(3);
+            expect(tokens.filter((t) => t.type === "OP_LT").length).toBeGreaterThan(3);
+            expect(tokens.filter((t) => t.type === "OP_GT").length).toBeGreaterThan(3);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -798,7 +798,7 @@ log(value)`;
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(3);
 
             // Verify dereference operator
-            expect(tokens.filter((t) => t.type === "BANG").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "OP_BANG").length).toBe(1);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -812,10 +812,10 @@ let final = !x`;
             const tokens = lexer.tokenize();
 
             // Verify assignment operator
-            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "OP_ASSIGN").length).toBe(2);
 
             // Verify dereference operators
-            expect(tokens.filter((t) => t.type === "BANG").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "OP_BANG").length).toBe(2);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -839,10 +839,10 @@ let final = !x`;
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(5);
 
             // Verify assignment operators
-            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "OP_ASSIGN").length).toBe(2);
 
             // Verify dereference operators
-            expect(tokens.filter((t) => t.type === "BANG").length).toBeGreaterThan(3);
+            expect(tokens.filter((t) => t.type === "OP_BANG").length).toBeGreaterThan(3);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -866,8 +866,8 @@ let value = get()`;
 
             // Verify identifiers, assignment, and dereference
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(8);
-            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(1);
-            expect(tokens.filter((t) => t.type === "BANG").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "OP_ASSIGN").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "OP_BANG").length).toBe(1);
 
             // Verify pattern matching
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(1);
@@ -908,9 +908,9 @@ let value = get()`;
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "when").length).toBe(3);
 
             // Verify comparison operators in guards
-            expect(tokens.some((t) => t.type === "LT")).toBe(true);
-            expect(tokens.some((t) => t.type === "GT")).toBe(true);
-            expect(tokens.some((t) => t.type === "GTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_LT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_GT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_GTE")).toBe(true);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -997,7 +997,7 @@ let doubled = numbers
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(2);
 
             // Verify pipe operators
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBe(2);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -1028,7 +1028,7 @@ let fib10 = fibonacci(10, ref(None))`;
 
             // Verify identifiers and ref assignment operator
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(10);
-            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBe(1);
+            expect(tokens.filter((t) => t.type === "OP_ASSIGN").length).toBe(1);
 
             // Verify conditionals
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "if").length).toBe(1);
@@ -1110,7 +1110,7 @@ unsafe {
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(2);
 
             // Verify pipes
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBe(2);
 
             // Verify unsafe block
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "unsafe").length).toBe(1);
@@ -1152,14 +1152,14 @@ let result = processNumbers(numbers)`;
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "type").length).toBe(1);
 
             // Verify pipes
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(4);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBe(4);
 
             // Verify pattern matching
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBe(2);
 
             // Verify division and comparison
-            expect(tokens.some((t) => t.type === "SLASH")).toBe(true);
-            expect(tokens.some((t) => t.type === "EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_SLASH")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_EQ")).toBe(true);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -1182,27 +1182,27 @@ let result = processNumbers(numbers)`;
             const tokens = lexer.tokenize();
 
             // Verify arithmetic operators
-            expect(tokens.some((t) => t.type === "PLUS")).toBe(true);
-            expect(tokens.some((t) => t.type === "STAR")).toBe(true);
-            expect(tokens.some((t) => t.type === "MINUS")).toBe(true);
-            expect(tokens.some((t) => t.type === "SLASH")).toBe(true);
-            expect(tokens.some((t) => t.type === "PERCENT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_PLUS")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_STAR")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_MINUS")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_SLASH")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_PERCENT")).toBe(true);
 
             // Verify bitwise operators
-            expect(tokens.some((t) => t.type === "LT_LT")).toBe(true);
-            expect(tokens.some((t) => t.type === "GT_GT")).toBe(true);
-            expect(tokens.some((t) => t.type === "AMPERSAND")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_LT_LT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_GT_GT")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_AMPERSAND")).toBe(true);
 
             // Verify comparison and logical operators
-            expect(tokens.some((t) => t.type === "EQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "NEQ")).toBe(true);
-            expect(tokens.some((t) => t.type === "GTE")).toBe(true);
-            expect(tokens.some((t) => t.type === "LTE")).toBe(true);
-            expect(tokens.some((t) => t.type === "OR")).toBe(true);
-            expect(tokens.some((t) => t.type === "AND")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_EQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_NEQ")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_GTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_LTE")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_OR")).toBe(true);
+            expect(tokens.some((t) => t.type === "OP_AND")).toBe(true);
 
             // Verify pipe operator
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBe(2);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBe(2);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -1288,7 +1288,7 @@ export { Person, Validation, validatePerson, getActivePeople, sortByAge }`;
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBeGreaterThan(2);
 
             // Verify pipe operators (at least several)
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(6);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBeGreaterThan(6);
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
@@ -1365,10 +1365,10 @@ export { fetchUser, processUsers, main }`;
 
             // Verify identifiers and ref assignment operator
             expect(tokens.filter((t) => t.type === "IDENTIFIER").length).toBeGreaterThan(20);
-            expect(tokens.filter((t) => t.type === "ASSIGN").length).toBeGreaterThan(1);
+            expect(tokens.filter((t) => t.type === "OP_ASSIGN").length).toBeGreaterThan(1);
 
             // Verify pipes
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(5);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBeGreaterThan(5);
 
             // Verify exports
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "export").length).toBe(1);
@@ -1437,7 +1437,7 @@ export { List, length, map, filter, foldLeft, foldRight, reverse, append, flatte
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "match").length).toBeGreaterThan(4);
 
             // Verify pipes in usage examples
-            expect(tokens.filter((t) => t.type === "PIPE_GT").length).toBeGreaterThan(1);
+            expect(tokens.filter((t) => t.type === "OP_PIPE_GT").length).toBeGreaterThan(1);
 
             // Verify export
             expect(tokens.filter((t) => t.type === "KEYWORD" && t.value === "export").length).toBe(1);

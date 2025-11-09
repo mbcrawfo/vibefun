@@ -516,7 +516,7 @@ describe("Lexer - Numbers in Context", () => {
         const tokens = lexer.tokenize();
 
         expect(tokens).toHaveLength(3); // -, 42, EOF
-        expect(tokens[0]!).toMatchObject({ type: "MINUS" });
+        expect(tokens[0]!).toMatchObject({ type: "OP_MINUS" });
         expect(tokens[1]!).toMatchObject({ type: "INT_LITERAL", value: 42 });
     });
 
