@@ -235,6 +235,7 @@ describe("Lexer - Keywords", () => {
         "match",
         "when",
         "rec",
+        "and",
         "import",
         "export",
         "external",
@@ -242,6 +243,8 @@ describe("Lexer - Keywords", () => {
         "from",
         "as",
         "ref",
+        "try",
+        "catch",
     ];
 
     keywords.forEach((keyword) => {
@@ -257,8 +260,8 @@ describe("Lexer - Keywords", () => {
         });
     });
 
-    it("should tokenize all 16 keywords", () => {
-        expect(keywords).toHaveLength(16);
+    it("should tokenize all 19 keywords", () => {
+        expect(keywords).toHaveLength(19);
     });
 
     it("should tokenize keyword in expression", () => {

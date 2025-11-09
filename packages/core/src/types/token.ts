@@ -24,7 +24,9 @@ export type Keyword =
     | "unsafe"
     | "from"
     | "as"
-    | "ref";
+    | "ref"
+    | "try"
+    | "catch";
 
 /**
  * Token types - discriminated union for type safety
@@ -119,6 +121,8 @@ export const KEYWORDS: ReadonlySet<Keyword> = new Set([
     "from",
     "as",
     "ref",
+    "try",
+    "catch",
 ]);
 
 /**
