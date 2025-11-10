@@ -735,6 +735,11 @@ export class Parser {
     private parseAdditive(): Expr {
         let left = this.parseMultiplicative();
 
+        // Skip newlines before operator (supports: a\n + b)
+        while (this.check("NEWLINE")) {
+            this.advance();
+        }
+
         while (this.match("OP_PLUS", "OP_MINUS")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "OP_PLUS" ? "Add" : "Subtract";
@@ -752,6 +757,11 @@ export class Parser {
                 right,
                 loc: left.loc,
             };
+
+            // Skip newlines before next operator (supports: a + b\n + c)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
         }
 
         return left;
@@ -763,6 +773,11 @@ export class Parser {
      */
     private parseMultiplicative(): Expr {
         let left = this.parseUnary();
+
+        // Skip newlines before operator (supports: a\n * b)
+        while (this.check("NEWLINE")) {
+            this.advance();
+        }
 
         while (this.match("OP_STAR", "OP_SLASH", "OP_PERCENT")) {
             const opToken = this.peek(-1);
@@ -781,6 +796,11 @@ export class Parser {
                 right,
                 loc: left.loc,
             };
+
+            // Skip newlines before next operator (supports: a * b\n * c)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
         }
 
         return left;
@@ -841,6 +861,11 @@ export class Parser {
 
         // Parse postfix operators (function calls, record field access)
         while (true) {
+            // Skip newlines before postfix operators (supports: expr\n .field, expr\n (args))
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             // Function call: func(arg1, arg2, ...)
             if (this.match("LPAREN")) {
                 const args: Expr[] = [];
@@ -1492,6 +1517,79 @@ export class Parser {
     }
 
     /**
+     * Parse let expression
+     * Syntax: let [mut] [rec] pattern = value; body
+     * Note: This is for let expressions inside blocks, not top-level declarations
+     */
+    private parseLetExpr(startLoc: Location): Expr {
+        // 'let' keyword already consumed by caller
+
+        // Check for modifiers
+        let mutable = false;
+        let recursive = false;
+
+        while (this.check("KEYWORD")) {
+            const mod = this.peek().value as string;
+            if (mod === "mut" && !mutable) {
+                mutable = true;
+                this.advance();
+            } else if (mod === "rec" && !recursive) {
+                recursive = true;
+                this.advance();
+            } else {
+                break;
+            }
+        }
+
+        // Parse pattern
+        const pattern = this.parsePattern();
+
+        // Optional type annotation
+        if (this.match("COLON")) {
+            // Skip type annotation for now (will be used by type checker)
+            this.parseTypeExpr();
+        }
+
+        // Expect =
+        this.expect("OP_EQUALS", "Expected '=' after let pattern");
+
+        // Parse value expression
+        const value = this.parseExpression();
+
+        // Skip optional newlines after value
+        while (this.match("NEWLINE"));
+
+        // Expect semicolon or ASI
+        if (this.check("SEMICOLON")) {
+            this.advance(); // Consume explicit semicolon
+        } else if (!this.shouldInsertSemicolon()) {
+            throw this.error(
+                "Expected ';' or newline after let binding",
+                this.peek().loc,
+                "Let expressions in blocks must be followed by a semicolon or newline",
+            );
+        }
+
+        // Skip newlines after semicolon
+        while (this.match("NEWLINE"));
+
+        // Parse body (rest of block)
+        // For nested let expressions, we parse another expression
+        // For the final expression, this will be the result
+        const body = this.parseExpression();
+
+        return {
+            kind: "Let",
+            pattern,
+            value,
+            body,
+            mutable,
+            recursive,
+            loc: startLoc,
+        };
+    }
+
+    /**
      * Parse primary expressions (literals, variables, parenthesized)
      */
     private parsePrimary(): Expr {
@@ -1637,6 +1735,14 @@ export class Parser {
             };
         }
 
+        // Let expression: let [mut] [rec] pattern = value; body
+        // Used inside blocks for local bindings
+        if (this.check("KEYWORD") && this.peek().value === "let") {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume 'let'
+            return this.parseLetExpr(startLoc);
+        }
+
         // List literal with optional spread elements
         // Syntax: [1, 2, 3] or [1, ...rest, 2] or [...items]
         // Supports multiple spreads: [...a, ...b, x, ...c]
@@ -1673,6 +1779,10 @@ export class Parser {
                     // Skip newlines after comma (supports: [a,\n b])
                     while (this.check("NEWLINE")) {
                         this.advance();
+                    }
+                    // Check for trailing comma before closing bracket
+                    if (this.check("RBRACKET")) {
+                        return false; // Exit loop, don't try to parse another element
                     }
                     return true;
                 })());
