@@ -135,6 +135,15 @@ export function freeVars(expr: CoreExpr): Set<string> {
             case "CoreUnsafe":
                 analyzeExpr(e.expr, currentBound);
                 return;
+
+            case "CoreTuple":
+                e.elements.forEach((elem) => analyzeExpr(elem, currentBound));
+                return;
+
+            case "CoreWhile":
+                analyzeExpr(e.condition, currentBound);
+                analyzeExpr(e.body, currentBound);
+                return;
         }
     }
 
@@ -167,6 +176,10 @@ export function patternBoundVars(pattern: CorePattern): Set<string> {
 
             case "CoreRecordPattern":
                 p.fields.forEach((field) => analyzePattern(field.pattern));
+                return;
+
+            case "CoreTuplePattern":
+                p.elements.forEach(analyzePattern);
                 return;
         }
     }
