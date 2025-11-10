@@ -36,6 +36,9 @@ export class Parser {
     private filename: string;
     // Used by ASI to disable automatic semicolon insertion inside records
     private inRecordContext: boolean = false;
+    // Multi-error collection
+    private errors: ParserError[] = [];
+    private readonly maxErrors = 10;
 
     /**
      * Create a new Parser
@@ -50,9 +53,20 @@ export class Parser {
     /**
      * Parse a complete module
      * @returns Module AST node
+     * @throws ParserError if any parsing errors occurred
      */
     parse(): Module {
-        return this.parseModule();
+        const module = this.parseModule();
+
+        // If any errors were collected, throw the first one
+        if (this.errors.length > 0) {
+            const firstError = this.errors[0];
+            if (firstError) {
+                throw firstError;
+            }
+        }
+
+        return module;
     }
 
     /**
@@ -157,14 +171,29 @@ export class Parser {
      */
     private error(message: string, location: Location, help?: string): ParserError {
         this.hadError = true;
-        return new ParserError(message, location, help);
+        const err = new ParserError(message, location, help);
+        this.errors.push(err);
+
+        if (this.errors.length >= this.maxErrors) {
+            // Stop parsing after max errors
+            throw new Error(`Too many parse errors (${this.maxErrors}). Stopping.`);
+        }
+
+        return err;
+    }
+
+    /**
+     * Get all collected parser errors
+     * @returns Array of parser errors
+     */
+    getErrors(): ParserError[] {
+        return this.errors;
     }
 
     /**
      * Synchronize after an error to continue parsing
      * Skips tokens until reaching a safe synchronization point
      */
-    // @ts-expect-error - Method reserved for future error recovery
     private synchronize(): void {
         this.advance();
 
@@ -315,27 +344,38 @@ export class Parser {
                 break;
             }
 
-            const decl = this.parseDeclaration();
+            try {
+                const decl = this.parseDeclaration();
 
-            // Separate imports from other declarations
-            if (decl.kind === "ImportDecl") {
-                imports.push(decl);
-            } else {
-                declarations.push(decl);
+                // Separate imports from other declarations
+                if (decl.kind === "ImportDecl") {
+                    imports.push(decl);
+                } else {
+                    declarations.push(decl);
+                }
+
+                // ASI: Check for semicolon or insert automatically
+                if (this.check("SEMICOLON")) {
+                    this.advance();
+                } else if (this.shouldInsertSemicolon()) {
+                    // ASI triggered - continue without consuming token
+                } else if (!this.isAtEnd()) {
+                    // No semicolon and ASI doesn't apply - but don't error,
+                    // just skip newlines (current behavior)
+                }
+
+                // Skip trailing newlines
+                while (this.match("NEWLINE"));
+            } catch (error) {
+                // Error during declaration parsing - synchronize and continue
+                if (error instanceof ParserError) {
+                    // Error already collected, synchronize and continue
+                    this.synchronize();
+                } else {
+                    // Unexpected error, re-throw
+                    throw error;
+                }
             }
-
-            // ASI: Check for semicolon or insert automatically
-            if (this.check("SEMICOLON")) {
-                this.advance();
-            } else if (this.shouldInsertSemicolon()) {
-                // ASI triggered - continue without consuming token
-            } else if (!this.isAtEnd()) {
-                // No semicolon and ASI doesn't apply - but don't error,
-                // just skip newlines (current behavior)
-            }
-
-            // Skip trailing newlines
-            while (this.match("NEWLINE"));
         }
 
         return {

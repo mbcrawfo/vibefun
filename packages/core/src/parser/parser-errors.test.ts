@@ -91,7 +91,7 @@ describe("Parser - Error Handling", () => {
 
         it("reports error for invalid import syntax", () => {
             const error = expectParseError("import else");
-            expect(error.message).toContain("Unexpected");
+            expect(error.message).toContain("Expected");
         });
 
         it("reports error for invalid export target", () => {
@@ -171,7 +171,7 @@ describe("Parser - Error Handling", () => {
 
         it("reports error for incomplete binary operation in complex context", () => {
             const error = expectParseError("let x = match y { | Some(v) => 1 + }");
-            expect(error.message).toContain("Expected");
+            expect(error.message).toContain("Unexpected");
         });
     });
 
