@@ -1,7 +1,15 @@
 # Parser Updates Task Checklist
 
 **Last Updated**: 2025-11-09
-**Status**: Not Started
+**Status**: Not Started (Plan Corrected v2.1)
+
+---
+
+## Phase 0: Lambda Precedence ✅ 0/2
+
+- [ ] 0.1 Add parseLambda() method to handle single-param lambdas (x => expr)
+- [ ] 0.2 Update parseExpression() to call parseLambda() as entry point
+- [ ] **Test**: Lambda precedence tests - `x => y => z` parses as `x => (y => z)`
 
 ---
 
@@ -15,46 +23,49 @@
 
 ---
 
-## Phase 2: Fix Precedence Chain ✅ 0/6
+## Phase 2: Fix Precedence Chain ✅ 0/7
 
-- [ ] 2.1 Move parseRefAssign() to come BEFORE parseTypeAnnotation()
-- [ ] 2.2 Move parseComposition() to after parsePipe() (level 4)
-- [ ] 2.3 Move parseCons() to after parseComparison() (level 11)
-- [ ] 2.4 Split parseAdditive() into parseConcat() (level 12) and parseAdditive() (level 13)
-- [ ] 2.5 Update all precedence method calls to match new order
-- [ ] 2.6 Update precedence comments to reflect correct levels
-- [ ] **Test**: Run precedence tests - all pass
+- [ ] 2.1 Split parseAdditive() into parseConcat() (level 12, &) and parseAdditive() (level 13, +/-)
+- [ ] 2.2 Move parseComposition() from level 10 position to level 4 (after parsePipe)
+- [ ] 2.3 Reorder RefAssign and Cons in precedence chain
+- [ ] 2.4 Update parseLambda (0) to call parseRefAssign (1)
+- [ ] 2.5 Update parseRefAssign (1) to call parseTypeAnnotation (2)
+- [ ] 2.6 Update all 16 precedence methods to call next level in correct order
+- [ ] 2.7 Update all method comments with correct precedence levels
+- [ ] **Test**: Comprehensive precedence tests - verify `x => y := z : Type |> f >> g || a && b == c < d :: e & f + g * h.i()`
 
 ---
 
-## Phase 3: Implement Missing Expressions ✅ 0/5
+## Phase 3: Implement Missing Expressions ✅ 0/6
 
 - [ ] 3.1 Add While loop parsing to parsePrimary()
-- [ ] 3.2 Add Tuple expression parsing to parseLambdaOrParen()
-- [ ] 3.3 Add record field shorthand to parseRecordExpr() (normal + spread cases)
+- [ ] 3.2 Add Tuple expression parsing to parseLambdaOrParen() with arity validation
+- [ ] 3.3a Add record field shorthand to parseRecordExpr() - normal construction (line 866-877)
+- [ ] 3.3b Add record field shorthand to parseRecordExpr() - update spread case (line 837-850)
 - [ ] 3.4 Make If else branch optional (insert Unit if missing)
 - [ ] 3.5 Add operator section rejection with helpful error
 - [ ] **Test**: Run expression tests - all new features work
 
 ---
 
-## Phase 4: Fix Match Expressions ✅ 0/3
+## Phase 4: Fix Match Expressions ✅ 0/4
 
-- [ ] 4.1 Restructure parseMatchExpr() to require leading pipe for ALL cases
-- [ ] 4.2 Add empty match validation (require at least one case)
-- [ ] 4.3 Add lambda-in-match test cases
-- [ ] **Test**: Run match tests - leading pipe required, lambdas work
+- [ ] 4.1 Validate empty match BEFORE loop (check for RBRACE after skipping newlines)
+- [ ] 4.2 Restructure parseMatchExpr() loop to check RBRACE BEFORE expecting PIPE
+- [ ] 4.3 Ensure all cases require leading pipe (including first case)
+- [ ] 4.4 Add lambda-in-match test cases
+- [ ] **Test**: Run match tests - leading pipe required, lambdas work, no RBRACE errors
 
 ---
 
-## Phase 5: Implement ASI ✅ 0/4
+## Phase 5: Implement ASI ✅ 0/6
 
 - [ ] 5.1 Add shouldInsertSemicolon() helper method
 - [ ] 5.2 Add isExpressionContinuation() helper
 - [ ] 5.3 Add isLineContinuation() helper
 - [ ] 5.4 Add isStatementStart() helper
-- [ ] 5.5 Integrate ASI in parseModule() after declarations
-- [ ] 5.6 Integrate ASI in parseBlockExpr() between expressions
+- [ ] 5.5 Integrate ASI in parseModule() with explicit pattern: check("SEMICOLON") || shouldInsertSemicolon()
+- [ ] 5.6 Integrate ASI in parseBlockExpr() with explicit pattern: check("SEMICOLON") || shouldInsertSemicolon()
 - [ ] **Test**: Run ASI tests - multi-line expressions work correctly
 
 ---
@@ -94,12 +105,13 @@
 
 ## Phase 10: Update Compiler Pipeline ✅ 0/12
 
-### Desugarer (0/7)
+### Desugarer (0/8)
 - [ ] 10.1 Remove ListCons case from desugarer.ts (line 296-302)
 - [ ] 10.2 Verify desugarBinOp handles Cons operator
-- [ ] 10.3 Add If optional else handling (insert Unit if missing)
-- [ ] 10.4 Add Tuple case → CoreTuple
-- [ ] 10.5 Add While case → recursive let binding desugaring
+- [ ] 10.3 Add If optional else handling (parser inserts Unit, desugarer passes through)
+- [ ] 10.4 Add Tuple case → CoreTuple (straightforward mapping)
+- [ ] 10.5a Implement freshVar() helper for generating unique loop variable names
+- [ ] 10.5b Add While case → desugar to: let rec loop = () => if cond then { body; loop() } else ()
 - [ ] 10.6 Add TuplePattern case → CoreTuplePattern
 - [ ] 10.7 Update tests: 6 ListCons references in lists.test.ts
 
@@ -152,11 +164,13 @@
 
 ## Progress Summary
 
-**Phases Completed**: 0/11 (0%)
-**Tasks Completed**: 0/61 (0%)
+**Phases Completed**: 0/12 (0%)
+**Tasks Completed**: 0/67 (0%)
 
-**Current Phase**: Phase 1 - AST Type Updates
+**Current Phase**: Phase 0 - Lambda Precedence (then Phase 1 - AST Updates)
 **Current Task**: Not started
+
+**Note**: Plan corrected to v2.1 with fixes for precedence chain, lambda integration, record shorthand, match loops, ASI integration, and While desugaring.
 
 ---
 

@@ -1,6 +1,6 @@
 # Parser Updates Context
 
-**Last Updated**: 2025-11-09
+**Last Updated**: 2025-11-09 (Plan Corrected to v2.1)
 
 ## Key Files
 
@@ -58,12 +58,13 @@
 - Type checker: No changes needed
 
 ### 3. Precedence Chain Order
-**Decision**: RefAssign (level 1) comes BEFORE TypeAnnotation (level 2)
-**Rationale**: Lower precedence number = lower binding strength = earlier in chain
-**Correction**: Initial plan had this backwards, review caught the error
+**Decision**: Lambda (level 0) is entry point, calling chain proceeds from low to high precedence
+**Correct Understanding**: Lower precedence number = weaker binding = parsed FIRST (top of call chain)
+**Precedence Chain**: parseLambda(0) → parseRefAssign(1) → parseTypeAnnotation(2) → parsePipe(3) → parseComposition(4) → parseLogicalOr(5) → parseLogicalAnd(6) → parseEquality(9) → parseComparison(10) → parseCons(11) → parseConcat(12) → parseAdditive(13) → parseMultiplicative(14) → parseUnary(15) → parseCall(16) → parsePrimary
 **Impact**:
-- Parser: Complete restructure of precedence method chain
+- Parser: Complete restructure of precedence method chain required
 - Critical for correct parsing of complex expressions
+- Each method calls the NEXT HIGHER precedence level
 
 ### 4. ASI Integration Strategy
 **Decision**: Implement ASI as helper methods called at specific integration points
@@ -105,32 +106,68 @@ loop()
 
 ## Analysis Findings
 
-### Issues Identified (19 total)
+### Issues Identified (20 total - including lambda)
 
-**Critical (8):**
-1. While loops missing - No implementation at all
-2. Tuple expressions missing - No implementation at all
-3. Tuple patterns missing - No implementation at all
-4. Match leading pipe optional - Should be required for ALL cases
-5. Cons precedence wrong - Currently level 3, should be level 11
-6. Composition precedence wrong - Currently level 10, should be level 4
-7. ASI not implemented - No automatic semicolon insertion
-8. If without else not supported - Currently requires else branch
+**Critical (9):**
+1. Lambda precedence missing - Lambda (level 0) not in precedence chain
+2. While loops missing - No implementation at all
+3. Tuple expressions missing - No implementation at all
+4. Tuple patterns missing - No implementation at all
+5. Match leading pipe optional - Should be required for ALL cases (with corrected loop structure)
+6. Cons precedence wrong - Currently level 3, should be level 11
+7. Composition precedence wrong - Currently level 10, should be level 4
+8. ASI not implemented - No automatic semicolon insertion
+9. If without else not supported - Currently requires else branch
 
-**Major (6):**
-9. Record shorthand missing - `{ name }` not supported
-10. Operator sections not rejected - Should error with helpful message
-11. Error recovery disabled - synchronize() exists but unused
-12. Multi-error collection missing - Stops at first error
-13. Minus disambiguation missing - Always treats as unary
-14. Lambda precedence issues - May consume too much in match cases
+**Major (7):**
+10. Record shorthand missing - `{ name }` not supported in BOTH construction and update spreads
+11. Operator sections not rejected - Should error with helpful message
+12. Error recovery disabled - synchronize() exists but unused
+13. Multi-error collection missing - Stops at first error
+14. Minus disambiguation missing - Always treats as unary
+15. Match loop structure bug - Expects PIPE after RBRACE
+16. Tuple arity validation - Location not specified in original plan
 
-**Minor (5):**
-15. Precedence comments wrong - Incorrect level numbers throughout
-16. Spec references outdated - Point to old vibefun-spec.md
-17. Test coverage gaps - Missing tests for many features
-18. Trailing comma verification - Need to ensure all contexts support
-19. Empty match validation - Should require at least one case
+**Minor (4):**
+17. Precedence comments wrong - Incorrect level numbers throughout
+18. Spec references outdated - Point to old vibefun-spec.md
+19. Test coverage gaps - Missing tests for many features
+20. While desugaring details - Original plan missing implementation specifics
+
+---
+
+## Plan Corrections (v2.0 → v2.1)
+
+### Critical Corrections Made
+1. **Added Phase 0: Lambda Precedence**
+   - Lambda (level 0) added as entry point for expression parsing
+   - parseLambda() handles single-param lambdas: `x => expr`
+   - Calls parseRefAssign(1) to continue precedence chain
+
+2. **Fixed Phase 2: Precedence Chain Understanding**
+   - Corrected fundamental misunderstanding about precedence traversal
+   - Clarified: Lower level = weaker binding = parsed FIRST (top of chain)
+   - Each method calls NEXT HIGHER precedence level
+   - Complete call chain documented from level 0 to 16
+
+3. **Enhanced Phase 3.3: Record Shorthand**
+   - Specified TWO locations: normal construction AND update spreads
+   - Added explicit code for both cases (lines 866-877 and 837-850)
+
+4. **Fixed Phase 4.1: Match Loop Structure**
+   - Corrected loop to check RBRACE BEFORE expecting PIPE
+   - Prevents error when closing match expression
+   - Validates empty match before loop starts
+
+5. **Enhanced Phase 5.2: ASI Integration**
+   - Added explicit code examples for WHERE to call shouldInsertSemicolon()
+   - Showed pattern replacement throughout parser
+   - Clarified integration in parseModule() and parseBlockExpr()
+
+6. **Added Phase 10.1: While Desugaring Details**
+   - Complete implementation pseudocode for While → let rec desugaring
+   - Includes freshVar() helper for unique loop names
+   - Shows full desugared structure
 
 ---
 
