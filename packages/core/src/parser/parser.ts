@@ -408,8 +408,15 @@ export class Parser {
      */
     private parseLambda(): Expr {
         // Check for single-param lambda without parens: x => expr
+        // Supports newlines before =>: x\n=> expr
         if (this.check("IDENTIFIER")) {
-            const next = this.peek(1);
+            // Lookahead past newlines to check for =>
+            let offset = 1;
+            while (this.peek(offset).type === "NEWLINE") {
+                offset++;
+            }
+            const next = this.peek(offset);
+
             if (next && next.type === "FAT_ARROW") {
                 const paramToken = this.advance();
                 const param: Pattern = {
@@ -417,7 +424,18 @@ export class Parser {
                     name: paramToken.value as string,
                     loc: paramToken.loc,
                 };
+
+                // Skip newlines before =>
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
+
                 this.advance(); // consume =>
+
+                // Skip newlines after => (supports: x =>\nbody)
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
 
                 // Right-associative: body can be another lambda
                 const body = this.parseLambda();
@@ -474,6 +492,11 @@ export class Parser {
         let expr = this.parseComposition();
 
         while (this.match("OP_PIPE_GT")) {
+            // Skip newlines after operator (supports: a |>\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const func = this.parseComposition();
             expr = {
                 kind: "Pipe",
@@ -515,6 +538,11 @@ export class Parser {
         const expr = this.parseConcat();
 
         if (this.match("OP_CONS")) {
+            // Skip newlines after operator (supports: a ::\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const tail = this.parseCons(); // Right-associative
             return {
                 kind: "BinOp",
@@ -536,6 +564,11 @@ export class Parser {
         let left = this.parseLogicalAnd();
 
         while (this.match("OP_OR")) {
+            // Skip newlines after operator (supports: a ||\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseLogicalAnd();
             left = {
                 kind: "BinOp",
@@ -557,6 +590,11 @@ export class Parser {
         let left = this.parseEquality();
 
         while (this.match("OP_AND")) {
+            // Skip newlines after operator (supports: a &&\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseEquality();
             left = {
                 kind: "BinOp",
@@ -580,6 +618,12 @@ export class Parser {
         while (this.match("OP_EQ", "OP_NEQ")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "OP_EQ" ? "Equal" : "NotEqual";
+
+            // Skip newlines after operator (supports: a ==\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseComparison();
             left = {
                 kind: "BinOp",
@@ -610,6 +654,12 @@ export class Parser {
                       : opToken.type === "OP_GT"
                         ? "GreaterThan"
                         : "GreaterEqual";
+
+            // Skip newlines after operator (supports: a <\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseCons();
             left = {
                 kind: "BinOp",
@@ -633,6 +683,12 @@ export class Parser {
         while (this.match("OP_GT_GT", "OP_LT_LT")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "OP_GT_GT" ? "ForwardCompose" : "BackwardCompose";
+
+            // Skip newlines after operator (supports: f >>\n g)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseLogicalOr();
             left = {
                 kind: "BinOp",
@@ -654,6 +710,11 @@ export class Parser {
         let left = this.parseAdditive();
 
         while (this.match("OP_AMPERSAND")) {
+            // Skip newlines after operator (supports: a &\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseAdditive();
             left = {
                 kind: "BinOp",
@@ -677,6 +738,12 @@ export class Parser {
         while (this.match("OP_PLUS", "OP_MINUS")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "OP_PLUS" ? "Add" : "Subtract";
+
+            // Skip newlines after operator (supports: a +\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseMultiplicative();
             left = {
                 kind: "BinOp",
@@ -700,6 +767,12 @@ export class Parser {
         while (this.match("OP_STAR", "OP_SLASH", "OP_PERCENT")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "OP_STAR" ? "Multiply" : opToken.type === "OP_SLASH" ? "Divide" : "Modulo";
+
+            // Skip newlines after operator (supports: a *\n b)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const right = this.parseUnary();
             left = {
                 kind: "BinOp",
@@ -772,12 +845,28 @@ export class Parser {
             if (this.match("LPAREN")) {
                 const args: Expr[] = [];
 
+                // Skip leading newlines after opening paren
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
+
                 // Check for empty argument list
                 if (!this.check("RPAREN")) {
                     // Parse arguments
                     do {
                         args.push(this.parseExpression());
-                    } while (this.match("COMMA"));
+
+                        // Skip newlines after argument
+                        while (this.check("NEWLINE")) {
+                            this.advance();
+                        }
+                    } while (this.match("COMMA") && (() => {
+                        // Skip newlines after comma (supports: f(a,\n b))
+                        while (this.check("NEWLINE")) {
+                            this.advance();
+                        }
+                        return true;
+                    })());
                 }
 
                 this.expect("RPAREN", "Expected closing parenthesis after function arguments");
@@ -853,14 +942,21 @@ export class Parser {
     }
 
     private parseLambdaOrParen(startLoc: Location): Expr {
-        // Check for operator sections (not supported)
-        // Reject all forms: (+), ( + ), (+ 1), (1 +)
+        // Check for bare operator sections: (+), (*), (-), etc.
+        // This only catches operators at the start, NOT unary like (-x)
+        // We handle left sections like (1 +) later after parsing the expression
         if (this.isOperatorToken()) {
-            throw this.error(
-                `Operator sections are not supported: (${this.peek().value})`,
-                this.peek().loc,
-                "Use a lambda instead. For (+), write: (x, y) => x + y",
-            );
+            // Check if it's followed by RPAREN - that's a bare operator section
+            const nextToken = this.peek(1);
+            if (nextToken.type === "RPAREN") {
+                throw this.error(
+                    "Operator sections are not supported",
+                    this.peek().loc,
+                    "Use a lambda instead. For (+), write: (x, y) => x + y",
+                );
+            }
+            // If followed by an identifier or expression, it might be unary like (-x) or (!flag)
+            // Fall through to normal expression parsing
         }
 
         // Check for closing paren immediately
@@ -870,6 +966,12 @@ export class Parser {
             // Check if it's a lambda: () => expr
             if (this.check("FAT_ARROW")) {
                 this.advance(); // consume =>
+
+                // Skip newlines after => (supports: () =>\nbody)
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
+
                 const body = this.parseExpression();
                 return {
                     kind: "Lambda",
@@ -912,6 +1014,12 @@ export class Parser {
                     };
                     this.expect("RPAREN");
                     this.expect("FAT_ARROW");
+
+                    // Skip newlines after => (supports: (x) =>\nbody)
+                    while (this.check("NEWLINE")) {
+                        this.advance();
+                    }
+
                     const body = this.parseExpression();
                     return {
                         kind: "Lambda",
@@ -931,53 +1039,69 @@ export class Parser {
                     };
                 }
             } else if (nextToken.type === "COMMA") {
-                // It's lambda parameters: (x, y, ...) => expr
-                const params: Pattern[] = [];
-                params.push({
-                    kind: "VarPattern",
-                    name: this.advance().value as string,
-                    loc: this.peek(-1).loc,
-                });
-
-                while (this.match("COMMA")) {
-                    const nameToken = this.expect("IDENTIFIER", "Expected parameter name after comma");
-                    params.push({
-                        kind: "VarPattern",
-                        name: nameToken.value as string,
-                        loc: nameToken.loc,
-                    });
-                }
-
-                this.expect("RPAREN", "Expected closing parenthesis after parameters");
-                this.expect("FAT_ARROW", "Expected '=>' after lambda parameters");
-
-                const body = this.parseExpression();
-                return {
-                    kind: "Lambda",
-                    params,
-                    body,
-                    loc: startLoc,
-                };
+                // Could be lambda parameters or tuple - parse as expressions
+                // and check for => after closing paren
+                // Fall through to general expression parsing
             }
         }
 
         // Not a lambda, parse as parenthesized expression or tuple
         // Parse comma-separated expressions
         const exprs: Expr[] = [];
-        exprs.push(this.parseExpression());
 
-        // Check for comma (potential tuple or multi-param lambda)
-        while (this.match("COMMA")) {
+        // Try to parse expression, catching errors for operator sections
+        try {
             exprs.push(this.parseExpression());
+
+            // Check for operator section: (expr op)
+            if (this.isOperatorToken()) {
+                throw this.error(
+                    "Operator sections are not supported",
+                    this.peek().loc,
+                    `Use a lambda instead. For example: (x) => x ${this.peek().value} ...`,
+                );
+            }
+
+            // Check for comma (potential tuple or multi-param lambda)
+            while (this.match("COMMA")) {
+                exprs.push(this.parseExpression());
+            }
+        } catch (error) {
+            // If we got "Unexpected token" and the token is RPAREN,
+            // and the previous token was an operator, it's likely an operator section
+            const isParserError = error instanceof ParserError || (error as Error).name === "ParserError";
+            const hasUnexpectedToken =
+                isParserError && (error as Error).message.includes("Unexpected token");
+
+            if (hasUnexpectedToken && this.check("RPAREN")) {
+                // Check if we have consumed some tokens (meaning we parsed part of an expr + op)
+                throw this.error(
+                    "Operator sections are not supported",
+                    this.peek().loc,
+                    "Use a lambda instead. For example: (x) => x + ...",
+                );
+            }
+            throw error;
         }
 
         this.expect("RPAREN", "Expected closing parenthesis");
+
+        // Skip newlines before checking for arrow (supports: (x, y)\n=> body)
+        while (this.check("NEWLINE")) {
+            this.advance();
+        }
 
         // After closing paren, check for arrow (could be lambda with pattern params)
         if (this.check("FAT_ARROW")) {
             // It's a lambda with pattern parameters: (pattern1, pattern2) => body
             // Convert expressions to patterns (this handles more complex patterns)
             this.advance(); // consume =>
+
+            // Skip newlines after => (supports: (x, y) =>\nbody)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             const body = this.parseLambda(); // Right-associative
 
             // For now, expressions in lambda params must be valid patterns
@@ -1142,7 +1266,25 @@ export class Parser {
                 // Collect remaining fields and spreads
                 const updates: RecordField[] = [];
 
-                while (this.match("COMMA")) {
+                // Skip newlines after spread expr (supports: { ...base\n name: value })
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
+
+                // Continue parsing fields (with or without commas)
+                while (
+                    this.check("COMMA") ||
+                    this.check("SPREAD") ||
+                    this.check("IDENTIFIER")
+                ) {
+                    // Consume comma if present
+                    if (this.match("COMMA")) {
+                        // Skip newlines after comma
+                        while (this.check("NEWLINE")) {
+                            this.advance();
+                        }
+                    }
+
                     // Check for another spread
                     if (this.check("SPREAD")) {
                         this.advance(); // consume ...
@@ -1157,8 +1299,17 @@ export class Parser {
                         const fieldToken = this.advance();
                         const fieldName = fieldToken.value as string;
 
-                        // Check for shorthand: { ...base, name } or { ...base, name, ... }
-                        if (this.check("COMMA") || this.check("RBRACE")) {
+                        // Skip newlines before checking for shorthand/colon
+                        while (this.check("NEWLINE")) {
+                            this.advance();
+                        }
+
+                        // Check for shorthand: { ...base, name } or { ...base, name\notherId }
+                        if (
+                            this.check("COMMA") ||
+                            this.check("RBRACE") ||
+                            this.check("IDENTIFIER")
+                        ) {
                             // Shorthand in update: { ...base, name }
                             updates.push({
                                 kind: "Field",
@@ -1180,6 +1331,11 @@ export class Parser {
                                 value,
                                 loc: fieldToken.loc,
                             });
+                        }
+
+                        // Skip newlines after field value
+                        while (this.check("NEWLINE")) {
+                            this.advance();
                         }
                     } else {
                         break; // End of fields
@@ -1203,8 +1359,17 @@ export class Parser {
                 const fieldToken = this.expect("IDENTIFIER", "Expected field name");
                 const fieldName = fieldToken.value as string;
 
-                // Check for shorthand: { name } or { name, ... }
-                if (this.check("COMMA") || this.check("RBRACE")) {
+                // Skip newlines before checking for shorthand/colon
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
+
+                // Check for shorthand: { name } or { name, ... } or { name\notherId }
+                if (
+                    this.check("COMMA") ||
+                    this.check("RBRACE") ||
+                    this.check("IDENTIFIER")
+                ) {
                     // Shorthand: { name } → { name: Var(name) }
                     fields.push({
                         kind: "Field",
@@ -1228,7 +1393,22 @@ export class Parser {
                         loc: fieldToken.loc,
                     });
                 }
-            } while (this.match("COMMA"));
+
+                // Skip newlines and commas (supports multi-line record fields)
+                while (this.check("NEWLINE")) {
+                    this.advance();
+                }
+
+                if (this.check("COMMA")) {
+                    this.advance(); // consume comma
+                    while (this.check("NEWLINE")) {
+                        this.advance();
+                    }
+                } else if (!this.check("IDENTIFIER")) {
+                    // No more fields (either RBRACE or something else)
+                    break;
+                }
+            } while (true);
 
             this.expect("RBRACE", "Expected '}' after record fields");
 
@@ -1359,6 +1539,11 @@ export class Parser {
 
             const condition = this.parseExpression();
 
+            // Skip newlines before 'then' (supports: if cond\n then expr)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             this.expect("KEYWORD", "Expected 'then' after if condition");
             if (this.peek(-1).value !== "then") {
                 throw this.error("Expected 'then' after if condition", this.peek(-1).loc);
@@ -1368,6 +1553,11 @@ export class Parser {
 
             // Else branch is optional
             let elseExpr: Expr;
+            // Skip newlines before 'else' (supports: if...then expr\n else expr)
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             if (this.check("KEYWORD") && this.peek().value === "else") {
                 this.advance(); // consume 'else'
                 elseExpr = this.parseExpression();
@@ -1444,6 +1634,11 @@ export class Parser {
 
             const elements: ListElement[] = [];
 
+            // Skip leading newlines after opening bracket
+            while (this.check("NEWLINE")) {
+                this.advance();
+            }
+
             // Check for empty list
             if (!this.check("RBRACKET")) {
                 // Parse elements (can be regular Element or Spread)
@@ -1456,7 +1651,18 @@ export class Parser {
                         const expr = this.parseExpression();
                         elements.push({ kind: "Element", expr });
                     }
-                } while (this.match("COMMA"));
+
+                    // Skip newlines after element
+                    while (this.check("NEWLINE")) {
+                        this.advance();
+                    }
+                } while (this.match("COMMA") && (() => {
+                    // Skip newlines after comma (supports: [a,\n b])
+                    while (this.check("NEWLINE")) {
+                        this.advance();
+                    }
+                    return true;
+                })());
             }
 
             this.expect("RBRACKET", "Expected closing bracket after list elements");
@@ -1515,6 +1721,23 @@ export class Parser {
             // Check for record construction: { id : ... }
             if (this.check("IDENTIFIER") && this.peek(1).type === "COLON") {
                 return this.parseRecordExpr(startLoc);
+            }
+
+            // Check for record shorthand: { id } or { id, ... } or { id\nid\n... }
+            // Lookahead past newlines to check for COMMA, RBRACE, or another IDENTIFIER
+            if (this.check("IDENTIFIER")) {
+                let offset = 1;
+                while (this.peek(offset).type === "NEWLINE") {
+                    offset++;
+                }
+                const nextToken = this.peek(offset);
+                if (
+                    nextToken.type === "COMMA" ||
+                    nextToken.type === "RBRACE" ||
+                    nextToken.type === "IDENTIFIER"
+                ) {
+                    return this.parseRecordExpr(startLoc);
+                }
             }
 
             // Need to parse first expression to check for semicolon

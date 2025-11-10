@@ -22,6 +22,7 @@ export type Keyword =
     | "export"
     | "external"
     | "unsafe"
+    | "while"
     | "from"
     | "as"
     | "ref"
@@ -118,6 +119,7 @@ export const KEYWORDS: ReadonlySet<Keyword> = new Set([
     "export",
     "external",
     "unsafe",
+    "while",
     "from",
     "as",
     "ref",
