@@ -279,8 +279,7 @@ export class Parser {
         }
 
         // Not a lambda, continue to next precedence level
-        // Note: Currently calls parseTypeAnnotation, will be fixed to parseRefAssign in Phase 2
-        return this.parseTypeAnnotation();
+        return this.parseRefAssign();
     }
 
     /**
@@ -316,13 +315,13 @@ export class Parser {
 
     /**
      * Parse pipe expressions: expr |> func
-     * Precedence level 2 (lowest binary operator)
+     * Precedence level 3
      */
     private parsePipe(): Expr {
-        let expr = this.parseRefAssign();
+        let expr = this.parseComposition();
 
         while (this.match("OP_PIPE_GT")) {
-            const func = this.parseRefAssign();
+            const func = this.parseComposition();
             expr = {
                 kind: "Pipe",
                 expr,
@@ -339,7 +338,7 @@ export class Parser {
      * Precedence level 1 (right-associative)
      */
     private parseRefAssign(): Expr {
-        const expr = this.parseCons();
+        const expr = this.parseTypeAnnotation();
 
         if (this.match("OP_ASSIGN")) {
             const value = this.parseRefAssign(); // Right-associative
@@ -357,10 +356,10 @@ export class Parser {
 
     /**
      * Parse list cons: head :: tail
-     * Precedence level 3 (right-associative)
+     * Precedence level 11 (right-associative)
      */
     private parseCons(): Expr {
-        const expr = this.parseLogicalOr();
+        const expr = this.parseConcat();
 
         if (this.match("OP_CONS")) {
             const tail = this.parseCons(); // Right-associative
@@ -443,10 +442,10 @@ export class Parser {
 
     /**
      * Parse comparison: <, <=, >, >=
-     * Precedence level 9
+     * Precedence level 10
      */
     private parseComparison(): Expr {
-        let left = this.parseComposition();
+        let left = this.parseCons();
 
         while (this.match("OP_LT", "OP_LTE", "OP_GT", "OP_GTE")) {
             const opToken = this.peek(-1);
@@ -458,7 +457,7 @@ export class Parser {
                       : opToken.type === "OP_GT"
                         ? "GreaterThan"
                         : "GreaterEqual";
-            const right = this.parseComposition();
+            const right = this.parseCons();
             left = {
                 kind: "BinOp",
                 op,
@@ -473,15 +472,15 @@ export class Parser {
 
     /**
      * Parse function composition: f >> g (forward) or f << g (backward)
-     * Precedence level 10 (between comparison and additive)
+     * Precedence level 4
      */
     private parseComposition(): Expr {
-        let left = this.parseAdditive();
+        let left = this.parseLogicalOr();
 
         while (this.match("OP_GT_GT", "OP_LT_LT")) {
             const opToken = this.peek(-1);
             const op = opToken.type === "OP_GT_GT" ? "ForwardCompose" : "BackwardCompose";
-            const right = this.parseAdditive();
+            const right = this.parseLogicalOr();
             left = {
                 kind: "BinOp",
                 op,
@@ -495,15 +494,36 @@ export class Parser {
     }
 
     /**
-     * Parse additive: +, -, &
-     * Precedence level 11
+     * Parse string concatenation: &
+     * Precedence level 12
+     */
+    private parseConcat(): Expr {
+        let left = this.parseAdditive();
+
+        while (this.match("OP_AMPERSAND")) {
+            const right = this.parseAdditive();
+            left = {
+                kind: "BinOp",
+                op: "Concat",
+                left,
+                right,
+                loc: left.loc,
+            };
+        }
+
+        return left;
+    }
+
+    /**
+     * Parse additive: +, -
+     * Precedence level 13
      */
     private parseAdditive(): Expr {
         let left = this.parseMultiplicative();
 
-        while (this.match("OP_PLUS", "OP_MINUS", "OP_AMPERSAND")) {
+        while (this.match("OP_PLUS", "OP_MINUS")) {
             const opToken = this.peek(-1);
-            const op = opToken.type === "OP_PLUS" ? "Add" : opToken.type === "OP_MINUS" ? "Subtract" : "Concat";
+            const op = opToken.type === "OP_PLUS" ? "Add" : "Subtract";
             const right = this.parseMultiplicative();
             left = {
                 kind: "BinOp",
