@@ -860,16 +860,24 @@ export class Parser {
 
         this.expect("LBRACE", "Expected '{' after match expression");
 
-        const cases: MatchCase[] = [];
-
-        // Parse match cases
-        // Skip any leading newlines
+        // Parse match cases - skip leading newlines
         while (this.match("NEWLINE"));
 
-        // First case can optionally start with |
-        this.match("PIPE");
+        // Validate at least one case before loop
+        if (this.check("RBRACE")) {
+            throw this.error(
+                "Match expression must have at least one case",
+                this.peek().loc,
+                "Add at least one pattern match case: | pattern => expr",
+            );
+        }
 
+        // ALL cases require leading pipe (including first)
+        const cases: MatchCase[] = [];
         while (!this.check("RBRACE") && !this.isAtEnd()) {
+            // Require pipe for every case
+            this.expect("PIPE", "Match case must begin with '|'");
+
             // Parse pattern
             const pattern = this.parsePattern();
 
@@ -884,9 +892,9 @@ export class Parser {
             // Fat arrow
             this.expect("FAT_ARROW", "Expected '=>' after match pattern");
 
-            // Body - parse at precedence level that avoids consuming | as a separator
-            // parseLogicalAnd stops before any operators that use PIPE token
-            const body = this.parseLogicalAnd();
+            // Body - now that PIPE is required at the START of each case,
+            // we can use parseExpression() which allows lambdas in match bodies
+            const body = this.parseExpression();
 
             const matchCase: MatchCase = {
                 pattern,
@@ -901,26 +909,8 @@ export class Parser {
 
             cases.push(matchCase);
 
-            // Check for more cases (separated by | or newline)
-            if (this.check("RBRACE")) {
-                break;
-            }
-
-            // Skip optional newlines
+            // Skip trailing newlines before checking for next case or RBRACE
             while (this.match("NEWLINE"));
-
-            // If next is a pipe, consume it as case separator
-            if (this.match("PIPE")) {
-                // Continue to next case
-                continue;
-            } else if (!this.check("RBRACE")) {
-                // No pipe and not end of match - error
-                throw this.error(
-                    "Expected '|' or '}' after match case",
-                    this.peek().loc,
-                    "Match cases should be separated by '|'",
-                );
-            }
         }
 
         this.expect("RBRACE", "Expected '}' after match cases");

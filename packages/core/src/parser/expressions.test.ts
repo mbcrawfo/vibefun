@@ -1906,8 +1906,8 @@ describe("Parser - Expressions", () => {
                 });
             });
 
-            it("should parse match without leading pipes", () => {
-                const expr = parseExpression("match x { a => 1 | b => 2 }");
+            it("should require leading pipes for all cases", () => {
+                const expr = parseExpression("match x { | a => 1 | b => 2 }");
 
                 expect(expr).toMatchObject({
                     kind: "Match",
@@ -1923,6 +1923,33 @@ describe("Parser - Expressions", () => {
                         },
                     ],
                 });
+            });
+
+            it("should parse lambda as match case body", () => {
+                const expr = parseExpression("match x { | Some(v) => v => v + 1 | None => () => 0 }");
+
+                expect(expr.kind).toBe("Match");
+                if (expr.kind !== "Match") return;
+
+                expect(expr.expr).toMatchObject({ kind: "Var", name: "x" });
+                expect(expr.cases).toHaveLength(2);
+
+                // First case: Some(v) => v => v + 1
+                const case1 = expr.cases[0];
+                expect(case1?.pattern.kind).toBe("ConstructorPattern");
+                if (case1?.pattern.kind === "ConstructorPattern") {
+                    expect(case1.pattern.constructor).toBe("Some");
+                    expect(case1.pattern.args).toHaveLength(1);
+                }
+                expect(case1?.body.kind).toBe("Lambda");
+
+                // Second case: None => () => 0
+                const case2 = expr.cases[1];
+                expect(case2?.pattern.kind).toBe("VarPattern");
+                if (case2?.pattern.kind === "VarPattern") {
+                    expect(case2.pattern.name).toBe("None");
+                }
+                expect(case2?.body.kind).toBe("Lambda");
             });
 
             it("should parse match with complex expressions", () => {

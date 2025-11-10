@@ -1,7 +1,7 @@
 # Parser Updates Task Checklist
 
 **Last Updated**: 2025-11-10
-**Status**: Phases 0, 1, 2 & 3 Complete (4/12 phases, 33%)
+**Status**: Phases 0-4 Complete (5/12 phases, 42%)
 **Review Score**: 90/100 (Excellent - ready to implement)
 
 ---
@@ -83,13 +83,22 @@
 
 ---
 
-## Phase 4: Fix Match Expressions ✅ 0/4
+## Phase 4: Fix Match Expressions ✅ COMPLETE (4/4)
 
-- [ ] 4.1 Validate empty match BEFORE loop (check for RBRACE after skipping newlines)
-- [ ] 4.2 Restructure parseMatchExpr() loop to check RBRACE BEFORE expecting PIPE
-- [ ] 4.3 Ensure all cases require leading pipe (including first case)
-- [ ] 4.4 Add lambda-in-match test cases
-- [ ] **Test**: Run match tests - leading pipe required, lambdas work, no RBRACE errors
+- [x] 4.1 Validate empty match BEFORE loop (check for RBRACE after skipping newlines)
+- [x] 4.2 Restructure parseMatchExpr() loop to check RBRACE BEFORE expecting PIPE
+- [x] 4.3 Ensure all cases require leading pipe (including first case)
+- [x] 4.4 Add lambda-in-match test cases
+- [x] **Test**: Run match tests - leading pipe required, lambdas work, no RBRACE errors ✅
+
+**Notes**:
+- Restructured parseMatchExpr() to validate empty match before loop
+- All cases now require leading pipe (including first case)
+- Loop checks RBRACE at start (before expecting PIPE) - fixes RBRACE error bug
+- Changed body parsing from parseLogicalAnd() to parseExpression() to allow lambdas
+- Added lambda-in-match test case verifying lambdas work as match case bodies
+- Updated existing test to require leading pipes
+- All 1933 tests passing ✅
 
 ---
 
@@ -209,11 +218,11 @@
 
 ## Progress Summary
 
-**Phases Completed**: 4/12 (33%)
-**Tasks Completed**: 24/73 (33%)
+**Phases Completed**: 5/12 (42%)
+**Tasks Completed**: 28/73 (38%)
 
-**Current Phase**: Phase 4 - Fix Match Expressions
-**Current Task**: Ready to start Phase 4
+**Current Phase**: Phase 5 - Implement ASI
+**Current Task**: Ready to start Phase 5
 
 **Implementation Order (CRITICAL):**
 1. Phase 1 (AST) - Foundation ✅ START HERE
