@@ -1,9 +1,10 @@
-# Vibefun Parser Implementation Plan v2.1
+# Vibefun Parser Implementation Plan v2.2
 
-**Status**: Ready for Implementation (Corrected)
+**Status**: Ready for Implementation (Reviewed and Approved)
 **Created**: 2025-11-09
 **Last Updated**: 2025-11-09
-**Reviewed By**: Plan subagent + precedence corrections applied
+**Reviewed By**: Plan subagent + comprehensive review + user clarifications
+**Review Score**: 90/100 (Excellent - ready to implement)
 
 ## Executive Summary
 
@@ -11,6 +12,12 @@ This plan updates the Vibefun parser to implement all requirements specified in 
 - **8 Critical**: While loops, tuples, match leading pipe, precedence errors, ASI, if-without-else
 - **6 Major**: Record shorthand, error recovery, tuple patterns, multi-error collection
 - **5 Minor**: Documentation, test coverage, minus disambiguation
+
+**Review Results:**
+- ✅ Precedence chain verified 100% correct against spec
+- ✅ All critical features identified and planned
+- ✅ User clarifications incorporated for ASI and phase ordering
+- ⚠️ Medium-high risk due to precedence restructuring - requires careful testing
 
 ## Phase 0: Lambda Precedence (Level 0)
 
@@ -193,28 +200,43 @@ if (this.check("KEYWORD") && this.peek().value === "while") {
 ### 3.2 Tuple Expressions
 **File:** `packages/core/src/parser/parser.ts` in `parseLambdaOrParen()`
 
-Modify to detect tuples:
-- Parse comma-separated expressions
-- If NOT followed by `=>`, determine if tuple or paren expression
-- **Validate tuple arity BEFORE creating node:**
-  ```typescript
-  // After determining it's not a lambda (no =>):
-  if (elements.length === 1) {
-      // Single element with trailing comma, or just parens
-      throw this.error(
-          "Tuple must have at least 2 elements",
-          startLoc,
-          "Use parentheses for grouping: (x), not for single-element tuples"
-      );
-  }
-  // Only create Tuple if elements.length >= 2
-  return { kind: "Tuple", elements, loc: startLoc };
-  ```
+Modify to detect tuples after parsing comma-separated expressions in parentheses:
+
+```typescript
+// After parsing (expr1, expr2, ...) with LPAREN already consumed:
+const exprs: Expr[] = [];
+// ... parse comma-separated expressions ...
+this.expect("RPAREN");
+
+// Check if it's a lambda (has arrow after closing paren)
+if (this.check("FAT_ARROW")) {
+    // It's a lambda: (x, y) => body or () => body
+    this.advance(); // consume =>
+    const body = this.parseLambda(); // Parse body (allows nested lambdas)
+    return this.finishLambda(exprs, body, startLoc);
+}
+
+// Not a lambda - determine if tuple or grouped expression
+if (exprs.length === 0) {
+    // Empty parens () without => is invalid
+    throw this.error("Empty tuple not allowed", startLoc);
+} else if (exprs.length === 1) {
+    // Single element: just grouping/precedence, NOT a tuple
+    return exprs[0];
+} else {
+    // Multiple elements (2+): valid tuple
+    return { kind: "Tuple", elements: exprs, loc: startLoc };
+}
+```
+
+**Key point**: Arity validation happens in `parseLambdaOrParen()` AFTER ruling out lambda with lookahead for `=>`.
 
 ### 3.3 Record Field Shorthand
 **File:** `packages/core/src/parser/parser.ts` in `parseRecordExpr()`
 
 **CRITICAL:** Handle shorthand in BOTH normal construction AND record update spreads
+
+**ASI Context Tracking:** Set `this.inRecordContext = true` at start of parseRecordExpr(), reset to `false` in finally block to disable ASI inside records.
 
 **Location 1: Normal record construction (around line 866-877)**
 ```typescript
@@ -290,6 +312,12 @@ if (this.check("KEYWORD") && this.peek().value === "else") {
 ### 3.5 Operator Section Rejection
 **File:** `packages/core/src/parser/parser.ts`
 
+**IMPORTANT**: Reject ALL forms of operator sections:
+- `(+)` - bare operator
+- `( + )` - operator with spaces
+- `(+ 1)` - partial application (right)
+- `(1 +)` - partial application (left)
+
 Add helper:
 ```typescript
 private isOperatorToken(): boolean {
@@ -314,6 +342,8 @@ if (this.isOperatorToken()) {
     );
 }
 ```
+
+**Note**: The check after LPAREN will catch `(+)` and `( + )` forms. Partial applications like `(+ 1)` will be caught because we parse the operator first.
 
 **Test:** Add tests for all new expression features
 
@@ -392,15 +422,28 @@ match x {
 ### 5.1 Add ASI Helper Methods
 **File:** `packages/core/src/parser/parser.ts`
 
+**CRITICAL CLARIFICATIONS from review:**
+1. **ASI + Lambda interaction**: Must lookahead for `=>` to allow newlines before arrow
+2. **Record context**: ASI must be DISABLED inside record literals `{ }`
+
 ```typescript
+private inRecordContext: boolean = false; // Track when inside record literals
+
 private shouldInsertSemicolon(): boolean {
     if (this.current === 0) return false;
+
+    // NEVER insert semicolons inside record literals
+    if (this.inRecordContext) return false;
 
     const prev = this.peek(-1);
     const curr = this.peek();
 
     // Must be on different lines
     if (curr.loc.line <= prev.loc.line) return false;
+
+    // Don't insert before arrow (allows newlines before =>)
+    // Supports: (x, y)\n=> body and x\n=> body
+    if (curr.type === "FAT_ARROW") return false;
 
     // Previous token prevents insertion (expression continues)
     if (this.isExpressionContinuation(prev.type)) return false;
@@ -723,13 +766,30 @@ Per requirements Section 7.2:
 ### 10.2 Type Checker Updates
 **Files:** `packages/core/src/typechecker/infer.ts`, `patterns.ts`
 
-1. Add `inferTuple()` for tuple type inference
-2. Add `inferWhile()` for while type checking (condition: Bool, result: Unit)
-3. Add `checkTuplePattern()` for tuple pattern type checking
-4. Update exhaustiveness checking for tuple types
+1. Add `inferTuple()` for tuple type inference - infers type of each element
+2. Add `inferWhile()` for while type checking:
+   - Condition must unify with `Bool`
+   - Body must unify with `Unit`
+   - Result type is `Unit`
+3. Add `checkTuplePattern()` for tuple pattern type checking:
+   - Pattern arity must match tuple type arity exactly
+   - Each pattern element checked against corresponding type
+4. Update exhaustiveness checking for tuple types:
+   - Tuple patterns must match tuple type arity
+   - Wildcard `_` matches any tuple of that arity
+   - Nested patterns checked recursively
+   - **Example**: Pattern `(x, _)` matches only 2-tuples, not 3-tuples
 5. No changes needed for Cons (already handled via BinOp)
 
-### 10.3 Optimizer Updates
+### 10.3 Code Generator Updates
+**Files:** `packages/core/src/codegen/*.ts`
+
+**Tuple Representation**: Tuples compile to JavaScript arrays
+- `(1, 2)` → `[1, 2]`
+- `(x, "hello", true)` → `[x, "hello", true]`
+- Tuple access via destructuring: `let (a, b) = tuple` → `let [a, b] = tuple`
+
+### 10.4 Optimizer Updates
 **Files:** `packages/core/src/optimizer/passes/*.ts`, `packages/core/src/utils/ast-*.ts`
 
 1. Add `CoreTuple`, `CoreWhile` to all pass switches
@@ -744,10 +804,13 @@ Per requirements Section 7.2:
 ## Phase 11: Comprehensive Testing
 
 ### 11.1 New Test Files
-- `while-loops.test.ts` - while expression tests
-- `tuples.test.ts` - tuple expressions and patterns
-- `asi.test.ts` - ASI edge cases
-- `operator-sections.test.ts` - rejection tests
+- `lambda-precedence.test.ts` - Lambda at level 0, right-associativity
+- `while-loops.test.ts` - While expression tests
+- `tuples.test.ts` - Tuple expressions and patterns (including arity validation)
+- `asi.test.ts` - ASI edge cases (including lambda + ASI interaction, record context)
+- `operator-sections.test.ts` - Rejection tests (all forms: `(+)`, `(+ 1)`, etc.)
+- `record-shorthand.test.ts` - Shorthand in both construction and update (or add to expressions.test.ts)
+- `minus-disambiguation.test.ts` - Minus sign context handling (or add to expressions.test.ts)
 
 ### 11.2 Update Existing Tests
 - `expressions.test.ts` - record shorthand, if without else
@@ -771,17 +834,24 @@ Per requirements Section 10:
 
 ## Implementation Order (Dependencies)
 
-1. **Phase 1** (AST) - Foundation for everything
-2. **Phase 0** (Lambda) + **Phase 2** (Precedence) - Must be correct before adding features (do together as they're interdependent)
-3. **Phase 3** (Expressions) → **Phase 4** (Match) → **Phase 6** (Tuple Patterns)
-4. **Phase 5** (ASI) - Can happen after Phase 2
-5. **Phase 7** (Minus) - Independent, can be anytime
-6. **Phase 8** (Errors) - Throughout implementation
-7. **Phase 9** (Docs) - Throughout implementation
-8. **Phase 10** (Pipeline) - After parser is complete
-9. **Phase 11** (Testing) - **CONTINUOUS throughout all phases**
+**CRITICAL CLARIFICATION from review**: Phase 0 MUST complete before Phase 2 (lower risk approach)
 
-**Note:** Phase 0 and Phase 2 are interconnected - parseLambda() calls parseRefAssign(), which is part of the precedence chain restructuring.
+1. **Phase 1** (AST) - Foundation for everything ✅ **START HERE**
+2. **Phase 0** (Lambda precedence) - Add parseLambda() function ✅ **DO BEFORE Phase 2**
+3. **Phase 2** (Precedence restructure) - Restructure chain to call parseLambda() ⚠️ **HIGH RISK - Test after each step**
+4. **Phase 3** (Expressions) → **Phase 4** (Match) → **Phase 6** (Tuple Patterns)
+5. **Phase 5** (ASI) - Can happen after Phase 2, independent ✅ **Includes record context tracking**
+6. **Phase 7** (Minus) - Independent, can be anytime
+7. **Phase 8** (Errors) - Throughout implementation
+8. **Phase 9** (Docs) - Throughout implementation
+9. **Phase 10** (Pipeline) - After parser is complete
+10. **Phase 11** (Testing) - **CONTINUOUS throughout all phases**
+
+**Rationale for Phase 0 → Phase 2 ordering:**
+- Phase 0 adds `parseLambda()` as isolated function (low risk)
+- Phase 2 restructures entire precedence chain (high risk)
+- Having working `parseLambda()` before restructuring reduces risk
+- Can test lambda parsing independently before chain integration
 
 ---
 
@@ -812,9 +882,35 @@ Per requirements Section 10:
 
 ## Risk Mitigation
 
-1. **Precedence bugs:** Test after each precedence method change
-2. **ASI breakage:** Comprehensive multi-line expression tests
-3. **Pipeline breakage:** Test desugarer/type checker/optimizer after parser changes
-4. **Regression:** Run full test suite after each phase
+**High-Risk Areas** (from comprehensive review):
+1. **Precedence chain restructuring** - One mistake breaks ALL expression parsing
+   - **Mitigation**: Do Phase 0 first, test after each level move in Phase 2
+   - **Add**: Intermediate test checkpoints after moving each precedence level
+
+2. **ASI implementation** - Complex rules, many edge cases
+   - **Mitigation**: Comprehensive tests for multi-line expressions
+   - **Critical tests**: Lambda + ASI (`(x, y)\n=> body`), record context, nested structures
+
+3. **Tuple vs Lambda vs Parens ambiguity** - Requires careful lookahead
+   - **Mitigation**: Explicit lookahead for `=>` before creating tuple
+   - **Test**: All three cases thoroughly
+
+**Additional Mitigations:**
+4. **Pipeline breakage:** Test desugarer/type checker/optimizer after parser changes
+5. **Regression:** Run full test suite after each phase
+6. **Documentation:** Keep plan updated with any deviations
 
 **Estimated Effort:** 5-7 days of focused implementation with comprehensive testing
+
+---
+
+## Review History
+
+**v2.2 Review (2025-11-09):**
+- ✅ Precedence chain verified 100% correct
+- ✅ All critical features identified
+- ✅ User clarifications: Phase 0 before Phase 2, ASI arrow lookahead, ASI disabled in records
+- ✅ Added: Tuple arity validation pseudocode, operator section variations, type checker details
+- ✅ Added: Missing test files (lambda-precedence, record-shorthand, minus-disambiguation)
+- 📊 Score: 90/100 (Excellent - ready to implement)
+- ⚠️ Risk: Medium-High (precedence restructuring requires care)

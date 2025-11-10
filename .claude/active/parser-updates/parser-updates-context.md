@@ -1,6 +1,6 @@
 # Parser Updates Context
 
-**Last Updated**: 2025-11-09 (Plan Corrected to v2.1)
+**Last Updated**: 2025-11-09 (Plan v2.2 - Reviewed and Approved)
 
 ## Key Files
 
@@ -136,38 +136,64 @@ loop()
 
 ---
 
-## Plan Corrections (v2.0 → v2.1)
+## Plan Evolution
 
-### Critical Corrections Made
-1. **Added Phase 0: Lambda Precedence**
-   - Lambda (level 0) added as entry point for expression parsing
-   - parseLambda() handles single-param lambdas: `x => expr`
-   - Calls parseRefAssign(1) to continue precedence chain
+### v2.0 → v2.1 Corrections
+1. **Added Phase 0: Lambda Precedence** - Lambda (level 0) as entry point
+2. **Fixed Phase 2: Precedence Chain** - Corrected understanding of precedence traversal
+3. **Enhanced Phase 3.3: Record Shorthand** - TWO locations (construction + update)
+4. **Fixed Phase 4.1: Match Loop** - Check RBRACE before PIPE
+5. **Enhanced Phase 5.2: ASI Integration** - Explicit integration points
+6. **Added Phase 10.1: While Desugaring** - Complete implementation pseudocode
 
-2. **Fixed Phase 2: Precedence Chain Understanding**
-   - Corrected fundamental misunderstanding about precedence traversal
-   - Clarified: Lower level = weaker binding = parsed FIRST (top of chain)
-   - Each method calls NEXT HIGHER precedence level
-   - Complete call chain documented from level 0 to 16
+### v2.1 → v2.2 Review Enhancements
 
-3. **Enhanced Phase 3.3: Record Shorthand**
-   - Specified TWO locations: normal construction AND update spreads
-   - Added explicit code for both cases (lines 866-877 and 837-850)
+**Comprehensive Review Completed (2025-11-09)**
+- 📊 **Review Score**: 90/100 (Excellent - ready to implement)
+- ✅ **Precedence Chain**: Verified 100% correct against spec
+- ✅ **Feature Coverage**: All 19 issues properly identified
+- ⚠️ **Risk Assessment**: Medium-High (precedence restructuring)
 
-4. **Fixed Phase 4.1: Match Loop Structure**
-   - Corrected loop to check RBRACE BEFORE expecting PIPE
-   - Prevents error when closing match expression
-   - Validates empty match before loop starts
+**User Clarifications Incorporated:**
 
-5. **Enhanced Phase 5.2: ASI Integration**
-   - Added explicit code examples for WHERE to call shouldInsertSemicolon()
-   - Showed pattern replacement throughout parser
-   - Clarified integration in parseModule() and parseBlockExpr()
+1. **Phase Ordering** (Critical)
+   - **Decision**: Phase 0 BEFORE Phase 2 (lower risk approach)
+   - **Rationale**: Add parseLambda() first (isolated, low risk), then restructure chain (high risk)
+   - **Impact**: Can test lambda parsing independently before chain integration
 
-6. **Added Phase 10.1: While Desugaring Details**
-   - Complete implementation pseudocode for While → let rec desugaring
-   - Includes freshVar() helper for unique loop names
-   - Shows full desugared structure
+2. **ASI + Lambda Interaction** (Critical)
+   - **Decision**: Allow newlines before `=>` arrow
+   - **Implementation**: Add lookahead check: `if (peek().type === "FAT_ARROW") return false`
+   - **Test cases**: `(x, y)\n=> body`, `x\n=> body`, `()\n=> body`
+
+3. **ASI in Record Literals** (Critical)
+   - **Decision**: Disable ASI entirely inside record literals `{ }`
+   - **Implementation**: Add `inRecordContext` boolean flag, check in `shouldInsertSemicolon()`
+   - **Rationale**: Prevents ambiguity with field shorthand like `{ name }`
+
+**Additional Clarifications Added:**
+
+4. **Tuple Arity Validation Location**
+   - Added explicit pseudocode showing WHERE check happens (in `parseLambdaOrParen()`)
+   - After ruling out lambda with `=>` lookahead, before creating tuple node
+
+5. **Operator Section Variations**
+   - Clarified ALL forms rejected: `(+)`, `( + )`, `(+ 1)`, `(1 +)`
+   - Check after LPAREN catches bare operators and partial applications
+
+6. **Type Checker Tuple Details**
+   - Added: Arity must match exactly between pattern and type
+   - Added: Exhaustiveness checking for tuple patterns
+   - Example: `(x, _)` matches only 2-tuples, not 3-tuples
+
+7. **Code Generator Tuple Strategy**
+   - Tuples compile to JS arrays: `(1, 2)` → `[1, 2]`
+   - Destructuring: `let (a, b) = tuple` → `let [a, b] = tuple`
+
+8. **Missing Test Files Identified**
+   - `lambda-precedence.test.ts` - Lambda at level 0, right-associativity
+   - `record-shorthand.test.ts` - Both construction and update
+   - `minus-disambiguation.test.ts` - Context-aware minus handling
 
 ---
 
@@ -214,11 +240,14 @@ loop()
 - Phase 10: Full pipeline tests
 - Phase 11: Integration tests
 
-### New Test Files Needed
+### New Test Files Needed (7 total)
+- `lambda-precedence.test.ts` - ~100-150 lines (NEW from v2.2 review)
 - `while-loops.test.ts` - ~100-200 lines
-- `tuples.test.ts` - ~200-300 lines
-- `asi.test.ts` - ~100-200 lines
-- `operator-sections.test.ts` - ~50-100 lines
+- `tuples.test.ts` - ~200-300 lines (include arity validation)
+- `asi.test.ts` - ~100-200 lines (include lambda + ASI, record context)
+- `operator-sections.test.ts` - ~50-100 lines (all forms: `(+)`, `(+ 1)`, etc.)
+- `record-shorthand.test.ts` - ~100-150 lines (or add to expressions.test.ts) (NEW from v2.2 review)
+- `minus-disambiguation.test.ts` - ~50-100 lines (or add to expressions.test.ts) (NEW from v2.2 review)
 
 ### Existing Files to Update
 - `expressions.test.ts` - Add record shorthand, if-without-else
@@ -232,20 +261,40 @@ loop()
 
 ## Risk Assessment
 
-### High Risk Items
-1. **ASI Implementation** - Complex logic, many edge cases, easy to break multi-line expressions
-2. **Precedence Chain Restructure** - One mistake breaks expression parsing
-3. **Tuple Exhaustiveness Checking** - Complex algorithm extension
+### High Risk Items (from v2.2 review)
+1. **Precedence Chain Restructure** ⚠️ **HIGHEST RISK**
+   - One mistake breaks ALL expression parsing
+   - Moving 3 major levels: Cons (8 levels down), Composition (6 levels up), RefAssign (swap order)
+   - **Mitigation**: Phase 0 first, test after EACH level move in Phase 2
+   - **Add**: Intermediate test checkpoints
+
+2. **ASI Implementation** ⚠️ **HIGH RISK**
+   - Complex rules, many edge cases
+   - Could break multi-line expressions
+   - **Mitigation**: Comprehensive tests for multi-line lambdas, match, records, lists
+   - **Critical tests**: Lambda + ASI interaction, record context, nested structures
+
+3. **Tuple vs Lambda vs Parens Ambiguity** ⚠️ **MEDIUM-HIGH RISK**
+   - After parsing `(expr1, expr2, ...)`, must distinguish 3 cases
+   - Requires careful lookahead for `=>`
+   - **Mitigation**: Explicit lookahead before ASI, test all three cases thoroughly
 
 ### Medium Risk Items
 4. **While Loop Desugaring** - Incorrect desugaring could create infinite loops
 5. **Pipeline Integration** - Changes must propagate correctly through all stages
-6. **Test Coverage** - Missing tests could hide bugs
+6. **Tuple Exhaustiveness Checking** - Complex algorithm extension
 
 ### Low Risk Items
 7. **ListCons Removal** - Well-defined change with clear migration path
 8. **If Optional Else** - Simple change with clear semantics
 9. **Documentation Updates** - No code risk
+
+### Risk Mitigation Strategy
+- ✅ Do Phase 0 before Phase 2 (user-confirmed lower risk approach)
+- ✅ Test after each precedence level move (not just at end)
+- ✅ ASI lookahead for `=>` prevents breaking lambdas
+- ✅ ASI disabled in record context prevents field shorthand issues
+- ✅ Comprehensive test suite (7 new test files + updates to 5 existing)
 
 ---
 
@@ -280,9 +329,37 @@ loop()
 
 ---
 
+## Review Findings Summary
+
+**What's Correct:**
+- ✅ Precedence chain matches spec 100%
+- ✅ All 19 issues properly identified
+- ✅ Record shorthand correctly identifies BOTH locations
+- ✅ Match loop structure fix is correct
+- ✅ While desugaring matches spec
+
+**What Needed Clarification:**
+- ⚠️ Phase 0 vs Phase 2 ordering → **RESOLVED**: Phase 0 first
+- ⚠️ ASI + Lambda interaction → **RESOLVED**: Lookahead for `=>`
+- ⚠️ ASI in records → **RESOLVED**: Disable entirely
+- ⚠️ Tuple arity validation location → **RESOLVED**: Added pseudocode
+- ⚠️ Operator section variations → **RESOLVED**: All forms documented
+- ⚠️ Missing test files → **RESOLVED**: Added 3 more files
+
+**Implementation Readiness:**
+- ✅ Phase 1 (AST): Ready now
+- ✅ Phase 0 (Lambda): Ready now - DO FIRST
+- ✅ Phase 2 (Precedence): Ready after Phase 0
+- ✅ Phases 3-9: Ready after Phase 2
+- ✅ Phase 10 (Pipeline): Ready after parser complete
+- ✅ Phase 11 (Testing): Continuous
+
+---
+
 ## References
 
 - [Parser Requirements](./.../../parser-requirements.md) - Authoritative specification
 - [Language Spec](./../../docs/spec/) - Complete language specification
 - [CLAUDE.md](./../../CLAUDE.md) - Project overview and directives
 - [CODING_STANDARDS.md](./../CODING_STANDARDS.md) - Code style guidelines
+- [Parser Updates Plan](./parser-updates-plan.md) - v2.2 (Reviewed and Approved)
