@@ -338,14 +338,77 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // While loop - desugar to recursive function (placeholder)
-        case "While":
-            return {
-                kind: "CoreWhile",
-                condition: desugar(expr.condition, gen),
-                body: desugar(expr.body, gen),
+        // While loop - desugar to recursive function
+        // while cond { body }
+        // Desugars to:
+        //   let rec loop = () => match cond { | true => { body; loop() } | false => () }
+        //   in loop()
+        case "While": {
+            const loopName = gen.fresh("loop");
+
+            // Create loop() call
+            const loopCall: CoreExpr = {
+                kind: "CoreApp",
+                func: { kind: "CoreVar", name: loopName, loc: expr.loc },
+                args: [{ kind: "CoreUnitLit", loc: expr.loc }],
                 loc: expr.loc,
             };
+
+            // Desugar the body and sequence it with loop()
+            // { body; loop() } becomes: let _ = body in loop()
+            const desugaredBody = desugar(expr.body, gen);
+            const sequencedBody: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreWildcardPattern", loc: expr.loc },
+                value: desugaredBody,
+                body: loopCall,
+                mutable: false,
+                recursive: false,
+                loc: expr.loc,
+            };
+
+            // Create match cond { | true => sequencedBody | false => () }
+            const loopBody: CoreExpr = {
+                kind: "CoreMatch",
+                expr: desugar(expr.condition, gen),
+                cases: [
+                    {
+                        pattern: { kind: "CoreLiteralPattern", literal: true, loc: expr.loc },
+                        body: sequencedBody,
+                        loc: expr.loc,
+                    },
+                    {
+                        pattern: { kind: "CoreLiteralPattern", literal: false, loc: expr.loc },
+                        body: { kind: "CoreUnitLit", loc: expr.loc },
+                        loc: expr.loc,
+                    },
+                ],
+                loc: expr.loc,
+            };
+
+            // Create loop function: () => loopBody
+            const loopFunc: CoreExpr = {
+                kind: "CoreLambda",
+                param: { kind: "CoreVarPattern", name: "_unit", loc: expr.loc },
+                body: loopBody,
+                loc: expr.loc,
+            };
+
+            // Create let rec loop = loopFunc in loop()
+            return {
+                kind: "CoreLetRecExpr",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: loopName, loc: expr.loc },
+                        value: loopFunc,
+                        mutable: false,
+                        loc: expr.loc,
+                    },
+                ],
+                body: loopCall,
+                loc: expr.loc,
+            };
+        }
 
         default:
             // Should never reach here if all cases are covered
