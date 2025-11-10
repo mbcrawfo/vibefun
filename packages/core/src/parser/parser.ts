@@ -1283,6 +1283,11 @@ export class Parser {
                         while (this.check("NEWLINE")) {
                             this.advance();
                         }
+
+                        // Check for trailing comma before closing brace
+                        if (this.check("RBRACE")) {
+                            break; // Trailing comma allowed, exit loop
+                        }
                     }
 
                     // Check for another spread
@@ -1403,6 +1408,11 @@ export class Parser {
                     this.advance(); // consume comma
                     while (this.check("NEWLINE")) {
                         this.advance();
+                    }
+
+                    // Check for trailing comma before closing brace
+                    if (this.check("RBRACE")) {
+                        break; // Trailing comma allowed, exit loop
                     }
                 } else if (!this.check("IDENTIFIER")) {
                     // No more fields (either RBRACE or something else)
@@ -1610,11 +1620,13 @@ export class Parser {
 
             const condition = this.parseExpression();
 
-            this.expect("LBRACE", "Expected '{' after while condition");
+            const lbraceToken = this.expect("LBRACE", "Expected '{' after while condition");
 
-            const body = this.parseExpression();
+            // Skip leading newlines inside block
+            while (this.match("NEWLINE"));
 
-            this.expect("RBRACE", "Expected '}' after while body");
+            // Parse body as block expression (consumes RBRACE internally)
+            const body = this.parseBlockExpr(lbraceToken.loc);
 
             return {
                 kind: "While",
@@ -1703,7 +1715,7 @@ export class Parser {
             // Check for block starting with keyword
             if (this.check("KEYWORD")) {
                 const keyword = this.peek().value as string;
-                if (["if", "match", "unsafe"].includes(keyword)) {
+                if (["let", "if", "match", "unsafe"].includes(keyword)) {
                     return this.parseBlockExpr(startLoc);
                 }
             }

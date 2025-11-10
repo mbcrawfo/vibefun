@@ -132,8 +132,8 @@ describe("Lambda Precedence - Level 0", () => {
     describe("Lambda in Different Contexts", () => {
         it("should parse lambda in function call: map (x => x + 1) list", () => {
             const expr = parse("let result = map (x => x + 1) list");
-            expect(expr.kind).toBe("Call");
-            if (expr.kind !== "Call") return;
+            expect(expr.kind).toBe("App");
+            if (expr.kind !== "App") return;
 
             // First arg should be lambda
             const firstArg = expr.args[0];

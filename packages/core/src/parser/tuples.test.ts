@@ -102,9 +102,9 @@ describe("Tuple Expressions", () => {
             const expr = parseExpr("let x = (f(), g(1), h(2, 3))");
             expect(expr.kind).toBe("Tuple");
             if (expr.kind !== "Tuple") return;
-            expect(expr.elements[0]?.kind).toBe("Call");
-            expect(expr.elements[1]?.kind).toBe("Call");
-            expect(expr.elements[2]?.kind).toBe("Call");
+            expect(expr.elements[0]?.kind).toBe("App");
+            expect(expr.elements[1]?.kind).toBe("App");
+            expect(expr.elements[2]?.kind).toBe("App");
         });
     });
 
@@ -134,8 +134,8 @@ describe("Tuple Expressions", () => {
     describe("Tuples in Different Contexts", () => {
         it("should parse tuple in function call", () => {
             const expr = parseExpr("let x = f((1, 2))");
-            expect(expr.kind).toBe("Call");
-            if (expr.kind !== "Call") return;
+            expect(expr.kind).toBe("App");
+            if (expr.kind !== "App") return;
             const arg = expr.args[0];
             expect(arg?.kind).toBe("Tuple");
         });

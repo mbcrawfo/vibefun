@@ -1625,9 +1625,12 @@ describe("Parser - Expressions", () => {
             });
         });
 
-        it("should throw on single expression without semicolon", () => {
-            expect(() => parseExpression("{ x }")).toThrow(ParserError);
-            expect(() => parseExpression("{ x }")).toThrow(/Ambiguous syntax/);
+        it("should parse single field shorthand as record (not ambiguous)", () => {
+            // Single field shorthand like { x } is valid - creates record with field x
+            const expr = parseExpression("{ x }");
+            expect(expr.kind).toBe("Record");
+            if (expr.kind !== "Record") return;
+            expect(expr.fields).toHaveLength(1);
         });
 
         it("should throw on missing semicolon between expressions", () => {
