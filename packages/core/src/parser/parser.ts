@@ -34,8 +34,7 @@ export class Parser {
     private current: number = 0;
     private hadError: boolean = false;
     private filename: string;
-    // Used in Phase 5 (ASI) to disable automatic semicolon insertion inside records
-    // @ts-expect-error TS6133 - Will be used in Phase 5 when ASI is implemented
+    // Used by ASI to disable automatic semicolon insertion inside records
     private inRecordContext: boolean = false;
 
     /**
@@ -189,6 +188,107 @@ export class Parser {
     }
 
     // =========================================================================
+    // Automatic Semicolon Insertion (ASI)
+    // =========================================================================
+
+    /**
+     * Check if a semicolon should be automatically inserted
+     * Rules:
+     * - Never insert inside record literals (inRecordContext = true)
+     * - Never insert before => (allows newlines before arrow in lambdas)
+     * - Must be on different lines
+     * - Don't insert if previous token continues expression
+     * - Don't insert if current token continues line
+     * - Insert if current token starts new statement
+     */
+    private shouldInsertSemicolon(): boolean {
+        if (this.current === 0) return false;
+
+        // NEVER insert semicolons inside record literals
+        if (this.inRecordContext) return false;
+
+        const prev = this.peek(-1);
+        const curr = this.peek();
+
+        // Must be on different lines
+        if (curr.loc.line <= prev.loc.line) return false;
+
+        // Don't insert before arrow (allows newlines before =>)
+        // Supports: (x, y)\n=> body and x\n=> body
+        if (curr.type === "FAT_ARROW") return false;
+
+        // Previous token prevents insertion (expression continues)
+        if (this.isExpressionContinuation(prev.type)) return false;
+
+        // Current token prevents insertion (line continuation)
+        if (this.isLineContinuation(curr.type)) return false;
+
+        // Current token triggers insertion (new statement)
+        if (this.isStatementStart(curr.type)) return true;
+
+        // Check for closing delimiter (also triggers)
+        if (curr.type === "RBRACE") return true;
+
+        // Default: insert semicolon on new line
+        return true;
+    }
+
+    /**
+     * Check if a token type continues an expression (prevents ASI after it)
+     */
+    private isExpressionContinuation(type: TokenType): boolean {
+        return (
+            type === "OP_PLUS" ||
+            type === "OP_MINUS" ||
+            type === "OP_STAR" ||
+            type === "OP_SLASH" ||
+            type === "OP_PERCENT" ||
+            type === "OP_AMPERSAND" ||
+            type === "OP_AND" ||
+            type === "OP_OR" ||
+            type === "OP_PIPE_GT" ||
+            type === "OP_GT_GT" ||
+            type === "OP_LT_LT" ||
+            type === "DOT" ||
+            type === "LPAREN" ||
+            type === "COMMA" ||
+            (type === "KEYWORD" && (this.peek(-1).value === "then" || this.peek(-1).value === "else"))
+        );
+    }
+
+    /**
+     * Check if a token type continues a line (prevents ASI before it)
+     */
+    private isLineContinuation(type: TokenType): boolean {
+        return (
+            type === "OP_PLUS" ||
+            type === "OP_MINUS" ||
+            type === "OP_STAR" ||
+            type === "OP_SLASH" ||
+            type === "OP_PERCENT" ||
+            type === "OP_AMPERSAND" ||
+            type === "OP_AND" ||
+            type === "OP_OR" ||
+            type === "OP_PIPE_GT" ||
+            type === "OP_GT_GT" ||
+            type === "OP_LT_LT" ||
+            type === "DOT" ||
+            type === "COMMA"
+        );
+    }
+
+    /**
+     * Check if a token type starts a new statement (triggers ASI)
+     */
+    private isStatementStart(type: TokenType): boolean {
+        if (type === "KEYWORD") {
+            const keyword = this.peek().value as string;
+            return ["let", "type", "match", "if", "external", "import", "export", "while"].includes(keyword);
+        }
+        return false;
+    }
+
+    // =========================================================================
     // Module Parsing
     // =========================================================================
 
@@ -222,6 +322,16 @@ export class Parser {
                 imports.push(decl);
             } else {
                 declarations.push(decl);
+            }
+
+            // ASI: Check for semicolon or insert automatically
+            if (this.check("SEMICOLON")) {
+                this.advance();
+            } else if (this.shouldInsertSemicolon()) {
+                // ASI triggered - continue without consuming token
+            } else if (!this.isAtEnd()) {
+                // No semicolon and ASI doesn't apply - but don't error,
+                // just skip newlines (current behavior)
             }
 
             // Skip trailing newlines
@@ -1083,7 +1193,7 @@ export class Parser {
 
         const exprs: Expr[] = [];
 
-        // Parse expressions separated by semicolons
+        // Parse expressions separated by semicolons (or ASI)
         while (!this.check("RBRACE") && !this.isAtEnd()) {
             const expr = this.parseExpression();
             exprs.push(expr);
@@ -1096,10 +1206,22 @@ export class Parser {
                 break; // Last expression, no semicolon needed
             }
 
-            // Require semicolon between expressions
-            this.expect("SEMICOLON", "Expected ';' or '}' after expression in block");
+            // ASI: Check for semicolon or insert automatically
+            if (this.check("SEMICOLON")) {
+                this.advance(); // Consume explicit semicolon
+            } else if (this.shouldInsertSemicolon()) {
+                // ASI triggered - treat as if semicolon exists
+                // Continue to next expression or end of block
+            } else if (!this.check("RBRACE")) {
+                // Not at end of block and no semicolon - error
+                throw this.error(
+                    "Expected ';' or newline between expressions",
+                    this.peek().loc,
+                    "Expressions in a block must be separated by semicolons or newlines",
+                );
+            }
 
-            // Skip newlines after semicolon
+            // Skip newlines after semicolon/ASI
             while (this.match("NEWLINE"));
 
             // Check if closing brace follows (trailing semicolon case)
