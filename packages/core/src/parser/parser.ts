@@ -1640,6 +1640,38 @@ export class Parser {
             return { kind: "VarPattern", name, loc: startLoc };
         }
 
+        // Tuple pattern or parenthesized pattern: (pattern) or (p1, p2, ...)
+        if (this.check("LPAREN")) {
+            this.advance(); // consume (
+
+            // Empty tuple: ()
+            if (this.check("RPAREN")) {
+                this.advance();
+                return { kind: "TuplePattern", elements: [], loc: startLoc };
+            }
+
+            const patterns: Pattern[] = [];
+            patterns.push(this.parsePattern());
+
+            while (this.match("COMMA")) {
+                patterns.push(this.parsePattern());
+            }
+
+            this.expect("RPAREN", "Expected ')' after tuple pattern");
+
+            // Single element: just a parenthesized pattern (return the inner pattern)
+            if (patterns.length === 1) {
+                const pattern = patterns[0];
+                if (!pattern) {
+                    throw new ParserError("Internal error: empty patterns array", this.peek().loc);
+                }
+                return pattern;
+            }
+
+            // Multiple elements: tuple pattern
+            return { kind: "TuplePattern", elements: patterns, loc: startLoc };
+        }
+
         // Record pattern: { field1, field2: pattern, ... }
         if (this.check("LBRACE")) {
             this.advance(); // consume {
