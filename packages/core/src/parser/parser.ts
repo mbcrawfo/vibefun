@@ -241,6 +241,45 @@ export class Parser {
      * Entry point for expression parsing with operator precedence
      */
     parseExpression(): Expr {
+        return this.parseLambda();
+    }
+
+    /**
+     * Parse lambda expression: x => expr
+     * Precedence level 0 (lowest - lambda body extends to end of context)
+     *
+     * Handles single-parameter lambdas without parentheses.
+     * Multi-parameter lambdas like (x, y) => expr are handled in parseLambdaOrParen.
+     *
+     * Right-associative: x => y => z parses as x => (y => z)
+     */
+    private parseLambda(): Expr {
+        // Check for single-param lambda without parens: x => expr
+        if (this.check("IDENTIFIER")) {
+            const next = this.peek(1);
+            if (next && next.type === "FAT_ARROW") {
+                const paramToken = this.advance();
+                const param: Pattern = {
+                    kind: "VarPattern",
+                    name: paramToken.value as string,
+                    loc: paramToken.loc,
+                };
+                this.advance(); // consume =>
+
+                // Right-associative: body can be another lambda
+                const body = this.parseLambda();
+
+                return {
+                    kind: "Lambda",
+                    params: [param],
+                    body,
+                    loc: paramToken.loc,
+                };
+            }
+        }
+
+        // Not a lambda, continue to next precedence level
+        // Note: Currently calls parseTypeAnnotation, will be fixed to parseRefAssign in Phase 2
         return this.parseTypeAnnotation();
     }
 
