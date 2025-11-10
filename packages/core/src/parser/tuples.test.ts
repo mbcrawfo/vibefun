@@ -146,7 +146,7 @@ describe("Tuple Expressions", () => {
             if (expr.kind !== "List") return;
             const first = expr.elements[0];
             if (!first || first.kind !== "Element") return;
-            expect(first.value.kind).toBe("Tuple");
+            expect(first.expr.kind).toBe("Tuple");
         });
 
         it("should parse tuple in record field", () => {

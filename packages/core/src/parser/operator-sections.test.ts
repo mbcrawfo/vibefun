@@ -31,135 +31,135 @@ function expectParseError(source: string): ParserError {
 describe("Operator Sections - Rejection", () => {
     describe("Bare Operators", () => {
         it("should reject (+) operator section", () => {
-            const error = expectParseError("let f = (+)");
+            expectParseError("let f = (+)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (-) operator section", () => {
-            const error = expectParseError("let f = (-)");
+            expectParseError("let f = (-)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (*) operator section", () => {
-            const error = expectParseError("let f = (*)");
+            expectParseError("let f = (*)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (/) operator section", () => {
-            const error = expectParseError("let f = (/)");
+            expectParseError("let f = (/)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (==) operator section", () => {
-            const error = expectParseError("let f = (==)");
+            expectParseError("let f = (==)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (::) cons operator section", () => {
-            const error = expectParseError("let f = (::)");
+            expectParseError("let f = (::)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (&&) operator section", () => {
-            const error = expectParseError("let f = (&&)");
+            expectParseError("let f = (&&)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (||) operator section", () => {
-            const error = expectParseError("let f = (||)");
+            expectParseError("let f = (||)");
             // Parser correctly rejects operator sections (message varies by case)
         });
     });
 
     describe("Bare Operators with Spaces", () => {
         it("should reject ( + ) operator section with spaces", () => {
-            const error = expectParseError("let f = ( + )");
+            expectParseError("let f = ( + )");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject ( - ) operator section with spaces", () => {
-            const error = expectParseError("let f = ( - )");
+            expectParseError("let f = ( - )");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject ( * ) operator section with spaces", () => {
-            const error = expectParseError("let f = ( * )");
+            expectParseError("let f = ( * )");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject ( == ) operator section with spaces", () => {
-            const error = expectParseError("let f = ( == )");
+            expectParseError("let f = ( == )");
             // Parser correctly rejects operator sections (message varies by case)
         });
     });
 
     describe("Left Partial Application", () => {
         it("should reject (1 +) left section", () => {
-            const error = expectParseError("let f = (1 +)");
+            expectParseError("let f = (1 +)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (2 *) left section", () => {
-            const error = expectParseError("let f = (2 *)");
+            expectParseError("let f = (2 *)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (x -) left section", () => {
-            const error = expectParseError("let f = (x -)");
+            expectParseError("let f = (x -)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (\"hello\" &) left section", () => {
-            const error = expectParseError("let f = (\"hello\" &)");
+            expectParseError("let f = (\"hello\" &)");
             // Parser correctly rejects operator sections (message varies by case)
         });
     });
 
     describe("Right Partial Application", () => {
         it("should reject (+ 1) right section", () => {
-            const error = expectParseError("let f = (+ 1)");
+            expectParseError("let f = (+ 1)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (* 2) right section", () => {
-            const error = expectParseError("let f = (* 2)");
+            expectParseError("let f = (* 2)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (- x) right section", () => {
-            const error = expectParseError("let f = (- x)");
+            expectParseError("let f = (- x)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (== 42) right section", () => {
-            const error = expectParseError("let f = (== 42)");
+            expectParseError("let f = (== 42)");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject (> 0) right section", () => {
-            const error = expectParseError("let f = (> 0)");
+            expectParseError("let f = (> 0)");
             // Parser correctly rejects operator sections (message varies by case)
         });
     });
 
     describe("Edge Cases", () => {
         it("should reject operator section in function call", () => {
-            const error = expectParseError("let result = map (+) list");
+            expectParseError("let result = map (+) list");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject operator section in list", () => {
-            const error = expectParseError("let ops = [(+), (*), (-)]");
+            expectParseError("let ops = [(+), (*), (-)]");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject operator section in tuple", () => {
-            const error = expectParseError("let pair = ((+), (-))");
+            expectParseError("let pair = ((+), (-))");
             // Parser correctly rejects operator sections (message varies by case)
         });
 
         it("should reject operator section as let binding value", () => {
-            const error = expectParseError("let add = (+)");
+            expectParseError("let add = (+)");
             // Parser correctly rejects operator sections (message varies by case)
         });
     });

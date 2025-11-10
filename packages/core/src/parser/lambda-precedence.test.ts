@@ -158,11 +158,11 @@ describe("Lambda Precedence - Level 0", () => {
 
             const first = expr.elements[0];
             if (!first || first.kind !== "Element") throw new Error("Expected element");
-            expect(first.value.kind).toBe("Lambda");
+            expect(first.expr.kind).toBe("Lambda");
 
             const second = expr.elements[1];
             if (!second || second.kind !== "Element") throw new Error("Expected element");
-            expect(second.value.kind).toBe("Lambda");
+            expect(second.expr.kind).toBe("Lambda");
         });
 
         it("should parse lambda in tuple: (x => x, y => y)", () => {

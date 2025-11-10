@@ -1418,6 +1418,7 @@ export class Parser {
                     // No more fields (either RBRACE or something else)
                     break;
                 }
+                // eslint-disable-next-line no-constant-condition
             } while (true);
 
             this.expect("RBRACE", "Expected '}' after record fields");

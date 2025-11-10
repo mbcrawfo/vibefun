@@ -246,7 +246,7 @@ describe("Record Shorthand - Edge Cases", () => {
 
             const first = expr.elements[0];
             if (!first || first.kind !== "Element") return;
-            expect(first.value.kind).toBe("Record");
+            expect(first.expr.kind).toBe("Record");
         });
 
         it("should parse shorthand in record within tuple", () => {
