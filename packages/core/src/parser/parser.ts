@@ -34,6 +34,9 @@ export class Parser {
     private current: number = 0;
     private hadError: boolean = false;
     private filename: string;
+    // Used in Phase 5 (ASI) to disable automatic semicolon insertion inside records
+    // @ts-expect-error TS6133 - Will be used in Phase 5 when ASI is implemented
+    private inRecordContext: boolean = false;
 
     /**
      * Create a new Parser
@@ -652,7 +655,43 @@ export class Parser {
      * Handles: () => expr, (x) => expr, (x, y) => expr, or (expr)
      * Note: LPAREN has already been consumed by caller
      */
+    /**
+     * Helper to check if current token is an operator
+     */
+    private isOperatorToken(): boolean {
+        return (
+            this.check("OP_PLUS") ||
+            this.check("OP_MINUS") ||
+            this.check("OP_STAR") ||
+            this.check("OP_SLASH") ||
+            this.check("OP_PERCENT") ||
+            this.check("OP_AMPERSAND") ||
+            this.check("OP_EQ") ||
+            this.check("OP_NEQ") ||
+            this.check("OP_LT") ||
+            this.check("OP_GT") ||
+            this.check("OP_LTE") ||
+            this.check("OP_GTE") ||
+            this.check("OP_AND") ||
+            this.check("OP_OR") ||
+            this.check("OP_CONS") ||
+            this.check("OP_PIPE_GT") ||
+            this.check("OP_GT_GT") ||
+            this.check("OP_LT_LT")
+        );
+    }
+
     private parseLambdaOrParen(startLoc: Location): Expr {
+        // Check for operator sections (not supported)
+        // Reject all forms: (+), ( + ), (+ 1), (1 +)
+        if (this.isOperatorToken()) {
+            throw this.error(
+                `Operator sections are not supported: (${this.peek().value})`,
+                this.peek().loc,
+                "Use a lambda instead. For (+), write: (x, y) => x + y",
+            );
+        }
+
         // Check for closing paren immediately
         if (this.check("RPAREN")) {
             this.advance(); // consume )
@@ -751,10 +790,64 @@ export class Parser {
             }
         }
 
-        // Not a lambda, parse as parenthesized expression
-        const expr = this.parseExpression();
+        // Not a lambda, parse as parenthesized expression or tuple
+        // Parse comma-separated expressions
+        const exprs: Expr[] = [];
+        exprs.push(this.parseExpression());
+
+        // Check for comma (potential tuple or multi-param lambda)
+        while (this.match("COMMA")) {
+            exprs.push(this.parseExpression());
+        }
+
         this.expect("RPAREN", "Expected closing parenthesis");
-        return expr;
+
+        // After closing paren, check for arrow (could be lambda with pattern params)
+        if (this.check("FAT_ARROW")) {
+            // It's a lambda with pattern parameters: (pattern1, pattern2) => body
+            // Convert expressions to patterns (this handles more complex patterns)
+            this.advance(); // consume =>
+            const body = this.parseLambda(); // Right-associative
+
+            // For now, expressions in lambda params must be valid patterns
+            // This is a simplification - full implementation would convert exprs to patterns
+            const params: Pattern[] = exprs.map((e) => {
+                if (e.kind === "Var") {
+                    return { kind: "VarPattern", name: e.name, loc: e.loc };
+                }
+                // For more complex patterns, we'd need to convert the expression AST
+                // For now, throw an error
+                throw this.error(
+                    "Lambda parameters must be simple identifiers or patterns",
+                    e.loc,
+                    "Use simple parameter names like 'x' or 'y'",
+                );
+            });
+
+            return {
+                kind: "Lambda",
+                params,
+                body,
+                loc: startLoc,
+            };
+        }
+
+        // Not a lambda - determine if tuple or grouped expression
+        if (exprs.length === 1) {
+            // Single element: just grouping/precedence, NOT a tuple
+            const expr = exprs[0];
+            if (!expr) {
+                throw this.error("Unexpected empty expression list", startLoc);
+            }
+            return expr;
+        } else {
+            // Multiple elements (2+): valid tuple
+            return {
+                kind: "Tuple",
+                elements: exprs,
+                loc: startLoc,
+            };
+        }
     }
 
     /**
@@ -864,85 +957,129 @@ export class Parser {
      * Note: LBRACE has already been consumed by caller
      */
     private parseRecordExpr(startLoc: Location): Expr {
-        // Check for empty record
-        if (this.check("RBRACE")) {
-            this.advance();
-            return {
-                kind: "Record",
-                fields: [],
-                loc: startLoc,
-            };
-        }
+        // Set record context to disable ASI inside records
+        this.inRecordContext = true;
 
-        // Check if it starts with spread operator: { ...expr, ... }
-        if (this.check("SPREAD")) {
-            this.advance(); // consume ...
+        try {
+            // Check for empty record
+            if (this.check("RBRACE")) {
+                this.advance();
+                return {
+                    kind: "Record",
+                    fields: [],
+                    loc: startLoc,
+                };
+            }
 
-            // Parse the spread expression
-            const spreadExpr = this.parseExpression();
+            // Check if it starts with spread operator: { ...expr, ... }
+            if (this.check("SPREAD")) {
+                this.advance(); // consume ...
 
-            // Collect remaining fields and spreads
-            const updates: RecordField[] = [];
+                // Parse the spread expression
+                const spreadExpr = this.parseExpression();
 
-            while (this.match("COMMA")) {
-                // Check for another spread
-                if (this.check("SPREAD")) {
-                    this.advance(); // consume ...
-                    const expr = this.parseExpression();
-                    updates.push({
-                        kind: "Spread",
-                        expr,
-                        loc: this.peek(-1).loc,
+                // Collect remaining fields and spreads
+                const updates: RecordField[] = [];
+
+                while (this.match("COMMA")) {
+                    // Check for another spread
+                    if (this.check("SPREAD")) {
+                        this.advance(); // consume ...
+                        const expr = this.parseExpression();
+                        updates.push({
+                            kind: "Spread",
+                            expr,
+                            loc: this.peek(-1).loc,
+                        });
+                    } else if (this.check("IDENTIFIER")) {
+                        // Regular field or shorthand
+                        const fieldToken = this.advance();
+                        const fieldName = fieldToken.value as string;
+
+                        // Check for shorthand: { ...base, name } or { ...base, name, ... }
+                        if (this.check("COMMA") || this.check("RBRACE")) {
+                            // Shorthand in update: { ...base, name }
+                            updates.push({
+                                kind: "Field",
+                                name: fieldName,
+                                value: {
+                                    kind: "Var",
+                                    name: fieldName,
+                                    loc: fieldToken.loc,
+                                },
+                                loc: fieldToken.loc,
+                            });
+                        } else {
+                            // Full syntax: { ...base, name: value }
+                            this.expect("COLON", "Expected ':' after field name");
+                            const value = this.parseExpression();
+                            updates.push({
+                                kind: "Field",
+                                name: fieldName,
+                                value,
+                                loc: fieldToken.loc,
+                            });
+                        }
+                    } else {
+                        break; // End of fields
+                    }
+                }
+
+                this.expect("RBRACE", "Expected '}' after record fields");
+
+                return {
+                    kind: "RecordUpdate",
+                    record: spreadExpr,
+                    updates,
+                    loc: startLoc,
+                };
+            }
+
+            // Otherwise, it's normal record construction: { field: value, ... }
+            const fields: RecordField[] = [];
+
+            do {
+                const fieldToken = this.expect("IDENTIFIER", "Expected field name");
+                const fieldName = fieldToken.value as string;
+
+                // Check for shorthand: { name } or { name, ... }
+                if (this.check("COMMA") || this.check("RBRACE")) {
+                    // Shorthand: { name } → { name: Var(name) }
+                    fields.push({
+                        kind: "Field",
+                        name: fieldName,
+                        value: {
+                            kind: "Var",
+                            name: fieldName,
+                            loc: fieldToken.loc,
+                        },
+                        loc: fieldToken.loc,
                     });
-                } else if (this.check("IDENTIFIER")) {
-                    // Regular field
-                    const fieldName = this.advance().value as string;
+                } else {
+                    // Full syntax: { name: value }
                     this.expect("COLON", "Expected ':' after field name");
                     const value = this.parseExpression();
-                    updates.push({
+
+                    fields.push({
                         kind: "Field",
                         name: fieldName,
                         value,
-                        loc: this.peek(-1).loc,
+                        loc: fieldToken.loc,
                     });
-                } else {
-                    break; // End of fields
                 }
-            }
+            } while (this.match("COMMA"));
 
             this.expect("RBRACE", "Expected '}' after record fields");
 
             return {
-                kind: "RecordUpdate",
-                record: spreadExpr,
-                updates,
+                kind: "Record",
+                fields,
                 loc: startLoc,
             };
+        } finally {
+            // Reset record context flag
+            this.inRecordContext = false;
         }
-
-        // Otherwise, it's normal record construction: { field: value, ... }
-        const fields: RecordField[] = [];
-
-        do {
-            const fieldName = this.expect("IDENTIFIER", "Expected field name").value as string;
-            this.expect("COLON", "Expected ':' after field name");
-            const value = this.parseExpression();
-
-            fields.push({
-                kind: "Field",
-                name: fieldName,
-                value,
-                loc: this.peek(-1).loc,
-            });
-        } while (this.match("COMMA"));
-
-        this.expect("RBRACE", "Expected '}' after record fields");
-
-        return {
-            kind: "Record",
-            fields,
-            loc: startLoc,
-        };
     }
 
     /**
@@ -1041,7 +1178,8 @@ export class Parser {
             return this.parseLambdaOrParen(startLoc);
         }
 
-        // If expression: if condition then expr1 else expr2
+        // If expression: if condition then expr1 [else expr2]
+        // Else branch is optional; if missing, parser inserts Unit
         if (this.check("KEYWORD") && this.peek().value === "if") {
             const startLoc = this.peek().loc;
             this.advance(); // consume 'if'
@@ -1055,12 +1193,18 @@ export class Parser {
 
             const thenExpr = this.parseExpression();
 
-            this.expect("KEYWORD", "Expected 'else' after then expression");
-            if (this.peek(-1).value !== "else") {
-                throw this.error("Expected 'else' after then expression", this.peek(-1).loc);
+            // Else branch is optional
+            let elseExpr: Expr;
+            if (this.check("KEYWORD") && this.peek().value === "else") {
+                this.advance(); // consume 'else'
+                elseExpr = this.parseExpression();
+            } else {
+                // Parser inserts Unit literal for missing else branch
+                elseExpr = {
+                    kind: "UnitLit",
+                    loc: this.peek().loc,
+                };
             }
-
-            const elseExpr = this.parseExpression();
 
             return {
                 kind: "If",
@@ -1092,6 +1236,27 @@ export class Parser {
             return {
                 kind: "Unsafe",
                 expr,
+                loc: startLoc,
+            };
+        }
+
+        // While loop: while condition { body }
+        if (this.check("KEYWORD") && this.peek().value === "while") {
+            const startLoc = this.peek().loc;
+            this.advance(); // consume 'while'
+
+            const condition = this.parseExpression();
+
+            this.expect("LBRACE", "Expected '{' after while condition");
+
+            const body = this.parseExpression();
+
+            this.expect("RBRACE", "Expected '}' after while body");
+
+            return {
+                kind: "While",
+                condition,
+                body,
                 loc: startLoc,
             };
         }

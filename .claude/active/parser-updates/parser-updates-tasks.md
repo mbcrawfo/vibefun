@@ -1,7 +1,7 @@
 # Parser Updates Task Checklist
 
 **Last Updated**: 2025-11-10
-**Status**: Phase 0, 1 & 2 Complete (3/12 phases, 25%)
+**Status**: Phases 0, 1, 2 & 3 Complete (4/12 phases, 33%)
 **Review Score**: 90/100 (Excellent - ready to implement)
 
 ---
@@ -58,18 +58,28 @@
 
 ---
 
-## Phase 3: Implement Missing Expressions ✅ 0/7
+## Phase 3: Implement Missing Expressions ✅ COMPLETE (7/7)
 
 **CRITICAL**: Record shorthand needs ASI context tracking, tuple arity check after lambda lookahead
 
-- [ ] 3.1 Add While loop parsing to parsePrimary()
-- [ ] 3.2 Add Tuple expression parsing with explicit lookahead for `=>` and arity validation (see plan pseudocode)
-- [ ] 3.3a Add record field shorthand to parseRecordExpr() - normal construction (line 866-877)
-- [ ] 3.3b Add record field shorthand to parseRecordExpr() - update spread case (line 837-850)
-- [ ] 3.3c Set inRecordContext flag in parseRecordExpr() to disable ASI
-- [ ] 3.4 Make If else branch optional (insert Unit if missing)
-- [ ] 3.5 Add operator section rejection - ALL forms: `(+)`, `( + )`, `(+ 1)`, `(1 +)`
-- [ ] **Test**: Run expression tests - all new features work
+- [x] 3.1 Add While loop parsing to parsePrimary()
+- [x] 3.2 Add Tuple expression parsing with explicit lookahead for `=>` and arity validation (see plan pseudocode)
+- [x] 3.3a Add record field shorthand to parseRecordExpr() - normal construction (line 866-877)
+- [x] 3.3b Add record field shorthand to parseRecordExpr() - update spread case (line 837-850)
+- [x] 3.3c Set inRecordContext flag in parseRecordExpr() to disable ASI
+- [x] 3.4 Make If else branch optional (insert Unit if missing)
+- [x] 3.5 Add operator section rejection - ALL forms: `(+)`, `( + )`, `(+ 1)`, `(1 +)`
+- [x] **Test**: Run expression tests - all new features work ✅
+
+**Notes**:
+- Added While loop parsing after unsafe block handling
+- Modified parseLambdaOrParen() to handle tuples (2+ elements) vs grouped expressions (1 element)
+- Tuple parsing includes lookahead for `=>` to distinguish from lambdas
+- Record shorthand supported in both normal construction `{ name }` and update spread `{ ...base, name }`
+- Added inRecordContext flag (will be used in Phase 5 for ASI)
+- If else branch now optional - parser inserts Unit literal when missing
+- Operator sections rejected with helpful error message
+- All 1932 tests passing ✅
 
 ---
 
@@ -199,11 +209,11 @@
 
 ## Progress Summary
 
-**Phases Completed**: 0/12 (0%)
-**Tasks Completed**: 0/73 (0%)
+**Phases Completed**: 4/12 (33%)
+**Tasks Completed**: 24/73 (33%)
 
-**Current Phase**: Not started - Begin with Phase 1 (AST), then Phase 0 (Lambda)
-**Current Task**: Not started
+**Current Phase**: Phase 4 - Fix Match Expressions
+**Current Task**: Ready to start Phase 4
 
 **Implementation Order (CRITICAL):**
 1. Phase 1 (AST) - Foundation ✅ START HERE
