@@ -679,18 +679,39 @@ export class Parser {
      */
     private parseUnary(): Expr {
         // Check for unary operators
-        if (this.match("OP_MINUS", "OP_BANG")) {
-            const opToken = this.peek(-1);
-            const startLoc = opToken.loc;
-            const expr = this.parseUnary(); // Right-associative (unary operators can stack)
+        if (this.check("OP_MINUS") || this.check("OP_BANG")) {
+            // For minus, check if it should be binary based on previous token
+            if (this.current > 0 && this.peek().type === "OP_MINUS") {
+                const prevType = this.peek(-1).type;
 
+                // After these tokens, minus is binary subtraction (not unary negation)
+                const binaryContexts: TokenType[] = [
+                    "IDENTIFIER",
+                    "RPAREN",
+                    "RBRACKET",
+                    "RBRACE",
+                    "INT_LITERAL",
+                    "FLOAT_LITERAL",
+                    "STRING_LITERAL",
+                    "BOOL_LITERAL",
+                ];
+
+                if (binaryContexts.includes(prevType)) {
+                    // Let caller handle as binary operator
+                    return this.parseCall();
+                }
+            }
+
+            // Unary operator
+            const opToken = this.advance();
             const op = opToken.type === "OP_MINUS" ? "Negate" : "LogicalNot";
+            const expr = this.parseUnary(); // Right-associative (unary operators can stack)
 
             return {
                 kind: "UnaryOp",
                 op,
                 expr,
-                loc: startLoc,
+                loc: opToken.loc,
             };
         }
 

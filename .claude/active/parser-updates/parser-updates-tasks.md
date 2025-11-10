@@ -1,7 +1,7 @@
 # Parser Updates Task Checklist
 
 **Last Updated**: 2025-11-10
-**Status**: Phases 0-4 Complete (5/12 phases, 42%)
+**Status**: Phases 0-7 Complete (8/12 phases, 67%)
 **Review Score**: 90/100 (Excellent - ready to implement)
 
 ---
@@ -102,33 +102,57 @@
 
 ---
 
-## Phase 5: Implement ASI ✅ 0/8
+## Phase 5: Implement ASI ✅ COMPLETE (8/8)
 
 **CRITICAL**: Incorporate user clarifications - ASI + lambda interaction, record context
 
-- [ ] 5.1 Add inRecordContext boolean flag to Parser class
-- [ ] 5.2 Add shouldInsertSemicolon() helper with arrow lookahead and record context check
-- [ ] 5.3 Add isExpressionContinuation() helper
-- [ ] 5.4 Add isLineContinuation() helper
-- [ ] 5.5 Add isStatementStart() helper
-- [ ] 5.6 Integrate ASI in parseModule() with explicit pattern: check("SEMICOLON") || shouldInsertSemicolon()
-- [ ] 5.7 Integrate ASI in parseBlockExpr() with explicit pattern: check("SEMICOLON") || shouldInsertSemicolon()
-- [ ] 5.8 Set inRecordContext = true at start of parseRecordExpr(), reset in finally block
-- [ ] **Test**: Run ASI tests - lambda + ASI (`(x,y)\n=> body`), record context, multi-line expressions
+- [x] 5.1 Add inRecordContext boolean flag to Parser class (completed in Phase 3)
+- [x] 5.2 Add shouldInsertSemicolon() helper with arrow lookahead and record context check
+- [x] 5.3 Add isExpressionContinuation() helper
+- [x] 5.4 Add isLineContinuation() helper
+- [x] 5.5 Add isStatementStart() helper
+- [x] 5.6 Integrate ASI in parseModule() with explicit pattern: check("SEMICOLON") || shouldInsertSemicolon()
+- [x] 5.7 Integrate ASI in parseBlockExpr() with explicit pattern: check("SEMICOLON") || shouldInsertSemicolon()
+- [x] 5.8 Set inRecordContext = true at start of parseRecordExpr(), reset in finally block (completed in Phase 3)
+- [x] **Test**: Run ASI tests - lambda + ASI (`(x,y)\n=> body`), record context, multi-line expressions ✅
+
+**Notes**:
+- Added shouldInsertSemicolon() with all required checks
+- Added isExpressionContinuation(), isLineContinuation(), isStatementStart() helpers
+- Integrated ASI in parseModule() and parseBlockExpr()
+- inRecordContext flag from Phase 3 now actively prevents ASI in records
+- All 1933 tests passing ✅
+- Committed as 491e22d
 
 ---
 
-## Phase 6: Tuple Pattern Parsing ✅ 0/1
+## Phase 6: Tuple Pattern Parsing ✅ COMPLETE (1/1)
 
-- [ ] 6.1 Add TuplePattern parsing to parsePrimaryPattern()
-- [ ] **Test**: Run pattern tests - tuple patterns work
+- [x] 6.1 Add TuplePattern parsing to parsePrimaryPattern()
+- [x] **Test**: Run pattern tests - tuple patterns work
+- [x] **Commit**: 7c14e29 - feat(parser): add tuple pattern parsing
+
+**Notes**:
+- Added tuple pattern parsing in parsePrimaryPattern() after identifier patterns
+- Handles empty tuple: `()` → TuplePattern with 0 elements
+- Single parenthesized pattern: `(x)` → returns inner pattern (not a tuple)
+- Multi-element tuple patterns: `(x, y, z)` → TuplePattern with 3 elements
+- All 1933 tests passing ✅
 
 ---
 
-## Phase 7: Fix Minus Disambiguation ✅ 0/1
+## Phase 7: Fix Minus Disambiguation ✅ COMPLETE (1/1)
 
-- [ ] 7.1 Update parseUnary() to check context before treating minus as unary
-- [ ] **Test**: Run minus disambiguation tests - `f() - 1` works correctly
+- [x] 7.1 Update parseUnary() to check context before treating minus as unary
+- [x] **Test**: Run minus disambiguation tests - `f() - 1` works correctly
+- [x] **Commit**: 264f0e5 - feat(parser): add context-aware minus disambiguation
+
+**Notes**:
+- Added context checking in parseUnary() before treating minus as unary operator
+- Checks previous token type: after IDENTIFIER, RPAREN, RBRACKET, RBRACE, or literals → binary
+- After operators or at expression start → unary negation
+- Ensures `f() - 1` parses as BinOp(Call(f), Subtract, 1) not UnaryOp
+- All 1933 tests passing ✅
 
 ---
 
@@ -218,11 +242,11 @@
 
 ## Progress Summary
 
-**Phases Completed**: 5/12 (42%)
-**Tasks Completed**: 28/73 (38%)
+**Phases Completed**: 8/12 (67%)
+**Tasks Completed**: 38/73 (52%)
 
-**Current Phase**: Phase 5 - Implement ASI
-**Current Task**: Ready to start Phase 5
+**Current Phase**: Phase 8 - Error Handling
+**Current Task**: Ready to start Phase 8
 
 **Implementation Order (CRITICAL):**
 1. Phase 1 (AST) - Foundation ✅ START HERE
