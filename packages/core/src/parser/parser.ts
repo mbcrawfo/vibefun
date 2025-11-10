@@ -437,7 +437,7 @@ export class Parser {
 
     /**
      * Parse type annotation: expr : Type
-     * Precedence level 1 (lowest - only above sequence/statements)
+     * Precedence level 2
      */
     private parseTypeAnnotation(): Expr {
         const expr = this.parsePipe();
@@ -530,7 +530,7 @@ export class Parser {
 
     /**
      * Parse logical OR: expr || expr
-     * Precedence level 4
+     * Precedence level 5
      */
     private parseLogicalOr(): Expr {
         let left = this.parseLogicalAnd();
@@ -551,7 +551,7 @@ export class Parser {
 
     /**
      * Parse logical AND: expr && expr
-     * Precedence level 5
+     * Precedence level 6
      */
     private parseLogicalAnd(): Expr {
         let left = this.parseEquality();
@@ -572,7 +572,7 @@ export class Parser {
 
     /**
      * Parse equality: expr == expr, expr != expr
-     * Precedence level 8
+     * Precedence level 7
      */
     private parseEquality(): Expr {
         let left = this.parseComparison();
@@ -595,7 +595,7 @@ export class Parser {
 
     /**
      * Parse comparison: <, <=, >, >=
-     * Precedence level 10
+     * Precedence level 8
      */
     private parseComparison(): Expr {
         let left = this.parseCons();
@@ -692,7 +692,7 @@ export class Parser {
 
     /**
      * Parse multiplicative: *, /, %
-     * Precedence level 12
+     * Precedence level 14
      */
     private parseMultiplicative(): Expr {
         let left = this.parseUnary();
@@ -715,7 +715,7 @@ export class Parser {
 
     /**
      * Parse unary operators: -, !
-     * Precedence level 13 (higher than binary operators)
+     * Precedence level 15
      */
     private parseUnary(): Expr {
         // Check for unary operators
@@ -761,7 +761,7 @@ export class Parser {
 
     /**
      * Parse function calls and postfix operators
-     * Precedence level 14 (highest - postfix)
+     * Precedence level 16 (postfix)
      */
     private parseCall(): Expr {
         let expr = this.parsePrimary();
@@ -804,7 +804,7 @@ export class Parser {
             // Postfix dereference: expr!
             // Used to dereference mutable references: ref! gets the value
             // Chainable: ref!! for double dereference
-            // Spec Reference: vibefun-spec.md lines 256-263
+            // Spec Reference: parser-requirements.md (Deref operator)
             else if (this.match("OP_BANG")) {
                 expr = {
                     kind: "UnaryOp",
@@ -1113,7 +1113,7 @@ export class Parser {
      * - Spreads are added as Spread elements, preserving order
      * - Order in updates array determines override precedence
      *
-     * Spec Reference: vibefun-spec.md lines 404-407
+     * Spec Reference: parser-requirements.md (Record expressions)
      *
      * Note: LBRACE has already been consumed by caller
      */
@@ -1437,7 +1437,7 @@ export class Parser {
         // List literal with optional spread elements
         // Syntax: [1, 2, 3] or [1, ...rest, 2] or [...items]
         // Supports multiple spreads: [...a, ...b, x, ...c]
-        // Spec Reference: vibefun-spec.md lines 687-689
+        // Spec Reference: parser-requirements.md (List expressions)
         if (this.check("LBRACKET")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume [
