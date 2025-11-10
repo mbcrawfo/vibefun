@@ -533,6 +533,8 @@ export function isSyntacticValue(expr: CoreExpr): boolean {
         case "CoreRecordUpdate":
         case "CoreBinOp":
         case "CoreUnaryOp":
+        case "CoreTuple":
+        case "CoreWhile":
             return false;
     }
 }

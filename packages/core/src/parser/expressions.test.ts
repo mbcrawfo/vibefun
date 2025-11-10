@@ -434,9 +434,10 @@ describe("Parser - Expressions", () => {
                 const expr = parseExpression("1 :: rest");
 
                 expect(expr).toMatchObject({
-                    kind: "ListCons",
-                    head: { kind: "IntLit", value: 1 },
-                    tail: { kind: "Var", name: "rest" },
+                    kind: "BinOp",
+                    op: "Cons",
+                    left: { kind: "IntLit", value: 1 },
+                    right: { kind: "Var", name: "rest" },
                 });
             });
 
@@ -693,12 +694,14 @@ describe("Parser - Expressions", () => {
 
                 // Should parse as 1 :: (2 :: rest)
                 expect(expr).toMatchObject({
-                    kind: "ListCons",
-                    head: { kind: "IntLit", value: 1 },
-                    tail: {
-                        kind: "ListCons",
-                        head: { kind: "IntLit", value: 2 },
-                        tail: { kind: "Var", name: "rest" },
+                    kind: "BinOp",
+                    op: "Cons",
+                    left: { kind: "IntLit", value: 1 },
+                    right: {
+                        kind: "BinOp",
+                        op: "Cons",
+                        left: { kind: "IntLit", value: 2 },
+                        right: { kind: "Var", name: "rest" },
                     },
                 });
             });

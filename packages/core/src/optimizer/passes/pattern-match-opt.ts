@@ -163,6 +163,21 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
             // Unsafe block - don't optimize inside
             case "CoreUnsafe":
                 return expr;
+
+            // Tuple
+            case "CoreTuple":
+                return {
+                    ...expr,
+                    elements: expr.elements.map((e) => this.optimizeMatch(e)),
+                };
+
+            // While loop
+            case "CoreWhile":
+                return {
+                    ...expr,
+                    condition: this.optimizeMatch(expr.condition),
+                    body: this.optimizeMatch(expr.body),
+                };
         }
     }
 
@@ -260,6 +275,8 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
                 return 2; // Variants second
             case "CoreRecordPattern":
                 return 3; // Records third
+            case "CoreTuplePattern":
+                return 3; // Tuples same as records
             case "CoreVarPattern":
                 return 4; // Variables second-to-last
             case "CoreWildcardPattern":

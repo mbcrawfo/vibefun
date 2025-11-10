@@ -292,15 +292,6 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 desugarListWithConcatsLocal,
             );
 
-        // List cons operator - desugar to Cons variant
-        case "ListCons":
-            return {
-                kind: "CoreVariant",
-                constructor: "Cons",
-                args: [desugar(expr.head, gen), desugar(expr.tail, gen)],
-                loc: expr.loc,
-            };
-
         // Binary operations
         case "BinOp":
             return desugarBinOp(expr.op, expr.left, expr.right, expr.loc, gen, desugar, desugarCompositionLocal);
@@ -336,6 +327,23 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
             return {
                 kind: "CoreUnsafe",
                 expr: desugar(expr.expr, gen),
+                loc: expr.loc,
+            };
+
+        // Tuple expression - desugar elements
+        case "Tuple":
+            return {
+                kind: "CoreTuple",
+                elements: expr.elements.map((e) => desugar(e, gen)),
+                loc: expr.loc,
+            };
+
+        // While loop - desugar to recursive function (placeholder)
+        case "While":
+            return {
+                kind: "CoreWhile",
+                condition: desugar(expr.condition, gen),
+                body: desugar(expr.body, gen),
                 loc: expr.loc,
             };
 
@@ -407,6 +415,13 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
                 pattern.loc,
                 "This is an internal compiler error - or-patterns must be expanded before pattern desugaring",
             );
+
+        case "TuplePattern":
+            return {
+                kind: "CoreTuplePattern",
+                elements: pattern.elements.map((p) => desugarPattern(p, gen)),
+                loc: pattern.loc,
+            };
 
         default:
             throw new DesugarError(

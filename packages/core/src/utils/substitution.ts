@@ -381,6 +381,19 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
                     ...e,
                     expr: substExpr(e.expr),
                 };
+
+            case "CoreTuple":
+                return {
+                    ...e,
+                    elements: e.elements.map(substExpr),
+                };
+
+            case "CoreWhile":
+                return {
+                    ...e,
+                    condition: substExpr(e.condition),
+                    body: substExpr(e.body),
+                };
         }
     }
 
@@ -459,6 +472,12 @@ function renamePatternVars(
                         ...field,
                         pattern: renamePattern(field.pattern),
                     })),
+                };
+
+            case "CoreTuplePattern":
+                return {
+                    ...p,
+                    elements: p.elements.map(renamePattern),
                 };
         }
     }

@@ -67,7 +67,6 @@ export type Expr =
       }
     // Lists
     | { kind: "List"; elements: ListElement[]; loc: Location }
-    | { kind: "ListCons"; head: Expr; tail: Expr; loc: Location }
     // Operators
     | { kind: "BinOp"; op: BinaryOp; left: Expr; right: Expr; loc: Location }
     | { kind: "UnaryOp"; op: UnaryOp; expr: Expr; loc: Location }
@@ -78,7 +77,11 @@ export type Expr =
     // Type Annotation
     | { kind: "TypeAnnotation"; expr: Expr; typeExpr: TypeExpr; loc: Location }
     // Unsafe
-    | { kind: "Unsafe"; expr: Expr; loc: Location };
+    | { kind: "Unsafe"; expr: Expr; loc: Location }
+    // Tuples
+    | { kind: "Tuple"; elements: Expr[]; loc: Location }
+    // Loops
+    | { kind: "While"; condition: Expr; body: Expr; loc: Location };
 
 /**
  * Record field in record construction or update
@@ -160,7 +163,8 @@ export type Pattern =
           rest?: Pattern;
           loc: Location;
       }
-    | { kind: "OrPattern"; patterns: Pattern[]; loc: Location };
+    | { kind: "OrPattern"; patterns: Pattern[]; loc: Location }
+    | { kind: "TuplePattern"; elements: Pattern[]; loc: Location };
 
 /**
  * Record field in pattern matching

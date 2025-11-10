@@ -326,9 +326,10 @@ export class Parser {
         if (this.match("OP_CONS")) {
             const tail = this.parseCons(); // Right-associative
             return {
-                kind: "ListCons",
-                head: expr,
-                tail,
+                kind: "BinOp",
+                op: "Cons",
+                left: expr,
+                right: tail,
                 loc: expr.loc,
             };
         }

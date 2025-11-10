@@ -67,6 +67,15 @@ export function checkPattern(
         case "CoreRecordPattern":
             return checkRecordPattern(env, pattern, expectedType, subst, level);
 
+        case "CoreTuplePattern":
+            // Placeholder: Tuple pattern type checking not yet implemented
+            // For now, return stub result to allow compilation
+            return {
+                type: expectedType,
+                bindings: new Map(),
+                subst,
+            };
+
         default: {
             const _exhaustive: never = pattern;
             throw new Error(`Unknown pattern kind: ${(_exhaustive as CorePattern).kind}`);

@@ -166,6 +166,17 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
 
         case "CoreUnsafe":
             return e2.kind === "CoreUnsafe" && exprEquals(e1.expr, e2.expr);
+
+        case "CoreTuple":
+            if (e2.kind !== "CoreTuple") return false;
+            if (e1.elements.length !== e2.elements.length) return false;
+            return e1.elements.every((elem1, i) => {
+                const elem2 = e2.elements[i];
+                return elem2 !== undefined && exprEquals(elem1, elem2);
+            });
+
+        case "CoreWhile":
+            return e2.kind === "CoreWhile" && exprEquals(e1.condition, e2.condition) && exprEquals(e1.body, e2.body);
     }
 }
 
@@ -218,6 +229,14 @@ function patternEquals(p1: CorePattern, p2: CorePattern): boolean {
             }
 
             return true;
+
+        case "CoreTuplePattern":
+            if (p2.kind !== "CoreTuplePattern") return false;
+            if (p1.elements.length !== p2.elements.length) return false;
+            return p1.elements.every((elem1, i) => {
+                const elem2 = p2.elements[i];
+                return elem2 !== undefined && patternEquals(elem1, elem2);
+            });
     }
 }
 

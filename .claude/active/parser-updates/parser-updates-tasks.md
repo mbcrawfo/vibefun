@@ -1,12 +1,12 @@
 # Parser Updates Task Checklist
 
-**Last Updated**: 2025-11-09
-**Status**: Not Started (Plan v2.2 - Reviewed and Approved)
+**Last Updated**: 2025-11-10
+**Status**: Phase 1 Complete (1/12 phases, 8.3%)
 **Review Score**: 90/100 (Excellent - ready to implement)
 
 ---
 
-## Phase 0: Lambda Precedence ✅ 0/2
+## Phase 0: Lambda Precedence 🔜 0/3
 
 - [ ] 0.1 Add parseLambda() method to handle single-param lambdas (x => expr)
 - [ ] 0.2 Update parseExpression() to call parseLambda() as entry point
@@ -14,13 +14,19 @@
 
 ---
 
-## Phase 1: AST Type Updates ✅ 0/4
+## Phase 1: AST Type Updates ✅ COMPLETE (5/5)
 
-- [ ] 1.1 Add Tuple and While to `packages/core/src/types/ast.ts` Expr union
-- [ ] 1.2 Add TuplePattern to `packages/core/src/types/ast.ts` Pattern union
-- [ ] 1.3 Remove ListCons from Expr union, ensure BinaryOp includes "Cons"
-- [ ] 1.4 Add CoreTuple, CoreWhile, CoreTuplePattern to `packages/core/src/types/core-ast.ts`
-- [ ] **Test**: Run `npm run check` - all type checks pass
+- [x] 1.1 Add Tuple and While to `packages/core/src/types/ast.ts` Expr union
+- [x] 1.2 Add TuplePattern to `packages/core/src/types/ast.ts` Pattern union
+- [x] 1.3 Remove ListCons from Expr union, ensure BinaryOp includes "Cons"
+- [x] 1.4 Add CoreTuple, CoreWhile, CoreTuplePattern to `packages/core/src/types/core-ast.ts`
+- [x] **Test**: Run `npm run verify` - all checks pass ✅
+- [x] **Commit**: e51c05c - feat(parser): add Tuple, While, and TuplePattern AST types
+
+**Notes**:
+- Added stub handling throughout compiler pipeline (desugarer, type checker, optimizer, utils)
+- Updated parser to use BinOp for cons operator instead of dedicated ListCons
+- Updated all tests to expect BinOp instead of ListCons
 
 ---
 

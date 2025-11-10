@@ -51,7 +51,11 @@ export type CoreExpr =
     | CoreUnaryOp
     // Other
     | CoreTypeAnnotation
-    | CoreUnsafe;
+    | CoreUnsafe
+    // Tuples
+    | CoreTuple
+    // Loops
+    | CoreWhile;
 
 /**
  * Integer literal
@@ -295,6 +299,25 @@ export type CoreUnsafe = {
     loc: Location;
 };
 
+/**
+ * Tuple expression
+ */
+export type CoreTuple = {
+    kind: "CoreTuple";
+    elements: CoreExpr[];
+    loc: Location;
+};
+
+/**
+ * While loop
+ */
+export type CoreWhile = {
+    kind: "CoreWhile";
+    condition: CoreExpr;
+    body: CoreExpr;
+    loc: Location;
+};
+
 // =============================================================================
 // Core Patterns
 // =============================================================================
@@ -307,7 +330,8 @@ export type CorePattern =
     | CoreVarPattern
     | CoreLiteralPattern
     | CoreVariantPattern
-    | CoreRecordPattern;
+    | CoreRecordPattern
+    | CoreTuplePattern;
 
 /**
  * Wildcard pattern (_)
@@ -365,6 +389,15 @@ export type CoreRecordPattern = {
 export type CoreRecordPatternField = {
     name: string;
     pattern: CorePattern;
+    loc: Location;
+};
+
+/**
+ * Tuple pattern for destructuring
+ */
+export type CoreTuplePattern = {
+    kind: "CoreTuplePattern";
+    elements: CorePattern[];
     loc: Location;
 };
 

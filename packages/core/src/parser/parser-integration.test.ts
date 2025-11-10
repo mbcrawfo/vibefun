@@ -540,7 +540,7 @@ describe("Parser - Integration", () => {
             });
             expect(module.declarations[1]!).toMatchObject({
                 kind: "LetDecl",
-                value: { kind: "ListCons" },
+                value: { kind: "BinOp", op: "Cons" },
             });
         });
     });

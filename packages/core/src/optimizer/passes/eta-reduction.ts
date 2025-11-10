@@ -233,6 +233,21 @@ export class EtaReductionPass extends OptimizationPass {
             // Unsafe block - don't optimize inside
             case "CoreUnsafe":
                 return expr;
+
+            // Tuple
+            case "CoreTuple":
+                return {
+                    ...expr,
+                    elements: expr.elements.map((e) => this.reduceEta(e)),
+                };
+
+            // While loop
+            case "CoreWhile":
+                return {
+                    ...expr,
+                    condition: this.reduceEta(expr.condition),
+                    body: this.reduceEta(expr.body),
+                };
         }
     }
 }

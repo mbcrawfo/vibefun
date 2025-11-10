@@ -296,9 +296,10 @@ describe("Cons Operator", () => {
     it("should desugar simple cons", () => {
         // x :: xs
         const cons: Expr = {
-            kind: "ListCons",
-            head: { kind: "Var", name: "x", loc: testLoc },
-            tail: { kind: "Var", name: "xs", loc: testLoc },
+            kind: "BinOp",
+            op: "Cons",
+            left: { kind: "Var", name: "x", loc: testLoc },
+            right: { kind: "Var", name: "xs", loc: testLoc },
             loc: testLoc,
         };
 
@@ -319,9 +320,10 @@ describe("Cons Operator", () => {
     it("should desugar cons with literal head", () => {
         // 42 :: rest
         const cons: Expr = {
-            kind: "ListCons",
-            head: { kind: "IntLit", value: 42, loc: testLoc },
-            tail: { kind: "Var", name: "rest", loc: testLoc },
+            kind: "BinOp",
+            op: "Cons",
+            left: { kind: "IntLit", value: 42, loc: testLoc },
+            right: { kind: "Var", name: "rest", loc: testLoc },
             loc: testLoc,
         };
 
@@ -338,9 +340,10 @@ describe("Cons Operator", () => {
     it("should desugar cons with empty list tail", () => {
         // x :: []
         const cons: Expr = {
-            kind: "ListCons",
-            head: { kind: "Var", name: "x", loc: testLoc },
-            tail: { kind: "List", elements: [], loc: testLoc },
+            kind: "BinOp",
+            op: "Cons",
+            left: { kind: "Var", name: "x", loc: testLoc },
+            right: { kind: "List", elements: [], loc: testLoc },
             loc: testLoc,
         };
 
@@ -358,25 +361,28 @@ describe("Cons Operator", () => {
 
     it("should desugar chained cons", () => {
         // 1 :: 2 :: 3 :: []
-        // Parser creates: ListCons(1, ListCons(2, ListCons(3, [])))
+        // Parser creates: BinOp(Cons, 1, BinOp(Cons, 2, BinOp(Cons, 3, [])))
         const cons3: Expr = {
-            kind: "ListCons",
-            head: { kind: "IntLit", value: 3, loc: testLoc },
-            tail: { kind: "List", elements: [], loc: testLoc },
+            kind: "BinOp",
+            op: "Cons",
+            left: { kind: "IntLit", value: 3, loc: testLoc },
+            right: { kind: "List", elements: [], loc: testLoc },
             loc: testLoc,
         };
 
         const cons2: Expr = {
-            kind: "ListCons",
-            head: { kind: "IntLit", value: 2, loc: testLoc },
-            tail: cons3,
+            kind: "BinOp",
+            op: "Cons",
+            left: { kind: "IntLit", value: 2, loc: testLoc },
+            right: cons3,
             loc: testLoc,
         };
 
         const cons1: Expr = {
-            kind: "ListCons",
-            head: { kind: "IntLit", value: 1, loc: testLoc },
-            tail: cons2,
+            kind: "BinOp",
+            op: "Cons",
+            left: { kind: "IntLit", value: 1, loc: testLoc },
+            right: cons2,
             loc: testLoc,
         };
 

@@ -180,6 +180,21 @@ export function transformChildren(expr: CoreExpr, fn: Transformer): CoreExpr {
                 ...expr,
                 expr: transformExpr(expr.expr, fn),
             };
+
+        // Tuple
+        case "CoreTuple":
+            return {
+                ...expr,
+                elements: expr.elements.map((e) => transformExpr(e, fn)),
+            };
+
+        // While loop
+        case "CoreWhile":
+            return {
+                ...expr,
+                condition: transformExpr(expr.condition, fn),
+                body: transformExpr(expr.body, fn),
+            };
     }
 }
 
@@ -210,6 +225,12 @@ function transformPattern(pattern: CorePattern, fn: Transformer): CorePattern {
                     ...field,
                     pattern: transformPattern(field.pattern, fn),
                 })),
+            };
+
+        case "CoreTuplePattern":
+            return {
+                ...pattern,
+                elements: pattern.elements.map((p) => transformPattern(p, fn)),
             };
     }
 }
