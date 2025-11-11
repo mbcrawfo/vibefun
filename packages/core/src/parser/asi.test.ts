@@ -7,10 +7,11 @@
  * - Multi-line expressions
  */
 
+import type { Module } from "../types/ast.js";
+
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
-import type { Module } from "../types/ast.js";
 import { Parser } from "./parser.js";
 
 function parseModule(source: string): Module {

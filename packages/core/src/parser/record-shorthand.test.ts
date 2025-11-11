@@ -4,10 +4,11 @@
  * Tests record field shorthand in both construction and update
  */
 
+import type { Expr } from "../types/ast.js";
+
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
-import type { Expr } from "../types/ast.js";
 import { Parser } from "./parser.js";
 
 function parseExpr(source: string): Expr {

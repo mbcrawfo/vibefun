@@ -4,10 +4,11 @@
  * Tests parsing of tuple expressions and tuple patterns
  */
 
+import type { Expr, Pattern } from "../types/ast.js";
+
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
-import type { Expr, Pattern } from "../types/ast.js";
 import { Parser } from "./parser.js";
 
 function parseExpr(source: string): Expr {
@@ -72,7 +73,7 @@ describe("Tuple Expressions", () => {
 
     describe("Tuple with Different Types", () => {
         it("should parse tuple with mixed literal types", () => {
-            const expr = parseExpr("let x = (1, \"hello\", true)");
+            const expr = parseExpr('let x = (1, "hello", true)');
             expect(expr.kind).toBe("Tuple");
             if (expr.kind !== "Tuple") return;
             expect(expr.elements[0]?.kind).toBe("IntLit");
@@ -283,7 +284,9 @@ describe("Tuple Patterns", () => {
         });
 
         it("should parse multiple tuple patterns in match", () => {
-            const expr = parseExpr("let x = match point { | (0, 0) => \"origin\" | (x, 0) => \"x-axis\" | (0, y) => \"y-axis\" | _ => \"other\" }");
+            const expr = parseExpr(
+                'let x = match point { | (0, 0) => "origin" | (x, 0) => "x-axis" | (0, y) => "y-axis" | _ => "other" }',
+            );
             expect(expr.kind).toBe("Match");
             if (expr.kind !== "Match") return;
             expect(expr.cases[0]?.pattern.kind).toBe("TuplePattern");

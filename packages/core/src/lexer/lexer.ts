@@ -50,6 +50,7 @@ export class Lexer {
     private column: number = 1; // Current column number (1-indexed)
     private readonly source: readonly string[];
     private readonly filename: string;
+    private _hadLeadingWhitespace: boolean = false; // Track if whitespace preceded current token
 
     /**
      * Creates a new Lexer instance
@@ -135,7 +136,7 @@ export class Lexer {
      * Create a token with the current location
      * @param type - The token type
      * @param value - The token value (defaults to empty string)
-     * @returns A token object with type, value, and location
+     * @returns A token object with type, value, location, and whitespace info
      */
     makeToken<T extends Token["type"]>(type: T, value: string = ""): Extract<Token, { type: T }> {
         const loc = this.makeLocation();
@@ -147,7 +148,16 @@ export class Lexer {
             type,
             value,
             loc,
+            ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
         } as Extract<Token, { type: T }>;
+    }
+
+    /**
+     * Get whitespace properties object to spread into token creation
+     * @returns Object with hasLeadingWhitespace property if whitespace was present
+     */
+    private getWhitespaceProps(): { hasLeadingWhitespace?: true } {
+        return this._hadLeadingWhitespace ? { hasLeadingWhitespace: true } : {};
     }
 
     /**
@@ -215,6 +225,7 @@ export class Lexer {
                 value,
                 keyword: value,
                 loc: start,
+                ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
             };
         }
 
@@ -224,6 +235,7 @@ export class Lexer {
                 type: "BOOL_LITERAL",
                 value: value === "true",
                 loc: start,
+                ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
             };
         }
 
@@ -232,6 +244,7 @@ export class Lexer {
             type: "IDENTIFIER",
             value,
             loc: start,
+            ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
         };
     }
 
@@ -240,32 +253,40 @@ export class Lexer {
      * Whitespace (spaces, tabs, carriage returns) is skipped
      * Newlines are preserved as significant tokens
      * Comments are skipped (both single-line and multi-line with nesting)
+     * @returns true if any whitespace or comments were skipped
      */
-    private skipWhitespaceAndComments(): void {
+    private skipWhitespaceAndComments(): boolean {
+        let skippedAny = false;
+
         while (!this.isAtEnd()) {
             const char = this.peek();
 
             // Skip whitespace (but not newlines - they're significant)
             if (char === " " || char === "\t" || char === "\r") {
                 this.advance();
+                skippedAny = true;
                 continue;
             }
 
             // Check for single-line comment
             if (char === "/" && this.peek(1) === "/") {
                 this.skipSingleLineComment();
+                skippedAny = true;
                 continue;
             }
 
             // Check for multi-line comment
             if (char === "/" && this.peek(1) === "*") {
                 this.skipMultiLineComment();
+                skippedAny = true;
                 continue;
             }
 
             // No more whitespace or comments to skip
             break;
         }
+
+        return skippedAny;
     }
 
     /**
@@ -461,6 +482,7 @@ export class Lexer {
             type: isFloat ? "FLOAT_LITERAL" : "INT_LITERAL",
             value: numValue,
             loc: start,
+            ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
         };
     }
 
@@ -510,6 +532,7 @@ export class Lexer {
             type: "INT_LITERAL",
             value: parseInt(value, 16),
             loc: start,
+            ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
         };
     }
 
@@ -559,6 +582,7 @@ export class Lexer {
             type: "INT_LITERAL",
             value: parseInt(value, 2),
             loc: start,
+            ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
         };
     }
 
@@ -620,6 +644,7 @@ export class Lexer {
             type: "STRING_LITERAL",
             value,
             loc: start,
+            ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
         };
     }
 
@@ -652,6 +677,7 @@ export class Lexer {
                     type: "STRING_LITERAL",
                     value,
                     loc: start,
+                    ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
                 };
             }
 
@@ -820,122 +846,123 @@ export class Lexer {
             this.advance();
             this.advance();
             this.advance();
-            return { type: "SPREAD", value: "...", loc: start };
+            return { type: "SPREAD", value: "...", loc: start, ...this.getWhitespaceProps() };
         }
 
         // Two-character operators
         if (char === "=" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "OP_EQ", value: "==", loc: start };
+            return { type: "OP_EQ", value: "==", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "!" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "OP_NEQ", value: "!=", loc: start };
+            return { type: "OP_NEQ", value: "!=", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "<" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "OP_LTE", value: "<=", loc: start };
+            return { type: "OP_LTE", value: "<=", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === ">" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "OP_GTE", value: ">=", loc: start };
+            return { type: "OP_GTE", value: ">=", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "|" && next === ">") {
             this.advance();
             this.advance();
-            return { type: "OP_PIPE_GT", value: "|>", loc: start };
+            return { type: "OP_PIPE_GT", value: "|>", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === ">" && next === ">") {
             this.advance();
             this.advance();
-            return { type: "OP_GT_GT", value: ">>", loc: start };
+            return { type: "OP_GT_GT", value: ">>", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "<" && next === "<") {
             this.advance();
             this.advance();
-            return { type: "OP_LT_LT", value: "<<", loc: start };
+            return { type: "OP_LT_LT", value: "<<", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "-" && next === ">") {
             this.advance();
             this.advance();
-            return { type: "ARROW", value: "->", loc: start };
+            return { type: "ARROW", value: "->", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "=" && next === ">") {
             this.advance();
             this.advance();
-            return { type: "FAT_ARROW", value: "=>", loc: start };
+            return { type: "FAT_ARROW", value: "=>", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === ":" && next === ":") {
             this.advance();
             this.advance();
-            return { type: "OP_CONS", value: "::", loc: start };
+            return { type: "OP_CONS", value: "::", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === ":" && next === "=") {
             this.advance();
             this.advance();
-            return { type: "OP_ASSIGN", value: ":=", loc: start };
+            return { type: "OP_ASSIGN", value: ":=", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "&" && next === "&") {
             this.advance();
             this.advance();
-            return { type: "OP_AND", value: "&&", loc: start };
+            return { type: "OP_AND", value: "&&", loc: start, ...this.getWhitespaceProps() };
         }
         if (char === "|" && next === "|") {
             this.advance();
             this.advance();
-            return { type: "OP_OR", value: "||", loc: start };
+            return { type: "OP_OR", value: "||", loc: start, ...this.getWhitespaceProps() };
         }
 
         // Single-character operators and punctuation
         this.advance();
+        const ws = this.getWhitespaceProps();
 
         switch (char) {
             case "+":
-                return { type: "OP_PLUS", value: "+", loc: start };
+                return { type: "OP_PLUS", value: "+", loc: start, ...ws };
             case "-":
-                return { type: "OP_MINUS", value: "-", loc: start };
+                return { type: "OP_MINUS", value: "-", loc: start, ...ws };
             case "*":
-                return { type: "OP_STAR", value: "*", loc: start };
+                return { type: "OP_STAR", value: "*", loc: start, ...ws };
             case "/":
-                return { type: "OP_SLASH", value: "/", loc: start };
+                return { type: "OP_SLASH", value: "/", loc: start, ...ws };
             case "%":
-                return { type: "OP_PERCENT", value: "%", loc: start };
+                return { type: "OP_PERCENT", value: "%", loc: start, ...ws };
             case "<":
-                return { type: "OP_LT", value: "<", loc: start };
+                return { type: "OP_LT", value: "<", loc: start, ...ws };
             case ">":
-                return { type: "OP_GT", value: ">", loc: start };
+                return { type: "OP_GT", value: ">", loc: start, ...ws };
             case "=":
-                return { type: "OP_EQUALS", value: "=", loc: start };
+                return { type: "OP_EQUALS", value: "=", loc: start, ...ws };
             case "!":
-                return { type: "OP_BANG", value: "!", loc: start };
+                return { type: "OP_BANG", value: "!", loc: start, ...ws };
             case "(":
-                return { type: "LPAREN", value: "(", loc: start };
+                return { type: "LPAREN", value: "(", loc: start, ...ws };
             case ")":
-                return { type: "RPAREN", value: ")", loc: start };
+                return { type: "RPAREN", value: ")", loc: start, ...ws };
             case "{":
-                return { type: "LBRACE", value: "{", loc: start };
+                return { type: "LBRACE", value: "{", loc: start, ...ws };
             case "}":
-                return { type: "RBRACE", value: "}", loc: start };
+                return { type: "RBRACE", value: "}", loc: start, ...ws };
             case "[":
-                return { type: "LBRACKET", value: "[", loc: start };
+                return { type: "LBRACKET", value: "[", loc: start, ...ws };
             case "]":
-                return { type: "RBRACKET", value: "]", loc: start };
+                return { type: "RBRACKET", value: "]", loc: start, ...ws };
             case ",":
-                return { type: "COMMA", value: ",", loc: start };
+                return { type: "COMMA", value: ",", loc: start, ...ws };
             case ".":
-                return { type: "DOT", value: ".", loc: start };
+                return { type: "DOT", value: ".", loc: start, ...ws };
             case ":":
-                return { type: "COLON", value: ":", loc: start };
+                return { type: "COLON", value: ":", loc: start, ...ws };
             case ";":
-                return { type: "SEMICOLON", value: ";", loc: start };
+                return { type: "SEMICOLON", value: ";", loc: start, ...ws };
             case "|":
-                return { type: "PIPE", value: "|", loc: start };
+                return { type: "PIPE", value: "|", loc: start, ...ws };
             case "&":
-                return { type: "OP_AMPERSAND", value: "&", loc: start };
+                return { type: "OP_AMPERSAND", value: "&", loc: start, ...ws };
 
             default:
                 throw new LexerError(
@@ -955,8 +982,8 @@ export class Lexer {
         const tokens: Token[] = [];
 
         while (!this.isAtEnd()) {
-            // Skip whitespace and comments
-            this.skipWhitespaceAndComments();
+            // Skip whitespace and comments, tracking if any were skipped
+            this._hadLeadingWhitespace = this.skipWhitespaceAndComments();
 
             // Check for EOF after skipping
             if (this.isAtEnd()) {
@@ -969,7 +996,12 @@ export class Lexer {
             if (char === "\n") {
                 const start = this.makeLocation();
                 this.advance();
-                tokens.push({ type: "NEWLINE", value: "\n", loc: start });
+                tokens.push({
+                    type: "NEWLINE",
+                    value: "\n",
+                    loc: start,
+                    ...(this._hadLeadingWhitespace && { hasLeadingWhitespace: true }),
+                });
                 continue;
             }
 
@@ -995,7 +1027,8 @@ export class Lexer {
             tokens.push(this.readOperatorOrPunctuation());
         }
 
-        // Add EOF token
+        // Add EOF token (EOF never has leading whitespace)
+        this._hadLeadingWhitespace = false;
         tokens.push(this.makeToken("EOF", ""));
 
         return tokens;

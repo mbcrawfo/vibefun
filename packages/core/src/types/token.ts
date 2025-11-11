@@ -34,67 +34,67 @@ export type Keyword =
  */
 export type Token =
     // Literals
-    | { type: "INT_LITERAL"; value: number; loc: Location }
-    | { type: "FLOAT_LITERAL"; value: number; loc: Location }
-    | { type: "STRING_LITERAL"; value: string; loc: Location }
-    | { type: "BOOL_LITERAL"; value: boolean; loc: Location }
+    | { type: "INT_LITERAL"; value: number; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "FLOAT_LITERAL"; value: number; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "STRING_LITERAL"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "BOOL_LITERAL"; value: boolean; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Identifiers and Keywords
-    | { type: "IDENTIFIER"; value: string; loc: Location }
-    | { type: "KEYWORD"; value: string; keyword: Keyword; loc: Location }
+    | { type: "IDENTIFIER"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "KEYWORD"; value: string; keyword: Keyword; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Operators - Arithmetic
-    | { type: "OP_PLUS"; value: string; loc: Location }
-    | { type: "OP_MINUS"; value: string; loc: Location }
-    | { type: "OP_STAR"; value: string; loc: Location }
-    | { type: "OP_SLASH"; value: string; loc: Location }
-    | { type: "OP_PERCENT"; value: string; loc: Location }
+    | { type: "OP_PLUS"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_MINUS"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_STAR"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_SLASH"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_PERCENT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Operators - Comparison
-    | { type: "OP_EQ"; value: string; loc: Location }
-    | { type: "OP_NEQ"; value: string; loc: Location }
-    | { type: "OP_LT"; value: string; loc: Location }
-    | { type: "OP_GT"; value: string; loc: Location }
-    | { type: "OP_LTE"; value: string; loc: Location }
-    | { type: "OP_GTE"; value: string; loc: Location }
+    | { type: "OP_EQ"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_NEQ"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_LT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_GT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_LTE"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_GTE"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Operators - Logical
-    | { type: "OP_AND"; value: string; loc: Location }
-    | { type: "OP_OR"; value: string; loc: Location }
-    | { type: "OP_BANG"; value: string; loc: Location }
+    | { type: "OP_AND"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_OR"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_BANG"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Operators - String
-    | { type: "OP_AMPERSAND"; value: string; loc: Location }
+    | { type: "OP_AMPERSAND"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Operators - Pipe and Composition
-    | { type: "OP_PIPE_GT"; value: string; loc: Location }
-    | { type: "OP_GT_GT"; value: string; loc: Location }
-    | { type: "OP_LT_LT"; value: string; loc: Location }
+    | { type: "OP_PIPE_GT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_GT_GT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_LT_LT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Assignment and Special Operators
-    | { type: "OP_EQUALS"; value: string; loc: Location }
-    | { type: "OP_ASSIGN"; value: string; loc: Location }
-    | { type: "OP_CONS"; value: string; loc: Location }
+    | { type: "OP_EQUALS"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_ASSIGN"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "OP_CONS"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Punctuation
-    | { type: "LPAREN"; value: string; loc: Location }
-    | { type: "RPAREN"; value: string; loc: Location }
-    | { type: "LBRACE"; value: string; loc: Location }
-    | { type: "RBRACE"; value: string; loc: Location }
-    | { type: "LBRACKET"; value: string; loc: Location }
-    | { type: "RBRACKET"; value: string; loc: Location }
-    | { type: "COMMA"; value: string; loc: Location }
-    | { type: "DOT"; value: string; loc: Location }
-    | { type: "SPREAD"; value: string; loc: Location }
-    | { type: "COLON"; value: string; loc: Location }
-    | { type: "SEMICOLON"; value: string; loc: Location }
-    | { type: "ARROW"; value: string; loc: Location }
-    | { type: "FAT_ARROW"; value: string; loc: Location }
-    | { type: "PIPE"; value: string; loc: Location }
+    | { type: "LPAREN"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "RPAREN"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "LBRACE"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "RBRACE"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "LBRACKET"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "RBRACKET"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "COMMA"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "DOT"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "SPREAD"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "COLON"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "SEMICOLON"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "ARROW"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "FAT_ARROW"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "PIPE"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
 
     // Special
-    | { type: "EOF"; value: string; loc: Location }
-    | { type: "NEWLINE"; value: string; loc: Location };
+    | { type: "EOF"; value: string; loc: Location; hasLeadingWhitespace?: boolean }
+    | { type: "NEWLINE"; value: string; loc: Location; hasLeadingWhitespace?: boolean };
 
 /**
  * Token type enum for easier type checking

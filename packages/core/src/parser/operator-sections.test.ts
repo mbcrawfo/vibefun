@@ -109,8 +109,8 @@ describe("Operator Sections - Rejection", () => {
             // Parser correctly rejects operator sections (message varies by case)
         });
 
-        it("should reject (\"hello\" &) left section", () => {
-            expectParseError("let f = (\"hello\" &)");
+        it('should reject ("hello" &) left section', () => {
+            expectParseError('let f = ("hello" &)');
             // Parser correctly rejects operator sections (message varies by case)
         });
     });
