@@ -217,8 +217,8 @@ vibefun run src/main.vf            # Compile and run
 ### Design Documents
 - **[.claude/design/language-design.md](.claude/design/language-design.md)** - Original language design exploration
 - **[.claude/design/type-system.md](.claude/design/type-system.md)** - Detailed type system design and algorithms
-- **[.claude/design/compiler-implementation-guide.md](.claude/archive/compiler-architecture.md)** - Compiler design
 
 ### Additional Instructions
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md
 - Coding Standards @.claude/CODING_STANDARDS.md
+- Ignore files in the ./claude/archive folder.  These are old plan documents that may be outdated and incorrect.

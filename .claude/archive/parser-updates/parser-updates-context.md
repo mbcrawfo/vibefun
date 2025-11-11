@@ -362,4 +362,4 @@ loop()
 - [Language Spec](./../../docs/spec/) - Complete language specification
 - [CLAUDE.md](./../../CLAUDE.md) - Project overview and directives
 - [CODING_STANDARDS.md](./../CODING_STANDARDS.md) - Code style guidelines
-- [Parser Updates Plan](./parser-updates-plan.md) - v2.2 (Reviewed and Approved)
+- [Parser Updates Plan](parser-updates-plan.md) - v2.2 (Reviewed and Approved)
