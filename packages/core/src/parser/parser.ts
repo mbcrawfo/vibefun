@@ -6,7 +6,6 @@
  *
  * The parser is modular, with separate files for different parsing responsibilities:
  * - parser-base.ts: Core state and token utilities
- * - parser-helpers.ts: ASI logic and helper functions
  * - parse-expressions.ts: Expression parsing
  * - parse-patterns.ts: Pattern parsing
  * - parse-types.ts: Type expression parsing
@@ -22,7 +21,6 @@ import * as Expressions from "./parse-expressions.js";
 import * as Patterns from "./parse-patterns.js";
 import * as Types from "./parse-types.js";
 import { ParserBase } from "./parser-base.js";
-import { shouldInsertSemicolon } from "./parser-helpers.js";
 
 // Initialize circular dependencies between modules
 // This allows each module to call functions from other modules without importing them directly
@@ -124,15 +122,15 @@ export class Parser extends ParserBase {
                     declarations.push(decl);
                 }
 
-                // ASI: Check for semicolon or insert automatically
-                if (this.check("SEMICOLON")) {
-                    this.advance();
-                } else if (shouldInsertSemicolon(this)) {
-                    // ASI triggered - continue without consuming token
-                } else if (!this.isAtEnd()) {
-                    // No semicolon and ASI doesn't apply - but don't error,
-                    // just skip newlines (current behavior)
+                // Require explicit semicolon after every declaration
+                if (!this.check("SEMICOLON")) {
+                    throw this.error(
+                        "Expected ';' after declaration",
+                        this.peek().loc,
+                        "All declarations must end with a semicolon"
+                    );
                 }
+                this.advance(); // Consume the semicolon
 
                 // Skip trailing newlines
                 while (this.match("NEWLINE"));

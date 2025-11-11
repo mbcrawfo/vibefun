@@ -492,7 +492,22 @@ function parseExternalBlock(
         const item = parseExternalBlockItem(parser);
         items.push(item);
 
-        // Newlines act as separators (like record syntax)
+        // Skip newlines after item
+        while (parser.match("NEWLINE"));
+
+        // Require semicolon after item (unless at closing brace)
+        if (!parser.check("RBRACE")) {
+            if (!parser.check("SEMICOLON")) {
+                throw parser.error(
+                    "Expected ';' after external declaration",
+                    parser.peek().loc,
+                    "External declarations in a block must end with semicolons"
+                );
+            }
+            parser.advance(); // Consume the semicolon
+        }
+
+        // Skip newlines after semicolon
         while (parser.match("NEWLINE"));
     }
 

@@ -9,8 +9,6 @@ import type { Expr, ListElement, Location, MatchCase, Pattern, RecordField } fro
 import type { TokenType } from "../types/token.js";
 import type { ParserBase } from "./parser-base.js";
 
-import { shouldInsertSemicolon } from "./parser-helpers.js";
-
 // Forward declarations for circular dependencies
 let parsePattern: (parser: ParserBase) => Pattern;
 let parseTypeExpr: (parser: ParserBase) => import("../types/index.js").TypeExpr;
@@ -1456,25 +1454,15 @@ export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
         // Skip optional newlines after expression
         while (parser.match("NEWLINE"));
 
-        // Check for semicolon or closing brace
-        if (parser.check("RBRACE")) {
-            break; // Last expression, no semicolon needed
-        }
-
-        // ASI: Check for semicolon or insert automatically
-        if (parser.check("SEMICOLON")) {
-            parser.advance(); // Consume explicit semicolon
-        } else if (shouldInsertSemicolon(parser)) {
-            // ASI triggered - treat as if semicolon exists
-            // Continue to next expression or end of block
-        } else if (!parser.check("RBRACE")) {
-            // Not at end of block and no semicolon - error
+        // Require semicolon after every statement in block
+        if (!parser.check("SEMICOLON")) {
             throw parser.error(
-                "Expected ';' or newline between expressions",
+                "Expected ';' after statement in block",
                 parser.peek().loc,
-                "Expressions in a block must be separated by semicolons or newlines",
+                "All statements in a block must end with a semicolon"
             );
         }
+        parser.advance(); // Consume the semicolon
 
         // Skip newlines after semicolon/ASI
         while (parser.match("NEWLINE"));
@@ -1537,16 +1525,15 @@ function parseLetExpr(parser: ParserBase, startLoc: Location): Expr {
     // Skip optional newlines after value
     while (parser.match("NEWLINE"));
 
-    // Expect semicolon or ASI
-    if (parser.check("SEMICOLON")) {
-        parser.advance(); // Consume explicit semicolon
-    } else if (!shouldInsertSemicolon(parser)) {
+    // Require explicit semicolon after let binding
+    if (!parser.check("SEMICOLON")) {
         throw parser.error(
-            "Expected ';' or newline after let binding",
+            "Expected ';' after let binding",
             parser.peek().loc,
-            "Let expressions in blocks must be followed by a semicolon or newline",
+            "Let expressions in blocks must be followed by a semicolon"
         );
     }
+    parser.advance(); // Consume the semicolon
 
     // Skip newlines after semicolon
     while (parser.match("NEWLINE"));

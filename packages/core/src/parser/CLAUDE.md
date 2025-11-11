@@ -5,7 +5,6 @@ The parser is organized into focused modules for maintainability:
 ## Files
 
 - **parser-base.ts** - Base class with parser state and token utilities
-- **parser-helpers.ts** - ASI (Automatic Semicolon Insertion) logic
 - **parse-expressions.ts** - Expression parsing (precedence climbing)
 - **parse-patterns.ts** - Pattern parsing
 - **parse-types.ts** - Type expression parsing
