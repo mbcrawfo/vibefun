@@ -150,11 +150,12 @@ describe("Parser - Patterns", () => {
             });
         });
 
-        it("treats PascalCase without parens as variable pattern", () => {
+        it("treats PascalCase without parens as nullary constructor pattern", () => {
             const pattern = parsePattern("None");
             expect(pattern).toMatchObject({
-                kind: "VarPattern",
-                name: "None",
+                kind: "ConstructorPattern",
+                constructor: "None",
+                args: [],
             });
         });
     });

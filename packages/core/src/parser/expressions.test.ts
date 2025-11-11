@@ -1948,9 +1948,10 @@ describe("Parser - Expressions", () => {
 
                 // Second case: None => () => 0
                 const case2 = expr.cases[1];
-                expect(case2?.pattern.kind).toBe("VarPattern");
-                if (case2?.pattern.kind === "VarPattern") {
-                    expect(case2.pattern.name).toBe("None");
+                expect(case2?.pattern.kind).toBe("ConstructorPattern");
+                if (case2?.pattern.kind === "ConstructorPattern") {
+                    expect(case2.pattern.constructor).toBe("None");
+                    expect(case2.pattern.args).toHaveLength(0);
                 }
                 expect(case2?.body.kind).toBe("Lambda");
             });

@@ -2043,7 +2043,17 @@ export class Parser {
                 };
             }
 
-            // Variable pattern (including PascalCase without args - treated as variable)
+            // Nullary constructor pattern: PascalCase without parens
+            if (isPascalCase) {
+                return {
+                    kind: "ConstructorPattern",
+                    constructor: name,
+                    args: [],
+                    loc: startLoc,
+                };
+            }
+
+            // Variable pattern (camelCase only)
             return { kind: "VarPattern", name, loc: startLoc };
         }
 
