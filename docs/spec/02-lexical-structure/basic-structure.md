@@ -32,110 +32,88 @@ Multi-line comments support nesting:
 /* Outer comment /* inner nested comment */ still in outer */
 ```
 
-## Whitespace and Semicolon Insertion
+## Whitespace and Semicolons
 
 - **Spaces** and **tabs** are treated as whitespace and ignored (except in strings)
-- **Newlines** are significant in some contexts (automatic semicolon insertion)
+- **Newlines** are not significant for parsing (indentation-insensitive syntax)
 - **Indentation** is not significant (unlike Python or Haskell)
 
-### Semicolon Insertion Rules
+### Semicolon Requirements
 
-Vibefun uses **automatic semicolon insertion (ASI)** similar to JavaScript, but with more conservative rules. Semicolons separate statements and expressions in blocks, but are often optional due to ASI.
+Vibefun requires **explicit semicolons** to separate statements and declarations. Semicolons are **not optional** and must be written explicitly.
 
-**Explicit semicolons** (always allowed):
+**Top-level declarations** require semicolons:
 ```vibefun
-let x = 10; let y = 20; x + y
+let x = 10;
+let y = 20;
+type Point = { x: Int, y: Int };
 ```
 
-**Implicit semicolons** (inserted automatically):
+**Block expressions** require semicolons after each statement:
 ```vibefun
-let x = 10
-let y = 20
-x + y
-```
-
-**When semicolons are inserted:**
-
-A semicolon is automatically inserted before a newline if **all** of the following are true:
-1. The newline follows a **complete expression** or **statement**
-2. The next token **cannot** continue the current expression
-3. The next token starts a new statement or expression
-
-**Examples:**
-
-```vibefun
-// ✅ Semicolon inserted after 10 (complete expression)
-let x = 10
-let y = 20
-
-// ✅ Semicolon inserted after each expression in block
 {
-    let x = 1
-    let y = 2
-    x + y
+    let x = 1;
+    let y = 2;
+    x + y;
 }
+```
 
-// ✅ NO semicolon inserted (expression continues on next line)
+**External declarations** use semicolons as separators:
+```vibefun
+external {
+    log: (String) -> Unit = "console.log";
+    error: (String) -> Unit = "console.error";
+}
+```
+
+### Multi-line Expressions
+
+Expressions can span multiple lines without semicolons in the middle:
+
+```vibefun
+// ✅ Expression continues across lines
 let result = 1 +
     2 +
-    3
+    3;
 
-// ✅ NO semicolon inserted (function call continues)
+// ✅ Function call continues
 map(list,
-    (x) => x + 1)
+    (x) => x + 1);
 
-// ✅ NO semicolon inserted (list literal continues)
+// ✅ List literal (commas separate items)
 let numbers = [
     1,
     2,
     3
-]
+];
 
-// ✅ NO semicolon inserted (record literal continues)
+// ✅ Record literal (commas separate fields)
 let person = {
     name: "Alice",
     age: 30
-}
+};
 
-// ✅ NO semicolon inserted (pipe continues)
+// ✅ Pipe operators allow multi-line
 data
     |> filter((x) => x > 0)
-    |> map((x) => x * 2)
+    |> map((x) => x * 2);
 ```
 
-**Tokens that prevent semicolon insertion** (expression continues):
-- Binary operators: `+`, `-`, `*`, `/`, `%`, `&&`, `||`, `&`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `::`
-- Pipe operators: `|>`, `>>`, `<<`
-- Field access: `.`
-- Function application: `(`
-- List/record continuation: `,` (inside `[]` or `{}`)
+### Special Cases
 
-**Tokens that start new statements** (trigger semicolon insertion):
-- `let`, `type`, `match`, `if`, `external`, `import`, `export`
-- Identifiers (when not continuing an expression)
-- Literals (when not continuing an expression)
-
-**Best practices:**
-- Rely on ASI for simple cases (let bindings, return values)
-- Use explicit semicolons when in doubt
-- Avoid relying on subtle ASI rules; prefer explicit semicolons in complex cases
-- Use parentheses to group multi-line expressions when needed
-
+**Empty blocks** are valid without semicolons inside:
 ```vibefun
-// Clear: no ambiguity
-let x = 1
-let y = 2
+let noOp = () => {};
+```
 
-// Explicit semicolon for clarity in complex blocks
-let process = () => {
-    sideEffect1();
-    sideEffect2();
-    result
-}
+**Record literals** use commas (not semicolons):
+```vibefun
+let point = { x: 1, y: 2 };  // Commas for fields
+let block = { x; y; };        // Semicolons = block expression
+```
 
-// Parentheses for multi-line expressions
-let value = (
-    longExpression1 +
-    longExpression2
-)
+**Lambda newlines** are allowed before the arrow:
+```vibefun
+let add = (x, y)
+    => x + y;
 ```

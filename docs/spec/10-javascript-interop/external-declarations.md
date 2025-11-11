@@ -168,7 +168,7 @@ export external myHelper: (Int) -> String = "helper"
 
 #### External Blocks
 
-When wrapping JavaScript libraries, use external blocks to declare multiple bindings at once:
+When wrapping JavaScript libraries, use external blocks to declare multiple bindings at once. External declarations within blocks are separated by **semicolons** (like top-level declarations):
 
 ```vibefun
 // Simple external block
