@@ -1,7 +1,7 @@
 # Remove ASI and Make Semicolons Required - Implementation Plan
 
 **Created**: 2025-11-11
-**Last Updated**: 2025-11-11
+**Last Updated**: 2025-11-11 (enhanced with comprehensive review)
 **Status**: Ready to begin
 
 ## Overview
@@ -10,16 +10,24 @@ This plan outlines the complete removal of Automatic Semicolon Insertion (ASI) f
 
 ## Design Decisions
 
+### Clarified Design Decisions (from comprehensive review)
+
+1. **Empty blocks**: `{}` is valid without semicolon inside (common for no-op operations)
+2. **EOF behavior**: Semicolons required even at EOF for full consistency
+3. **External blocks**: Use semicolons as separators (consistent with declarations)
+4. **Migration**: Manual updates only (no automated script)
+
 ### Semicolon Requirements
 
 **Semicolons REQUIRED in:**
 - After top-level module declarations (`let`, `type`, `external`, `import`)
 - After every statement in block expressions `{ ... }` (including trailing semicolons)
 - After every item in external blocks
+- **Even before EOF** (for consistency and unambiguous parsing)
 
 **Semicolons NOT required in:**
 - Record literals (commas and newlines continue to work as separators)
-- After EOF (last declaration before end of file doesn't need semicolon)
+- Inside empty blocks `{}` (valid as-is)
 
 ### Special Cases
 
@@ -85,6 +93,9 @@ This remains valid for multi-line parameter lists.
 - Include examples of correct semicolon usage
 - Document lambda newline exception
 - Document multi-line expression limitations
+- **Document empty block behavior** (`{}` is valid)
+- **Document EOF behavior** (semicolons required even at EOF)
+- **Add design rationale** (clarity, consistency, simpler parsing)
 
 **1.2 Update Specification Index Files**:
 - `docs/spec/.agent-map.md` - Update semicolon references (line 11)
@@ -149,7 +160,8 @@ Scan and update ALL test files in `packages/core/src/`:
 Add semicolons to vibefun code strings:
 - Top-level declarations
 - Block statements (including trailing)
-- External block items
+- **External block items** (use semicolons, not commas)
+- **Last declarations** (add semicolons even at EOF)
 - Keep commas in record literals
 
 **2.2 Update Example Files**:
@@ -218,7 +230,8 @@ Add semicolons to vibefun code strings:
   - Require explicit `SEMICOLON` tokens after each declaration
   - Remove newline-based separation logic
   - Add clear error when semicolon missing
-  - **Special case**: Handle EOF correctly (no semicolon needed after last declaration before EOF)
+  - **Require semicolons even at EOF** (for consistency)
+  - Remove the `else if (!this.isAtEnd())` check that makes semicolons optional at EOF
 - Test this with single and multiple declarations
 
 **3.3 Update Block Expression Parsing**:
@@ -242,9 +255,11 @@ Add semicolons to vibefun code strings:
 **3.5 Update External Block Parsing**:
 - File: `packages/core/src/parser/parse-declarations.ts` (lines 471-508)
 - Update `parseExternalBlock()` and related functions:
+  - **Use semicolons as separators** (not commas, not newlines)
   - Require `SEMICOLON` tokens after each external declaration item
-  - Remove newline-based separation logic
+  - Remove newline-based separation logic (line 495 comment mentions "like record syntax" - change this)
   - Add error: "Expected semicolon after external declaration"
+  - Syntax: `external { log: ... = "..."; error: ... = "..."; }`
 - Handle both single externals and external blocks
 
 **3.6 Verify Let Expression Parsing**:
@@ -276,10 +291,12 @@ Add semicolons to vibefun code strings:
   - "ASI"
   - "newline" (in context of statement separation)
 - Update to reflect new required-semicolon behavior
-- Make error messages helpful:
-  - Suggest adding semicolon
-  - Show where semicolon is expected
-  - Distinguish between different contexts
+- Make error messages helpful with specific contexts:
+  - "Expected semicolon after declaration" (top-level)
+  - "Expected semicolon after statement in block" (block context)
+  - "Expected semicolon after external declaration" (external blocks)
+  - Show location with context (surrounding code)
+  - Include helpful suggestions in error messages
 
 **Exit Criteria**:
 - ASI logic completely removed or disabled
@@ -315,11 +332,13 @@ Add semicolons to vibefun code strings:
    - Missing after top-level `import` declaration
    - Missing after block statements
    - Missing trailing semicolon in block
+   - Missing at EOF (now required)
 
 2. **Error messages are helpful**:
    - Error includes "Expected semicolon"
    - Error shows location
    - Error suggests fix
+   - Different messages for different contexts (declaration vs block vs external)
 
 3. **Records still work without semicolons**:
    - `{ x: 1, y: 2 }` works
@@ -332,15 +351,61 @@ Add semicolons to vibefun code strings:
    - Multi-line parameter lists work
 
 5. **Edge cases**:
-   - Empty blocks: `{}` (valid or requires `{;}`?)
+   - **Empty blocks**: `{}` is valid without semicolon inside
    - Single statement blocks: `{ x; }`
    - Nested blocks with semicolons
    - Comments after semicolons: `let x = 1; // comment`
-   - EOF handling: last declaration doesn't need semicolon
+   - **EOF handling**: Single vs multiple declarations with trailing semicolons
 
 6. **External block semicolons**:
-   - External block items require semicolons
+   - External block items require semicolons (not commas)
    - Error when missing
+   - Multiple items: `external { f: T = "x"; g: T = "y"; }`
+
+7. **Match expressions with block bodies**:
+   - Match case with block: `| Some(v) => { let y = v; y + 1; }`
+   - Semicolons required inside match case blocks
+   - Nested match expressions
+
+8. **If-then-else with block bodies**:
+   - If branches with blocks: `if c then { let x = 1; x; } else { 0; }`
+   - Multi-line if-then-else-if chains
+   - Nested if expressions
+
+9. **While loops with blocks**:
+   - While body with blocks: `while c { let x = 1; x; }`
+   - Nested blocks in while loops
+   - While with empty block: `while c {}`
+
+10. **Lambda block bodies**:
+    - Lambda with block: `(x) => { let y = x + 1; y * 2; }`
+    - Nested lambdas with blocks
+    - Lambda returning block expression
+
+11. **Operator sections and type annotations**:
+    - Operator sections in blocks: `let f = (+ 1);`
+    - Type annotations: `let x: Int = 1;`
+    - Mixed with blocks
+
+12. **Pipe operators and multi-line expressions**:
+    - Pipe operator continuation: `data |> filter(...) |> map(...);`
+    - Binary operators allow line continuation (no semicolon mid-expression)
+    - Semicolon required at end of statement
+
+13. **Deep nesting scenarios**:
+    - Blocks within match within blocks within functions
+    - Mixed record/block contexts
+    - Parser correctly tracks context
+
+14. **Error recovery**:
+    - Parser continues after missing semicolon error
+    - Multiple missing semicolons reported correctly
+    - Helpful suggestions for each error
+
+15. **Comments and whitespace**:
+    - Single-line comments after semicolons
+    - Multi-line comments after semicolons
+    - Semicolons with various whitespace (tabs, multiple newlines)
 
 **4.3 Update Expression Tests**:
 - Review and update:
@@ -465,7 +530,15 @@ Manually verify these scenarios:
 - Single-param lambda: `x\n=> x + 1`
 - Comments: `let x = 1; // comment`
 - Multiple declarations: `let x = 1; let y = 2;`
-- EOF handling: last declaration without semicolon
+- EOF handling: last declaration with required semicolon
+
+**5.6 Performance Benchmarking**:
+
+Verify that removing ASI improves parser performance:
+- Run parser on large test files before/after (if baseline exists)
+- Removing ASI should make parsing faster (fewer conditionals, simpler logic)
+- Verify no performance regression
+- Document any performance improvements observed
 
 **Exit Criteria**:
 - All quality checks pass
@@ -473,6 +546,7 @@ Manually verify these scenarios:
 - All examples compile correctly
 - Error messages are helpful
 - Edge cases work correctly
+- No performance regression (ideally improvement)
 
 **Commit Point**: "chore: verify semicolon changes complete"
 
@@ -508,10 +582,23 @@ Manually verify these scenarios:
   - Semicolons now required (was optional via ASI)
   - Where semicolons are required
   - What remains unchanged (records, lambda newlines)
-- Provide migration guidance:
+
+**6.3.1 Create Migration Guide**:
+- Provide detailed migration guidance:
   - How to update existing code
-  - Common patterns
-  - Tools (none, manual update required)
+  - Before/after examples for common patterns:
+    - Top-level declarations
+    - Block expressions
+    - External blocks
+    - Match expressions with blocks
+    - Lambda block bodies
+  - Common mistakes to avoid
+  - Tools: None (manual update required)
+  - Estimate: 5-10 minutes per 100 lines of code
+- Include design rationale:
+  - Why remove ASI? (clarity, consistency, easier parsing)
+  - Comparison with other languages (OCaml, F#, Rust require semicolons in blocks)
+  - Benefits vs tradeoffs
 
 **6.4 Update Coding Standards**:
 - File: `.claude/CODING_STANDARDS.md`

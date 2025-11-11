@@ -1,23 +1,31 @@
 # Remove ASI - Context and Key Information
 
 **Created**: 2025-11-11
-**Last Updated**: 2025-11-11
+**Last Updated**: 2025-11-11 (enhanced with edge cases and rationale)
 
 ## Design Decisions Summary
+
+### Clarified Design Decisions (from comprehensive review)
+
+1. **Empty blocks**: `{}` is valid without semicolon inside (common for no-op operations)
+2. **EOF behavior**: Semicolons required even at EOF for full consistency
+3. **External blocks**: Use semicolons as separators (consistent with declarations)
+4. **Migration**: Manual updates only (no automated script)
 
 ### Semicolons REQUIRED:
 - After top-level module declarations (`let`, `type`, `external`, `import`)
 - After every statement in block expressions (including trailing)
 - After every item in external blocks
+- **Even at EOF** (for consistency and unambiguous parsing)
 
 ### Semicolons NOT required:
 - In record literals (commas/newlines still work)
+- Inside empty blocks `{}` (valid as-is)
 
 ### Special Cases:
 - **Lambda newlines**: `(x, y)\n=> body` still allowed
-- **EOF handling**: Last declaration before EOF doesn't need semicolon
 - **Trailing semicolons**: REQUIRED in blocks - `{ x; y; }`
-- **Disambiguation**: `{ x; }` = block, `{ x }` = record
+- **Disambiguation**: `{ x; }` = block, `{ x }` or `{ x: v }` = record
 
 ## Key Files to Modify
 
@@ -51,16 +59,98 @@
 ## Current ASI Implementation (To Remove)
 
 **Location**: `packages/core/src/parser/parser-helpers.ts`
-- `shouldInsertSemicolon()` - Main ASI logic
-- `isExpressionContinuation()` - Operators preventing ASI
-- `isLineContinuation()` - Tokens preventing ASI
-- `isStatementStart()` - Keywords triggering ASI
 
-**Current behavior**:
+### ASI Helper Functions (lines 19-91):
+- `shouldInsertSemicolon()` (line 19) - Main ASI decision logic
+  - Checks for newlines, EOF, and closing braces
+  - Respects `inRecordContext` flag (line 34)
+  - Returns boolean: should semicolon be inserted?
+
+- `isExpressionContinuation()` (line 53) - Operators preventing ASI after them
+  - Binary operators: `+`, `-`, `*`, `/`, `|>`, `<|`, etc.
+  - Prevents ASI when expression continues on next line
+
+- `isLineContinuation()` (line 72) - Tokens preventing ASI before them
+  - Binary operators, dots, closing delimiters
+  - Prevents ASI when line continues from previous
+
+- `isStatementStart()` (line 88) - Keywords triggering ASI
+  - `let`, `type`, `match`, `if`, etc.
+  - Signals start of new statement
+
+### Special Handling:
+- **Lambda newlines** (line 45): Special case allows `(x, y)\n=> body` - **KEEP THIS**
+- **Record context** (line 34): ASI disabled inside records via `inRecordContext` flag
+- **EOF handling** (parser.ts line 132): `else if (!this.isAtEnd())` makes semicolons optional at EOF - **REMOVE THIS**
+
+### Current Behavior:
 - Newlines trigger ASI between declarations
 - Newlines OR semicolons work in blocks
 - ASI disabled in records
 - Special handling for lambda newlines (KEEP)
+
+### Parser Usage:
+- Used in 3 parser files:
+  - `parser.ts` - Top-level declarations
+  - `parse-expressions.ts` - Block expressions
+  - `parse-declarations.ts` - External blocks
+
+## Edge Cases Identified (from comprehensive review)
+
+### 13 Critical Edge Cases to Test:
+
+1. **Match expressions with block bodies**: `| Some(v) => { let y = v; y + 1; }`
+2. **If-then-else with block bodies**: `if c then { let x = 1; x; } else { 0; }`
+3. **While loops with nested blocks**: `while c { if x { let y = 1; y; }; }`
+4. **Lambda block bodies**: `(x) => { let y = x + 1; y * 2; }`
+5. **Unsafe blocks**: `unsafe { let x = call(); x; }`
+6. **Operator sections in blocks**: `let f = (+ 1);`
+7. **Pipe operators multi-line**: `data |> filter(...) |> map(...);` (continuation)
+8. **Type annotations**: `let x: Int = 1;`
+9. **Deeply nested structures**: Blocks within match within blocks within functions
+10. **Mixed record/block contexts**: Parser context tracking
+11. **Error recovery**: Parsing continues after missing semicolon
+12. **External block separators**: Now clarified as semicolons (not commas)
+13. **Comments after semicolons**: `let x = 1; // comment` and `/* comment */`
+
+### Additional Considerations:
+
+- **Empty blocks**: `{}` valid without semicolon inside
+- **EOF handling**: Single vs multiple declarations, semicolons required even at EOF
+- **Tuple/list literals**: Multi-line with commas, no semicolons needed inside
+- **Record shorthand**: `{ name, age }` still works
+- **Binary operator continuation**: Operators allow line continuation without semicolon mid-expression
+
+## Design Rationale
+
+### Why Remove ASI?
+
+1. **Clarity**: Explicit semicolons make statement boundaries unambiguous
+2. **Consistency**: One clear rule instead of complex ASI heuristics
+3. **Simpler parsing**: Removes ~72 lines of ASI logic, reduces parser complexity
+4. **Fewer surprises**: ASI can insert semicolons in unexpected places
+5. **Language precedent**: OCaml, F#, Rust require semicolons in blocks
+
+### Benefits:
+
+- Simpler parser implementation (fewer conditionals)
+- Faster parsing (no ASI checks on every newline)
+- Clearer error messages (explicit about semicolons)
+- Easier to understand code (visible statement boundaries)
+- More maintainable codebase (less "magic" behavior)
+
+### Tradeoffs:
+
+- Slightly more verbose (need to type semicolons)
+- Breaking change (all existing code needs updates)
+- Migration effort required
+
+### Comparison with Other Languages:
+
+- **JavaScript**: Has ASI, but it's notorious for causing bugs
+- **OCaml/F#**: Require semicolons in blocks (similar to our approach)
+- **Rust**: Requires semicolons for statements (not final expressions)
+- **Go**: Semicolons required but inserted by lexer (different approach)
 
 ## Breaking Changes
 
@@ -69,13 +159,26 @@ All vibefun code without semicolons will break:
 **Before**: `let x = 1\nlet y = 2`
 **After**: `let x = 1;\nlet y = 2;`
 
+**Before**: `external { log: T = "x", error: T = "y" }`
+**After**: `external { log: T = "x"; error: T = "y"; }`
+
 **Records unchanged**: `{ x: 1, y: 2 }` still works
+
+## Test Baseline
+
+- **18 parser test files** to update
+- **28 desugarer test files** to update
+- **80 total test files** with 2130 passing tests
+- **2 example .vf files** to update
+- **54 spec markdown files** to review (~626 code blocks)
 
 ## Success Criteria
 
 - ✅ Parser requires explicit semicolons
-- ✅ All tests pass
+- ✅ All tests pass (2130+ tests)
 - ✅ Records/lambdas preserve special behavior
-- ✅ Error messages are helpful
+- ✅ Error messages are helpful and context-specific
 - ✅ No ASI references remain
 - ✅ Documentation updated
+- ✅ Migration guide provided
+- ✅ Performance no worse (ideally better)

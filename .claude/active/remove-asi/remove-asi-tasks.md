@@ -1,7 +1,7 @@
 # Remove ASI - Task Checklist
 
 **Created**: 2025-11-11
-**Last Updated**: 2025-11-11
+**Last Updated**: 2025-11-11 (enhanced with specific subtasks)
 
 ## Phase 0: Pre-flight Check
 - [ ] Run `npm run verify` - ensure clean starting point
@@ -15,15 +15,18 @@
   - [ ] Document required semicolons
   - [ ] Add examples
   - [ ] Document lambda newline exception
+  - [ ] **Document empty block behavior** (`{}` is valid)
+  - [ ] **Document EOF behavior** (semicolons required even at EOF)
+  - [ ] **Add design rationale** (clarity, consistency, simpler parsing)
 - [ ] Update `docs/spec/.agent-map.md`
 - [ ] Update `docs/spec/README.md`
 - [ ] Update `docs/spec/02-lexical-structure/README.md`
 - [ ] Search all spec files for "ASI" and update
 - [ ] Update code examples in:
-  - [ ] `docs/spec/04-expressions/`
-  - [ ] `docs/spec/05-pattern-matching/`
-  - [ ] `docs/spec/06-functions/`
-  - [ ] `docs/spec/10-javascript-interop/`
+  - [ ] `docs/spec/04-expressions/` (blocks, match, if-then-else)
+  - [ ] `docs/spec/05-pattern-matching/` (match with blocks)
+  - [ ] `docs/spec/06-functions/` (lambdas with blocks)
+  - [ ] `docs/spec/10-javascript-interop/` (**external blocks use semicolons**)
 - [ ] Update `packages/core/src/parser/CLAUDE.md`
 - [ ] Commit: "docs: update language spec to require semicolons"
 
@@ -84,8 +87,9 @@
 ### 3.2 Update Top-Level Declaration Parsing
 - [ ] Update `parseModule()` in `parser.ts`
 - [ ] Require explicit semicolons
-- [ ] Handle EOF correctly (no semicolon needed)
-- [ ] Add error messages
+- [ ] **Require semicolons even at EOF** (for consistency)
+- [ ] **Remove `else if (!this.isAtEnd())` check** (line 132)
+- [ ] Add error messages: "Expected semicolon after declaration"
 
 ### 3.3 Update Block Expression Parsing
 - [ ] Update block parsing in `parse-expressions.ts`
@@ -99,8 +103,10 @@
 
 ### 3.5 Update External Block Parsing
 - [ ] Update `parseExternalBlock()` in `parse-declarations.ts`
+- [ ] **Use semicolons as separators** (not commas, not newlines)
+- [ ] Remove newline-based separation logic (line 495)
 - [ ] Require semicolons after items
-- [ ] Add error messages
+- [ ] Add error messages: "Expected semicolon after external declaration"
 
 ### 3.6 Verify Let Expression Parsing
 - [ ] Check `parseLetExpr()` requires semicolons
@@ -128,11 +134,58 @@
 ### 4.2 Create Semicolon-Required Test File
 - [ ] Create `semicolon-required.test.ts`
 - [ ] Test missing semicolons produce errors
+  - [ ] Missing after top-level declarations
+  - [ ] Missing in blocks
+  - [ ] Missing at EOF
 - [ ] Test error messages are helpful
-- [ ] Test records still work
+  - [ ] Context-specific messages (declaration vs block vs external)
+  - [ ] Location shown
+  - [ ] Suggestions provided
+- [ ] Test records still work without semicolons
+  - [ ] Comma separators
+  - [ ] Newline separators
+  - [ ] Trailing comma
 - [ ] Test lambda newlines still work
-- [ ] Test edge cases (empty blocks, trailing semicolons, EOF, etc.)
+  - [ ] Multi-param: `(x, y)\n=> body`
+  - [ ] Single-param: `x\n=> body`
 - [ ] Test external block semicolons
+  - [ ] Semicolons required (not commas)
+  - [ ] Error when missing
+- [ ] **Test match expressions with block bodies**
+  - [ ] Match case with block: `| Some(v) => { let y = v; y + 1; }`
+  - [ ] Nested match expressions
+- [ ] **Test if-then-else with block bodies**
+  - [ ] If branches with blocks
+  - [ ] Multi-line if-then-else-if chains
+  - [ ] Nested if expressions
+- [ ] **Test while loops with blocks**
+  - [ ] While body with blocks
+  - [ ] Nested blocks in while loops
+  - [ ] Empty while block: `while c {}`
+- [ ] **Test lambda block bodies**
+  - [ ] Lambda with block: `(x) => { let y = x + 1; y * 2; }`
+  - [ ] Nested lambdas with blocks
+- [ ] **Test operator sections and type annotations**
+  - [ ] Operator sections in blocks: `let f = (+ 1);`
+  - [ ] Type annotations: `let x: Int = 1;`
+- [ ] **Test pipe operators and multi-line expressions**
+  - [ ] Pipe operator continuation
+  - [ ] Binary operators allow line continuation
+  - [ ] Semicolon required at end
+- [ ] **Test deep nesting scenarios**
+  - [ ] Blocks within match within blocks
+  - [ ] Mixed record/block contexts
+- [ ] **Test error recovery**
+  - [ ] Parser continues after error
+  - [ ] Multiple errors reported
+- [ ] **Test comments and whitespace**
+  - [ ] Single-line comments after semicolons
+  - [ ] Multi-line comments after semicolons
+  - [ ] Various whitespace
+- [ ] **Test edge cases**
+  - [ ] Empty blocks: `{}` valid
+  - [ ] Single statement blocks
+  - [ ] EOF with trailing semicolon
 
 ### 4.3 Update Expression Tests
 - [ ] Review `parse-expressions.test.ts`
@@ -189,7 +242,13 @@
 - [ ] Lambda newlines: `(x, y)\n=> x + y`
 - [ ] Single-param lambda: `x\n=> x + 1`
 - [ ] Comments: `let x = 1; // comment`
-- [ ] EOF: last declaration without semicolon
+- [ ] EOF: last declaration with required semicolon
+
+### 5.6 Performance Benchmarking
+- [ ] Run parser on large test files (if baseline exists)
+- [ ] Verify no performance regression
+- [ ] Document any performance improvements
+- [ ] Note: Removing ASI should make parsing faster
 
 - [ ] Commit: "chore: verify semicolon changes complete"
 
@@ -207,8 +266,22 @@
 
 ### 6.3 Document Breaking Changes
 - [ ] List what changed
-- [ ] Provide migration guidance
 - [ ] Show before/after examples
+
+### 6.3.1 Create Migration Guide
+- [ ] How to update existing code
+- [ ] Before/after examples for common patterns:
+  - [ ] Top-level declarations
+  - [ ] Block expressions
+  - [ ] External blocks
+  - [ ] Match expressions with blocks
+  - [ ] Lambda block bodies
+- [ ] Common mistakes to avoid
+- [ ] Estimate migration time (5-10 min per 100 lines)
+- [ ] **Design rationale section**:
+  - [ ] Why remove ASI?
+  - [ ] Language comparisons
+  - [ ] Benefits vs tradeoffs
 
 ### 6.4 Update Coding Standards
 - [ ] `.claude/CODING_STANDARDS.md`
