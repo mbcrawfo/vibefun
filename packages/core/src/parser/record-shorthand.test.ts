@@ -123,23 +123,30 @@ describe("Record Shorthand - Update with Spread", () => {
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
-            // Should have spread + field
-            expect(expr.updates.length).toBeGreaterThanOrEqual(2);
+            // First spread becomes the record field
+            expect(expr.record.kind).toBe("Var");
+            if (expr.record.kind !== "Var") return;
+            expect(expr.record.name).toBe("base");
 
-            const spreadField = expr.updates[0];
-            expect(spreadField?.kind).toBe("Spread");
+            // Only the shorthand field in updates
+            expect(expr.updates.length).toBe(1);
 
-            const nameField = expr.updates[1];
+            const nameField = expr.updates[0];
             if (!nameField || nameField.kind !== "Field") throw new Error("Expected Field");
             expect(nameField.name).toBe("name");
             expect(nameField.value.kind).toBe("Var");
+            if (nameField.value.kind !== "Var") return;
+            expect(nameField.value.name).toBe("name");
         });
 
         it("should parse multiple shorthand fields in update", () => {
             const expr = parseExpr("let updated = { ...base, name, age, active }");
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
-            expect(expr.updates.length).toBeGreaterThanOrEqual(4);
+
+            // First spread in record field, 3 fields in updates
+            expect(expr.record.kind).toBe("Var");
+            expect(expr.updates.length).toBe(3);
         });
 
         it("should parse mixed shorthand and regular in update", () => {
@@ -160,9 +167,17 @@ describe("Record Shorthand - Update with Spread", () => {
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
-            // Should have: spread, name, spread, age
+            // First spread (...base) in record field
+            expect(expr.record.kind).toBe("Var");
+            if (expr.record.kind !== "Var") return;
+            expect(expr.record.name).toBe("base");
+
+            // Updates has: name, ...extra, age (1 spread + 2 fields)
+            expect(expr.updates.length).toBe(3);
             const spreads = expr.updates.filter((f) => f.kind === "Spread");
-            expect(spreads.length).toBeGreaterThanOrEqual(2);
+            expect(spreads.length).toBe(1);
+            if (spreads[0]?.kind !== "Spread") return;
+            expect(spreads[0].expr.kind).toBe("Var");
         });
     });
 
@@ -175,7 +190,10 @@ describe("Record Shorthand - Update with Spread", () => {
             }`);
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
-            expect(expr.updates.length).toBeGreaterThanOrEqual(3);
+
+            // First spread in record field, 2 fields in updates
+            expect(expr.record.kind).toBe("Var");
+            expect(expr.updates.length).toBe(2);
         });
 
         it("should parse mixed fields in multi-line update", () => {
@@ -187,7 +205,10 @@ describe("Record Shorthand - Update with Spread", () => {
             }`);
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
-            expect(expr.updates.length).toBeGreaterThanOrEqual(4);
+
+            // First spread in record field, 3 fields in updates
+            expect(expr.record.kind).toBe("Var");
+            expect(expr.updates.length).toBe(3);
         });
     });
 });
