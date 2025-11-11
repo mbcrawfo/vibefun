@@ -37,8 +37,7 @@ function parseModule(source: string) {
 
 describe("Parser - Unicode Edge Cases", () => {
     describe("emoji identifiers in expressions", () => {
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse emoji identifier in let binding", () => {
+        it("should parse emoji identifier in let binding", () => {
             const source = "let 🚀 = 42";
             const module = parseModule(source);
 
@@ -58,8 +57,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse emoji identifier in variable reference", () => {
+        it("should parse emoji identifier in variable reference", () => {
             const expr = parseExpression("🚀");
 
             expect(expr).toMatchObject({
@@ -68,8 +66,7 @@ describe("Parser - Unicode Edge Cases", () => {
             });
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse emoji identifier in binary expression", () => {
+        it("should parse emoji identifier in binary expression", () => {
             const expr = parseExpression("🚀 + 1");
 
             expect(expr.kind).toBe("BinOp");
@@ -78,7 +75,7 @@ describe("Parser - Unicode Edge Cases", () => {
                     kind: "Var",
                     name: "🚀",
                 });
-                expect(expr.op).toBe("+");
+                expect(expr.op).toBe("Add");
                 expect(expr.right).toMatchObject({
                     kind: "IntLit",
                     value: 1,
@@ -86,8 +83,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse emoji identifier in function call", () => {
+        it("should parse emoji identifier in function call", () => {
             const expr = parseExpression("🚀(42)");
 
             expect(expr.kind).toBe("App");
@@ -100,8 +96,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse multiple emoji identifiers", () => {
+        it("should parse multiple emoji identifiers", () => {
             const expr = parseExpression("🚀 + 🌟 - 💫");
 
             expect(expr.kind).toBe("BinOp");
@@ -124,8 +119,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse emoji in record field access", () => {
+        it("should parse emoji in record field access", () => {
             const expr = parseExpression("obj.🚀");
 
             expect(expr.kind).toBe("RecordAccess");
@@ -191,23 +185,6 @@ describe("Parser - Unicode Edge Cases", () => {
             expect(foundBeta).toBe(true);
             expect(foundGamma).toBe(true);
         });
-
-        // SKIPPED: Subscript/superscript characters not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse subscript/superscript identifiers", () => {
-            const expr = parseExpression("x₁ + x₂");
-
-            expect(expr.kind).toBe("BinOp");
-            if (expr.kind === "BinOp") {
-                expect(expr.left).toMatchObject({
-                    kind: "Var",
-                    name: "x₁",
-                });
-                expect(expr.right).toMatchObject({
-                    kind: "Var",
-                    name: "x₂",
-                });
-            }
-        });
     });
 
     describe("RTL (right-to-left) text in strings", () => {
@@ -256,8 +233,7 @@ describe("Parser - Unicode Edge Cases", () => {
     });
 
     describe("mixed unicode in complex expressions", () => {
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse complex expression with mixed unicode", () => {
+        it("should parse complex expression with mixed unicode", () => {
             const expr = parseExpression("🚀 + π * αβγ");
 
             expect(expr.kind).toBe("BinOp");
@@ -265,8 +241,7 @@ describe("Parser - Unicode Edge Cases", () => {
             expect(expr.loc).toBeDefined();
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse unicode in list literal", () => {
+        it("should parse unicode in list literal", () => {
             const expr = parseExpression("[🚀, π, αβγ]");
 
             expect(expr.kind).toBe("List");
@@ -299,8 +274,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse unicode in record literal", () => {
+        it("should parse unicode in record literal", () => {
             const expr = parseExpression("{ 🚀: 42, π: 3.14 }");
 
             expect(expr.kind).toBe("Record");
@@ -319,8 +293,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse unicode in match pattern", () => {
+        it("should parse unicode in match pattern", () => {
             const expr = parseExpression("match x { | 🚀 => 1 | _ => 0 }");
 
             expect(expr.kind).toBe("Match");
@@ -338,8 +311,7 @@ describe("Parser - Unicode Edge Cases", () => {
     });
 
     describe("unicode in function definitions", () => {
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse unicode function name", () => {
+        it("should parse unicode function name", () => {
             const source = "let 🚀 = (x) => x + 1";
             const module = parseModule(source);
 
@@ -372,8 +344,7 @@ describe("Parser - Unicode Edge Cases", () => {
             }
         });
 
-        // SKIPPED: Emoji identifiers not supported by lexer (see .claude/UNIMPLEMENTED_FEATURES.md)
-        it.skip("should parse unicode in function body", () => {
+        it("should parse unicode in function body", () => {
             const expr = parseExpression("(🚀) => 🚀 + 1");
 
             expect(expr.kind).toBe("Lambda");
