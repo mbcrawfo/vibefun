@@ -1,15 +1,25 @@
 # Remove ASI - Context and Key Information
 
 **Created**: 2025-11-11
-**Last Updated**: 2025-11-11 (enhanced with edge cases and rationale)
+**Last Updated**: 2025-11-11 (baseline established)
+**Baseline Date**: 2025-11-11
+
+## Baseline Metrics (Phase 0)
+
+Established on 2025-11-11 before starting ASI removal:
+- ✅ Type checking: Pass
+- ✅ Linting: Pass
+- ✅ Tests: **2130 tests passing** (80 test files in @vibefun/core)
+- ✅ Formatting: All files unchanged
+- ✅ Clean git state
 
 ## Design Decisions Summary
 
-### Clarified Design Decisions (from comprehensive review)
+### Confirmed Design Decisions (User Approved 2025-11-11)
 
 1. **Empty blocks**: `{}` is valid without semicolon inside (common for no-op operations)
 2. **EOF behavior**: Semicolons required even at EOF for full consistency
-3. **External blocks**: Use semicolons as separators (consistent with declarations)
+3. **External blocks**: Use **semicolons** as separators (consistent with declarations)
 4. **Migration**: Manual updates only (no automated script)
 
 ### Semicolons REQUIRED:
