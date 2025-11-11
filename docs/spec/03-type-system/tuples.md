@@ -9,9 +9,9 @@ Tuples are **ordered, fixed-size, heterogeneous** product types. They allow grou
 Tuples are constructed using comma-separated expressions enclosed in parentheses:
 
 ```vibefun
-let pair = (1, 2)                    // Tuple of two Ints
-let triple = ("Alice", 30, true)     // Tuple of String, Int, Bool
-let nested = ((1, 2), (3, 4))        // Nested tuples
+let pair = (1, 2);                    // Tuple of two Ints
+let triple = ("Alice", 30, true);     // Tuple of String, Int, Bool
+let nested = ((1, 2), (3, 4));        // Nested tuples
 ```
 
 #### Tuple Types
@@ -19,16 +19,16 @@ let nested = ((1, 2), (3, 4))        // Nested tuples
 Tuple types are written using comma-separated types in parentheses:
 
 ```vibefun
-let point: (Int, Int) = (10, 20)
-let person: (String, Int, Bool) = ("Bob", 25, false)
-let pair: (Float, String) = (3.14, "pi")
+let point: (Int, Int) = (10, 20);
+let person: (String, Int, Bool) = ("Bob", 25, false);
+let pair: (Float, String) = (3.14, "pi");
 ```
 
 Type inference works naturally with tuples:
 
 ```vibefun
-let coords = (5, 10)           // Inferred as (Int, Int)
-let mixed = (true, "yes", 42)  // Inferred as (Bool, String, Int)
+let coords = (5, 10);  // Inferred as (Int, Int)
+let mixed = (true, "yes", 42);  // Inferred as (Bool, String, Int)
 ```
 
 #### Tuple Element Access
@@ -37,16 +37,16 @@ Tuples are **not** accessed by numeric indices like `tuple.0` or `tuple[0]`. Ins
 
 ```vibefun
 // Pattern matching
-let pair = (10, 20)
+let pair = (10, 20);
 match pair {
     | (x, y) => x + y  // Destructure to get x=10, y=20
 }
 
 // Let destructuring
-let (a, b) = (100, 200)
+let (a, b) = (100, 200);
 // a = 100, b = 200
 
-let (name, age, active) = ("Alice", 30, true)
+let (name, age, active) = ("Alice", 30, true);
 // name = "Alice", age = 30, active = true
 ```
 
@@ -55,10 +55,10 @@ let (name, age, active) = ("Alice", 30, true)
 Tuples can be destructured at arbitrary nesting levels:
 
 ```vibefun
-let nested = ((1, 2), (3, 4))
+let nested = ((1, 2), (3, 4));
 
 // Destructure nested tuple
-let ((a, b), (c, d)) = nested
+let ((a, b), (c, d)) = nested;
 // a=1, b=2, c=3, d=4
 
 match nested {
@@ -92,13 +92,13 @@ Tuples and records are distinct types with different use cases:
 
 ```vibefun
 // Tuples for temporary grouping
-let divMod = (a, b) => (a / b, a % b)
-let (quotient, remainder) = divMod(17, 5)
+let divMod = (a, b) => (a / b, a % b);
+let (quotient, remainder) = divMod(17, 5);
 
 // Records for structured data
-type Person = { name: String, age: Int, email: String }
-let person = { name: "Alice", age: 30, email: "alice@example.com" }
-let name = person.name
+type Person = { name: String, age: Int, email: String };
+let person = { name: "Alice", age: 30, email: "alice@example.com" };
+let name = person.name;
 ```
 
 #### Tuples in Function Signatures
@@ -108,24 +108,24 @@ Tuples can be used in function parameters and return types:
 ```vibefun
 // Return tuple
 let swap = (pair: (Int, Int)): (Int, Int) => {
-    let (a, b) = pair
-    (b, a)
+    let (a, b) = pair;
+    (b, a);
 }
 
 // Multiple return values via tuple
 let minMax = (a: Int, b: Int): (Int, Int) =>
-    if a < b then (a, b) else (b, a)
+    if a < b then (a, b) else (b, a);
 
-let (min, max) = minMax(10, 5)
+let (min, max) = minMax(10, 5);
 // min = 5, max = 10
 
 // Tuple as parameter (must destructure in body)
 let distance = (p: (Int, Int)): Float => {
-    let (x, y) = p
-    Float.sqrt(x * x + y * y)
+    let (x, y) = p;
+    Float.sqrt(x * x + y * y);
 }
 
-distance((3, 4))  // 5.0
+distance((3, 4));  // 5.0
 ```
 
 #### Unit Type as Empty Tuple
@@ -133,11 +133,11 @@ distance((3, 4))  // 5.0
 The unit type `()` is conceptually a **zero-element tuple** - a tuple with no elements:
 
 ```vibefun
-let nothing: Unit = ()
-let nothing: () = ()  // Equivalent - Unit is the 0-tuple
+let nothing: Unit = ();
+let nothing: () = ();  // Equivalent - Unit is the 0-tuple
 
 // Functions returning Unit return "no value"
-let log = (msg: String): () => unsafe { console.log(msg) }
+let log = (msg: String): () => unsafe { console.log(msg) };
 ```
 
 This makes `()` consistent with the tuple family:
@@ -152,13 +152,13 @@ This makes `()` consistent with the tuple family:
 **Important:** There are **no single-element tuples** in Vibefun. Parentheses around a single expression are just grouping, not tuple construction:
 
 ```vibefun
-let x = (42)         // Just Int, not a tuple
-let y: (Int) = 42    // Type annotation with parens, still just Int
-let z = ((((5))))    // Still just Int
+let x = (42);  // Just Int, not a tuple
+let y: (Int) = 42;  // Type annotation with parens, still just Int
+let z = ((((5))));  // Still just Int
 
 // To create a tuple, you need at least 2 elements
-let pair = (1, 2)    // ✅ Tuple
-let single = (1)     // ❌ Not a tuple, just Int
+let pair = (1, 2);  // ✅ Tuple
+let single = (1);  // ❌ Not a tuple, just Int
 ```
 
 This is consistent with mathematical notation and avoids ambiguity with grouping parentheses.
@@ -176,9 +176,9 @@ let describe = (point: (Int, Int)) => match point {
     | (x, y) => "at (" & String.fromInt(x) & ", " & String.fromInt(y) & ")"
 }
 
-describe((0, 0))   // "origin"
-describe((5, 5))   // "on diagonal"
-describe((3, 7))   // "at (3, 7)"
+describe((0, 0));  // "origin"
+describe((5, 5));  // "on diagonal"
+describe((3, 7));  // "at (3, 7)"
 ```
 
 #### Tuple Type Inference
@@ -187,12 +187,12 @@ The type checker infers tuple types naturally:
 
 ```vibefun
 // Inferred as (Int, String)
-let pair = (42, "answer")
+let pair = (42, "answer");
 
 // Polymorphic tuple function
 let fst = (tuple) => {
-    let (a, _) = tuple
-    a
+    let (a, _) = tuple;
+    a;
 }
 // Inferred type: <A, B>((A, B)) -> A
 
@@ -201,8 +201,8 @@ fst(("hello", 42))  // "hello": String
 
 // Second element accessor
 let snd = (tuple) => {
-    let (_, b) = tuple
-    b
+    let (_, b) = tuple;
+    b;
 }
 // Inferred type: <A, B>((A, B)) -> B
 ```
@@ -213,18 +213,18 @@ Tuples work naturally with generic types:
 
 ```vibefun
 // Generic pair type
-type Pair<A, B> = (A, B)
+type Pair<A, B> = (A, B);
 
-let intPair: Pair<Int, Int> = (1, 2)
-let mixedPair: Pair<String, Bool> = ("active", true)
+let intPair: Pair<Int, Int> = (1, 2);
+let mixedPair: Pair<String, Bool> = ("active", true);
 
 // Generic functions over tuples
 let mapPair = <A, B, C, D>(f: (A) -> C, g: (B) -> D, pair: (A, B)): (C, D) => {
-    let (a, b) = pair
-    (f(a), g(b))
+    let (a, b) = pair;
+    (f(a), g(b));
 }
 
-let doubled = mapPair((x) => x * 2, (y) => y * 2, (5, 10))
+let doubled = mapPair((x) => x * 2, (y) => y * 2, (5, 10));
 // (10, 20): (Int, Int)
 ```
 
@@ -234,36 +234,36 @@ Type aliases can name tuple types for clarity:
 
 ```vibefun
 // Aliases for common tuple types
-type Point2D = (Int, Int)
-type Point3D = (Int, Int, Int)
-type RGB = (Int, Int, Int)
-type Range = (Int, Int)
+type Point2D = (Int, Int);
+type Point3D = (Int, Int, Int);
+type RGB = (Int, Int, Int);
+type Range = (Int, Int);
 
-let origin: Point2D = (0, 0)
-let color: RGB = (255, 128, 0)
-let range: Range = (1, 100)
+let origin: Point2D = (0, 0);
+let color: RGB = (255, 128, 0);
+let range: Range = (1, 100);
 
 // Functions using aliased tuple types
 let inRange = (value: Int, range: Range): Bool => {
-    let (min, max) = range
-    value >= min && value <= max
+    let (min, max) = range;
+    value >= min && value <= max;
 }
 
-inRange(50, (1, 100))  // true
+inRange(50, (1, 100));  // true
 ```
 
 **Note:** These are **transparent aliases** - `Point2D` and `(Int, Int)` are **the same type**. This differs from nominal types (variants/records with `type` declarations).
 
 ```vibefun
-type Point2D = (Int, Int)
-type Vector2D = (Int, Int)
+type Point2D = (Int, Int);
+type Vector2D = (Int, Int);
 
-let p: Point2D = (1, 2)
-let v: Vector2D = p  // ✅ OK - same underlying type (Int, Int)
+let p: Point2D = (1, 2);
+let v: Vector2D = p;  // ✅ OK - same underlying type (Int, Int)
 
 // Compare to nominal record types:
-type PointRec = { x: Int, y: Int }
-type VectorRec = { x: Int, y: Int }
+type PointRec = { x: Int, y: Int };
+type VectorRec = { x: Int, y: Int };
 // These are DIFFERENT nominal types despite identical structure
 ```
 
@@ -272,14 +272,14 @@ type VectorRec = { x: Int, y: Int }
 **Destructuring requirements:**
 
 ```vibefun
-let pair = (1, 2)
+let pair = (1, 2);
 
 // ❌ Error: Cannot access tuple elements by index
-let x = pair.0      // Compile error
-let y = pair[0]     // Compile error
+let x = pair.0;  // Compile error
+let y = pair[0];  // Compile error
 
 // ✅ Must destructure
-let (x, y) = pair
+let (x, y) = pair;
 ```
 
 **Exhaustiveness in pattern matching:**
@@ -303,7 +303,7 @@ Tuples have a fixed number of elements determined at compile time. You cannot ha
 
 ```vibefun
 // ✅ Fixed-size tuple
-let triple = (1, 2, 3)
+let triple = (1, 2, 3);
 
 // For variable-length collections, use List
 let numbers = [1, 2, 3, 4, 5]  // List<Int>
@@ -314,10 +314,10 @@ let numbers = [1, 2, 3, 4, 5]  // List<Int>
 Destructuring must match the exact number of tuple elements. Arity mismatches are **compile-time errors**:
 
 ```vibefun
-let pair = (10, 20)
+let pair = (10, 20);
 
 // ❌ Too few variables
-let (x) = pair
+let (x) = pair;
 // Error: Cannot destructure tuple of size 2 into pattern with 1 variable
 //   Expected: (T1, T2)
 //   Got pattern: (x)
@@ -327,7 +327,7 @@ let (x) = pair
 //   Help: Tuple has 2 elements, provide 2 variables: let (x, y) = pair
 
 // ❌ Too many variables
-let (x, y, z) = pair
+let (x, y, z) = pair;
 // Error: Cannot destructure tuple of size 2 into pattern with 3 variables
 //   Expected: (T1, T2)
 //   Got pattern: (x, y, z)
@@ -337,7 +337,7 @@ let (x, y, z) = pair
 //   Help: Tuple has 2 elements, provide 2 variables: let (x, y) = pair
 
 // ✅ Correct arity
-let (x, y) = pair  // OK: matches tuple size
+let (x, y) = pair;  // OK: matches tuple size
 ```
 
 **Arity in pattern matching:**
@@ -345,7 +345,7 @@ let (x, y) = pair  // OK: matches tuple size
 Pattern match arms must also have correct arity:
 
 ```vibefun
-let triple = (1, 2, 3)
+let triple = (1, 2, 3);
 
 match triple {
     // ❌ Wrong arity in pattern
@@ -371,16 +371,16 @@ match triple {
 Wildcard patterns (`_`) still count toward arity - they must match the tuple size:
 
 ```vibefun
-let pair = (10, 20)
+let pair = (10, 20);
 
 // ✅ OK: 2 patterns for 2 elements
-let (x, _) = pair      // Bind first, ignore second
+let (x, _) = pair;  // Bind first, ignore second
 
 // ✅ OK: Ignore both
-let (_, _) = pair
+let (_, _) = pair;
 
 // ❌ Wrong arity even with wildcards
-let (x, _, _) = pair   // Error: 3 patterns for 2-tuple
+let (x, _, _) = pair;  // Error: 3 patterns for 2-tuple
 ```
 
 **Rationale:**
@@ -396,15 +396,15 @@ Arity checking at compile time:
 Tuples are structurally typed - two tuple types with the same element types in the same order are equivalent:
 
 ```vibefun
-let a: (Int, String) = (1, "hello")
-let b: (Int, String) = a  // ✅ Same type
+let a: (Int, String) = (1, "hello");
+let b: (Int, String) = a;  // ✅ Same type
 
 // Different order = different type
-let c: (String, Int) = a  // ❌ Error: (Int, String) ≠ (String, Int)
+let c: (String, Int) = a;  // ❌ Error: (Int, String) ≠ (String, Int)
 
 // Different arity = different type
-let d: (Int, String, Bool) = (1, "hi", true)
-let e: (Int, String) = d   // ❌ Error: Different tuple sizes
+let d: (Int, String, Bool) = (1, "hi", true);
+let e: (Int, String) = d;  // ❌ Error: Different tuple sizes
 ```
 
 #### Implementation Notes
@@ -415,7 +415,7 @@ Tuples are compiled to JavaScript arrays:
 
 ```vibefun
 // Vibefun
-let pair = (1, 2)
+let pair = (1, 2);
 ```
 
 ```javascript

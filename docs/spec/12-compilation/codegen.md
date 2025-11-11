@@ -213,14 +213,14 @@ All multi-parameter functions support automatic currying and partial application
 
 **Example behavior:**
 ```vibefun
-let add = (x, y) => x + y
+let add = (x, y) => x + y;
 
 // Partial application
-let add5 = add(5)        // Returns function waiting for y
-let result = add5(3)     // Returns 8
+let add5 = add(5);  // Returns function waiting for y
+let result = add5(3);  // Returns 8
 
 // Full application
-let result = add(5, 3)   // Returns 8 directly
+let result = add(5, 3);  // Returns 8 directly
 ```
 
 #### Evaluation Guarantee
@@ -243,7 +243,7 @@ let result = add(5, 3)   // Returns 8 directly
 **Example:**
 ```vibefun
 // Arguments evaluated left-to-right
-let result = f(g(), h(), i())
+let result = f(g(), h(), i());
 // Evaluation order: g(), then h(), then i(), then f()
 ```
 
@@ -260,12 +260,12 @@ let makeCounter = () => {
   mut count = 0;
   () => {
     count := !count + 1;
-    !count
+    !count;
   }
 }
 
-let counter1 = makeCounter()  // counter1 captures its own count reference
-let counter2 = makeCounter()  // counter2 captures a different count reference
+let counter1 = makeCounter();  // counter1 captures its own count reference
+let counter2 = makeCounter();  // counter2 captures a different count reference
 ```
 
 #### Capture Semantics
@@ -283,8 +283,8 @@ let counter2 = makeCounter()  // counter2 captures a different count reference
 **Example:**
 ```vibefun
 let rec factorial = (n) =>
-  if n <= 1 then 1
-  else n * factorial(n - 1)
+  if n <= 1 then 1;
+  else n * factorial(n - 1);
 ```
 
 #### Mutual Recursion
@@ -388,8 +388,8 @@ This section specifies how Vibefun identifiers map to JavaScript identifiers.
 
 **Example:**
 ```vibefun
-type Option<T> = Some(T) | None
-type Result<T, E> = Ok(T) | Error(E)
+type Option<T> = Some(T) | None;
+type Result<T, E> = Ok(T) | Error(E);
 
 // "None" and "Error" must be distinguishable from other constructors
 ```

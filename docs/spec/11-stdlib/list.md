@@ -5,7 +5,7 @@ The `List` module provides functional operations for working with immutable link
 ## List Type
 
 ```vibefun
-type List<T> = [] | [T, ...List<T>]
+type List<T> = [] | [T, ...List<T>];
 ```
 
 Lists are immutable, singly-linked sequences. Operations that "modify" lists return new lists.
@@ -13,10 +13,10 @@ Lists are immutable, singly-linked sequences. Operations that "modify" lists ret
 ## List Construction
 
 ```vibefun
-let empty = []                    // Empty list
-let nums = [1, 2, 3]             // List literal
-let spread = [0, ...nums, 4]     // Spread operator
-let cons = [1, 2, 3]             // Equivalent to [1, ...[ 2, ...[3, ...[]]]]
+let empty = [];  // Empty list
+let nums = [1, 2, 3];  // List literal
+let spread = [0, ...nums, 4];  // Spread operator
+let cons = [1, 2, 3];  // Equivalent to [1, ...[ 2, ...[3, ...[]]]]
 ```
 
 ## Core Functions
@@ -38,13 +38,13 @@ List.map: <A, B>(List<A>, (A) -> B) -> List<B>
 **Examples:**
 
 ```vibefun
-List.map([1, 2, 3], (x) => x * 2)
+List.map([1, 2, 3], (x) => x * 2);
 // [2, 4, 6]
 
-List.map([], (x) => x * 2)
+List.map([], (x) => x * 2);
 // []
 
-List.map(["a", "b"], String.length)
+List.map(["a", "b"], String.length);
 // [1, 1]
 ```
 
@@ -69,13 +69,13 @@ List.filter: <A>(List<A>, (A) -> Bool) -> List<A>
 **Examples:**
 
 ```vibefun
-List.filter([1, 2, 3, 4, 5], (x) => x % 2 == 0)
+List.filter([1, 2, 3, 4, 5], (x) => x % 2 == 0);
 // [2, 4]
 
-List.filter([1, 3, 5], (x) => x % 2 == 0)
+List.filter([1, 3, 5], (x) => x % 2 == 0);
 // []
 
-List.filter([], (x) => true)
+List.filter([], (x) => true);
 // []
 ```
 
@@ -103,22 +103,22 @@ List.fold: <A, B>(List<A>, B, (B, A) -> B) -> B
 
 ```vibefun
 // Sum
-List.fold([1, 2, 3, 4], 0, (acc, x) => acc + x)
+List.fold([1, 2, 3, 4], 0, (acc, x) => acc + x);
 // 10
 // Evaluation: fold(0, 1) -> 1, fold(1, 2) -> 3, fold(3, 3) -> 6, fold(6, 4) -> 10
 
 // Build reversed list
-List.fold([1, 2, 3], [], (acc, x) => [x, ...acc])
+List.fold([1, 2, 3], [], (acc, x) => [x, ...acc]);
 // [3, 2, 1]
 
 // Concatenate strings with separator
 List.fold(["a", "b", "c"], "", (acc, x) =>
-    if acc == "" then x else acc & "," & x
+    if acc == "" then x else acc & "," & x;
 )
 // "a,b,c"
 
 // Empty list
-List.fold([], 100, (acc, x) => acc + x)
+List.fold([], 100, (acc, x) => acc + x);
 // 100
 ```
 
@@ -145,19 +145,19 @@ List.foldRight: <A, B>(List<A>, B, (A, B) -> B) -> B
 
 ```vibefun
 // Build list (preserves order, unlike fold)
-List.foldRight([1, 2, 3], [], (x, acc) => [x, ...acc])
+List.foldRight([1, 2, 3], [], (x, acc) => [x, ...acc]);
 // [1, 2, 3]
 
 // Subtraction (demonstrates order difference from fold)
-List.fold([1, 2, 3], 0, (acc, x) => acc - x)
+List.fold([1, 2, 3], 0, (acc, x) => acc - x);
 // 0 - 1 - 2 - 3 = -6
 
-List.foldRight([1, 2, 3], 0, (x, acc) => x - acc)
+List.foldRight([1, 2, 3], 0, (x, acc) => x - acc);
 // 1 - (2 - (3 - 0)) = 1 - (2 - 3) = 1 - (-1) = 2
 
 // Flatten nested lists
-let nested = [[1, 2], [3, 4], [5]]
-List.foldRight(nested, [], (xs, acc) => List.concat(xs, acc))
+let nested = [[1, 2], [3, 4], [5]];
+List.foldRight(nested, [], (xs, acc) => List.concat(xs, acc));
 // [1, 2, 3, 4, 5]
 ```
 
@@ -178,9 +178,9 @@ List.length: <A>(List<A>) -> Int
 **Examples:**
 
 ```vibefun
-List.length([1, 2, 3])      // 3
-List.length([])             // 0
-List.length([[1], [2, 3]])  // 2 (counts top-level elements only)
+List.length([1, 2, 3]);  // 3
+List.length([]);  // 0
+List.length([[1], [2, 3]]);  // 2 (counts top-level elements only)
 ```
 
 **Performance:** O(n) time (must traverse entire list)
@@ -189,7 +189,7 @@ List.length([[1], [2, 3]])  // 2 (counts top-level elements only)
 
 ```vibefun
 // ❌ Inefficient
-if List.length(xs) == 0 then ...
+if List.length(xs) == 0 then ...;
 
 // ✅ Efficient
 match xs {
@@ -216,9 +216,9 @@ List.head: <A>(List<A>) -> Option<A>
 **Examples:**
 
 ```vibefun
-List.head([1, 2, 3])  // Some(1)
-List.head([42])       // Some(42)
-List.head([])         // None
+List.head([1, 2, 3]);  // Some(1)
+List.head([42]);  // Some(42)
+List.head([]);  // None
 ```
 
 **Performance:** O(1) time
@@ -250,9 +250,9 @@ List.tail: <A>(List<A>) -> Option<List<A>>
 **Examples:**
 
 ```vibefun
-List.tail([1, 2, 3])  // Some([2, 3])
-List.tail([42])       // Some([])
-List.tail([])         // None
+List.tail([1, 2, 3]);  // Some([2, 3])
+List.tail([42]);  // Some([])
+List.tail([]);  // None
 ```
 
 **Performance:** O(1) time
@@ -270,9 +270,9 @@ List.reverse: <A>(List<A>) -> List<A>
 **Examples:**
 
 ```vibefun
-List.reverse([1, 2, 3])  // [3, 2, 1]
-List.reverse([42])       // [42]
-List.reverse([])         // []
+List.reverse([1, 2, 3]);  // [3, 2, 1]
+List.reverse([42]);  // [42]
+List.reverse([]);  // []
 ```
 
 **Performance:** O(n) time, O(n) space
@@ -280,7 +280,7 @@ List.reverse([])         // []
 **Implementation note:** Can be implemented using `List.fold`:
 
 ```vibefun
-let reverse = (xs) => List.fold(xs, [], (acc, x) => [x, ...acc])
+let reverse = (xs) => List.fold(xs, [], (acc, x) => [x, ...acc]);
 ```
 
 ---
@@ -302,10 +302,10 @@ List.concat: <A>(List<A>, List<A>) -> List<A>
 **Examples:**
 
 ```vibefun
-List.concat([1, 2], [3, 4])     // [1, 2, 3, 4]
-List.concat([], [1, 2])         // [1, 2]
-List.concat([1, 2], [])         // [1, 2]
-List.concat([], [])             // []
+List.concat([1, 2], [3, 4]);  // [1, 2, 3, 4]
+List.concat([], [1, 2]);  // [1, 2]
+List.concat([1, 2], []);  // [1, 2]
+List.concat([], []);  // []
 ```
 
 **Performance:** O(n) where n is the length of the first list
@@ -332,17 +332,17 @@ List.flatten: <A>(List<List<A>>) -> List<A>
 **Examples:**
 
 ```vibefun
-List.flatten([[1, 2], [3, 4], [5]])
+List.flatten([[1, 2], [3, 4], [5]]);
 // [1, 2, 3, 4, 5]
 
-List.flatten([[], [1], [], [2, 3], []])
+List.flatten([[], [1], [], [2, 3], []]);
 // [1, 2, 3]
 
-List.flatten([])
+List.flatten([]);
 // []
 
 // Only flattens one level
-List.flatten([[[1, 2]], [[3, 4]]])
+List.flatten([[[1, 2]], [[3, 4]]]);
 // [[1, 2], [3, 4]]  (not [1, 2, 3, 4])
 ```
 
@@ -352,7 +352,7 @@ List.flatten([[[1, 2]], [[3, 4]]])
 
 ```vibefun
 let flatten = (xss) =>
-    List.foldRight(xss, [], (xs, acc) => List.concat(xs, acc))
+    List.foldRight(xss, [], (xs, acc) => List.concat(xs, acc));
 ```
 
 ---
@@ -366,7 +366,7 @@ These functions are not in the initial standard library but can be implemented u
 ```vibefun
 // Append element to end (inefficient - O(n))
 let append = <A>(xs: List<A>, x: A): List<A> =>
-    List.concat(xs, [x])
+    List.concat(xs, [x]);
 ```
 
 **Note:** Appending to the end of a list is O(n). Prefer prepending `[x, ...xs]` (O(1)) and reversing if needed.
@@ -376,7 +376,7 @@ let append = <A>(xs: List<A>, x: A): List<A> =>
 ```vibefun
 // Take first n elements
 let rec take = <A>(xs: List<A>, n: Int): List<A> =>
-    if n <= 0 then []
+    if n <= 0 then [];
     else match xs {
         | [] => []
         | [head, ...tail] => [head, ...take(tail, n - 1)]
@@ -388,7 +388,7 @@ let rec take = <A>(xs: List<A>, n: Int): List<A> =>
 ```vibefun
 // Drop first n elements
 let rec drop = <A>(xs: List<A>, n: Int): List<A> =>
-    if n <= 0 then xs
+    if n <= 0 then xs;
     else match xs {
         | [] => []
         | [head, ...tail] => drop(tail, n - 1)
@@ -400,8 +400,8 @@ let rec drop = <A>(xs: List<A>, n: Int): List<A> =>
 ```vibefun
 // Create range [start, start+1, ..., end-1]
 let rec range = (start: Int, end: Int): List<Int> =>
-    if start >= end then []
-    else [start, ...range(start + 1, end)]
+    if start >= end then [];
+    else [start, ...range(start + 1, end)];
 ```
 
 ### List.contains
@@ -424,7 +424,7 @@ let rec contains = <A>(xs: List<A>, target: A): Bool =>
 Due to the value restriction, binding an empty list creates a monomorphic type:
 
 ```vibefun
-let empty = []  // Type: List<T> where T is a fresh type variable
+let empty = [];  // Type: List<T> where T is a fresh type variable
 
 // First use determines the type
 let numbers = [1, ...empty]  // T := Int, empty: List<Int>
@@ -434,7 +434,7 @@ let strings = ["hello", ...empty]  // ❌ Error: empty is already List<Int>
 To maintain polymorphism, use a function:
 
 ```vibefun
-let empty = <A>(): List<A> => []
+let empty = <A>(): List<A> => [];
 
 // Now each call gets fresh type
 let numbers = [1, ...empty()]   // List<Int>
@@ -447,15 +447,15 @@ Functions like `foldRight` are not tail recursive and can overflow on large list
 
 ```vibefun
 // May overflow with lists >10,000 elements
-let huge = List.range(0, 100000)
-List.foldRight(huge, 0, (x, acc) => x + acc)  // ⚠️ Stack overflow risk
+let huge = List.range(0, 100000);
+List.foldRight(huge, 0, (x, acc) => x + acc);  // ⚠️ Stack overflow risk
 ```
 
 Use `fold` instead when possible (tail recursive):
 
 ```vibefun
 // Safe for large lists
-List.fold(huge, 0, (acc, x) => acc + x)  // ✅ OK
+List.fold(huge, 0, (acc, x) => acc + x);  // ✅ OK
 ```
 
 ### List Performance Characteristics
@@ -479,7 +479,7 @@ List.fold(huge, 0, (acc, x) => acc + x)  // ✅ OK
 ### Mapping multiple transformations
 
 ```vibefun
-[1, 2, 3, 4]
+[1, 2, 3, 4];
     |> List.map((x) => x * 2)
     |> List.filter((x) => x > 4)
     |> List.map((x) => x - 1)
@@ -491,7 +491,7 @@ List.fold(huge, 0, (acc, x) => acc + x)  // ✅ OK
 ```vibefun
 // Double all elements (using fold)
 let double = (xs) =>
-    List.foldRight(xs, [], (x, acc) => [x * 2, ...acc])
+    List.foldRight(xs, [], (x, acc) => [x * 2, ...acc]);
 ```
 
 ### Finding maximum
@@ -501,7 +501,7 @@ let max = (xs: List<Int>): Option<Int> =>
     match xs {
         | [] => None
         | [head, ...tail] => Some(
-            List.fold(tail, head, (acc, x) => if x > acc then x else acc)
+            List.fold(tail, head, (acc, x) => if x > acc then x else acc);
         )
     }
 ```
@@ -511,9 +511,9 @@ let max = (xs: List<Int>): Option<Int> =>
 ```vibefun
 // Partition into (evens, odds)
 let partition = (xs: List<Int>): (List<Int>, List<Int>) => {
-    let evens = List.filter(xs, (x) => x % 2 == 0)
-    let odds = List.filter(xs, (x) => x % 2 != 0)
-    (evens, odds)
+    let evens = List.filter(xs, (x) => x % 2 == 0);
+    let odds = List.filter(xs, (x) => x % 2 != 0);
+    (evens, odds);
 }
 ```
 

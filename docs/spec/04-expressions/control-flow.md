@@ -6,12 +6,12 @@ If expressions are expressions that evaluate to a value based on a condition. Bo
 
 ```vibefun
 let max = (a, b) =>
-    if a > b then a else b
+    if a > b then a else b;
 
 let sign = (x) =>
-    if x > 0 then "positive"
-    else if x < 0 then "negative"
-    else "zero"
+    if x > 0 then "positive";
+    else if x < 0 then "negative";
+    else "zero";
 ```
 
 #### If-Then-Else (Complete Form)
@@ -20,20 +20,20 @@ The standard form requires both `then` and `else` branches:
 
 ```vibefun
 // Basic if-then-else
-let result = if condition then valueIfTrue else valueIfFalse
+let result = if condition then valueIfTrue else valueIfFalse;
 
 // Multi-line form
-let result = if condition then
-    expensiveComputation()
-else
-    defaultValue
+let result = if condition then;
+    expensiveComputation();
+else;
+    defaultValue;
 
 // Nested if (else-if chain)
-let category = if score >= 90 then "A"
-    else if score >= 80 then "B"
-    else if score >= 70 then "C"
-    else if score >= 60 then "D"
-    else "F"
+let category = if score >= 90 then "A";
+    else if score >= 80 then "B";
+    else if score >= 70 then "C";
+    else if score >= 60 then "D";
+    else "F";
 ```
 
 **Type requirements:**
@@ -42,11 +42,11 @@ let category = if score >= 90 then "A"
 - The entire if expression has the type of the branches
 
 ```vibefun
-let x = if true then 42 else 100  // Type: Int
-let y = if false then "hello" else "world"  // Type: String
+let x = if true then 42 else 100;  // Type: Int
+let y = if false then "hello" else "world";  // Type: String
 
 // ❌ Type error: branches have different types
-let bad = if condition then 42 else "hello"
+let bad = if condition then 42 else "hello";
 // Error: Expected Int in else branch, got String
 ```
 
@@ -56,17 +56,17 @@ If the `else` branch is omitted, the expression returns `()` (Unit) when the con
 
 ```vibefun
 // If without else
-if condition then sideEffect()
+if condition then sideEffect();
 // Type: Unit (returns () when condition is false)
 
 // Equivalent to:
-if condition then sideEffect() else ()
+if condition then sideEffect() else ();
 
 // Useful for side effects
-if debug then unsafe { console_log("Debug message") }
+if debug then unsafe { console_log("Debug message"); };
 
 // The then branch must also have type Unit:
-if condition then 42  // ❌ Error: then branch is Int, but if without else must have type Unit
+if condition then 42;  // ❌ Error: then branch is Int, but if without else must have type Unit
 ```
 
 **Rules for if without else:**
@@ -76,16 +76,16 @@ if condition then 42  // ❌ Error: then branch is Int, but if without else must
 
 ```vibefun
 // ✅ OK: then branch returns Unit
-if condition then print("message")
+if condition then print("message");
 
 // ✅ OK: block returns Unit
 if condition then {
     doSomething();
-    doSomethingElse()
-}
+    doSomethingElse();
+};
 
 // ❌ Error: then branch returns Int, not Unit
-if condition then 42
+if condition then 42;
 ```
 
 #### If Expression Type Rules
@@ -101,20 +101,20 @@ if condition then 42
 
 ```vibefun
 // Both branches same type
-let x: Int = if condition then 1 else 2  // OK
+let x: Int = if condition then 1 else 2;  // OK
 
 // Polymorphic if (type variable)
-let id = (x) => if true then x else x  // OK: both branches are x
+let id = (x) => if true then x else x;  // OK: both branches are x
 
 // Nested ifs
-let result = if a then
-    if b then 1 else 2
-else
-    if c then 3 else 4
+let result = if a then;
+    if b then 1 else 2;
+else;
+    if c then 3 else 4;
 // Type: Int
 
 // If without else must be Unit
-let action = if shouldAct then performAction()
+let action = if shouldAct then performAction();
 // OK if performAction returns Unit
 ```
 
@@ -126,13 +126,13 @@ If expressions use **short-circuit evaluation**:
 
 ```vibefun
 // Safe: second branch never evaluated when x is 0
-let safe = if x == 0 then 0 else 10 / x
+let safe = if x == 0 then 0 else 10 / x;
 
 // The unevaluated branch can have side effects
-let result = if condition then
-    unsafe { console_log("then branch") }
-else
-    unsafe { console_log("else branch") }
+let result = if condition then;
+    unsafe { console_log("then branch"); };
+else;
+    unsafe { console_log("else branch"); };
 // Only one message is printed
 ```
 
@@ -159,7 +159,7 @@ While loops provide imperative-style iteration when working with mutable referen
 
 ```vibefun
 while condition {
-    body
+    body;
 }
 ```
 
@@ -175,12 +175,12 @@ while condition {
 **Basic while loop:**
 
 ```vibefun
-let mut i = ref(0)
+let mut i = ref(0);
 
 while !i < 10 {
-    unsafe { console.log(String.fromInt(!i)) }
-    i := !i + 1
-}
+    unsafe { console.log(String.fromInt(!i)); };
+    i := !i + 1;
+};
 // Prints: 0 1 2 3 4 5 6 7 8 9
 ```
 
@@ -188,18 +188,18 @@ while !i < 10 {
 
 ```vibefun
 let factorial = (n: Int): Int => {
-    let mut result = ref(1)
-    let mut i = ref(1)
+    let mut result = ref(1);
+    let mut i = ref(1);
 
     while !i <= n {
-        result := !result * !i
-        i := !i + 1
-    }
+        result := !result * !i;
+        i := !i + 1;
+    };
 
-    !result
-}
+    !result;
+};
 
-factorial(5)  // 120
+factorial(5);  // 120
 ```
 
 **Early termination pattern:**
@@ -207,16 +207,16 @@ factorial(5)  // 120
 While loops don't have `break`, but you can use a boolean flag:
 
 ```vibefun
-let mut i = ref(0)
-let mut found = ref(false)
+let mut i = ref(0);
+let mut found = ref(false);
 
 while !i < 100 && !(!found) {
     if someCondition(!i) then {
-        found := true
+        found := true;
     } else {
-        i := !i + 1
-    }
-}
+        i := !i + 1;
+    };
+};
 ```
 
 ### Type Checking Rules
@@ -231,19 +231,19 @@ while !i < 100 && !(!found) {
 ```vibefun
 // ❌ Error: condition must be Bool
 while 42 {  // Error: Expected Bool, got Int
-    ()
-}
+    ();
+};
 
 // ❌ Error: body must be Unit
-let mut x = ref(0)
+let mut x = ref(0);
 while !x < 10 {
-    !x + 1  // Error: Body has type Int, expected Unit
-}
+    !x + 1;  // Error: Body has type Int, expected Unit
+};
 
 // ✅ OK: assign result to ref
 while !x < 10 {
-    x := !x + 1  // OK: := returns Unit
-}
+    x := !x + 1;  // OK: := returns Unit
+};
 ```
 
 ### Desugaring Transformation
@@ -253,7 +253,7 @@ While loops are **syntactic sugar** that desugar to recursive functions during c
 **Surface syntax:**
 ```vibefun
 while condition {
-    body
+    body;
 }
 ```
 
@@ -262,30 +262,30 @@ while condition {
 let rec __while_loop = () =>
     if condition then {
         body;
-        __while_loop()
-    } else ()
+        __while_loop();
+    } else ();
 
-__while_loop()
+__while_loop();
 ```
 
 **Example transformation:**
 
 ```vibefun
 // Source code:
-let mut i = ref(0)
+let mut i = ref(0);
 while !i < 10 {
-    i := !i + 1
-}
+    i := !i + 1;
+};
 
 // Desugars to:
-let mut i = ref(0)
+let mut i = ref(0);
 let rec __while_loop_1 = () =>
     if !i < 10 then {
         i := !i + 1;
-        __while_loop_1()
-    } else ()
+        __while_loop_1();
+    } else ();
 
-__while_loop_1()
+__while_loop_1();
 ```
 
 **Notes on desugaring:**
@@ -309,10 +309,10 @@ The evaluation of a while loop follows these precise steps:
 **Step-by-step evaluation example:**
 
 ```vibefun
-let mut x = ref(0)
+let mut x = ref(0);
 while !x < 3 {
-    x := !x + 1
-}
+    x := !x + 1;
+};
 
 // Evaluation trace:
 // 1. Evaluate condition: !x < 3 → 0 < 3 → true
@@ -336,11 +336,11 @@ while !x < 3 {
 **Zero-iteration example:**
 
 ```vibefun
-let mut x = ref(10)
+let mut x = ref(10);
 while !x < 5 {
     // This body never executes
-    x := !x + 1
-}
+    x := !x + 1;
+};
 // Returns () immediately, x remains 10
 ```
 
@@ -351,24 +351,24 @@ While loops are useful for performance-critical code or when interfacing with im
 ```vibefun
 // While loop (imperative)
 let sum = (n: Int): Int => {
-    let mut total = ref(0)
-    let mut i = ref(1)
+    let mut total = ref(0);
+    let mut i = ref(1);
 
     while !i <= n {
-        total := !total + !i
-        i := !i + 1
-    }
+        total := !total + !i;
+        i := !i + 1;
+    };
 
-    !total
-}
+    !total;
+};
 
 // Recursive function (functional)
 let rec sum = (n: Int): Int =>
-    if n <= 0 then 0 else n + sum(n - 1)
+    if n <= 0 then 0 else n + sum(n - 1);
 
 // Or using List.fold
 let sum = (n: Int): Int =>
-    List.fold(List.range(1, n + 1), 0, (acc, x) => acc + x)
+    List.fold(List.range(1, n + 1), 0, (acc, x) => acc + x);
 ```
 
 **When to use while loops:**
@@ -409,7 +409,7 @@ The keywords `async` and `await` are **reserved** and cannot be used as identifi
 
 ```vibefun
 // ❌ Parse error: 'async' is a reserved keyword
-let async = 42
+let async = 42;
 ```
 
 **Current alternatives:** Use JavaScript Promises through external declarations and unsafe blocks.
@@ -429,21 +429,21 @@ Vibefun uses `Result<T, E>` and `Option<T>` for error handling instead of except
 ```vibefun
 // Use Result for operations that may fail
 let divide = (a: Int, b: Int): Result<Int, String> =>
-    if b == 0
-    then Err("Division by zero")
-    else Ok(a / b)
+    if b == 0;
+    then Err("Division by zero");
+    else Ok(a / b);
 
 // Chain operations with flatMap
 let compute = (x: Int, y: Int): Result<Int, String> =>
-    divide(x, y)
+    divide(x, y);
         |> Result.flatMap((r) => divide(r, 2))
-        |> Result.map((r) => r + 1)
+        |> Result.map((r) => r + 1);
 
 // Handle errors with pattern matching
 match compute(10, 0) {
-    | Ok(value) => unsafe { console.log("Result: " & String.fromInt(value)) }
-    | Err(msg) => unsafe { console.log("Error: " & msg) }
-}
+    | Ok(value) => unsafe { console.log("Result: " & String.fromInt(value)); }
+    | Err(msg) => unsafe { console.log("Error: " & msg); }
+};
 ```
 
 **JavaScript interop with try/catch:**
@@ -451,16 +451,16 @@ match compute(10, 0) {
 When calling JavaScript code that may throw exceptions, wrap it in `unsafe` blocks and convert to `Result`:
 
 ```vibefun
-external jsonParse: (String) -> external = "JSON.parse" from "global"
+external jsonParse: (String) -> external = "JSON.parse" from "global";
 
 let parseJSON = (jsonString: String): Result<external, String> =>
     unsafe {
         try {
-            Ok(jsonParse(jsonString))
+            Ok(jsonParse(jsonString));
         } catch (e) {
             Err("Parse error: " & e.message)
         }
-    }
+    };
 ```
 
 **Note:** The `try/catch` syntax in the example above is **JavaScript syntax within an `unsafe` block**, not Vibefun syntax. Vibefun code cannot use try/catch; use `Result` instead.

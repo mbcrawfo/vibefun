@@ -21,7 +21,7 @@ increment(5);  // 6
 **Curried functions:**
 ```vibefun
 // Vibefun
-let add = (x, y) => x + y
+let add = (x, y) => x + y;
 // Type: (Int) -> (Int) -> Int
 ```
 
@@ -39,7 +39,7 @@ increment(5);  // 6
 
 **Functions with many arguments:**
 ```vibefun
-let calculate = (a, b, c, d) => a + b + c + d
+let calculate = (a, b, c, d) => a + b + c + d;
 ```
 
 ```javascript
@@ -60,7 +60,7 @@ calc123(4);  // 10
 **Variant types** are compiled to objects with a `tag` field:
 
 ```vibefun
-type Option<T> = Some(T) | None
+type Option<T> = Some(T) | None;
 ```
 
 ```javascript
@@ -82,7 +82,7 @@ function matchOption(opt) {
 **Records** are compiled to plain JavaScript objects:
 
 ```vibefun
-type Person = { name: String, age: Int }
+type Person = { name: String, age: Int };
 ```
 
 ```javascript
@@ -119,7 +119,7 @@ const result = process.handleOption(someValue);
 Refs are represented as objects with a `.value` field:
 
 ```vibefun
-let mut counter = ref(0)
+let mut counter = ref(0);
 ```
 
 ```javascript

@@ -10,13 +10,13 @@ Vibefun uses **explicit type parameter syntax** with angle brackets `<T>` for de
 
 ```vibefun
 // Type parameters in function signatures
-let identity: <T>(T) -> T = (x) => x
-let map: <A, B>(List<A>, (A) -> B) -> List<B> = ...
+let identity: <T>(T) -> T = (x) => x;
+let map: <A, B>(List<A>, (A) -> B) -> List<B> = ...;
 
 // Type parameters in type definitions
-type Box<T> = { value: T }
-type Option<T> = Some(T) | None
-type Result<T, E> = Ok(T) | Err(E)
+type Box<T> = { value: T };
+type Option<T> = Some(T) | None;
+type Result<T, E> = Ok(T) | Err(E);
 ```
 
 **Naming conventions:**
@@ -30,7 +30,7 @@ Type parameters are **implicitly quantified** at the outermost level of type sig
 
 ```vibefun
 // Implicit quantification (standard)
-let identity: <T>(T) -> T = (x) => x
+let identity: <T>(T) -> T = (x) => x;
 
 // NOT used: forall T. (T) -> T  (we don't use forall syntax)
 ```
@@ -38,11 +38,11 @@ let identity: <T>(T) -> T = (x) => x
 At use sites, type parameters are **always inferred**—there is no syntax for explicit type application:
 
 ```vibefun
-let id: <T>(T) -> T = (x) => x
+let id: <T>(T) -> T = (x) => x;
 
 // Type parameters inferred from arguments
-id(42)        // T inferred as Int
-id("hello")   // T inferred as String
+id(42);  // T inferred as Int
+id("hello");  // T inferred as String
 
 // NO explicit type application syntax:
 // id<Int>(42)     // ❌ Not supported
@@ -55,16 +55,16 @@ Type variables are **lexically scoped** to their declaration:
 
 ```vibefun
 // Each function has independent type variables
-let f: <T>(T) -> T = ...    // T scoped to f
-let g: <T>(T) -> T = ...    // Different T scoped to g
+let f: <T>(T) -> T = ...;  // T scoped to f
+let g: <T>(T) -> T = ...;  // Different T scoped to g
 
 // Type variables in nested positions
-let apply: <A, B>((A) -> B, A) -> B = (f, x) => f(x)
+let apply: <A, B>((A) -> B, A) -> B = (f, x) => f(x);
 //         ^^^^^^  ^^^^^^^^^^^^^^     ^^^^^^^^^^
 //         declared    used in type    used in body
 
 // Type variables in type definitions
-type Pair<A, B> = { first: A, second: B }
+type Pair<A, B> = { first: A, second: B };
 //        ^^^^                ^^      ^^
 //        declared            used    used
 ```
@@ -75,13 +75,13 @@ The type checker automatically infers type variables using Hindley-Milner infere
 
 ```vibefun
 // Type parameters inferred (no annotation needed)
-let identity = (x) => x
+let identity = (x) => x;
 // Inferred type: <T>(T) -> T
 
-let first = (x, y) => x
+let first = (x, y) => x;
 // Inferred type: <A, B>(A, B) -> A
 
-let applyTwice = (f, x) => f(f(x))
+let applyTwice = (f, x) => f(f(x));
 // Inferred type: <T>((T) -> T, T) -> T
 ```
 
@@ -90,17 +90,17 @@ let applyTwice = (f, x) => f(f(x))
 When a polymorphic function is used, the type checker **instantiates** its type variables with fresh type variables or concrete types:
 
 ```vibefun
-let id: <T>(T) -> T = (x) => x
+let id: <T>(T) -> T = (x) => x;
 
 // Each use instantiates T independently
-let a = id(42)        // T := Int
-let b = id("hello")   // T := String
-let c = id(true)      // T := Bool
+let a = id(42);  // T := Int
+let b = id("hello");  // T := String
+let c = id(true);  // T := Bool
 
 // In a polymorphic context
-let apply = (f, x) => f(x)
+let apply = (f, x) => f(x);
 // When apply is called with id, the type variables are unified
-apply(id, 42)  // id's T unified with Int, apply's A := Int, B := Int
+apply(id, 42);  // id's T unified with Int, apply's A := Int, B := Int
 ```
 
 #### Higher-Rank Types
@@ -109,7 +109,7 @@ Vibefun uses **rank-1 polymorphism** (prenex polymorphism)—type variables can 
 
 ```vibefun
 // ✅ Rank-1: Type parameters at the outermost level
-let map: <A, B>(List<A>, (A) -> B) -> List<B> = ...
+let map: <A, B>(List<A>, (A) -> B) -> List<B> = ...;
 
 // ❌ Higher-rank: Would require nested quantification (NOT SUPPORTED)
 // This would require passing a polymorphic function that works for ALL types:
@@ -126,8 +126,8 @@ Vibefun uses Hindley-Milner type inference with Algorithm W. The compiler infers
 
 ```vibefun
 // All types inferred
-let add = (x, y) => x + y              // (Int, Int) -> Int
-let double = (x) => add(x, x)          // (Int) -> Int
+let add = (x, y) => x + y;  // (Int, Int) -> Int
+let double = (x) => add(x, x);  // (Int) -> Int
 let numbers = [1, 2, 3]                 // List<Int>
 let result = numbers |> map(double)     // List<Int>
 ```
@@ -162,42 +162,42 @@ Without the value restriction, you could write unsound code:
 
 ```vibefun
 // WITHOUT value restriction (unsound!):
-let id = (x) => x                    // <T>(T) -> T
-let badRef = ref(id)                 // Would be: Ref<<T>(T) -> T> (polymorphic ref!)
+let id = (x) => x;  // <T>(T) -> T
+let badRef = ref(id);  // Would be: Ref<<T>(T) -> T> (polymorphic ref!)
 
 // Now we could break type safety:
-badRef := (x: Int) => x + 1          // Store Int -> Int
-let result = (!badRef)("hello")      // Get it back, but as String -> String!
+badRef := (x: Int) => x + 1;  // Store Int -> Int
+let result = (!badRef)("hello");  // Get it back, but as String -> String!
 // Type error! We stored (Int -> Int) but used (String -> String)
 ```
 
 The value restriction prevents this by refusing to generalize `ref(id)`:
 
 ```vibefun
-let id = (x) => x                    // <T>(T) -> T (OK: lambda is a value)
-let badRef = ref(id)                 // Ref<(t) -> t> (monomorphic t, not polymorphic)
+let id = (x) => x;  // <T>(T) -> T (OK: lambda is a value)
+let badRef = ref(id);  // Ref<(t) -> t> (monomorphic t, not polymorphic)
 
 // Now the type checker catches the error:
-badRef := (x: Int) => x + 1          // Error: expects (t) -> t, got (Int) -> Int
+badRef := (x: Int) => x + 1;  // Error: expects (t) -> t, got (Int) -> Int
 ```
 
 #### Examples: When Generalization Happens
 
 ```vibefun
 // ✅ Lambda is a value → generalized
-let identity = (x) => x
+let identity = (x) => x;
 // Type: <T>(T) -> T
 
 // ✅ Each use gets a fresh instantiation
-identity(42)        // T := Int
-identity("hello")   // T := String
+identity(42);  // T := Int
+identity("hello");  // T := String
 
 // ✅ Constructor with value → generalized
-let none = None
+let none = None;
 // Type: <T>Option<T>
 
 // ✅ List of values → generalized
-let emptyList = []
+let emptyList = [];
 // Type: <T>List<T>
 ```
 
@@ -205,28 +205,28 @@ let emptyList = []
 
 ```vibefun
 // ❌ Function application → NOT a value → monomorphic
-let ids = [id]
+let ids = [id];
 // Type: List<(t) -> t>  (monomorphic type variable t)
 // NOT: <T>List<(T) -> T>
 
 // This means you can't use ids polymorphically:
-let f = List.head(ids)  // Some((t) -> t)
-f(42)       // ✅ OK: t := Int
+let f = List.head(ids);  // Some((t) -> t)
+f(42);  // ✅ OK: t := Int
 f("hello")  // ❌ Error: t is already Int, can't be String
 
 // ❌ Ref creation → NOT a value → monomorphic
-let mut r = ref(None)
+let mut r = ref(None);
 // Type: Ref<Option<t>>  (monomorphic t)
 
-r := Some(42)       // ✅ OK: t := Int
-r := Some("hello")  // ❌ Error: t is Int, can't be String
+r := Some(42);  // ✅ OK: t := Int
+r := Some("hello");  // ❌ Error: t is Int, can't be String
 
 // ❌ If expression → NOT a value → monomorphic
-let choose = if condition then Some else None
+let choose = if condition then Some else None;
 // Type: <t>(t) -> Option<t>  (monomorphic t, NOT polymorphic)
 
 // ❌ Function call → NOT a value → monomorphic
-let result = identity(identity)
+let result = identity(identity);
 // Type: (t) -> t  (monomorphic t)
 ```
 
@@ -236,14 +236,14 @@ If you need polymorphism for a non-value expression, wrap it in a lambda (eta-ex
 
 ```vibefun
 // Problem: Function application is not a value
-let composed = f(g)           // Monomorphic: (t) -> t
-composed(42)                  // OK: t := Int
+let composed = f(g);  // Monomorphic: (t) -> t
+composed(42);  // OK: t := Int
 composed("hello")             // Error: t is already Int
 
 // Solution: Eta-expand to make it a value
-let composed = (x) => f(g)(x) // Polymorphic: <T>(T) -> T
-composed(42)                  // OK: T := Int
-composed("hello")             // OK: T := String (independent instantiation)
+let composed = (x) => f(g)(x) // Polymorphic: <T>(T) -> T;
+composed(42);  // OK: T := Int
+composed("hello");  // OK: T := String (independent instantiation)
 ```
 
 #### Value Restriction and Refs
@@ -252,14 +252,14 @@ The value restriction is especially important for `Ref<T>`:
 
 ```vibefun
 // Refs must be monomorphic
-let mut counter = ref(0)         // Ref<Int> (concrete type)
-let mut state = ref(None)        // Ref<Option<t>> (monomorphic t)
+let mut counter = ref(0);  // Ref<Int> (concrete type)
+let mut state = ref(None);  // Ref<Option<t>> (monomorphic t)
 
 // You cannot create a polymorphic ref:
 let mut polymorphicRef = ref(id)  // Ref<(t) -> t>, NOT Ref<<T>(T) -> T>
 
 // To store polymorphic functions, use variants or records:
-type PolyFunc = { apply: <T>(T) -> T }
+type PolyFunc = { apply: <T>(T) -> T };
 let mut polyRef = ref({ apply: (x) => x })  // Ref<PolyFunc>
 ```
 

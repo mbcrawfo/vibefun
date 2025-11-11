@@ -6,17 +6,17 @@ Vibefun supports **recursive type definitions**, where a type refers to itself:
 
 ```vibefun
 // Recursive variant type (most common)
-type List<T> =
+type List<T> =;
     | Nil
     | Cons(T, List<T>)
 
 // Recursive tree type
-type Tree<T> =
+type Tree<T> =;
     | Leaf(T)
     | Node(Tree<T>, Tree<T>)
 
 // JSON representation
-type Json =
+type Json =;
     | JNull
     | JBool(Bool)
     | JNumber(Float)
@@ -31,10 +31,10 @@ type Json =
 
 ```vibefun
 // ✅ OK: Recursion guarded by variant constructor
-type Expr = Lit(Int) | Add(Expr, Expr) | Mul(Expr, Expr)
+type Expr = Lit(Int) | Add(Expr, Expr) | Mul(Expr, Expr);
 
 // ❌ Error: Unguarded recursion (infinite type)
-type Bad = Bad  // Equivalent to type Bad = Bad = Bad = ...
+type Bad = Bad;  // Equivalent to type Bad = Bad = Bad = ...
 ```
 
 #### Mutually Recursive Types
@@ -43,19 +43,19 @@ Multiple types can reference each other using the `and` keyword:
 
 ```vibefun
 // Mutually recursive types for expressions and patterns
-type Expr =
+type Expr =;
     | Lit(Int)
     | Var(String)
     | Lambda(Pattern, Expr)  // References Pattern
     | App(Expr, Expr)
-and Pattern =
+and Pattern =;
     | PWildcard
     | PVar(String)
     | PCons(Pattern, Pattern)
     | PExpr(Expr)             // References Expr
 
 // Another example: tree with labeled nodes
-type LabeledTree<T> =
+type LabeledTree<T> =;
     | Leaf(T)
     | Node(Label, List<LabeledTree<T>>)
 and Label = {
@@ -71,9 +71,9 @@ and Metadata = {
 
 **Mutual recursion syntax:**
 ```vibefun
-type A = ... B ...    // A references B
-and B = ... A ...     // B references A
-and C = ... A ... B   // C references both A and B
+type A = ... B ...;  // A references B
+and B = ... A ...;  // B references A
+and C = ... A ... B;  // C references both A and B
 ```
 
 **Rules:**

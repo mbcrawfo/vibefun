@@ -5,14 +5,14 @@
 Values crossing FFI boundaries require careful handling to maintain type safety.
 
 ```vibefun
-external parseJson: (String) -> Json = "JSON.parse"
+external parseJson: (String) -> Json = "JSON.parse";
 
 // Checked wrapper
 let safeParseJson = (str) => unsafe {
     try {
-        Some(parseJson(str))
+        Some(parseJson(str));
     } catch {
-        None
+        None;
     }
 }
 ```
@@ -42,11 +42,11 @@ The compiler supports three modes for runtime type checking at FFI boundaries:
 When runtime checks are enabled, the compiler inserts checks:
 
 ```vibefun
-external fetchData: (String) -> User = "fetchData"
+external fetchData: (String) -> User = "fetchData";
 
 // With runtime checks enabled:
 unsafe {
-    let user = fetchData("alice")
+    let user = fetchData("alice");
     // Runtime check verifies user has expected User shape
     // Throws if JS returns null, wrong type, or missing fields
 }
@@ -61,19 +61,19 @@ JavaScript `null` and `undefined` don't exist in Vibefun's type system. Use `Opt
 
 ```vibefun
 // Declare external that might return null
-external getUserById: (Int) -> Option<User> = "getUserById"
+external getUserById: (Int) -> Option<User> = "getUserById";
 
 // Use in Vibefun
 let getUser = (id: Int): Option<User> => unsafe {
-    getUserById(id)  // JS null/undefined → None, value → Some(value)
+    getUserById(id);  // JS null/undefined → None, value → Some(value)
 }
 
 // If external doesn't declare Option, wrap it:
-external rawGetUser: (Int) -> User = "getUserById"  // May return null!
+external rawGetUser: (Int) -> User = "getUserById";  // May return null!
 
 let safeGetUser = (id: Int): Option<User> => unsafe {
-    let result = rawGetUser(id)
-    if isNull(result) then None else Some(result)
+    let result = rawGetUser(id);
+    if isNull(result) then None else Some(result);
 }
 ```
 

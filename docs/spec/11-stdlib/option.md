@@ -5,7 +5,7 @@ The `Option` module provides a type-safe way to represent values that may or may
 ## Option Type
 
 ```vibefun
-type Option<T> = Some(T) | None
+type Option<T> = Some(T) | None;
 ```
 
 - `Some(value)` - Contains a value of type `T`
@@ -36,14 +36,14 @@ Option.map: <A, B>(Option<A>, (A) -> B) -> Option<B>
 **Examples:**
 
 ```vibefun
-Option.map(Some(5), (x) => x * 2)
+Option.map(Some(5), (x) => x * 2);
 // Some(10)
 
-Option.map(None, (x) => x * 2)
+Option.map(None, (x) => x * 2);
 // None
 
 // Chain transformations
-Some("hello")
+Some("hello");
     |> Option.map(String.length)
     |> Option.map((len) => len * 2)
 // Some(10)
@@ -75,19 +75,19 @@ let parsePositive = (s: String): Option<Int> =>
         | _ => None
     }
 
-let double = (x: Int): Option<Int> => Some(x * 2)
+let double = (x: Int): Option<Int> => Some(x * 2);
 
-Some("42")
+Some("42");
     |> Option.flatMap(parsePositive)
     |> Option.flatMap(double)
 // Some(84)
 
-Some("-5")
+Some("-5");
     |> Option.flatMap(parsePositive)
     |> Option.flatMap(double)
 // None (parsePositive returns None for negative)
 
-None
+None;
     |> Option.flatMap(parsePositive)
 // None
 ```
@@ -112,14 +112,14 @@ Option.getOrElse: <A>(Option<A>, A) -> A
 **Examples:**
 
 ```vibefun
-Option.getOrElse(Some(42), 0)
+Option.getOrElse(Some(42), 0);
 // 42
 
-Option.getOrElse(None, 0)
+Option.getOrElse(None, 0);
 // 0
 
 // Provide fallback for lookups
-let config = Map.get(configMap, "timeout")
+let config = Map.get(configMap, "timeout");
     |> Option.getOrElse(30)  // Default timeout: 30
 ```
 
@@ -138,8 +138,8 @@ Option.isSome: <A>(Option<A>) -> Bool
 **Examples:**
 
 ```vibefun
-Option.isSome(Some(42))   // true
-Option.isSome(None)       // false
+Option.isSome(Some(42));  // true
+Option.isSome(None);  // false
 ```
 
 **Performance:** O(1)
@@ -148,7 +148,7 @@ Option.isSome(None)       // false
 
 ```vibefun
 // Instead of:
-if Option.isSome(opt) then ...
+if Option.isSome(opt) then ...;
 
 // Use:
 match opt {
@@ -170,8 +170,8 @@ Option.isNone: <A>(Option<A>) -> Bool
 **Examples:**
 
 ```vibefun
-Option.isNone(Some(42))   // false
-Option.isNone(None)       // true
+Option.isNone(Some(42));  // false
+Option.isNone(None);  // true
 ```
 
 **Performance:** O(1)
@@ -193,10 +193,10 @@ Option.unwrap: <A>(Option<A>) -> A  // Panics on None
 **Examples:**
 
 ```vibefun
-Option.unwrap(Some(42))
+Option.unwrap(Some(42));
 // 42
 
-Option.unwrap(None)
+Option.unwrap(None);
 // ⚠️ Panics: "Called unwrap on None"
 ```
 
@@ -225,9 +225,9 @@ let filter = <A>(opt: Option<A>, pred: (A) -> Bool): Option<A> =>
         | _ => None
     }
 
-filter(Some(42), (x) => x > 0)    // Some(42)
-filter(Some(-5), (x) => x > 0)    // None
-filter(None, (x) => x > 0)        // None
+filter(Some(42), (x) => x > 0);  // Some(42)
+filter(Some(-5), (x) => x > 0);  // None
+filter(None, (x) => x > 0);  // None
 ```
 
 ### Option.or
@@ -240,9 +240,9 @@ let or = <A>(opt1: Option<A>, opt2: Option<A>): Option<A> =>
         | None => opt2
     }
 
-or(Some(1), Some(2))   // Some(1)
-or(None, Some(2))      // Some(2)
-or(None, None)         // None
+or(Some(1), Some(2));  // Some(1)
+or(None, Some(2));  // Some(2)
+or(None, None);  // None
 ```
 
 ### Option.getOrElseLazy
@@ -256,7 +256,7 @@ let getOrElseLazy = <A>(opt: Option<A>, f: () -> A): A =>
     }
 
 // Expensive computation only runs if None
-getOrElseLazy(opt, () => expensiveComputation())
+getOrElseLazy(opt, () => expensiveComputation());
 ```
 
 ### Option.toList
@@ -269,8 +269,8 @@ let toList = <A>(opt: Option<A>): List<A> =>
         | None => []
     }
 
-toList(Some(42))  // [42]
-toList(None)      // []
+toList(Some(42));  // [42]
+toList(None);  // []
 ```
 
 ### Option.fromNullable (JavaScript interop)
@@ -278,9 +278,9 @@ toList(None)      // []
 ```vibefun
 // Convert nullable JavaScript value to Option
 let fromNullable = <A>(value: A | null | undefined): Option<A> =>
-    if value == null || value == undefined
-    then None
-    else Some(value)
+    if value == null || value == undefined;
+    then None;
+    else Some(value);
 ```
 
 ---
@@ -291,27 +291,27 @@ let fromNullable = <A>(value: A | null | undefined): Option<A> =>
 
 ```vibefun
 // List.head returns Option<A> instead of throwing
-let firstElement = List.head([1, 2, 3])
+let firstElement = List.head([1, 2, 3]);
 // Some(1)
 
-let emptyFirst = List.head([])
+let emptyFirst = List.head([]);
 // None
 
 // Use with getOrElse for default
-let first = List.head(list) |> Option.getOrElse(0)
+let first = List.head(list) |> Option.getOrElse(0);
 ```
 
 ### Chaining Lookups
 
 ```vibefun
-type User = { id: Int, name: String }
-type Database = { users: Map<Int, User> }
+type User = { id: Int, name: String };
+type Database = { users: Map<Int, User> };
 
 let getUserName = (db: Database, userId: Int): Option<String> =>
-    Map.get(db.users, userId)
+    Map.get(db.users, userId);
         |> Option.map((user) => user.name)
 
-getUserName(db, 42)
+getUserName(db, 42);
 // Some("Alice") if user exists
 // None if user not found
 ```
@@ -320,22 +320,22 @@ getUserName(db, 42)
 
 ```vibefun
 // All must be Some, or result is None
-let combine2 = <A, B, C>(
+let combine2 = <A, B, C>(;
     opt1: Option<A>,
     opt2: Option<B>,
     f: (A, B) -> C
 ): Option<C> =>
     opt1 |> Option.flatMap((a) =>
     opt2 |> Option.map((b) =>
-        f(a, b)
+        f(a, b);
     ))
 
-let add = (x: Int, y: Int): Int => x + y
+let add = (x: Int, y: Int): Int => x + y;
 
-combine2(Some(5), Some(10), add)
+combine2(Some(5), Some(10), add);
 // Some(15)
 
-combine2(Some(5), None, add)
+combine2(Some(5), None, add);
 // None
 ```
 
@@ -349,7 +349,7 @@ let toResult = <A, E>(opt: Option<A>, error: E): Result<A, E> =>
         | None => Err(error)
     }
 
-let age = Int.parse(input)
+let age = Int.parse(input);
     |> toResult("Invalid age")
 ```
 
@@ -376,7 +376,7 @@ let process = (opt: Option<(Int, Int)]): Int =>
     }
 
 // Extracting from records
-type Config = { timeout: Option<Int>, retries: Option<Int> }
+type Config = { timeout: Option<Int>, retries: Option<Int> };
 
 let getTimeout = (config: Config): Int =>
     match config.timeout {
@@ -417,11 +417,11 @@ Avoid `Option<Option<T>>` - use `flatMap` instead:
 ```vibefun
 // ❌ Nested Options (confusing)
 let bad = (x: Int): Option<Option<Int>> =>
-    if x > 0 then Some(Some(x * 2)) else None
+    if x > 0 then Some(Some(x * 2)) else None;
 
 // ✅ Flattened with flatMap
 let good = (x: Int): Option<Int> =>
-    if x > 0 then Some(x * 2) else None
+    if x > 0 then Some(x * 2) else None;
 ```
 
 ### Pattern Matching is Exhaustive
@@ -451,7 +451,7 @@ let process = (opt: Option<Int>): Int =>
 Due to the value restriction, binding `None` creates a monomorphic type:
 
 ```vibefun
-let none = None  // Type: Option<T> where T is a fresh type variable
+let none = None;  // Type: Option<T> where T is a fresh type variable
 
 // First use determines the type
 let numbers = [Some(1), none]  // T := Int, none: Option<Int>
@@ -461,7 +461,7 @@ let strings = [Some("hello"), none]  // ❌ Error: none is already Option<Int>
 To maintain polymorphism, use a function:
 
 ```vibefun
-let none = <A>(): Option<A> => None
+let none = <A>(): Option<A> => None;
 
 // Now each call gets fresh type
 let numbers = [Some(1), none()]   // Option<Int>

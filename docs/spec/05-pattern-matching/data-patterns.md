@@ -181,7 +181,7 @@ let greetPerson = (person) => match person {
 }
 
 // Or in function parameters
-let greet = ({ name }) => "Hello " &name
+let greet = ({ name }) => "Hello " &name;
 ```
 
 #### Basic Record Patterns
@@ -210,7 +210,7 @@ match user {
 Record patterns support **partial matching** — you only need to match the fields you care about:
 
 ```vibefun
-type Person = { name: String, age: Int, email: String, phone: String }
+type Person = { name: String, age: Int, email: String, phone: String };
 
 // Match only name and age (email and phone ignored)
 match person {
@@ -219,10 +219,10 @@ match person {
 }
 
 // Function parameter: extract only needed fields
-let getName = ({ name }) => name  // Other fields ignored
+let getName = ({ name }) => name;  // Other fields ignored
 
 // Works with width subtyping
-let getX = ({ x }) => x
+let getX = ({ x }) => x;
 getX({ x: 1, y: 2, z: 3 })  // OK: extra fields ignored
 ```
 
@@ -241,12 +241,12 @@ match person {
     | { name, age, email } => (name, (age, email))  // Extract all needed
 }
 
-let { name, ...rest } = person  // ❌ Also not supported
+let { name, ...rest } = person;  // ❌ Also not supported
 
 // ✅ Alternative: Bind whole record and access fields
-let person = getPerson()
-let name = person.name
-let age = person.age
+let person = getPerson();
+let name = person.name;
+let age = person.age;
 ```
 
 #### Wildcard in Record Patterns
@@ -294,7 +294,7 @@ match config {
 Record patterns with width subtyping affect exhaustiveness:
 
 ```vibefun
-type Status = { code: Int }
+type Status = { code: Int };
 
 // ❌ Non-exhaustive: Int has infinite values
 match status {

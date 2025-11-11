@@ -14,9 +14,9 @@ Int.toString: (Int) -> String
 
 **Examples:**
 ```vibefun
-Int.toString(42)    // "42"
-Int.toString(-100)  // "-100"
-Int.toString(0)     // "0"
+Int.toString(42);  // "42"
+Int.toString(-100);  // "-100"
+Int.toString(0);  // "0"
 ```
 
 **Note:** This is equivalent to `String.fromInt`.
@@ -31,9 +31,9 @@ Int.toFloat: (Int) -> Float
 
 **Examples:**
 ```vibefun
-Int.toFloat(42)   // 42.0
-Int.toFloat(-5)   // -5.0
-Int.toFloat(0)    // 0.0
+Int.toFloat(42);  // 42.0
+Int.toFloat(-5);  // -5.0
+Int.toFloat(0);  // 0.0
 ```
 
 **Note:** This conversion is always safe and never loses precision for typical integer ranges.
@@ -48,9 +48,9 @@ Int.abs: (Int) -> Int
 
 **Examples:**
 ```vibefun
-Int.abs(42)    // 42
-Int.abs(-42)   // 42
-Int.abs(0)     // 0
+Int.abs(42);  // 42
+Int.abs(-42);  // 42
+Int.abs(0);  // 0
 ```
 
 ---
@@ -63,9 +63,9 @@ Int.max: (Int, Int) -> Int
 
 **Examples:**
 ```vibefun
-Int.max(10, 20)    // 20
-Int.max(5, 3)      // 5
-Int.max(-1, -10)   // -1
+Int.max(10, 20);  // 20
+Int.max(5, 3);  // 5
+Int.max(-1, -10);  // -1
 ```
 
 ---
@@ -78,9 +78,9 @@ Int.min: (Int, Int) -> Int
 
 **Examples:**
 ```vibefun
-Int.min(10, 20)    // 10
-Int.min(5, 3)      // 3
-Int.min(-1, -10)   // -10
+Int.min(10, 20);  // 10
+Int.min(5, 3);  // 3
+Int.min(-1, -10);  // -10
 ```
 
 ---
@@ -97,9 +97,9 @@ Float.toString: (Float) -> String
 
 **Examples:**
 ```vibefun
-Float.toString(3.14)   // "3.14"
-Float.toString(-2.5)   // "-2.5"
-Float.toString(1.0)    // "1"
+Float.toString(3.14);  // "3.14"
+Float.toString(-2.5);  // "-2.5"
+Float.toString(1.0);  // "1"
 ```
 
 **Note:** This is equivalent to `String.fromFloat`.
@@ -114,10 +114,10 @@ Float.toInt: (Float) -> Int
 
 **Examples:**
 ```vibefun
-Float.toInt(3.14)    // 3
-Float.toInt(9.99)    // 9
-Float.toInt(-2.7)    // -2
-Float.toInt(1.0)     // 1
+Float.toInt(3.14);  // 3
+Float.toInt(9.99);  // 9
+Float.toInt(-2.7);  // -2
+Float.toInt(1.0);  // 1
 ```
 
 **Note:** This truncates, not rounds. Use `Float.round` for rounding behavior.
@@ -132,10 +132,10 @@ Float.round: (Float) -> Int
 
 **Examples:**
 ```vibefun
-Float.round(3.4)    // 3
-Float.round(3.5)    // 4
-Float.round(3.6)    // 4
-Float.round(-2.5)   // -3
+Float.round(3.4);  // 3
+Float.round(3.5);  // 4
+Float.round(3.6);  // 4
+Float.round(-2.5);  // -3
 ```
 
 ---
@@ -148,10 +148,10 @@ Float.floor: (Float) -> Int
 
 **Examples:**
 ```vibefun
-Float.floor(3.9)    // 3
-Float.floor(3.1)    // 3
-Float.floor(-2.1)   // -3 (rounds down)
-Float.floor(5.0)    // 5
+Float.floor(3.9);  // 3
+Float.floor(3.1);  // 3
+Float.floor(-2.1);  // -3 (rounds down)
+Float.floor(5.0);  // 5
 ```
 
 ---
@@ -164,10 +164,10 @@ Float.ceil: (Float) -> Int
 
 **Examples:**
 ```vibefun
-Float.ceil(3.1)    // 4
-Float.ceil(3.9)    // 4
-Float.ceil(-2.9)   // -2 (rounds up)
-Float.ceil(5.0)    // 5
+Float.ceil(3.1);  // 4
+Float.ceil(3.9);  // 4
+Float.ceil(-2.9);  // -2 (rounds up)
+Float.ceil(5.0);  // 5
 ```
 
 ---
@@ -180,9 +180,9 @@ Float.abs: (Float) -> Float
 
 **Examples:**
 ```vibefun
-Float.abs(3.14)    // 3.14
-Float.abs(-2.5)    // 2.5
-Float.abs(0.0)     // 0.0
+Float.abs(3.14);  // 3.14
+Float.abs(-2.5);  // 2.5
+Float.abs(0.0);  // 0.0
 ```
 
 ---
@@ -195,9 +195,9 @@ Float.isNaN: (Float) -> Bool
 
 **Examples:**
 ```vibefun
-Float.isNaN(0.0 / 0.0)  // true (NaN)
-Float.isNaN(3.14)       // false
-Float.isNaN(1.0 / 0.0)  // false (infinity, not NaN)
+Float.isNaN(0.0 / 0.0);  // true (NaN)
+Float.isNaN(3.14);  // false
+Float.isNaN(1.0 / 0.0);  // false (infinity, not NaN)
 ```
 
 **Note:** NaN is produced by undefined operations like `0.0 / 0.0`.
@@ -212,10 +212,10 @@ Float.isInfinite: (Float) -> Bool
 
 **Examples:**
 ```vibefun
-Float.isInfinite(1.0 / 0.0)   // true (positive infinity)
-Float.isInfinite(-1.0 / 0.0)  // true (negative infinity)
-Float.isInfinite(3.14)        // false
-Float.isInfinite(0.0 / 0.0)   // false (NaN, not infinity)
+Float.isInfinite(1.0 / 0.0);  // true (positive infinity)
+Float.isInfinite(-1.0 / 0.0);  // true (negative infinity)
+Float.isInfinite(3.14);  // false
+Float.isInfinite(0.0 / 0.0);  // false (NaN, not infinity)
 ```
 
 ---
@@ -228,10 +228,10 @@ Float.isFinite: (Float) -> Bool
 
 **Examples:**
 ```vibefun
-Float.isFinite(3.14)        // true
-Float.isFinite(0.0)         // true
-Float.isFinite(1.0 / 0.0)   // false (infinity)
-Float.isFinite(0.0 / 0.0)   // false (NaN)
+Float.isFinite(3.14);  // true
+Float.isFinite(0.0);  // true
+Float.isFinite(1.0 / 0.0);  // false (infinity)
+Float.isFinite(0.0 / 0.0);  // false (NaN)
 ```
 
 ---
@@ -241,17 +241,17 @@ Float.isFinite(0.0 / 0.0)   // false (NaN)
 Vibefun maintains **strict type separation** between `Int` and `Float`:
 
 ```vibefun
-let x: Int = 5
-let y: Float = 3.14
+let x: Int = 5;
+let y: Float = 3.14;
 
 // ❌ Type error: cannot mix Int and Float
-let bad = x + y
+let bad = x + y;
 
 // ✅ Explicit conversion required
-let good = Int.toFloat(x) + y  // 8.14
+let good = Int.toFloat(x) + y;  // 8.14
 
 // ✅ Or convert the other way
-let also_good = x + Float.toInt(y)  // 8
+let also_good = x + Float.toInt(y);  // 8
 ```
 
 ### No Implicit Coercion
@@ -260,14 +260,14 @@ Unlike JavaScript, Vibefun never implicitly converts between numeric types:
 
 ```vibefun
 // All of these are type errors:
-let a = 5 + 3.14        // ❌ Int + Float
-let b = 5 * 2.0         // ❌ Int * Float
-let c = 10 / 2.5        // ❌ Int / Float
+let a = 5 + 3.14;  // ❌ Int + Float
+let b = 5 * 2.0;  // ❌ Int * Float
+let c = 10 / 2.5;  // ❌ Int / Float
 
 // Explicit conversion required:
-let a = Int.toFloat(5) + 3.14     // ✅ Float
-let b = 5 * Float.toInt(2.0)      // ✅ Int
-let c = Int.toFloat(10) / 2.5     // ✅ Float
+let a = Int.toFloat(5) + 3.14;  // ✅ Float
+let b = 5 * Float.toInt(2.0);  // ✅ Int
+let c = Int.toFloat(10) / 2.5;  // ✅ Float
 ```
 
 ---
@@ -277,27 +277,27 @@ let c = Int.toFloat(10) / 2.5     // ✅ Float
 ### Safe Division with Check
 ```vibefun
 let safeDivide = (a: Int, b: Int): Option<Int> =>
-    if b == 0
-    then None
-    else Some(a / b)
+    if b == 0;
+    then None;
+    else Some(a / b);
 ```
 
 ### Clamping Values
 ```vibefun
 let clamp = (value: Int, min: Int, max: Int): Int =>
-    value
+    value;
         |> Int.max(min)
         |> Int.min(max)
 
-clamp(15, 0, 10)   // 10
-clamp(-5, 0, 10)   // 0
-clamp(5, 0, 10)    // 5
+clamp(15, 0, 10);  // 10
+clamp(-5, 0, 10);  // 0
+clamp(5, 0, 10);  // 5
 ```
 
 ### Checking for Valid Numbers
 ```vibefun
 let isValidNumber = (x: Float): Bool =>
-    Float.isFinite(x) && !Float.isNaN(x)
+    Float.isFinite(x) && !Float.isNaN(x);
 ```
 
 ---
@@ -317,9 +317,9 @@ Basic arithmetic operators are available for both `Int` and `Float`:
 **Note:** Division of integers performs integer division (truncates toward zero).
 
 ```vibefun
-7 / 2       // 3 (Int / Int = Int)
-7.0 / 2.0   // 3.5 (Float / Float = Float)
-7 % 2       // 1 (remainder)
+7 / 2;  // 3 (Int / Int = Int)
+7.0 / 2.0;  // 3.5 (Float / Float = Float)
+7 % 2;  // 1 (remainder)
 ```
 
 ---
@@ -340,9 +340,9 @@ All comparison operators work on both `Int` and `Float`:
 **Note:** Comparisons require both operands to have the same type. No mixed comparisons.
 
 ```vibefun
-5 < 10        // ✅ true (Int < Int)
-3.14 > 2.71   // ✅ true (Float > Float)
-5 < 3.14      // ❌ Type error (Int < Float not allowed)
+5 < 10;  // ✅ true (Int < Int)
+3.14 > 2.71;  // ✅ true (Float > Float)
+5 < 3.14;  // ❌ Type error (Int < Float not allowed)
 ```
 
 ---

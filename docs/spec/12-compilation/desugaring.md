@@ -19,7 +19,7 @@ List literals are desugared to cons operations:
 
 ```vibefun
 // Surface syntax
-[1, 2, 3]
+[1, 2, 3];
 
 // Desugared to
 1 :: 2 :: 3 :: []
@@ -27,13 +27,13 @@ List literals are desugared to cons operations:
 
 **Empty list:**
 ```vibefun
-[]  // Remains as [] (primitive)
+[];  // Remains as [] (primitive)
 ```
 
 **List with spread:**
 ```vibefun
 // Surface syntax
-[1, 2, ...rest]
+[1, 2, ...rest];
 
 // Desugared to
 1 :: 2 :: rest
@@ -45,19 +45,19 @@ Functions with multiple parameters are desugared to nested single-parameter func
 
 ```vibefun
 // Surface syntax
-let add = (x, y) => x + y
+let add = (x, y) => x + y;
 
 // Desugared to
-let add = (x) => (y) => x + y
+let add = (x) => (y) => x + y;
 ```
 
 **Multi-argument application:**
 ```vibefun
 // Surface syntax
-add(10, 20)
+add(10, 20);
 
 // Desugared to
-((add(10))(20))
+((add(10))(20));
 ```
 
 #### Record Updates
@@ -96,28 +96,28 @@ The pipe operator is desugared to function application:
 
 ```vibefun
 // Surface syntax
-value |> f
+value |> f;
 
 // Desugared to
-f(value)
+f(value);
 ```
 
 **Pipe chains:**
 ```vibefun
 // Surface syntax
-x |> f |> g |> h
+x |> f |> g |> h;
 
 // Desugared to (left-associative)
-h(g(f(x)))
+h(g(f(x)));
 ```
 
 **Pipe with lambdas:**
 ```vibefun
 // Surface syntax
-data |> map((x) => x * 2) |> filter((x) => x > 10)
+data |> map((x) => x * 2) |> filter((x) => x > 10);
 
 // Desugared to
-filter(map(data, (x) => x * 2), (x) => x > 10)
+filter(map(data, (x) => x * 2), (x) => x > 10);
 ```
 
 #### Composition Operators
@@ -126,18 +126,18 @@ Forward and backward composition are desugared to lambda expressions:
 
 ```vibefun
 // Surface syntax (forward composition)
-let pipeline = f >> g >> h
+let pipeline = f >> g >> h;
 
 // Desugared to
-let pipeline = (x) => h(g(f(x)))
+let pipeline = (x) => h(g(f(x)));
 ```
 
 ```vibefun
 // Surface syntax (backward composition)
-let pipeline = h << g << f
+let pipeline = h << g << f;
 
 // Desugared to
-let pipeline = (x) => h(g(f(x)))
+let pipeline = (x) => h(g(f(x)));
 ```
 
 #### String Concatenation
@@ -146,10 +146,10 @@ The `&` operator for strings is desugared to `String.concat`:
 
 ```vibefun
 // Surface syntax
-"hello" & " " & "world"
+"hello" & " " & "world";
 
 // Desugared to
-String.concat(String.concat("hello", " "), "world")
+String.concat(String.concat("hello", " "), "world");
 ```
 
 **Note:** Type checker ensures operands are strings before desugaring.
@@ -320,10 +320,10 @@ If expressions without an else clause are desugared to include a Unit-returning 
 
 ```vibefun
 // Surface syntax
-if condition then action()
+if condition then action();
 
 // Desugared to
-if condition then action() else ()
+if condition then action() else ();
 ```
 
 **Type checking ensures action() returns Unit.**
@@ -334,14 +334,14 @@ Reference operations are desugared to function calls:
 
 ```vibefun
 // Surface syntax
-let mut counter = ref(0)
-let value = !counter
-counter := 5
+let mut counter = ref(0);
+let value = !counter;
+counter := 5;
 
 // Desugared to (conceptual)
-let counter = ref(0)
-let value = deref(counter)
-refAssign(counter, 5)
+let counter = ref(0);
+let value = deref(counter);
+refAssign(counter, 5);
 ```
 
 **Note:** The actual representation of refs is implementation-specific (likely `{ value: T }` objects).
@@ -353,14 +353,14 @@ Mutually recursive functions are desugared to a single recursive binding:
 ```vibefun
 // Surface syntax
 let rec isEven = (n) =>
-    if n == 0 then true else isOdd(n - 1)
+    if n == 0 then true else isOdd(n - 1);
 and isOdd = (n) =>
-    if n == 0 then false else isEven(n - 1)
+    if n == 0 then false else isEven(n - 1);
 
 // Desugared to (conceptual - creates mutually recursive scope)
 let rec {
     isEven: (n) => if n == 0 then true else isOdd(n - 1),
-    isOdd: (n) => if n == 0 then false else isEven(n - 1)
+    isOdd: (n) => if n == 0 then false else isEven(n - 1);
 }
 ```
 
@@ -371,16 +371,16 @@ Block expressions with multiple statements return the last expression:
 ```vibefun
 // Surface syntax
 {
-    let x = 10
-    let y = 20
-    x + y
+    let x = 10;
+    let y = 20;
+    x + y;
 }
 
 // Desugared to (explicit return of last expression)
 {
     let x = 10;
     let y = 20;
-    return x + y
+    return x + y;
 }
 ```
 

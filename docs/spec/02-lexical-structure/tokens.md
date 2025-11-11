@@ -37,16 +37,16 @@ where     do        yield     return
 
 **Examples:**
 ```vibefun
-x
-userName
+x;
+userName;
 _private
-café             // Latin with accents
-αβγ              // Greek letters
-変数             // Japanese characters
+café;  // Latin with accents
+αβγ;  // Greek letters
+変数;  // Japanese characters
 🚀               // Single emoji
-rocket🚀         // Mixed emoji and letters
-π🌟             // Greek letter + emoji
-👨‍💻            // Complex emoji with ZWJ (man technologist)
+rocket🚀;  // Mixed emoji and letters
+π🌟;  // Greek letter + emoji
+👨‍💻;  // Complex emoji with ZWJ (man technologist)
 _🔥_            // Emoji with underscores
 ```
 
@@ -62,16 +62,16 @@ _🔥_            // Emoji with underscores
 ### Boolean Literals
 
 ```vibefun
-true
-false
+true;
+false;
 ```
 
 ### Integer Literals
 
 ```vibefun
-42          // Decimal
-0xFF        // Hexadecimal (255)
-0b1010      // Binary (10)
+42;  // Decimal
+0xFF;  // Hexadecimal (255)
+0b1010;  // Binary (10)
 ```
 
 **Note:** Underscores can be used as separators: `1_000_000`
@@ -79,11 +79,11 @@ false
 ### Float Literals
 
 ```vibefun
-3.14
-0.5
-1e10        // Scientific notation (10000000000)
-3.14e-2     // (0.0314)
-1e010       // Leading zeros in exponents allowed (equivalent to 1e10)
+3.14;
+0.5;
+1e10;  // Scientific notation (10000000000)
+3.14e-2;  // (0.0314)
+1e010;  // Leading zeros in exponents allowed (equivalent to 1e10)
 ```
 
 **Decimal point rules:**
@@ -99,16 +99,16 @@ false
 
 **Single-line strings:**
 ```vibefun
-"hello"
-"hello, world!"
+"hello";
+"hello, world!";
 ```
 
 **Multi-line strings:**
 ```vibefun
-"""
-This is a multi-line string.
-It can span multiple lines.
-"""
+""";
+This is a multi-line string.;
+It can span multiple lines.;
+""";
 ```
 
 **Escape sequences:**
@@ -128,5 +128,5 @@ String literal values are normalized to NFC (Canonical Decomposition followed by
 ### Unit Literal
 
 ```vibefun
-()  // The unit value (like void in other languages)
+();  // The unit value (like void in other languages)
 ```

@@ -13,7 +13,7 @@ Vibefun minimizes runtime errors through its type system, but some operations ca
 **Integer division** by zero causes a **runtime panic**:
 
 ```vibefun
-let result = 10 / 0  // Runtime panic: "Division by zero"
+let result = 10 / 0;  // Runtime panic: "Division by zero"
 ```
 
 **Float division** by zero follows IEEE 754 semantics:
@@ -28,9 +28,9 @@ let result = 0.0 / 0.0     // NaN
 
 ```vibefun
 let safeDivide = (a, b) =>
-    if b == 0
-    then None
-    else Some(a / b)
+    if b == 0;
+    then None;
+    else Some(a / b);
 ```
 
 #### Integer Overflow
@@ -38,9 +38,9 @@ let safeDivide = (a, b) =>
 Vibefun integers are JavaScript numbers (53-bit safe integers). Operations that exceed `Number.MAX_SAFE_INTEGER` (2^53 - 1) or `Number.MIN_SAFE_INTEGER` (-(2^53 - 1)) **lose precision** but do not panic.
 
 ```vibefun
-let maxSafe = 9007199254740991  // 2^53 - 1
-let overflow = maxSafe + 1      // 9007199254740992 (exact)
-let overflow2 = maxSafe + 2     // 9007199254740992 (NOT 9007199254740993 - precision lost!)
+let maxSafe = 9007199254740991;  // 2^53 - 1
+let overflow = maxSafe + 1;  // 9007199254740992 (exact)
+let overflow2 = maxSafe + 2;  // 9007199254740992 (NOT 9007199254740993 - precision lost!)
 ```
 
 **Recommendation:**
@@ -54,31 +54,31 @@ Floats follow IEEE 754 semantics with three special values:
 
 **NaN (Not a Number):**
 ```vibefun
-let nan = 0.0 / 0.0
-let nan2 = Math.sqrt(-1.0)
+let nan = 0.0 / 0.0;
+let nan2 = Math.sqrt(-1.0);
 
 // NaN comparisons
-nan == nan      // false (IEEE 754 behavior)
-Float.isNaN(nan)  // true (use this instead)
+nan == nan;  // false (IEEE 754 behavior)
+Float.isNaN(nan);  // true (use this instead)
 ```
 
 **Infinity and -Infinity:**
 ```vibefun
-let inf = 1.0 / 0.0
-let negInf = -1.0 / 0.0
+let inf = 1.0 / 0.0;
+let negInf = -1.0 / 0.0;
 
-Float.isInfinite(inf)     // true
-Float.isFinite(42.0)      // true
-Float.isFinite(inf)       // false
+Float.isInfinite(inf);  // true
+Float.isFinite(42.0);  // true
+Float.isFinite(inf);  // false
 ```
 
 **Operations with special values:**
 ```vibefun
-inf + 1.0       // Infinity
-inf * 2.0       // Infinity
-inf - inf       // NaN
-inf / inf       // NaN
-0.0 * inf       // NaN
+inf + 1.0;  // Infinity
+inf * 2.0;  // Infinity
+inf - inf;  // NaN
+inf / inf;  // NaN
+0.0 * inf;  // NaN
 ```
 
 #### Array Bounds
@@ -86,8 +86,8 @@ inf / inf       // NaN
 Array access with out-of-bounds indices returns `None`:
 
 ```vibefun
-let arr = Array.fromList([1, 2, 3])
-let value = Array.get(arr, 10)  // None (no panic)
+let arr = Array.fromList([1, 2, 3]);
+let value = Array.get(arr, 10);  // None (no panic)
 
 unsafe {
     Array.set(arr, 10, 42)  // Runtime panic: "Index out of bounds"
@@ -99,7 +99,7 @@ unsafe {
 The `panic` function terminates the program with an error message:
 
 ```vibefun
-let panic: (String) -> never
+let panic: (String) -> never;
 ```
 
 **Behavior:**
@@ -123,7 +123,7 @@ let unwrap = <T>(opt: Option<T>): T =>
         | None => panic("unwrap called on None")
     }
 
-let value = unwrap(None)  // Runtime panic: "unwrap called on None"
+let value = unwrap(None);  // Runtime panic: "unwrap called on None"
 ```
 
 #### Stack Overflow
@@ -131,7 +131,7 @@ let value = unwrap(None)  // Runtime panic: "unwrap called on None"
 Deeply nested recursion can cause stack overflow:
 
 ```vibefun
-let rec infiniteLoop = () => infiniteLoop()
+let rec infiniteLoop = () => infiniteLoop();
 infiniteLoop()  // Runtime error: "Maximum call stack size exceeded"
 ```
 
@@ -146,8 +146,8 @@ Large data structures can exhaust available memory:
 
 ```vibefun
 let rec buildHugeList = (n) =>
-    if n == 0
-    then []
+    if n == 0;
+    then [];
     else n :: buildHugeList(n - 1)
 
 buildHugeList(100000000)  // May cause: "Out of memory"
@@ -172,14 +172,14 @@ buildHugeList(100000000)  // May cause: "Out of memory"
 ### Result Type
 
 ```vibefun
-type Result<T, E> = Ok(T) | Err(E)
+type Result<T, E> = Ok(T) | Err(E);
 
 let divide = (a, b) =>
-    if b == 0
-    then Err("Division by zero")
-    else Ok(a / b)
+    if b == 0;
+    then Err("Division by zero");
+    else Ok(a / b);
 
-let result = divide(10, 2)
+let result = divide(10, 2);
 match result {
     | Ok(value) => "Result: " &String.fromInt(value)
     | Err(msg) => "Error: " &msg
@@ -189,7 +189,7 @@ match result {
 ### Option Type
 
 ```vibefun
-type Option<T> = Some(T) | None
+type Option<T> = Some(T) | None;
 
 let find = (list, predicate) => match list {
     | [] => None
@@ -202,7 +202,7 @@ let find = (list, predicate) => match list {
 ```vibefun
 // Manual propagation
 let getUserEmail = (id) => {
-    let userResult = findUser(id)
+    let userResult = findUser(id);
     match userResult {
         | Ok(user) => validateEmail(user.email)
         | Err(e) => Err(e)
@@ -211,14 +211,14 @@ let getUserEmail = (id) => {
 
 // Using flatMap for chaining
 let getUserEmail = (id) =>
-    findUser(id)
+    findUser(id);
     |> Result.flatMap((user) => validateEmail(user.email))
 ```
 
 ### Panic (Last Resort)
 
 ```vibefun
-let panic: (String) -> <never> = ...
+let panic: (String) -> <never> = ...;
 
 let unwrap = (opt) => match opt {
     | Some(x) => x

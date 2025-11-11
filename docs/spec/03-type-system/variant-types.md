@@ -7,15 +7,15 @@ Variants (also called sum types or tagged unions) represent values that can be o
 #### Simple Enums
 
 ```vibefun
-type Color = Red | Green | Blue
+type Color = Red | Green | Blue;
 ```
 
 #### Variants with Data
 
 ```vibefun
-type Option<T> = Some(T) | None
+type Option<T> = Some(T) | None;
 
-type Result<T, E> =
+type Result<T, E> =;
     | Ok(T)
     | Err(E)
 ```
@@ -23,7 +23,7 @@ type Result<T, E> =
 #### Complex Variants
 
 ```vibefun
-type Shape =
+type Shape =;
     | Circle(Float)                          // radius
     | Rectangle(Float, Float)                // width, height
     | Triangle(Float, Float, Float)          // sides
@@ -46,11 +46,11 @@ Rectangle: (Float, Float) -> Shape
 Variants use **nominal typing**: two variant types are compatible **only if they have the same type name**, even if they have identical constructors.
 
 ```vibefun
-type Status = Pending | Active | Complete
-type State = Pending | Active | Complete
+type Status = Pending | Active | Complete;
+type State = Pending | Active | Complete;
 
-let status: Status = Pending
-let state: State = status  // ERROR: Status ≠ State
+let status: Status = Pending;
+let state: State = status;  // ERROR: Status ≠ State
 
 // Even though constructors are identical, these are different types
 ```
@@ -58,12 +58,12 @@ let state: State = status  // ERROR: Status ≠ State
 This prevents accidental mixing of semantically different types:
 
 ```vibefun
-type HttpStatus = Ok | NotFound | ServerError
-type DatabaseStatus = Ok | NotFound | ServerError
+type HttpStatus = Ok | NotFound | ServerError;
+type DatabaseStatus = Ok | NotFound | ServerError;
 
 // These are DIFFERENT types - cannot be mixed
-let httpStatus: HttpStatus = Ok
-let dbStatus: DatabaseStatus = httpStatus  // ERROR: different types
+let httpStatus: HttpStatus = Ok;
+let dbStatus: DatabaseStatus = httpStatus;  // ERROR: different types
 ```
 
 **Rationale**: Nominal typing for variants provides type safety by preventing confusion between types that happen to have the same structure but represent different concepts.

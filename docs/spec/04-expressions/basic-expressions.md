@@ -7,11 +7,11 @@ This document covers the fundamental building blocks of Vibefun expressions: lit
 Literal expressions represent constant values directly in source code.
 
 ```vibefun
-42          // Int literal
-3.14        // Float literal
-"hello"     // String literal
+42;  // Int literal
+3.14;  // Float literal
+"hello";  // String literal
 true        // Bool literal (also: false)
-()          // Unit literal
+();  // Unit literal
 ```
 
 See [Lexical Structure - Tokens](../02-lexical-structure/tokens.md) for complete literal syntax.
@@ -23,8 +23,8 @@ See [Lexical Structure - Tokens](../02-lexical-structure/tokens.md) for complete
 Variables are referenced by their identifier name.
 
 ```vibefun
-let x = 42
-let y = x  // Variable reference - reads value of x
+let x = 42;
+let y = x;  // Variable reference - reads value of x
 ```
 
 ### Scoping
@@ -41,9 +41,9 @@ Function calls apply arguments to functions.
 ### Basic Call Syntax
 
 ```vibefun
-add(1, 2)              // Two arguments
-noArgs()               // Zero arguments (call with empty parens)
-map([1, 2, 3], double) // Higher-order function
+add(1, 2);  // Two arguments
+noArgs();  // Zero arguments (call with empty parens)
+map([1, 2, 3], double) // Higher-order function;
 ```
 
 ### Partial Application
@@ -51,9 +51,9 @@ map([1, 2, 3], double) // Higher-order function
 Functions can be partially applied (currying).
 
 ```vibefun
-let add = (x, y) => x + y
-let add5 = add(5)      // Partial application - returns function
-let result = add5(3)   // Apply remaining argument - returns 8
+let add = (x, y) => x + y;
+let add5 = add(5);  // Partial application - returns function
+let result = add5(3);  // Apply remaining argument - returns 8
 ```
 
 See [Evaluation Order](./evaluation-order.md) for argument evaluation guarantees.
@@ -133,12 +133,12 @@ Int.toFloat(5) + 2.0        // ✅ OK: 7.0
 Comparison operators return `Bool` values.
 
 ```vibefun
-5 == 5     // Equal: true
-5 != 3     // Not equal: true
+5 == 5;  // Equal: true
+5 != 3;  // Not equal: true
 5 < 10     // Less than: true
-5 <= 5     // Less than or equal: true
+5 <= 5;  // Less than or equal: true
 10 > 5     // Greater than: true
-10 >= 10   // Greater than or equal: true
+10 >= 10;  // Greater than or equal: true
 ```
 
 #### Type Requirements
@@ -203,7 +203,7 @@ true || false      // Logical OR: true
 **Example (safe division check):**
 ```vibefun
 let safeDivide = (n, d) =>
-  d != 0 && (n / d > 100)  // Division only happens if d != 0
+  d != 0 && (n / d > 100);  // Division only happens if d != 0
 ```
 
 See [Evaluation Order - Logical Operators](./evaluation-order.md#logical-operators-short-circuit) for complete details.
@@ -231,7 +231,7 @@ The compiler automatically determines which operation based on the operand type.
 String concatenation uses the `&` operator (ampersand).
 
 ```vibefun
-"hello" & " " & "world"    // "hello world"
+"hello" & " " & "world";  // "hello world"
 ```
 
 #### Type Requirements
@@ -261,7 +261,7 @@ Applies a value to a function (left-to-right).
 ```vibefun
 x |> f                  // Equivalent to: f(x)
 x |> f |> g             // Equivalent to: g(f(x))
-[1, 2, 3] |> map(double) |> filter(isEven)
+[1, 2, 3] |> map(double) |> filter(isEven);
 ```
 
 See [Functions and Composition](./functions-composition.md) for details.
@@ -269,8 +269,8 @@ See [Functions and Composition](./functions-composition.md) for details.
 #### Composition Operators
 
 ```vibefun
-f >> g      // Forward composition: (f >> g)(x) = g(f(x))
-f << g      // Backward composition: (f << g)(x) = f(g(x))
+f >> g;  // Forward composition: (f >> g)(x) = g(f(x))
+f << g;  // Backward composition: (f << g)(x) = f(g(x))
 ```
 
 #### List Cons (`::`)
@@ -290,7 +290,7 @@ Spreads record or list contents.
 
 ```vibefun
 { ...record, x: 10 }     // Record spread
-[1, 2, ...rest]          // List spread (pattern matching)
+[1, 2, ...rest];  // List spread (pattern matching)
 ```
 
 See [Data Literals](./data-literals.md) for details.
@@ -324,8 +324,8 @@ f >> g >> h    // Parses as: f >> (g >> h)
 Use parentheses to override precedence or clarify intent:
 
 ```vibefun
-(a + b) * c          // Force addition before multiplication
-a < b && c < d       // Explicit grouping (though not necessary)
+(a + b) * c;  // Force addition before multiplication
+a < b && c < d;  // Explicit grouping (though not necessary)
 ```
 
 ---

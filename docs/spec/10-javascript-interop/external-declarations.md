@@ -13,11 +13,11 @@ When interfacing with JavaScript, Vibefun provides several **opaque types** that
 Represents an arbitrary JavaScript object with unknown structure:
 
 ```vibefun
-external process_env: JsObject = "process.env" from "process"
-external fetch_options: JsObject = "..." from "..."
+external process_env: JsObject = "process.env" from "process";
+external fetch_options: JsObject = "..." from "...";
 
 unsafe {
-    let env = process_env  // JsObject - opaque, structure unknown
+    let env = process_env;  // JsObject - opaque, structure unknown
 }
 ```
 
@@ -38,13 +38,13 @@ Represents JSON values (parsed or to-be-serialized):
 
 ```vibefun
 external from "JSON" {
-    parse: (String) -> Json = "parse"
-    stringify: (Json) -> String = "stringify"
+    parse: (String) -> Json = "parse";
+    stringify: (Json) -> String = "stringify";
 }
 
 unsafe {
-    let data = Json.parse("{\"name\": \"Alice\"}")  // Json
-    let text = Json.stringify(data)                 // String
+    let data = Json.parse("{\"name\": \"Alice\"}");  // Json
+    let text = Json.stringify(data);                 // String
 }
 ```
 
@@ -60,11 +60,11 @@ unsafe {
 Represents JavaScript Promises for asynchronous operations:
 
 ```vibefun
-external fetch: (String) -> Promise<Response> = "fetch"
-external then: <A, B>(Promise<A>, (A) -> B) -> Promise<B> = "then"
+external fetch: (String) -> Promise<Response> = "fetch";
+external then: <A, B>(Promise<A>, (A) -> B) -> Promise<B> = "then";
 
 unsafe {
-    let promise = fetch("https://api.example.com")  // Promise<Response>
+    let promise = fetch("https://api.example.com");  // Promise<Response>
 }
 ```
 
@@ -81,14 +81,14 @@ Represents JavaScript Error objects:
 
 ```vibefun
 external from "Error" {
-    Error: (String) -> Error = "Error"
-    message: (Error) -> String = "message"
-    stack: (Error) -> String = "stack"
+    Error: (String) -> Error = "Error";
+    message: (Error) -> String = "message";
+    stack: (Error) -> String = "stack";
 }
 
 unsafe {
-    let err = Error("Something went wrong")
-    let msg = message(err)  // String
+    let err = Error("Something went wrong");
+    let msg = message(err);  // String
 }
 ```
 
@@ -104,12 +104,12 @@ unsafe {
 Represents a completely unconstrained JavaScript value (escape hatch):
 
 ```vibefun
-external process_argv: Any = "process.argv"
-external console_log: (Any) -> Unit = "console.log"
+external process_argv: Any = "process.argv";
+external console_log: (Any) -> Unit = "console.log";
 
 unsafe {
-    let mysterious = process_argv  // Any - could be anything!
-    console_log(mysterious)        // Accepts Any
+    let mysterious = process_argv;  // Any - could be anything!
+    console_log(mysterious);        // Accepts Any
 }
 ```
 
@@ -141,12 +141,12 @@ unsafe {
 
 ```vibefun
 // Instead of:
-external fetch: (String) -> Promise<Any> = "fetch"
+external fetch: (String) -> Promise<Any> = "fetch";
 
 // Prefer:
 external {
-    type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<Json> }
-    fetch: (String) -> Promise<Response> = "fetch"
+    type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<Json> };
+    fetch: (String) -> Promise<Response> = "fetch";
 }
 ```
 
@@ -154,16 +154,16 @@ external {
 
 ```vibefun
 // Declare JS function
-external console_log: (String) -> Unit = "console.log"
+external console_log: (String) -> Unit = "console.log";
 
 // From specific module
-external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"
+external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch";
 
 // JS constants
-external process_env: JsObject = "process.env" from "process"
+external process_env: JsObject = "process.env" from "process";
 
 // Exported external (can be imported by other modules)
-export external myHelper: (Int) -> String = "helper"
+export external myHelper: (Int) -> String = "helper";
 ```
 
 #### External Blocks
@@ -173,22 +173,22 @@ When wrapping JavaScript libraries, use external blocks to declare multiple bind
 ```vibefun
 // Simple external block
 external {
-    log: (String) -> Unit = "console.log"
-    error: (String) -> Unit = "console.error"
-    warn: (String) -> Unit = "console.warn"
+    log: (String) -> Unit = "console.log";
+    error: (String) -> Unit = "console.error";
+    warn: (String) -> Unit = "console.warn";
 }
 
 // External block with module import
 external from "node-fetch" {
-    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
-    Headers: Type = "Headers"
-    Request: Type = "Request"
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch";
+    Headers: Type = "Headers";
+    Request: Type = "Request";
 }
 
 // Exported external block
 export external from "react" {
-    useState: (a) -> (a, (a) -> Unit) = "useState"
-    useEffect: ((Unit) -> Unit, List<a>) -> Unit = "useEffect"
+    useState: (a) -> (a, (a) -> Unit) = "useState";
+    useEffect: ((Unit) -> Unit, List<a>) -> Unit = "useEffect";
 }
 ```
 
@@ -198,19 +198,19 @@ Many JavaScript APIs have functions with multiple signatures (overloading). Vibe
 
 ```vibefun
 // Multiple separate declarations for the same JS function
-external fetch: (String) -> Promise<Response> = "fetch"
-external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+external fetch: (String) -> Promise<Response> = "fetch";
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
 
 // Or grouped in an external block
 external {
-    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
 }
 
 // With module imports
 external from "node:timers" {
-    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
 }
 ```
 
@@ -221,16 +221,16 @@ The compiler automatically selects the correct overload based on the number of a
 ```vibefun
 unsafe {
     // Calls first overload: (String) -> Promise<Response>
-    fetch("https://api.example.com/users")
+    fetch("https://api.example.com/users");
 
     // Calls second overload: (String, RequestInit) -> Promise<Response>
-    fetch("https://api.example.com/users", { method: "POST" })
+    fetch("https://api.example.com/users", { method: "POST" });
 
     // Calls first setTimeout overload
-    setTimeout(callback, 1000)
+    setTimeout(callback, 1000);
 
     // Calls second setTimeout overload
-    setTimeout(callback, 1000, extraArg)
+    setTimeout(callback, 1000, extraArg);
 }
 ```
 
@@ -247,15 +247,15 @@ unsafe {
 Clear errors when no overload matches or the call is ambiguous:
 
 ```vibefun
-external fetch: (String) -> Promise<Response> = "fetch"
-external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+external fetch: (String) -> Promise<Response> = "fetch";
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
 
 unsafe {
-    fetch()  // Error: No matching signature for 'fetch'
-             // Expected 1 or 2 arguments, but got 0
+    fetch();  // Error: No matching signature for 'fetch'
+              // Expected 1 or 2 arguments, but got 0
 
-    fetch("url", options, extra)  // Error: No matching signature for 'fetch'
-                                   // Expected 1 or 2 arguments, but got 3
+    fetch("url", options, extra);  // Error: No matching signature for 'fetch'
+                                    // Expected 1 or 2 arguments, but got 3
 }
 ```
 
@@ -265,18 +265,18 @@ Overloading is designed for JavaScript interop where the underlying JS function 
 
 ```vibefun
 // Instead of overloading (not supported for pure Vibefun):
-// let process = (x: Int) => ...
-// let process = (x: String) => ...
+// let process = (x: Int) => ...;
+// let process = (x: String) => ...;
 
 // Use pattern matching:
 let process = (x) => match x {
     | n: Int => n * 2
     | s: String => s & s
-}
+};
 
 // Or use different names:
-let processInt = (n: Int) => n * 2
-let processString = (s: String) => s & s
+let processInt = (n: Int) => n * 2;
+let processString = (s: String) => s & s;
 ```
 
 #### Overloaded Externals Edge Cases
@@ -284,38 +284,38 @@ let processString = (s: String) => s & s
 **Return type differences:**
 ```vibefun
 // ✅ OK: Different return types allowed
-external parse: (String) -> Int = "parseInt"
-external parse: (String, Int) -> Int = "parseInt"  // With radix
+external parse: (String) -> Int = "parseInt";
+external parse: (String, Int) -> Int = "parseInt";  // With radix
 
 // Return types can differ completely
-external getValue: (String) -> String = "getValue"
-external getValue: (Int) -> Bool = "getValue"
+external getValue: (String) -> String = "getValue";
+external getValue: (Int) -> Bool = "getValue";
 ```
 
 **Curried vs uncurried overloads:**
 ```vibefun
 // ❌ Error: Cannot mix curried and uncurried forms for same function
-external foo: (Int) -> Int = "foo"
-external foo: (Int, Int) -> Int = "foo"  // Different arity: OK
+external foo: (Int) -> Int = "foo";
+external foo: (Int, Int) -> Int = "foo";  // Different arity: OK
 
 // But this is confusing (same arity, different currying):
-// external bar: (Int) -> (Int) -> Int = "bar"  // Arity 1 (returns function)
-// external bar: (Int, Int) -> Int = "bar"      // Arity 2
+// external bar: (Int) -> (Int) -> Int = "bar";  // Arity 1 (returns function)
+// external bar: (Int, Int) -> Int = "bar";      // Arity 2
 // These are actually the SAME type (auto-currying), so no overloading needed
 ```
 
 **Partial application with overloads:**
 ```vibefun
-external fetch: (String) -> Promise<Response> = "fetch"
-external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+external fetch: (String) -> Promise<Response> = "fetch";
+external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
 
 // Partial application resolves overload immediately
-let fetchWithOptions = fetch("https://api.example.com")
+let fetchWithOptions = fetch("https://api.example.com");
 // Type: (RequestInit) -> Promise<Response>
 // Overload resolution: chose first signature (1 arg provided)
 
 // To use second overload with partial application:
-let fetchPost = (url) => fetch(url, { method: "POST" })
+let fetchPost = (url) => fetch(url, { method: "POST" });
 ```
 
 #### Generic External Declarations
@@ -324,16 +324,16 @@ External declarations can be generic, allowing JavaScript functions to work with
 
 ```vibefun
 // Generic external function
-external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils"
+external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils";
 
 // Multiple type parameters
-external zip: <A, B>(Array<A>, Array<B>) -> Array<(A, B)> = "zip"
+external zip: <A, B>(Array<A>, Array<B>) -> Array<(A, B)> = "zip";
 
 // Higher-order generic function
-external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose"
+external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose";
 
 // Generic with constraints (implied by usage)
-external sort: <T>(Array<T>, (T, T) -> Int) -> Array<T> = "sort"
+external sort: <T>(Array<T>, (T, T) -> Int) -> Array<T> = "sort";
 ```
 
 **Type parameter resolution:**
@@ -343,11 +343,11 @@ external sort: <T>(Array<T>, (T, T) -> Int) -> Array<T> = "sort"
 
 ```vibefun
 unsafe {
-    let numbers = [3, 1, 4, 1, 5]
-    let doubled = map(numbers, (x) => x * 2)  // <Int, Int> inferred
+    let numbers = [3, 1, 4, 1, 5];
+    let doubled = map(numbers, (x) => x * 2);  // <Int, Int> inferred
 
-    let strings = ["a", "b", "c"]
-    let lengths = map(strings, String.length)  // <String, Int> inferred
+    let strings = ["a", "b", "c"];
+    let lengths = map(strings, String.length);  // <String, Int> inferred
 }
 ```
 
@@ -362,9 +362,9 @@ When interfacing with JavaScript classes or constructor functions, you can decla
 
 ```vibefun
 external from "node-fetch" {
-    Headers: Type = "Headers"
-    Request: Type = "Request"
-    Response: Type = "Response"
+    Headers: Type = "Headers";
+    Request: Type = "Request";
+    Response: Type = "Response";
 }
 ```
 
@@ -378,14 +378,14 @@ external from "node-fetch" {
 
 ```vibefun
 external from "node-fetch" {
-    Headers: Type = "Headers"
-    newHeaders: (Unit) -> Headers = "Headers"  // Constructor wrapper
-    append: (Headers, String, String) -> Unit = "append"
+    Headers: Type = "Headers";
+    newHeaders: (Unit) -> Headers = "Headers";  // Constructor wrapper
+    append: (Headers, String, String) -> Unit = "append";
 }
 
 unsafe {
-    let headers = newHeaders()  // Creates a Headers instance
-    append(headers, "Content-Type", "application/json")
+    let headers = newHeaders();  // Creates a Headers instance
+    append(headers, "Content-Type", "application/json");
 }
 ```
 
@@ -403,20 +403,20 @@ Declare the shape of JavaScript objects within external blocks:
 ```vibefun
 external {
     // Declare types for JS objects
-    type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<Json> }
-    type RequestInit = { method: String, headers: JsObject }
+    type Response = { ok: Bool, status: Int, json: (Unit) -> Promise<Json> };
+    type RequestInit = { method: String, headers: JsObject };
 
     // Then declare functions that use those types
-    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch";
 }
 
 // Or separately
 external from "node-fetch" {
-    type Response = { ok: Bool, status: Int }
-    type Headers = { append: (String, String) -> Unit }
+    type Response = { ok: Bool, status: Int };
+    type Headers = { append: (String, String) -> Unit };
 
-    fetch: (String) -> Promise<Response> = "fetch"
-    Headers: Type = "Headers"
+    fetch: (String) -> Promise<Response> = "fetch";
+    Headers: Type = "Headers";
 }
 
 // Generic type declarations
@@ -424,7 +424,7 @@ external {
     type Promise<T> = {
         then: <U>((T) -> U) -> Promise<U>,
         catch: ((Error) -> T) -> Promise<T>
-    }
+    };
 }
 ```
 
@@ -432,24 +432,24 @@ external {
 
 ```vibefun
 // Single declaration
-external name: Type = "jsName" [from "module"]
+external name: Type = "jsName" [from "module"];
 
 // Simple block
 external {
-    name1: Type1 = "jsName1"
-    name2: Type2 = "jsName2"
-    type TypeName = { ... }
+    name1: Type1 = "jsName1";
+    name2: Type2 = "jsName2";
+    type TypeName = { ... };
 }
 
 // Block with module import
 external from "module" {
-    name: Type = "jsName"
-    type TypeName = { ... }
+    name: Type = "jsName";
+    type TypeName = { ... };
 }
 
 // Exported (applies to both single and blocks)
-export external name: Type = "jsName"
-export external { ... }
-export external from "module" { ... }
+export external name: Type = "jsName";
+export external { ... };
+export external from "module" { ... };
 ```
 

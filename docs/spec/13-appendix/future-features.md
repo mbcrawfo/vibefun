@@ -37,15 +37,15 @@ Until for loops are implemented, use these approaches:
 
 ```vibefun
 // Use List.map for transformations
-List.map([1, 2, 3, 4, 5], (x) => x * 2)
+List.map([1, 2, 3, 4, 5], (x) => x * 2);
 // [2, 4, 6, 8, 10]
 
 // Use List.fold for accumulation
-List.fold([1, 2, 3, 4, 5], 0, (acc, x) => acc + x)
+List.fold([1, 2, 3, 4, 5], 0, (acc, x) => acc + x);
 // 15
 
 // Use List.filter for selection
-List.filter([1, 2, 3, 4, 5], (x) => x % 2 == 0)
+List.filter([1, 2, 3, 4, 5], (x) => x % 2 == 0);
 // [2, 4]
 ```
 
@@ -54,11 +54,11 @@ List.filter([1, 2, 3, 4, 5], (x) => x % 2 == 0)
 ```vibefun
 // Create a range helper function
 let rec range = (start: Int, end: Int): List<Int> =>
-    if start >= end then []
-    else [start, ...range(start + 1, end)]
+    if start >= end then [];
+    else [start, ...range(start + 1, end)];
 
 // Use with map/fold
-range(0, 10) |> List.map((i) => i * i)
+range(0, 10) |> List.map((i) => i * i);
 // [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 ```
 
@@ -66,15 +66,15 @@ range(0, 10) |> List.map((i) => i * i)
 
 ```vibefun
 // For mutation-heavy algorithms
-let mut i = ref(0)
-let mut sum = ref(0)
+let mut i = ref(0);
+let mut sum = ref(0);
 
 while !i < 10 {
-    sum := !sum + !i
-    i := !i + 1
+    sum := !sum + !i;
+    i := !i + 1;
 }
 
-!sum  // 45
+!sum;  // 45
 ```
 
 ### Design Considerations
@@ -98,10 +98,10 @@ If for loops are added, they will likely:
 
 ```vibefun
 // ❌ Parse error: 'async' is a reserved keyword
-let async = 42
+let async = 42;
 
 // ❌ Parse error: 'await' is a reserved keyword
-let await = someFunction()
+let await = someFunction();
 ```
 
 ### Future Design
@@ -115,25 +115,25 @@ Async/await will likely provide first-class support for asynchronous programming
 
 // Async function declaration
 let fetchUser = async (id: Int): Promise<User> => {
-    let response = await fetch("/api/users/" & String.fromInt(id))
-    let json = await response.json()
-    parseUser(json)
+    let response = await fetch("/api/users/" & String.fromInt(id));
+    let json = await response.json();
+    parseUser(json);
 }
 
 // Async blocks
 let result = await async {
-    let user = await getUser(42)
-    let posts = await getPosts(user.id)
-    (user, posts)
+    let user = await getUser(42);
+    let posts = await getPosts(user.id);
+    (user, posts);
 }
 
 // Error handling with async
 let safeLoad = async (id: Int): Result<User, Error> => {
     try {
-        let user = await loadUser(id)
-        Ok(user)
+        let user = await loadUser(id);
+        Ok(user);
     } catch (error) {
-        Err(error)
+        Err(error);
     }
 }
 ```
@@ -146,37 +146,37 @@ Until async/await is implemented, use JavaScript Promises directly through unsaf
 
 ```vibefun
 // Declare Promise-returning JavaScript functions
-external fetch: (String) -> Promise<Response> = "fetch" from "global"
-external then: <A, B>(Promise<A>, (A) -> B) -> Promise<B> = "then" from "Promise.prototype"
+external fetch: (String) -> Promise<Response> = "fetch" from "global";
+external then: <A, B>(Promise<A>, (A) -> B) -> Promise<B> = "then" from "Promise.prototype";
 
 // Use promises imperatively
 unsafe {
-    fetch("/api/data")
-        .then((response) => response.json())
-        .then((data) => console.log(data))
+    fetch("/api/data");
+        .then((response) => response.json());
+        .then((data) => console.log(data));
 }
 ```
 
 **Callback-based approach:**
 
 ```vibefun
-external setTimeout: ((Unit) -> Unit, Int) -> Unit = "setTimeout" from "global"
+external setTimeout: ((Unit) -> Unit, Int) -> Unit = "setTimeout" from "global";
 
 let delay = (ms: Int, callback: (Unit) -> Unit): Unit =>
     unsafe {
-        setTimeout(callback, ms)
+        setTimeout(callback, ms);
     }
 
 // Usage
 delay(1000, () => {
-    unsafe { console.log("Delayed message") }
+    unsafe { console.log("Delayed message") };
 })
 ```
 
 **Promise wrapping:**
 
 ```vibefun
-type Promise<T> = external
+type Promise<T> = external;
 
 external newPromise: <T>((((T) -> Unit), ((String) -> Unit)) -> Unit) -> Promise<T>
     = "Promise" from "global"
@@ -189,10 +189,10 @@ let loadData = (): Promise<Data> =>
     unsafe {
         newPromise((resolve, reject) => {
             // Async operation
-            fetch("/api/data")
-                .then((res) => res.json())
-                .then(resolve)
-                .catch(reject)
+            fetch("/api/data");
+                .then((res) => res.json());
+                .then(resolve);
+                .catch(reject);
         })
     }
 ```
@@ -251,11 +251,11 @@ trait Show<T> {
 }
 
 impl Show<Int> {
-    show = String.fromInt
+    show = String.fromInt;
 }
 
 impl Show<Bool> {
-    show = (b) => if b then "true" else "false"
+    show = (b) => if b then "true" else "false";
 }
 
 // Usage
@@ -269,16 +269,16 @@ Track side effects in the type system:
 
 ```vibefun
 // Hypothetical syntax
-let pure: Int -> Int = (x) => x + 1
+let pure: Int -> Int = (x) => x + 1;
 
 let impure: Int -> IO<Unit> = (x) => {
-    console.log(x)
+    console.log(x);
 }
 
 // Effects compose
 let combined: Int -> IO<Int> = (x) => {
-    impure(x)
-    pure(x)
+    impure(x);
+    pure(x);
 }
 ```
 

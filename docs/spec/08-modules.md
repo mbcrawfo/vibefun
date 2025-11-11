@@ -8,29 +8,29 @@ Each `.vf` file is a module. Modules provide namespacing and code organization.
 
 ```vibefun
 // Export declarations
-export let add = (x, y) => x + y
+export let add = (x, y) => x + y;
 
-export type Person = { name: String, age: Int }
+export type Person = { name: String, age: Int };
 
 // Multiple exports
-export let x = 10
-export let y = 20
+export let x = 10;
+export let y = 20;
 ```
 
 ### Imports
 
 ```vibefun
 // Named imports
-import { map, filter } from './list'
+import { map, filter } from './list';
 
 // Import all as namespace
-import * as List from './list'
+import * as List from './list';
 
 // Import types
-import type { Person } from './types'
+import type { Person } from './types';
 
 // Mixed imports
-import { type User, getUser, updateUser } from './api'
+import { type User, getUser, updateUser } from './api';
 ```
 
 ### Module Paths and Resolution
@@ -41,13 +41,13 @@ Vibefun uses a module resolution algorithm similar to Node.js, adapted for `.vf`
 
 ```vibefun
 // Relative imports (must start with ./ or ../)
-import { utils } from './utils'        // Same directory
-import { helpers } from '../helpers'   // Parent directory
-import { types } from './shared/types' // Subdirectory
+import { utils } from './utils';        // Same directory
+import { helpers } from '../helpers';   // Parent directory
+import { types } from './shared/types'; // Subdirectory;
 
 // Package imports (no ./ or ../ prefix)
-import { Option, Result } from 'vibefun/std'
-import { map, filter } from '@myorg/functional-utils'
+import { Option, Result } from 'vibefun/std';
+import { map, filter } from '@myorg/functional-utils';
 ```
 
 #### Module Resolution Algorithm
@@ -64,7 +64,7 @@ Starting from the importing file's directory, resolve the path:
 
 ```vibefun
 // Current file: src/user/profile.vf
-import { helper } from './utils'
+import { helper } from './utils';
 
 // Resolution steps:
 // 1. src/user/utils.vf         (exact match)
@@ -81,11 +81,11 @@ Search in order:
 
 ```vibefun
 // Stdlib import
-import { Option } from 'vibefun/std'
+import { Option } from 'vibefun/std';
 // Resolves to: <stdlib>/std.vf
 
 // Package import
-import { Button } from '@ui/components'
+import { Button } from '@ui/components';
 // Search order:
 //   1. ./node_modules/@ui/components.vf
 //   2. ./node_modules/@ui/components/index.vf
@@ -100,8 +100,8 @@ The `.vf` extension is **optional** in imports but **required** on the filesyste
 
 ```vibefun
 // ✅ All equivalent (find utils.vf)
-import { helper } from './utils'
-import { helper } from './utils.vf'
+import { helper } from './utils';
+import { helper } from './utils.vf';
 
 // File system must have:
 // src/utils.vf  (with or without .vf in import)
@@ -117,7 +117,7 @@ import { helper } from './utils.vf'
 //     input.vf
 
 // Import from directory:
-import { Button, Input } from './components'
+import { Button, Input } from './components';
 // Resolves to: ./components/index.vf
 ```
 
@@ -159,12 +159,12 @@ Vibefun **allows** circular module dependencies, but they require careful handli
 
 ```vibefun
 // moduleA.vf
-import { functionB } from './moduleB'
-export let functionA = (x) => functionB(x) + 1
+import { functionB } from './moduleB';
+export let functionA = (x) => functionB(x) + 1;
 
 // moduleB.vf
-import { functionA } from './moduleA'
-export let functionB = (x) => if x > 0 then functionA(x - 1) else 0
+import { functionA } from './moduleA';
+export let functionB = (x) => if x > 0 then functionA(x - 1) else 0;
 ```
 
 **Dependency cycle:** A → B → A
@@ -187,12 +187,12 @@ When a circular dependency is detected, the compiler uses **deferred initializat
 **Example of the problem:**
 ```vibefun
 // moduleA.vf
-import { functionB } from './moduleB'
+import { functionB } from './moduleB';
 
 // This runs during module initialization!
-let result = functionB(10)  // ❌ Runtime error: functionB is undefined
+let result = functionB(10);  // ❌ Runtime error: functionB is undefined
 
-export let functionA = (x) => functionB(x) + 1  // ✅ OK: called later
+export let functionA = (x) => functionB(x) + 1;  // ✅ OK: called later
 ```
 
 **Why it fails:**
@@ -207,13 +207,13 @@ export let functionA = (x) => functionB(x) + 1  // ✅ OK: called later
 **Safe pattern:**
 ```vibefun
 // moduleA.vf
-import { functionB } from './moduleB'
+import { functionB } from './moduleB';
 
 // Don't call during initialization - just define the function
-export let functionA = (x) => functionB(x) + 1  // ✅ Safe
+export let functionA = (x) => functionB(x) + 1;  // ✅ Safe
 
 // Later, in application code:
-let result = functionA(10)  // ✅ Safe: all modules initialized
+let result = functionA(10);  // ✅ Safe: all modules initialized
 ```
 
 ##### Compiler Behavior
@@ -235,10 +235,10 @@ let result = functionA(10)  // ✅ Safe: all modules initialized
 **Type-only circular imports are safe:**
 ```vibefun
 // moduleA.vf
-import type { TypeB } from './moduleB'  // ✅ Safe: types erased at runtime
+import type { TypeB } from './moduleB';  // ✅ Safe: types erased at runtime
 
 // moduleB.vf
-import type { TypeA } from './moduleA'  // ✅ Safe
+import type { TypeA } from './moduleA';  // ✅ Safe
 ```
 
 Type imports don't participate in runtime initialization, so circular type imports never cause problems.
@@ -251,13 +251,13 @@ Type imports don't participate in runtime initialization, so circular type impor
 // Create C as shared dependency: A → C ← B
 
 // shared.vf
-export type SharedType = ...
+export type SharedType = ...;
 
 // moduleA.vf
-import type { SharedType } from './shared'
+import type { SharedType } from './shared';
 
 // moduleB.vf
-import type { SharedType } from './shared'
+import type { SharedType } from './shared';
 ```
 
 **2. If circular dependencies are necessary:**
@@ -267,25 +267,25 @@ import type { SharedType } from './shared'
 
 ```vibefun
 // moduleA.vf
-import { initB } from './moduleB'
+import { initB } from './moduleB';
 
-let mut initialized = ref(false)
+let mut initialized = ref(false);
 
 export let init = () => {
     if !initialized then {
-        initB()
-        initialized := true
+        initB();
+        initialized := true;
     }
-}
+};
 
-export let functionA = (x) => ...
+export let functionA = (x) => ...;
 ```
 
 **3. Use type-only imports when possible:**
 ```vibefun
 // Import types for annotations, import values separately
-import type { User } from './types'
-import { processUser } from './logic'  // Different module
+import type { User } from './types';
+import { processUser } from './logic';  // Different module
 ```
 
 ##### Initialization Order Summary
@@ -318,10 +318,10 @@ Configure import aliases and module paths in `vibefun.json`:
 Usage:
 ```vibefun
 // With path mapping configured above:
-import { Button } from '@components/button'
+import { Button } from '@components/button';
 // Resolves to: ./src/components/button.vf
 
-import { helper } from '@utils/string'
+import { helper } from '@utils/string';
 // Resolves to: ./src/utils/string.vf
 ```
 
@@ -330,13 +330,13 @@ import { helper } from '@utils/string'
 Clear error messages when resolution fails:
 
 ```vibefun
-import { missing } from './nonexistent'
+import { missing } from './nonexistent';
 // Error: Cannot find module './nonexistent'
 //   Tried:
 //     - src/nonexistent.vf
 //     - src/nonexistent/index.vf
 
-import { missing } from 'unknown-package'
+import { missing } from 'unknown-package';
 // Error: Cannot find module 'unknown-package'
 //   Tried:
 //     - node_modules/unknown-package.vf
@@ -350,8 +350,8 @@ import { missing } from 'unknown-package'
 
 ```vibefun
 // Re-export from another module
-export { map, filter } from './list'
-export * from './utils'
+export { map, filter } from './list';
+export * from './utils';
 ```
 
 ### Module Structure
@@ -362,19 +362,19 @@ export type User = {
     id: Int,
     name: String,
     email: String
-}
+};
 
-export let validateEmail = (email) => ...
+export let validateEmail = (email) => ...;
 
-export let createUser = (name, email) => ...
+export let createUser = (name, email) => ...;
 
 // src/main.vf
-import { type User, createUser } from './user'
+import { type User, createUser } from './user';
 
 let main = () => {
-    let user = createUser("Alice", "alice@example.com")
+    let user = createUser("Alice", "alice@example.com");
     ...
-}
+};
 ```
 
 ---
@@ -395,21 +395,21 @@ Modules can contain top-level expressions that execute during initialization.
 **Example:**
 ```vibefun
 // config.vf
-export let apiEndpoint = "https://api.example.com"
+export let apiEndpoint = "https://api.example.com";
 
 // This runs during module initialization
-log("Initializing config module...")
+log("Initializing config module...");
 
-mut connectionCount = 0
+mut connectionCount = 0;
 
-export let getConnectionCount = () => !connectionCount
+export let getConnectionCount = () => !connectionCount;
 
 export let incrementConnections = () => {
-  connectionCount := !connectionCount + 1
-}
+  connectionCount := !connectionCount + 1;
+};
 
 // This also runs during initialization
-log("Config module initialized")
+log("Config module initialized");
 ```
 
 **Guarantee:** When `config.vf` is imported, both `log` statements execute once, in order, before any importing code continues.
@@ -421,24 +421,24 @@ log("Config module initialized")
 **Example:**
 ```vibefun
 // counter.vf
-mut count = 0
+mut count = 0;
 
 export let increment = () => {
   count := !count + 1;
-  !count
-}
+  !count;
+};
 
 // moduleA.vf
-import { increment } from './counter'
-let a = increment()  // 1
+import { increment } from './counter';
+let a = increment();  // 1
 
 // moduleB.vf
-import { increment } from './counter'
-let b = increment()  // 2 (same counter!)
+import { increment } from './counter';
+let b = increment();  // 2 (same counter!)
 
 // main.vf
-import './moduleA'
-import './moduleB'
+import './moduleA';
+import './moduleB';
 // counter.vf initialized only once
 // Both moduleA and moduleB share the same counter instance
 ```
@@ -455,12 +455,12 @@ import './moduleB'
 **Behavior:**
 ```vibefun
 // config.vf
-export let setting = if validConfig()
-  then loadConfig()
-  else panic("Invalid configuration!")
+export let setting = if validConfig();
+  then loadConfig();
+  else panic("Invalid configuration!");
 
 // main.vf
-import { setting } from './config'
+import { setting } from './config';
 // If config.vf panics, main.vf also fails to initialize
 ```
 
@@ -497,23 +497,23 @@ Re-exports create transparent bindings to exported values from other modules.
 **Direct re-export:**
 ```vibefun
 // list.vf
-export let map = (fn, list) => ...
-export let filter = (pred, list) => ...
+export let map = (fn, list) => ...;
+export let filter = (pred, list) => ...;
 
 // index.vf
-export { map, filter } from './list'
+export { map, filter } from './list';
 // Equivalent to:
-// import { map, filter } from './list'
-// export let map = map
-// export let filter = filter
+// import { map, filter } from './list';
+// export let map = map;
+// export let filter = filter;
 ```
 
 **Wildcard re-export:**
 ```vibefun
 // utils/index.vf
-export * from './string'
-export * from './array'
-export * from './math'
+export * from './string';
+export * from './array';
+export * from './math';
 
 // Imports all exports from string, array, and math modules
 // and re-exports them from utils/index.vf
@@ -527,14 +527,14 @@ export * from './math'
 **Example:**
 ```vibefun
 // core.vf
-export let add = (x, y) => x + y
+export let add = (x, y) => x + y;
 
 // utils.vf
-export { add } from './core'
-export let multiply = (x, y) => x * y
+export { add } from './core';
+export let multiply = (x, y) => x * y;
 
 // main.vf
-import { add, multiply } from './utils'
+import { add, multiply } from './utils';
 // Both add (re-exported from core) and multiply (defined in utils) are available
 ```
 
@@ -544,8 +544,8 @@ import { add, multiply } from './utils'
 
 ```vibefun
 // index.vf
-export { map } from './array'
-export { map as mapList } from './list'  // Rename to avoid conflict
+export { map } from './array';
+export { map as mapList } from './list';  // Rename to avoid conflict
 ```
 
 ### Module Initialization Summary

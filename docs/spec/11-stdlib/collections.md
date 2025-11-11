@@ -5,7 +5,7 @@
 The `Map` type provides efficient key-value storage with immutable operations.
 
 ```vibefun
-type Map<K, V> = external
+type Map<K, V> = external;
 
 // Construction
 Map.empty: <K, V>() -> Map<K, V>
@@ -34,7 +34,7 @@ Map.toList: <K, V>(Map<K, V>) -> List<(K, V)>
 
 **Example:**
 ```vibefun
-let scores = Map.empty()
+let scores = Map.empty();
     |> Map.set("Alice", 95)
     |> Map.set("Bob", 87)
     |> Map.set("Charlie", 92)
@@ -50,7 +50,7 @@ match Map.get(scores, "Alice") {
 The `Set` type provides efficient membership testing with immutable operations.
 
 ```vibefun
-type Set<T> = external
+type Set<T> = external;
 
 // Construction
 Set.empty: <T>() -> Set<T>
@@ -82,10 +82,10 @@ Set.toList: <T>(Set<T>) -> List<T>
 
 **Example:**
 ```vibefun
-let evens = Set.fromList([2, 4, 6, 8, 10])
-let primes = Set.fromList([2, 3, 5, 7, 11])
+let evens = Set.fromList([2, 4, 6, 8, 10]);
+let primes = Set.fromList([2, 3, 5, 7, 11]);
 
-let evenPrimes = Set.intersect(evens, primes)  // {2}
-let allNumbers = Set.union(evens, primes)      // {2, 3, 4, 5, 6, 7, 8, 10, 11}
+let evenPrimes = Set.intersect(evens, primes);  // {2}
+let allNumbers = Set.union(evens, primes);  // {2, 3, 4, 5, 6, 7, 8, 10, 11}
 ```
 

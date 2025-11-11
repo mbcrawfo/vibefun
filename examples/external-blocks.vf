@@ -6,16 +6,16 @@
 // ============================================================================
 
 external {
-    log: (String) -> Unit = "console.log"
-    error: (String) -> Unit = "console.error"
-    warn: (String) -> Unit = "console.warn"
-    info: (String) -> Unit = "console.info"
+    log: (String) -> Unit = "console.log";
+    error: (String) -> Unit = "console.error";
+    warn: (String) -> Unit = "console.warn";
+    info: (String) -> Unit = "console.info";
 }
 
 // Usage
 let greet = (name) => unsafe {
-    log("Hello, " &name &"!")
-}
+    log("Hello, " & name & "!");
+};
 
 // ============================================================================
 // Example 2: Node Fetch - External block with module import
@@ -23,34 +23,34 @@ let greet = (name) => unsafe {
 
 external from "node-fetch" {
     // Declare external types for JS objects
-    type Response = { ok: Bool, status: Int, text: (Unit) -> Promise<String> }
-    type RequestInit = { method: String, headers: JsObject }
+    type Response = { ok: Bool, status: Int, text: (Unit) -> Promise<String> };
+    type RequestInit = { method: String, headers: JsObject };
 
     // Declare external functions
-    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
-    Headers: Type = "Headers"
+    fetch: (String, RequestInit) -> Promise<Response> = "fetch";
+    Headers: Type = "Headers";
 }
 
 // Usage - Fetch API wrapper
 let fetchJson = (url) => unsafe {
-    let init = { method: "GET", headers: {} }
-    fetch(url, init)
-}
+    let init = { method: "GET", headers: {} };
+    fetch(url, init);
+};
 
 // ============================================================================
 // Example 3: Array Operations - Wrapping JavaScript Array methods
 // ============================================================================
 
 external {
-    arrayMap: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map.call"
-    arrayFilter: (List<a>, (a) -> Bool) -> List<a> = "Array.prototype.filter.call"
-    arrayReduce: (List<a>, (b, a) -> b, b) -> b = "Array.prototype.reduce.call"
+    arrayMap: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map.call";
+    arrayFilter: (List<a>, (a) -> Bool) -> List<a> = "Array.prototype.filter.call";
+    arrayReduce: (List<a>, (b, a) -> b, b) -> b = "Array.prototype.reduce.call";
 }
 
 // Usage
 let doubleNumbers = (nums) => unsafe {
-    arrayMap(nums, (x) => x * 2)
-}
+    arrayMap(nums, (x) => x * 2);
+};
 
 // ============================================================================
 // Example 4: React Bindings - Exported external block
@@ -58,26 +58,26 @@ let doubleNumbers = (nums) => unsafe {
 
 export external from "react" {
     // Hooks
-    useState: (a) -> (a, (a) -> Unit) = "useState"
-    useEffect: ((Unit) -> Unit) -> Unit = "useEffect"
+    useState: (a) -> (a, (a) -> Unit) = "useState";
+    useEffect: ((Unit) -> Unit) -> Unit = "useEffect";
 
     // Components
-    createElement: (String, JsObject, List<a>) -> ReactElement = "createElement"
+    createElement: (String, JsObject, List<a>) -> ReactElement = "createElement";
 }
 
 // Usage
 let Counter = () => unsafe {
-    let (count, setCount) = useState(0)
+    let (count, setCount) = useState(0);
 
     useEffect(() => {
-        log("Count changed: " &String.fromInt(count))
-    })
+        log("Count changed: " & String.fromInt(count));
+    });
 
     createElement("div", {}, [
-        createElement("p", {}, ["Count: " &String.fromInt(count)]),
+        createElement("p", {}, ["Count: " & String.fromInt(count)]),
         createElement("button", { onClick: () => setCount(count + 1) }, ["Increment"])
-    ])
-}
+    ]);
+};
 
 // ============================================================================
 // Example 5: File System - Multiple type declarations
@@ -85,41 +85,41 @@ let Counter = () => unsafe {
 
 external from "fs" {
     // Type declarations for options
-    type ReadOptions = { encoding: String, flag: String }
-    type WriteOptions = { encoding: String, mode: Int, flag: String }
+    type ReadOptions = { encoding: String, flag: String };
+    type WriteOptions = { encoding: String, mode: Int, flag: String };
 
     // File operations
-    readFileSync: (String, ReadOptions) -> String = "readFileSync"
-    writeFileSync: (String, String, WriteOptions) -> Unit = "writeFileSync"
-    existsSync: (String) -> Bool = "existsSync"
+    readFileSync: (String, ReadOptions) -> String = "readFileSync";
+    writeFileSync: (String, String, WriteOptions) -> Unit = "writeFileSync";
+    existsSync: (String) -> Bool = "existsSync";
 }
 
 // Usage
 let readConfig = (path) => unsafe {
-    let opts = { encoding: "utf8", flag: "r" }
+    let opts = { encoding: "utf8", flag: "r" };
     if existsSync(path)
     then Some(readFileSync(path, opts))
-    else None
-}
+    else None;
+};
 
 // ============================================================================
 // Example 6: Mixed - Combining single declarations and blocks
 // ============================================================================
 
 // Single external for global
-external process: JsObject = "process"
+external process: JsObject = "process";
 
 // Block for related functions
 external {
-    exit: (Int) -> Unit = "process.exit"
-    cwd: (Unit) -> String = "process.cwd"
+    exit: (Int) -> Unit = "process.exit";
+    cwd: (Unit) -> String = "process.cwd";
 }
 
 // Usage
 let getCurrentDir = () => unsafe {
-    cwd()
-}
+    cwd();
+};
 
 let exitWithCode = (code) => unsafe {
-    exit(code)
-}
+    exit(code);
+};

@@ -27,14 +27,14 @@ let person = {
 #### Field Access
 
 ```vibefun
-let name = person.name       // "Alice"
-let age = person.age         // 30
+let name = person.name;  // "Alice"
+let age = person.age;  // 30
 ```
 
 #### Update (Immutable)
 
 ```vibefun
-let older = { ...person, age: 31 }  // Creates new record
+let older = { ...person, age: 31 };  // Creates new record
 ```
 
 #### Structural Typing with Width Subtyping
@@ -42,18 +42,18 @@ let older = { ...person, age: 31 }  // Creates new record
 Records use **structural typing with width subtyping**: two record types with the same fields are compatible, and records with **extra fields** are subtypes of records with fewer fields.
 
 ```vibefun
-type Point2D = { x: Int, y: Int }
-type Vector2D = { x: Int, y: Int }
+type Point2D = { x: Int, y: Int };
+type Vector2D = { x: Int, y: Int };
 
-let p: Point2D = { x: 1, y: 2 }
-let v: Vector2D = p  // OK - same structure
+let p: Point2D = { x: 1, y: 2 };
+let v: Vector2D = p;  // OK - same structure
 
 // Width subtyping: records with extra fields accepted
-let point3D = { x: 1, y: 2, z: 3 }
-let point2D: Point2D = point3D  // OK - has x and y (z ignored)
+let point3D = { x: 1, y: 2, z: 3 };
+let point2D: Point2D = point3D;  // OK - has x and y (z ignored)
 
 // Functions accept "at least these fields"
-let getX = (p: { x: Int }) => p.x
+let getX = (p: { x: Int }) => p.x;
 
 getX({ x: 1, y: 2 })        // OK - has x (and extra y)
 getX({ x: 5, y: 10, z: 15 }) // OK - has x (extra fields ignored)
@@ -70,28 +70,28 @@ This provides **duck-typing-like flexibility** with compile-time safety: functio
 
 ```vibefun
 // Example 1: Extra fields
-type Point2D = { x: Int, y: Int }
-type Point3D = { x: Int, y: Int, z: Int }
+type Point2D = { x: Int, y: Int };
+type Point3D = { x: Int, y: Int, z: Int };
 
 // Point3D <: Point2D (Point3D has all Point2D fields plus z)
-let p3: Point3D = { x: 1, y: 2, z: 3 }
-let p2: Point2D = p3  // ✅ OK: Point3D <: Point2D
+let p3: Point3D = { x: 1, y: 2, z: 3 };
+let p2: Point2D = p3;  // ✅ OK: Point3D <: Point2D
 
 // Example 2: Field type compatibility
-type Numeric = { value: Int }
-type Labeled = { value: Int, label: String }
+type Numeric = { value: Int };
+type Labeled = { value: Int, label: String };
 
 // Labeled <: Numeric
-let labeled: Labeled = { value: 42, label: "Answer" }
-let numeric: Numeric = labeled  // ✅ OK
+let labeled: Labeled = { value: 42, label: "Answer" };
+let numeric: Numeric = labeled;  // ✅ OK
 
 // Example 3: Order doesn't matter (structural typing)
-type A = { x: Int, y: Int }
-type B = { y: Int, x: Int }
+type A = { x: Int, y: Int };
+type B = { y: Int, x: Int };
 
 // A and B are THE SAME type (order doesn't matter)
-let a: A = { x: 1, y: 2 }
-let b: B = a  // ✅ OK: same structure
+let a: A = { x: 1, y: 2 };
+let b: B = a;  // ✅ OK: same structure
 ```
 
 **Type checking rules:**
@@ -105,7 +105,7 @@ During unification, when checking if record type `R1` is compatible with `R2`:
 // Function parameter with record type
 let distance = (p: { x: Int, y: Int }) =>
     // p must have at least { x: Int, y: Int }
-    p.x * p.x + p.y * p.y
+    p.x * p.x + p.y * p.y;
 
 // Can pass records with extra fields
 distance({ x: 3, y: 4 })  // OK
@@ -118,9 +118,9 @@ distance({ x: 3, y: 4, label: "origin" })  // OK - label ignored
 Width subtyping is **invariant** in type variables:
 
 ```vibefun
-type Box<T> = { value: T }
+type Box<T> = { value: T };
 
-let intBox: Box<Int> = { value: 42 }
+let intBox: Box<Int> = { value: 42 };
 let numBox: Box<Float> = intBox  // ❌ Error: Box<Int> ≠ Box<Float>
 // Type parameters must match exactly (no variance)
 ```
@@ -130,14 +130,14 @@ let numBox: Box<Float> = intBox  // ❌ Error: Box<Int> ≠ Box<Float>
 When records appear in function argument positions, subtyping is **contravariant**:
 
 ```vibefun
-type Point2D = { x: Int, y: Int }
-type Point3D = { x: Int, y: Int, z: Int }
+type Point2D = { x: Int, y: Int };
+type Point3D = { x: Int, y: Int, z: Int };
 
 // Function that accepts Point3D
-let process3D: (Point3D) -> Int = (p) => p.x + p.y + p.z
+let process3D: (Point3D) -> Int = (p) => p.x + p.y + p.z;
 
 // Can we assign to a function that accepts Point2D?
-let process2D: (Point2D) -> Int = process3D
+let process2D: (Point2D) -> Int = process3D;
 // ❌ Error: (Point3D) -> Int is NOT a subtype of (Point2D) -> Int
 
 // Why? If this were allowed:
@@ -145,8 +145,8 @@ let process2D: (Point2D) -> Int = process3D
 // But process3D expects z, which doesn't exist!
 
 // The reverse IS allowed (covariant in return type, contravariant in args):
-let accepts2D: (Point2D) -> Int = (p) => p.x + p.y
-let accepts3D: (Point3D) -> Int = accepts2D  // ✅ OK
+let accepts2D: (Point2D) -> Int = (p) => p.x + p.y;
+let accepts3D: (Point3D) -> Int = accepts2D;  // ✅ OK
 // A function expecting Point2D can accept Point3D (has all fields)
 ```
 
@@ -155,7 +155,7 @@ let accepts3D: (Point3D) -> Int = accepts2D  // ✅ OK
 Pattern matching on records respects width subtyping:
 
 ```vibefun
-type Point2D = { x: Int, y: Int }
+type Point2D = { x: Int, y: Int };
 
 let describe = (p: Point2D) => match p {
     | { x: 0, y: 0 } => "origin"
@@ -173,13 +173,13 @@ The type checker infers **minimum required fields** when a record is used:
 
 ```vibefun
 // Function without type annotation
-let getX = (p) => p.x
+let getX = (p) => p.x;
 
 // Inferred type: <A>({ x: A, ... }) -> A
 // The "..." means "and possibly other fields"
 
 // Type checker infers minimum requirements:
-getX({ x: 42 })  // OK: A := Int
+getX({ x: 42 });  // OK: A := Int
 getX({ x: 42, y: 100 })  // OK: extra fields allowed
 getX({ y: 100 })  // ❌ Error: missing required field x
 ```
@@ -193,15 +193,15 @@ The type checker uses the variable's type for the corresponding record field typ
 
 ```vibefun
 // Variables with known types
-let name: String = "Alice"
-let age: Int = 30
+let name: String = "Alice";
+let age: Int = 30;
 
 // Field shorthand
-let person = { name, age }
+let person = { name, age };
 // Type: { name: String, age: Int }
 
 // Equivalent to explicit syntax
-let personExplicit = { name: name, age: age }
+let personExplicit = { name: name, age: age };
 // Same type: { name: String, age: Int }
 ```
 
@@ -209,14 +209,14 @@ let personExplicit = { name: name, age: age }
 
 ```vibefun
 // Shorthand with inferred variable types
-let x = 10        // Inferred: Int
-let y = 20        // Inferred: Int
-let point = { x, y }
+let x = 10;  // Inferred: Int
+let y = 20;  // Inferred: Int
+let point = { x, y };
 // Inferred type: { x: Int, y: Int }
 
 // Mixed shorthand and explicit fields
-let name = "Bob"
-let user = { name, age: 25, active: true }
+let name = "Bob";
+let user = { name, age: 25, active: true };
 // Inferred type: { name: String, age: Int, active: Bool }
 ```
 
@@ -225,18 +225,18 @@ let user = { name, age: 25, active: true }
 Field shorthand works seamlessly with width subtyping:
 
 ```vibefun
-type Person = { name: String, age: Int }
+type Person = { name: String, age: Int };
 
-let name = "Alice"
-let age = 30
-let email = "alice@example.com"
+let name = "Alice";
+let age = 30;
+let email = "alice@example.com";
 
 // Shorthand creates record with extra field
-let user = { name, age, email }
+let user = { name, age, email };
 // Type: { name: String, age: Int, email: String }
 
 // Can be used where Person is expected (width subtyping)
-let person: Person = user  // ✅ OK: has name and age (email ignored)
+let person: Person = user;  // ✅ OK: has name and age (email ignored)
 ```
 
 **Shorthand in function parameters:**
@@ -250,7 +250,7 @@ let makePerson = (name, age, email) => {
 // Type: (String, Int, String) -> { name: String, age: Int, email: String }
 
 // Call site
-let p = makePerson("Bob", 25, "bob@example.com")
+let p = makePerson("Bob", 25, "bob@example.com");
 // Type: { name: String, age: Int, email: String }
 ```
 

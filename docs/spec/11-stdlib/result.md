@@ -5,7 +5,7 @@ The `Result` module provides functional error handling without exceptions. Resul
 ## Result Type
 
 ```vibefun
-type Result<T, E> = Ok(T) | Err(E)
+type Result<T, E> = Ok(T) | Err(E);
 ```
 
 - `Ok(value)` - Successful result containing a value of type `T`
@@ -37,14 +37,14 @@ Result.map: <T, E, U>(Result<T, E>, (T) -> U) -> Result<U, E>
 **Examples:**
 
 ```vibefun
-Result.map(Ok(5), (x) => x * 2)
+Result.map(Ok(5), (x) => x * 2);
 // Ok(10)
 
-Result.map(Err("failed"), (x) => x * 2)
+Result.map(Err("failed"), (x) => x * 2);
 // Err("failed")
 
 // Chaining transformations
-Ok(3)
+Ok(3);
     |> Result.map((x) => x + 1)
     |> Result.map((x) => x * 2)
 // Ok(8)
@@ -72,18 +72,18 @@ Result.mapErr: <T, E, F>(Result<T, E>, (E) -> F) -> Result<T, F>
 **Examples:**
 
 ```vibefun
-Result.mapErr(Err("parse failed"), (msg) => "Error: " & msg)
+Result.mapErr(Err("parse failed"), (msg) => "Error: " & msg);
 // Err("Error: parse failed")
 
-Result.mapErr(Ok(42), (msg) => "Error: " & msg)
+Result.mapErr(Ok(42), (msg) => "Error: " & msg);
 // Ok(42)
 
 // Convert error type
-type ParseError = ParseError(String)
-type ValidationError = ValidationError(String)
+type ParseError = ParseError(String);
+type ValidationError = ValidationError(String);
 
 let toValidationError = (result: Result<Int, ParseError>): Result<Int, ValidationError> =>
-    Result.mapErr(result, (ParseError(msg)) => ValidationError(msg))
+    Result.mapErr(result, (ParseError(msg)) => ValidationError(msg));
 ```
 
 **Use case:** Convert between error types or add context to errors.
@@ -117,29 +117,29 @@ let parseAge = (s: String): Result<Int, String> =>
     }
 
 let validateAge = (age: Int): Result<Int, String> =>
-    if age >= 0 && age <= 150
-    then Ok(age)
+    if age >= 0 && age <= 150;
+    then Ok(age);
     else Err("Age out of range: " & String.fromInt(age))
 
 // Chain with flatMap
 let processAge = (input: String): Result<Int, String> =>
-    parseAge(input)
+    parseAge(input);
         |> Result.flatMap(validateAge)
 
-processAge("25")    // Ok(25)
+processAge("25");  // Ok(25)
 processAge("200")   // Err("Age out of range: 200")
 processAge("abc")   // Err("Invalid integer: abc")
 
 // Multiple chained operations
 let divide = (a: Int, b: Int): Result<Int, String> =>
-    if b == 0 then Err("Division by zero") else Ok(a / b)
+    if b == 0 then Err("Division by zero") else Ok(a / b);
 
-Ok(100)
+Ok(100);
     |> Result.flatMap((x) => divide(x, 10))
     |> Result.flatMap((x) => divide(x, 2))
 // Ok(5)
 
-Ok(100)
+Ok(100);
     |> Result.flatMap((x) => divide(x, 0))
     |> Result.flatMap((x) => divide(x, 2))
 // Err("Division by zero") - stops at first error
@@ -162,8 +162,8 @@ Result.isOk: <T, E>(Result<T, E>) -> Bool
 **Examples:**
 
 ```vibefun
-Result.isOk(Ok(42))          // true
-Result.isOk(Err("failed"))   // false
+Result.isOk(Ok(42));  // true
+Result.isOk(Err("failed"));  // false
 ```
 
 **Performance:** O(1)
@@ -172,7 +172,7 @@ Result.isOk(Err("failed"))   // false
 
 ```vibefun
 // Instead of:
-if Result.isOk(result) then ...
+if Result.isOk(result) then ...;
 
 // Use:
 match result {
@@ -194,8 +194,8 @@ Result.isErr: <T, E>(Result<T, E>) -> Bool
 **Examples:**
 
 ```vibefun
-Result.isErr(Ok(42))          // false
-Result.isErr(Err("failed"))   // true
+Result.isErr(Ok(42));  // false
+Result.isErr(Err("failed"));  // true
 ```
 
 **Performance:** O(1)
@@ -217,10 +217,10 @@ Result.unwrap: <T, E>(Result<T, E>) -> T  // Panics on Err
 **Examples:**
 
 ```vibefun
-Result.unwrap(Ok(42))
+Result.unwrap(Ok(42));
 // 42
 
-Result.unwrap(Err("failed"))
+Result.unwrap(Err("failed"));
 // ⚠️ Panics: "Called unwrap on Err value: failed"
 ```
 
@@ -251,14 +251,14 @@ Result.unwrapOr: <T, E>(Result<T, E>, T) -> T
 **Examples:**
 
 ```vibefun
-Result.unwrapOr(Ok(42), 0)
+Result.unwrapOr(Ok(42), 0);
 // 42
 
-Result.unwrapOr(Err("failed"), 0)
+Result.unwrapOr(Err("failed"), 0);
 // 0
 
 // Provide fallback for parsing
-let age = Int.parse(input)
+let age = Int.parse(input);
     |> Result.unwrapOr(0)  // Default to 0 if parse fails
 ```
 
@@ -275,7 +275,7 @@ These functions are not in the initial standard library but can be implemented u
 ### Result.andThen (alias for flatMap)
 
 ```vibefun
-let andThen = Result.flatMap
+let andThen = Result.flatMap;
 ```
 
 ### Result.or
@@ -288,9 +288,9 @@ let or = <T, E>(r1: Result<T, E>, r2: Result<T, E>): Result<T, E> =>
         | Err(_) => r2
     }
 
-or(Err("first"), Ok(42))   // Ok(42)
-or(Err("first"), Err("second"))  // Err("second")
-or(Ok(1), Ok(2))  // Ok(1)
+or(Err("first"), Ok(42));  // Ok(42)
+or(Err("first"), Err("second"));  // Err("second")
+or(Ok(1), Ok(2));  // Ok(1)
 ```
 
 ### Result.unwrapOrElse
@@ -306,7 +306,7 @@ let unwrapOrElse = <T, E>(r: Result<T, E>, f: (E) -> T): T =>
 // Use error to compute default
 unwrapOrElse(Err("invalid"), (msg) => {
     unsafe { console.log("Error: " & msg) }
-    0
+    0;
 })
 ```
 
@@ -320,8 +320,8 @@ let toOption = <T, E>(r: Result<T, E>): Option<T> =>
         | Err(_) => None
     }
 
-toOption(Ok(42))          // Some(42)
-toOption(Err("failed"))   // None
+toOption(Ok(42));  // Some(42)
+toOption(Err("failed"));  // None
 ```
 
 ### Result.fromOption
@@ -334,8 +334,8 @@ let fromOption = <T, E>(opt: Option<T>, error: E): Result<T, E> =>
         | None => Err(error)
     }
 
-fromOption(Some(42), "no value")      // Ok(42)
-fromOption(None, "no value")          // Err("no value")
+fromOption(Some(42), "no value");  // Ok(42)
+fromOption(None, "no value");  // Err("no value")
 ```
 
 ---
@@ -347,22 +347,22 @@ fromOption(None, "no value")          // Err("no value")
 Chain operations that may fail using `flatMap`:
 
 ```vibefun
-type User = { name: String, email: String, age: Int }
+type User = { name: String, email: String, age: Int };
 
 let validateName = (name: String): Result<String, String> =>
-    if String.length(name) > 0
-    then Ok(name)
-    else Err("Name cannot be empty")
+    if String.length(name) > 0;
+    then Ok(name);
+    else Err("Name cannot be empty");
 
 let validateEmail = (email: String): Result<String, String> =>
-    if String.contains(email, "@")
-    then Ok(email)
-    else Err("Invalid email address")
+    if String.contains(email, "@");
+    then Ok(email);
+    else Err("Invalid email address");
 
 let validateAge = (age: Int): Result<Int, String> =>
-    if age >= 18
-    then Ok(age)
-    else Err("Must be 18 or older")
+    if age >= 18;
+    then Ok(age);
+    else Err("Must be 18 or older");
 
 let createUser = (name: String, email: String, age: Int): Result<User, String> =>
     validateName(name) |> Result.flatMap((validName) =>
@@ -371,16 +371,16 @@ let createUser = (name: String, email: String, age: Int): Result<User, String> =
         { name: validName, email: validEmail, age: validAge }
     )))
 
-createUser("Alice", "alice@example.com", 25)
+createUser("Alice", "alice@example.com", 25);
 // Ok({ name: "Alice", email: "alice@example.com", age: 25 })
 
-createUser("", "alice@example.com", 25)
+createUser("", "alice@example.com", 25);
 // Err("Name cannot be empty")
 
-createUser("Bob", "invalid-email", 25)
+createUser("Bob", "invalid-email", 25);
 // Err("Invalid email address")
 
-createUser("Bob", "bob@example.com", 15)
+createUser("Bob", "bob@example.com", 15);
 // Err("Must be 18 or older")
 ```
 
@@ -390,7 +390,7 @@ Process a list of operations, collecting all successes or stopping at first erro
 
 ```vibefun
 // Sequential: stop at first error
-let rec mapResults = <A, B, E>(
+let rec mapResults = <A, B, E>(;
     xs: List<A>,
     f: (A) -> Result<B, E>
 ): Result<List<B>, E> =>
@@ -399,15 +399,15 @@ let rec mapResults = <A, B, E>(
         | [head, ...tail] =>
             f(head) |> Result.flatMap((b) =>
                 mapResults(tail, f) |> Result.map((bs) =>
-                    [b, ...bs]
+                    [b, ...bs];
                 ))
     }
 
-mapResults([1, 2, 3], (x) => Ok(x * 2))
+mapResults([1, 2, 3], (x) => Ok(x * 2));
 // Ok([2, 4, 6])
 
 mapResults([1, 0, 3], (x) =>
-    if x == 0 then Err("zero") else Ok(x)
+    if x == 0 then Err("zero") else Ok(x);
 )
 // Err("zero") - stops at first error
 ```
@@ -417,7 +417,7 @@ mapResults([1, 0, 3], (x) =>
 Use a variant type to represent multiple error kinds:
 
 ```vibefun
-type AppError =
+type AppError =;
     | ParseError(String)
     | ValidationError(String)
     | NetworkError(String)
@@ -429,12 +429,12 @@ let parseInput = (s: String): Result<Int, AppError> =>
     }
 
 let validatePositive = (n: Int): Result<Int, AppError> =>
-    if n > 0
-    then Ok(n)
-    else Err(ValidationError("Must be positive"))
+    if n > 0;
+    then Ok(n);
+    else Err(ValidationError("Must be positive"));
 
 let processInput = (s: String): Result<Int, AppError> =>
-    parseInput(s) |> Result.flatMap(validatePositive)
+    parseInput(s) |> Result.flatMap(validatePositive);
 
 // Handle specific error types
 match processInput(input) {
@@ -479,15 +479,15 @@ Avoid `Result<Result<T, E>, E>` - use `flatMap` instead:
 ```vibefun
 // ❌ Nested Results (hard to work with)
 let bad = (x: Int): Result<Result<Int, String>, String> =>
-    if x > 0
-    then Ok(Ok(x * 2))
-    else Err("negative")
+    if x > 0;
+    then Ok(Ok(x * 2));
+    else Err("negative");
 
 // ✅ Flattened with flatMap
 let good = (x: Int): Result<Int, String> =>
-    if x > 0
-    then Ok(x) |> Result.map((y) => y * 2)
-    else Err("negative")
+    if x > 0;
+    then Ok(x) |> Result.map((y) => y * 2);
+    else Err("negative");
 ```
 
 ### Pattern Matching is Exhaustive

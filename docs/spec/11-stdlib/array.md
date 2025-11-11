@@ -6,7 +6,7 @@ The `Array` type is a mutable, fixed-size or growable array backed by JavaScript
 
 ```vibefun
 // Array type (imported from external JavaScript)
-type Array<T> = external
+type Array<T> = external;
 
 // Construction
 Array.make: <T>(Int, T) -> Array<T>           // Create array of size n with default value
@@ -39,16 +39,16 @@ Array.sort: <T>(Array<T>, (T, T) -> Int) -> Unit  // Sort in-place
 **Example:**
 ```vibefun
 // Safe: pure operations
-let arr = Array.fromList([1, 2, 3, 4, 5])
-let doubled = Array.map(arr, (x) => x * 2)
-let total = Array.fold(arr, 0, (acc, x) => acc + x)
+let arr = Array.fromList([1, 2, 3, 4, 5]);
+let doubled = Array.map(arr, (x) => x * 2);
+let total = Array.fold(arr, 0, (acc, x) => acc + x);
 
 // Unsafe: mutation
 unsafe {
-    let mut arr = Array.make(3, 0)
-    Array.set(arr, 0, 10)
-    Array.set(arr, 1, 20)
-    Array.set(arr, 2, 30)
+    let mut arr = Array.make(3, 0);
+    Array.set(arr, 0, 10);
+    Array.set(arr, 1, 20);
+    Array.set(arr, 2, 30);
 }
 ```
 

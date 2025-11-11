@@ -29,15 +29,15 @@ When calling a function, arguments are evaluated **left-to-right** before the fu
 
 **Example with side effects:**
 ```vibefun
-mut x = 0
+mut x = 0;
 
 let sideEffect = (n) => {
   x := !x + n;
-  !x
+  !x;
 }
 
 // Arguments evaluated left-to-right
-let result = add(sideEffect(1), sideEffect(10))
+let result = add(sideEffect(1), sideEffect(10));
 // After evaluation: x = 11, result = 12 (1 + 11)
 ```
 
@@ -47,15 +47,15 @@ let result = add(sideEffect(1), sideEffect(10))
 
 **Example:**
 ```vibefun
-mut x = 0
+mut x = 0;
 
 let makeIncrementer = (n) => {
   x := !x + n;  // Not evaluated during partial application
-  (y) => !x + y
+  (y) => !x + y;
 }
 
-let inc5 = makeIncrementer(5)  // x is still 0 (body not executed)
-let result = inc5(3)            // Now x becomes 5, result is 8
+let inc5 = makeIncrementer(5);  // x is still 0 (body not executed)
+let result = inc5(3);  // Now x becomes 5, result is 8
 ```
 
 ### Function Expression Evaluation
@@ -82,14 +82,14 @@ Arithmetic (`+`, `-`, `*`, `/`, `%`) and comparison (`<`, `>`, `<=`, `>=`, `==`,
 
 **Example:**
 ```vibefun
-mut x = 5
+mut x = 5;
 
 let inc = () => {
   x := !x + 1;
-  !x
+  !x;
 }
 
-let result = inc() + inc()
+let result = inc() + inc();
 // First inc(): x becomes 6, returns 6
 // Second inc(): x becomes 7, returns 7
 // Result: 6 + 7 = 13
@@ -108,14 +108,14 @@ Logical operators `&&` (and) and `||` (or) use **short-circuit evaluation**.
 
 **Example:**
 ```vibefun
-mut x = 0
+mut x = 0;
 
 let sideEffect = (value) => {
   x := !x + 1;
-  value
+  value;
 }
 
-let result = sideEffect(false) && sideEffect(true)
+let result = sideEffect(false) && sideEffect(true);
 // Only first sideEffect() is called
 // x = 1 (not 2), result = false
 ```
@@ -129,14 +129,14 @@ let result = sideEffect(false) && sideEffect(true)
 
 **Example:**
 ```vibefun
-mut x = 0
+mut x = 0;
 
 let sideEffect = (value) => {
   x := !x + 1;
-  value
+  value;
 }
 
-let result = sideEffect(true) || sideEffect(false)
+let result = sideEffect(true) || sideEffect(false);
 // Only first sideEffect() is called
 // x = 1 (not 2), result = true
 ```
@@ -166,14 +166,14 @@ Record fields are evaluated **left-to-right** in source order.
 
 **Example:**
 ```vibefun
-mut count = 0
+mut count = 0;
 
 let next = () => {
   count := !count + 1;
-  !count
+  !count;
 }
 
-let record = { a: next(), b: next(), c: next() }
+let record = { a: next(), b: next(), c: next() };
 // record = { a: 1, b: 2, c: 3 }
 ```
 
@@ -190,15 +190,15 @@ For record update with spread, evaluation proceeds **left-to-right**.
 
 **Example:**
 ```vibefun
-mut count = 0
+mut count = 0;
 
 let next = () => {
   count := !count + 1;
-  !count
+  !count;
 }
 
-let base = { a: 0, b: 0 }
-let updated = { ...getBase(), a: next() }
+let base = { a: 0, b: 0 };
+let updated = { ...getBase(), a: next() };
 // getBase() evaluated before next()
 ```
 
@@ -214,14 +214,14 @@ List elements are evaluated **left-to-right**.
 
 **Example:**
 ```vibefun
-mut count = 0
+mut count = 0;
 
 let next = () => {
   count := !count + 1;
-  !count
+  !count;
 }
 
-let list = [next(), next(), next()]
+let list = [next(), next(), next()];
 // list = [1, 2, 3]
 ```
 
@@ -259,14 +259,14 @@ If expressions evaluate the condition, then **exactly one** branch.
 
 **Example:**
 ```vibefun
-mut x = 0
+mut x = 0;
 
 let inc = () => {
   x := !x + 1;
-  !x
+  !x;
 }
 
-let result = if true then inc() else inc()
+let result = if true then inc() else inc();
 // Only one inc() is called
 // x = 1, result = 1
 ```
@@ -286,11 +286,11 @@ Match expressions evaluate the scrutinee once, then test patterns **top-to-botto
 
 **Example:**
 ```vibefun
-mut evaluations = 0
+mut evaluations = 0;
 
 let trackEval = (value) => {
   evaluations := !evaluations + 1;
-  value
+  value;
 }
 
 match trackEval(Some(5)) {
@@ -329,12 +329,12 @@ Blocks evaluate expressions **sequentially** (top-to-bottom), returning the last
 
 **Example:**
 ```vibefun
-mut x = 0
+mut x = 0;
 
 let block = {
   x := !x + 1;  // x becomes 1
   x := !x + 1;  // x becomes 2
-  !x            // Returns 2
+  !x;  // Returns 2
 }
 // block = 2, x = 2
 ```
@@ -348,7 +348,7 @@ Expressions that return `Unit` (`()`) are typically used for side effects. When 
 {
   log("first");   // Evaluated for side effect, result () is discarded
   log("second");  // Evaluated for side effect, result () is discarded
-  42              // Returned as block value
+  42;  // Returned as block value
 }
 ```
 
@@ -367,14 +367,14 @@ This is equivalent to `g(f(a))`.
 
 **Example with side effects:**
 ```vibefun
-mut trace = []
+mut trace = [];
 
 let track = (name) => (value) => {
   trace := trace ++ [name];
-  value
+  value;
 }
 
-let result = 5 |> track("f") |> track("g") |> track("h")
+let result = 5 |> track("f") |> track("g") |> track("h");
 // trace = ["f", "g", "h"]
 // Functions called in left-to-right order
 ```
@@ -414,20 +414,20 @@ Reference assignment evaluates the new value, then updates the reference.
 
 **Example:**
 ```vibefun
-mut x = 0
-mut y = 10
+mut x = 0;
+mut y = 10;
 
 let getRef = () => {
   log("getting ref");
-  x
+  x;
 }
 
 let getValue = () => {
   log("getting value");
-  !y
+  !y;
 }
 
-getRef() := getValue()
+getRef() := getValue();
 // Output:
 // "getting ref"
 // "getting value"
@@ -509,22 +509,22 @@ The specific order in which patterns test nested structure is implementation-def
 ### Complex Expression with Side Effects
 
 ```vibefun
-mut counter = 0
+mut counter = 0;
 
 let next = () => {
   counter := !counter + 1;
-  !counter
+  !counter;
 }
 
 let result = {
   let a = next();              // counter = 1, a = 1
   let b = next();              // counter = 2, b = 2
   let record = {
-    x: next(),                 // counter = 3, x = 3
-    y: next()                  // counter = 4, y = 4
+    x: next(),;  // counter = 3, x = 3
+    y: next();  // counter = 4, y = 4
   };
-  let list = [next(), next()]; // counter = 6, list = [5, 6]
-  (a, b, record, list)
+  let list = [next(), next()]; // counter = 6, list = [5, 6];
+  (a, b, record, list);
 }
 // result = (1, 2, { x: 3, y: 4 }, [5, 6])
 // counter = 6
@@ -533,16 +533,16 @@ let result = {
 ### Evaluation Order with Conditionals
 
 ```vibefun
-mut trace = []
+mut trace = [];
 
 let track = (name, value) => {
   trace := trace ++ [name];
-  value
+  value;
 }
 
-let result = if track("cond", true)
-  then track("then", 10)
-  else track("else", 20)
+let result = if track("cond", true);
+  then track("then", 10);
+  else track("else", 20);
 
 // trace = ["cond", "then"]
 // result = 10
@@ -554,8 +554,8 @@ let result = if track("cond", true)
 ```vibefun
 // Safe division with short-circuit
 let safeDivide = (numerator, denominator) =>
-  denominator != 0 && (numerator / denominator > 100)
+  denominator != 0 && (numerator / denominator > 100);
 
 // Division only happens if denominator != 0
-let result = safeDivide(1000, 0)  // false, no division error
+let result = safeDivide(1000, 0);  // false, no division error
 ```

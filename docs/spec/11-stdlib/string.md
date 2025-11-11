@@ -19,9 +19,9 @@ String.length: (String) -> Int
 
 **Examples:**
 ```vibefun
-String.length("hello")   // 5
-String.length("")        // 0
-String.length("🎉")     // 1 (one Unicode character)
+String.length("hello");  // 5
+String.length("");  // 0
+String.length("🎉");  // 1 (one Unicode character)
 ```
 
 ---
@@ -34,8 +34,8 @@ String.concat: (String, String) -> String
 
 **Examples:**
 ```vibefun
-String.concat("hello", " world")  // "hello world"
-"hello" & " world"                // "hello world" (using operator)
+String.concat("hello", " world");  // "hello world"
+"hello" & " world";  // "hello world" (using operator)
 ```
 
 ---
@@ -48,8 +48,8 @@ String.toUpperCase: (String) -> String
 
 **Examples:**
 ```vibefun
-String.toUpperCase("hello")  // "HELLO"
-String.toUpperCase("Café")   // "CAFÉ"
+String.toUpperCase("hello");  // "HELLO"
+String.toUpperCase("Café");  // "CAFÉ"
 ```
 
 ---
@@ -62,8 +62,8 @@ String.toLowerCase: (String) -> String
 
 **Examples:**
 ```vibefun
-String.toLowerCase("HELLO")  // "hello"
-String.toLowerCase("Café")   // "café"
+String.toLowerCase("HELLO");  // "hello"
+String.toLowerCase("Café");  // "café"
 ```
 
 ---
@@ -76,9 +76,9 @@ String.trim: (String) -> String
 
 **Examples:**
 ```vibefun
-String.trim("  hello  ")      // "hello"
-String.trim("\n\ttext\n")     // "text"
-String.trim("no-trim")        // "no-trim"
+String.trim("  hello  ");  // "hello"
+String.trim("\n\ttext\n");  // "text"
+String.trim("no-trim");  // "no-trim"
 ```
 
 ---
@@ -91,9 +91,9 @@ String.split: (String, String) -> List<String>
 
 **Examples:**
 ```vibefun
-String.split("a,b,c", ",")          // ["a", "b", "c"]
-String.split("hello world", " ")    // ["hello", "world"]
-String.split("no-separator", ",")   // ["no-separator"]
+String.split("a,b,c", ",");  // ["a", "b", "c"]
+String.split("hello world", " ");  // ["hello", "world"]
+String.split("no-separator", ",");  // ["no-separator"]
 ```
 
 ---
@@ -106,9 +106,9 @@ String.contains: (String, String) -> Bool
 
 **Examples:**
 ```vibefun
-String.contains("hello world", "world")  // true
-String.contains("hello", "bye")          // false
-String.contains("", "")                  // true
+String.contains("hello world", "world");  // true
+String.contains("hello", "bye");  // false
+String.contains("", "");  // true
 ```
 
 ---
@@ -121,8 +121,8 @@ String.startsWith: (String, String) -> Bool
 
 **Examples:**
 ```vibefun
-String.startsWith("hello world", "hello")  // true
-String.startsWith("hello", "world")        // false
+String.startsWith("hello world", "hello");  // true
+String.startsWith("hello", "world");  // false
 ```
 
 ---
@@ -135,8 +135,8 @@ String.endsWith: (String, String) -> Bool
 
 **Examples:**
 ```vibefun
-String.endsWith("hello world", "world")  // true
-String.endsWith("hello", "world")        // false
+String.endsWith("hello world", "world");  // true
+String.endsWith("hello", "world");  // false
 ```
 
 ---
@@ -151,9 +151,9 @@ String.fromInt: (Int) -> String
 
 **Examples:**
 ```vibefun
-String.fromInt(42)    // "42"
-String.fromInt(-10)   // "-10"
-String.fromInt(0)     // "0"
+String.fromInt(42);  // "42"
+String.fromInt(-10);  // "-10"
+String.fromInt(0);  // "0"
 ```
 
 ---
@@ -166,9 +166,9 @@ String.fromFloat: (Float) -> String
 
 **Examples:**
 ```vibefun
-String.fromFloat(3.14)   // "3.14"
-String.fromFloat(-2.5)   // "-2.5"
-String.fromFloat(1.0)    // "1"
+String.fromFloat(3.14);  // "3.14"
+String.fromFloat(-2.5);  // "-2.5"
+String.fromFloat(1.0);  // "1"
 ```
 
 ---
@@ -181,10 +181,10 @@ String.toInt: (String) -> Option<Int>
 
 **Examples:**
 ```vibefun
-String.toInt("42")     // Some(42)
-String.toInt("-10")    // Some(-10)
-String.toInt("3.14")   // None (not an integer)
-String.toInt("hello")  // None (not a number)
+String.toInt("42");  // Some(42)
+String.toInt("-10");  // Some(-10)
+String.toInt("3.14");  // None (not an integer)
+String.toInt("hello");  // None (not a number)
 ```
 
 ---
@@ -197,10 +197,10 @@ String.toFloat: (String) -> Option<Float>
 
 **Examples:**
 ```vibefun
-String.toFloat("3.14")   // Some(3.14)
-String.toFloat("42")     // Some(42.0)
-String.toFloat("-2.5")   // Some(-2.5)
-String.toFloat("hello")  // None (not a number)
+String.toFloat("3.14");  // Some(3.14)
+String.toFloat("42");  // Some(42.0)
+String.toFloat("-2.5");  // Some(-2.5)
+String.toFloat("hello");  // None (not a number)
 ```
 
 ---
@@ -210,11 +210,11 @@ String.toFloat("hello")  // None (not a number)
 ### String Building
 ```vibefun
 // Concatenate multiple strings
-let greeting = "Hello" & ", " & "world" & "!"
+let greeting = "Hello" & ", " & "world" & "!";
 
 // Build from list
 let joined = List.fold(["a", "b", "c"], "", (acc, s) =>
-    if acc == "" then s else acc & "," & s
+    if acc == "" then s else acc & "," & s;
 )
 // "a,b,c"
 ```
@@ -222,7 +222,7 @@ let joined = List.fold(["a", "b", "c"], "", (acc, s) =>
 ### String Processing Pipeline
 ```vibefun
 let process = (input: String): String =>
-    input
+    input;
         |> String.trim
         |> String.toLowerCase
         |> String.split(",")

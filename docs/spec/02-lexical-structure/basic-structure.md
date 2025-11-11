@@ -16,7 +16,7 @@ Vibefun source files use the `.vf` extension. Each file is a module.
 
 ```vibefun
 // This is a single-line comment
-let x = 42  // Comment at end of line
+let x = 42;  // Comment at end of line
 ```
 
 ### Multi-Line Comments
@@ -81,10 +81,10 @@ map(list,
     (x) => x + 1);
 
 // ✅ List literal (commas separate items)
-let numbers = [
+let numbers = [;
     1,
     2,
-    3
+    3;
 ];
 
 // ✅ Record literal (commas separate fields)
@@ -94,7 +94,7 @@ let person = {
 };
 
 // ✅ Pipe operators allow multi-line
-data
+data;
     |> filter((x) => x > 0)
     |> map((x) => x * 2);
 ```
@@ -114,6 +114,6 @@ let block = { x; y; };        // Semicolons = block expression
 
 **Lambda newlines** are allowed before the arrow:
 ```vibefun
-let add = (x, y)
+let add = (x, y);
     => x + y;
 ```

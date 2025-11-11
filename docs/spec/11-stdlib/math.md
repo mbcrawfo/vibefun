@@ -44,11 +44,11 @@ Math.random: () -> Float        // Random number in [0, 1)
 
 **Example:**
 ```vibefun
-let circleArea = (radius) => Math.pi * Math.pow(radius, 2.0)
-let distance = (x, y) => Math.sqrt(Math.pow(x, 2.0) + Math.pow(y, 2.0))
+let circleArea = (radius) => Math.pi * Math.pow(radius, 2.0);
+let distance = (x, y) => Math.sqrt(Math.pow(x, 2.0) + Math.pow(y, 2.0));
 
 unsafe {
-    let randomValue = Math.random()  // Impure operation
+    let randomValue = Math.random();  // Impure operation
 }
 ```
 

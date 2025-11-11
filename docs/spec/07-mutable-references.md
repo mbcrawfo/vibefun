@@ -15,10 +15,10 @@ A ref is a **mutable cell** containing a value of type `T`. The type is written 
 
 ```vibefun
 // A mutable reference to an Int
-let mut counter: Ref<Int> = ref(0)
+let mut counter: Ref<Int> = ref(0);
 
 // A mutable reference to an Option
-let mut state: Ref<Option<String>> = ref(None)
+let mut state: Ref<Option<String>> = ref(None);
 ```
 
 The `Ref<T>` type is parameterized—it wraps a value of any type and allows that value to be read and updated.
@@ -41,12 +41,12 @@ Bindings that hold refs **must** use the `mut` keyword. Omitting it is a **compi
 
 ```vibefun
 // ❌ Error: ref bindings must use 'let mut'
-let x = ref(0)
+let x = ref(0);
 // Error: Cannot bind Ref<Int> without 'mut' keyword
 // Suggestion: Use 'let mut x = ref(0)'
 
 // ✅ OK: Correct syntax with mut
-let mut x = ref(0)
+let mut x = ref(0);
 ```
 
 **Rationale:** The `mut` keyword serves as a visual marker that indicates "this binding can be updated." It helps readers quickly identify mutable state in the codebase.
@@ -56,29 +56,29 @@ let mut x = ref(0)
 The `mut` keyword indicates that the **ref itself can be reassigned** (though refs are typically not reassigned—they're mutated using `:=`):
 
 ```vibefun
-let mut x = ref(0)
+let mut x = ref(0);
 
 // ✅ OK: Update the ref's contents
-x := 5
+x := 5;
 
 // ✅ OK: Reassign the binding to a new ref
-x = ref(10)  // Less common, but allowed
+x = ref(10);  // Less common, but allowed
 
 // Contrast with immutable binding:
-let y = 42
+let y = 42;
 // y = 43  // ❌ Error: Cannot reassign immutable binding
 ```
 
 However, in practice, refs are almost never reassigned—they're mutated using `:=`:
 
 ```vibefun
-let mut counter = ref(0)
+let mut counter = ref(0);
 
 // Common pattern: mutate the ref's contents
-counter := !counter + 1  // ✅ Typical usage
+counter := !counter + 1;  // ✅ Typical usage
 
 // Rare: reassigning to a new ref
-counter = ref(100)  // Uncommon, usually not needed
+counter = ref(100);  // Uncommon, usually not needed
 ```
 
 **Best practice:** The `mut` keyword signals "this is mutable state"—use it sparingly and prefer immutable alternatives when possible.
@@ -88,8 +88,8 @@ counter = ref(100)  // Uncommon, usually not needed
 Read the current value of a ref using the **dereference operator** `!`:
 
 ```vibefun
-let mut counter = ref(0)
-let value = !counter  // Read the value: 0
+let mut counter = ref(0);
+let value = !counter;  // Read the value: 0
 ```
 
 The `!` operator has type `Ref<T> -> T`—it extracts the value from the ref.
@@ -99,9 +99,9 @@ The `!` operator has type `Ref<T> -> T`—it extracts the value from the ref.
 Update the value stored in a ref using the **reference assignment operator** `:=`:
 
 ```vibefun
-let mut counter = ref(0)
-counter := 5        // Update to 5
-counter := !counter + 1  // Increment: read, add 1, write back
+let mut counter = ref(0);
+counter := 5;  // Update to 5
+counter := !counter + 1;  // Increment: read, add 1, write back
 ```
 
 The `:=` operator has type `(Ref<T>, T) -> Unit`—it updates the ref and returns `()`.
@@ -116,12 +116,12 @@ The compiler distinguishes between these uses based on the **type** of the opera
 
 ```vibefun
 // Logical NOT (operand type: Bool)
-let isActive = true
-let isInactive = !isActive  // false
+let isActive = true;
+let isInactive = !isActive;  // false
 
 // Dereference (operand type: Ref<Int>)
-let mut counter = ref(42)
-let value = !counter  // 42
+let mut counter = ref(42);
+let value = !counter;  // 42
 ```
 
 This type-based resolution is automatic—you don't need to do anything special. The compiler infers the correct operation from the context.
@@ -129,17 +129,17 @@ This type-based resolution is automatic—you don't need to do anything special.
 ### Basic Example: Counter
 
 ```vibefun
-let mut counter = ref(0)
+let mut counter = ref(0);
 
 let increment = () => {
-    counter := !counter + 1
+    counter := !counter + 1;
 }
 
-let getCount = () => !counter
+let getCount = () => !counter;
 
-increment()
-increment()
-let total = getCount()  // 2
+increment();
+increment();
+let total = getCount();  // 2
 ```
 
 ### Example: Imperative Factorial
@@ -148,18 +148,18 @@ Refs are useful when translating imperative algorithms:
 
 ```vibefun
 let factorial = (n) => {
-    let mut result = ref(1)
-    let mut i = ref(1)
+    let mut result = ref(1);
+    let mut i = ref(1);
 
     while !i <= n {
-        result := !result * !i
-        i := !i + 1
+        result := !result * !i;
+        i := !i + 1;
     }
 
-    !result
+    !result;
 }
 
-factorial(5)  // 120
+factorial(5);  // 120
 ```
 
 **Compare to the pure functional version:**
@@ -168,10 +168,10 @@ factorial(5)  // 120
 // Preferred functional approach
 let factorial = (n) => {
     let rec loop = (acc, i) => {
-        if i > n then acc
-        else loop(acc * i, i + 1)
+        if i > n then acc;
+        else loop(acc * i, i + 1);
     }
-    loop(1, 1)
+    loop(1, 1);
 }
 ```
 
@@ -182,10 +182,10 @@ The functional version avoids mutation entirely and is generally preferred in Vi
 Refs can hold any type, including variants:
 
 ```vibefun
-let mut state = ref(None)
+let mut state = ref(None);
 
 let setValue = (x) => {
-    state := Some(x)
+    state := Some(x);
 }
 
 let getValue = () => match !state {
@@ -193,22 +193,22 @@ let getValue = () => match !state {
     | None => 0
 }
 
-setValue(42)
-getValue()  // 42
+setValue(42);
+getValue();  // 42
 ```
 
 ### Example: Multiple Refs
 
 ```vibefun
 let swap = () => {
-    let mut x = ref(10)
-    let mut y = ref(20)
+    let mut x = ref(10);
+    let mut y = ref(20);
 
-    let temp = !x
-    x := !y
-    y := temp
+    let temp = !x;
+    x := !y;
+    y := temp;
 
-    (!x, !y)  // (20, 10)
+    (!x, !y);  // (20, 10)
 }
 ```
 
@@ -218,22 +218,22 @@ Refs can be captured by closures, enabling stateful functions:
 
 ```vibefun
 let makeCounter = () => {
-    let mut count = ref(0)
+    let mut count = ref(0);
 
     let increment = () => {
-        count := !count + 1
-        !count
+        count := !count + 1;
+        !count;
     }
 
-    increment
+    increment;
 }
 
-let counter1 = makeCounter()
-counter1()  // 1
-counter1()  // 2
+let counter1 = makeCounter();
+counter1();  // 1
+counter1();  // 2
 
-let counter2 = makeCounter()
-counter2()  // 1 (independent state)
+let counter2 = makeCounter();
+counter2();  // 1 (independent state)
 ```
 
 ### When to Use Refs
@@ -265,22 +265,22 @@ These rules ensure type safety—you cannot assign a value of the wrong type to 
 Refs use **reference equality** (identity), not **value equality**:
 
 ```vibefun
-let mut x = ref(10)
-let mut y = ref(10)
+let mut x = ref(10);
+let mut y = ref(10);
 
 // x and y are DIFFERENT refs, even though they contain the same value
-x == y  // false (different identity)
+x == y;  // false (different identity)
 
 // Create an alias (same ref)
-let mut z = x
-x == z  // true (same identity)
+let mut z = x;
+x == z;  // true (same identity)
 
 // Mutations through aliases affect the same ref
-x := 20
-!z  // 20 (z is an alias of x)
+x := 20;
+!z;  // 20 (z is an alias of x)
 
 // But y is unaffected
-!y  // 10 (y is a different ref)
+!y;  // 10 (y is a different ref)
 ```
 
 **Key points:**
@@ -295,7 +295,7 @@ Refs can be stored in data structures like lists, records, and variants:
 
 ```vibefun
 // List of refs
-let mut counters: List<Ref<Int>> = [ref(0), ref(1), ref(2)]
+let mut counters: List<Ref<Int>> = [ref(0), ref(1), ref(2)];
 
 // Mutate individual refs in the list
 match counters {
@@ -314,8 +314,8 @@ let mut state = {
     status: ref("idle")
 }
 
-state.counter := !state.counter + 1
-state.status := "active"
+state.counter := !state.counter + 1;
+state.status := "active";
 
 // Variant containing refs
 type CachedValue<T> = {
@@ -328,7 +328,7 @@ let mut cache = {
     lastUpdated: ref(0)
 }
 
-cache.value := Some(42)
+cache.value := Some(42);
 ```
 
 #### Pattern Matching on Refs
@@ -336,7 +336,7 @@ cache.value := Some(42)
 You **cannot** pattern match directly on the contents of a ref. You must dereference first:
 
 ```vibefun
-let mut opt = ref(Some(42))
+let mut opt = ref(Some(42));
 
 // ❌ Error: Cannot pattern match on Ref<Option<Int>>
 match opt {
@@ -351,7 +351,7 @@ match !opt {
 }
 
 // Alternative: Extract value, then match
-let value = !opt
+let value = !opt;
 match value {
     | Some(x) => x
     | None => 0
@@ -364,24 +364,24 @@ Refs **cannot** be polymorphic due to the value restriction:
 
 ```vibefun
 // ❌ Cannot create a polymorphic ref
-let mut polymorphicRef = ref((x) => x)
+let mut polymorphicRef = ref((x) => x);
 // Type: Ref<(t) -> t> (monomorphic t, NOT polymorphic <T>)
 
 // The ref is monomorphic: once t is determined, it's fixed
-polymorphicRef := (x: Int) => x + 1  // t := Int
-let f = !polymorphicRef
+polymorphicRef := (x: Int) => x + 1;  // t := Int
+let f = !polymorphicRef;
 f(42)  // OK: (Int) -> Int
 f("hello")  // Error: t is Int, can't be String
 
 // To store polymorphic functions, wrap in a record or variant:
-type PolyFunc = { apply: <T>(T) -> T }
+type PolyFunc = { apply: <T>(T) -> T };
 
-let mut polyRef = ref({ apply: (x) => x })
+let mut polyRef = ref({ apply: (x) => x });
 // Type: Ref<PolyFunc> (PolyFunc is polymorphic, not the ref)
 
-let f = (!polyRef).apply
-f(42)  // OK: T := Int
-f("hello")  // OK: T := String (fresh instantiation)
+let f = (!polyRef).apply;
+f(42);  // OK: T := Int
+f("hello");  // OK: T := String (fresh instantiation)
 ```
 
 See [Value Restriction](#value-restriction-and-polymorphism) for more details.

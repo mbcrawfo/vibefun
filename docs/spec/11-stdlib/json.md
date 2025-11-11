@@ -6,7 +6,7 @@ JSON serialization and deserialization with type-safe handling.
 
 ```vibefun
 // JSON value representation
-type JSON =
+type JSON =;
     | JNull
     | JBool(Bool)
     | JNumber(Float)
@@ -35,7 +35,7 @@ JSON.getFieldAs: <T>(JSON, String, (JSON) -> Option<T>) -> Option<T>
 **Example:**
 ```vibefun
 let parseUserAge = (jsonString) =>
-    JSON.parse(jsonString)
+    JSON.parse(jsonString);
     |> Result.flatMap((json) =>
         match JSON.getFieldAs(json, "age", JSON.asNumber) {
             | Some(age) => Ok(Float.toInt(age))

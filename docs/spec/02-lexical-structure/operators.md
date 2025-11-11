@@ -53,10 +53,10 @@ The lexer accepts integer literals of any size. Values exceeding `Number.MAX_SAF
 
 **Example:**
 ```vibefun
-let big = 9007199254740992          // Lexer accepts
+let big = 9007199254740992;  // Lexer accepts
 // Runtime: loses precision (9007199254740992 may become 9007199254740992 or 9007199254740993)
 
-let huge = 999999999999999999999    // Lexer accepts
+let huge = 999999999999999999999;  // Lexer accepts
 // Runtime: loses precision significantly
 ```
 
@@ -69,8 +69,8 @@ let huge = 999999999999999999999    // Lexer accepts
 
 **Literal overflow:**
 ```vibefun
-let huge = 1e400    // Lexer accepts, value is Infinity at runtime
-let tiny = 1e-400   // Lexer accepts, value is 0.0 at runtime
+let huge = 1e400;  // Lexer accepts, value is Infinity at runtime
+let tiny = 1e-400;  // Lexer accepts, value is 0.0 at runtime
 ```
 
 ### Invalid String Escapes
@@ -101,7 +101,7 @@ let tiny = 1e-400   // Lexer accepts, value is 0.0 at runtime
 
 **Multi-line string without triple quotes:**
 ```vibefun
-"line 1
+"line 1;
 line 2"      // ❌ Lexer error: "Unterminated string (use """ for multi-line)"
 ```
 
@@ -121,7 +121,7 @@ café         // ✅ OK: also normalized to NFC (visually identical)
 
 **String literals:**
 ```vibefun
-"café" == "café"  // true (normalized to same NFC representation during lexical analysis)
+"café" == "café";  // true (normalized to same NFC representation during lexical analysis)
 ```
 
 String comparison is simple byte-for-byte comparison because normalization has already occurred in the lexer.
@@ -157,9 +157,9 @@ The lexer emits a single `OP_MINUS` token for all `-` characters. The parser det
 
 **Examples:**
 ```vibefun
--42        // Unary negation (parser determines from context)
-x - y      // Binary subtraction (parser determines from context)
-- x        // Also unary negation (whitespace doesn't matter to lexer)
+-42;  // Unary negation (parser determines from context)
+x - y;  // Binary subtraction (parser determines from context)
+- x;  // Also unary negation (whitespace doesn't matter to lexer)
 ```
 
 ### Comparison Operators
@@ -196,7 +196,7 @@ x - y      // Binary subtraction (parser determines from context)
 
 **Valid usage:**
 ```vibefun
-"hello" & " " & "world"           // ✅ OK → "hello world"
+"hello" & " " & "world";  // ✅ OK → "hello world"
 "Age: " & String.fromInt(42)      // ✅ OK → "Age: 42"
 "Pi: " & String.fromFloat(3.14)   // ✅ OK → "Pi: 3.14"
 ```

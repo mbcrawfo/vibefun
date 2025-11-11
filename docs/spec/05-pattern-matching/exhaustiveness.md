@@ -180,7 +180,7 @@ match pair {
 The algorithm verifies that patterns use the correct number of arguments for each constructor:
 
 ```vibefun
-type MyType = A(Int) | B(Int, Int) | C
+type MyType = A(Int) | B(Int, Int) | C;
 
 match x {
     | A(n) => n        // ✅ A takes 1 argument

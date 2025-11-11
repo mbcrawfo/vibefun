@@ -208,7 +208,7 @@ match n {
 }
 
 // Order matters:
-let value = -5
+let value = -5;
 // Step 1: Pattern matches (x = -5), guard (x < 0) is true → "negative"
 ```
 
@@ -251,7 +251,7 @@ match x {
 Guards can reference variables from outer scopes:
 
 ```vibefun
-let threshold = 100
+let threshold = 100;
 
 match value {
     | x when x > threshold => "above threshold"
@@ -478,7 +478,7 @@ let process = (x: Option<Int>) => match x {
 }
 
 // Record pattern with field type annotations
-let extract = ({ name: (name: String), age: (age: Int) }) => (name, age)
+let extract = ({ name: (name: String), age: (age: Int) }) => (name, age);
 ```
 
 **Usage:**
@@ -499,7 +499,7 @@ match list {
 }
 
 // ✅ Workaround: Bind separately
-let fullList = list
+let fullList = list;
 match list {
     | head :: tail => ...  // Use fullList from outer scope
 }
@@ -507,7 +507,7 @@ match list {
 // ✅ Alternative: Match and rebind
 match list {
     | head :: tail => {
-        let fullList = head :: tail
+        let fullList = head :: tail;
         ...
     }
 }

@@ -6,10 +6,10 @@ Records are product types with named fields, providing structural typing with co
 
 ```vibefun
 // Construction
-let person = { name: "Alice", age: 30 }
+let person = { name: "Alice", age: 30 };
 
 // Access
-person.name
+person.name;
 
 // Update (immutable)
 { ...person, age: 31 }
@@ -19,7 +19,7 @@ person.name
 
 ```vibefun
 // Basic record
-let point = { x: 10, y: 20 }
+let point = { x: 10, y: 20 };
 
 // Fields can be any expression
 let computed = {
@@ -51,14 +51,14 @@ let config = {
 Access record fields using dot notation:
 
 ```vibefun
-let person = { name: "Alice", age: 30 }
+let person = { name: "Alice", age: 30 };
 
-let name = person.name  // "Alice"
-let age = person.age    // 30
+let name = person.name;  // "Alice"
+let age = person.age;  // 30
 
 // Chained field access
-let address = person.address.city
-let nested = config.server.host.name
+let address = person.address.city;
+let nested = config.server.host.name;
 
 // Field access has highest precedence (see Operators Reference in Appendix)
 person.name & " Smith"  // Equivalent to: (person.name) & " Smith"
@@ -69,17 +69,17 @@ person.name & " Smith"  // Equivalent to: (person.name) & " Smith"
 Records are **immutable**. To "update" a record, create a new record with modified fields using the spread operator:
 
 ```vibefun
-let person = { name: "Alice", age: 30, email: "alice@example.com" }
+let person = { name: "Alice", age: 30, email: "alice@example.com" };
 
 // Update single field
-let older = { ...person, age: 31 }
+let older = { ...person, age: 31 };
 // { name: "Alice", age: 31, email: "alice@example.com" }
 
 // Update multiple fields
-let updated = { ...person, age: 31, email: "alice@newmail.com" }
+let updated = { ...person, age: 31, email: "alice@newmail.com" };
 
 // Original record unchanged (immutability)
-person.age  // Still 30
+person.age;  // Still 30
 ```
 
 #### Spread Operator in Records
@@ -87,18 +87,18 @@ person.age  // Still 30
 The spread operator `...` copies all fields from an existing record:
 
 ```vibefun
-let base = { x: 1, y: 2 }
+let base = { x: 1, y: 2 };
 
 // Spread + new field
-let extended = { ...base, z: 3 }
+let extended = { ...base, z: 3 };
 // { x: 1, y: 2, z: 3 }
 
 // Spread + override field
-let modified = { ...base, x: 10 }
+let modified = { ...base, x: 10 };
 // { x: 10, y: 2 } (x overridden)
 
 // Multiple spreads
-let combined = { ...defaults, ...userConfig, ...overrides }
+let combined = { ...defaults, ...userConfig, ...overrides };
 ```
 
 **Spread order semantics:**
@@ -107,8 +107,8 @@ let combined = { ...defaults, ...userConfig, ...overrides }
 - Spread expands all fields from the source record at that position
 
 ```vibefun
-let a = { x: 1, y: 2 }
-let b = { y: 20, z: 30 }
+let a = { x: 1, y: 2 };
+let b = { y: 20, z: 30 };
 
 // Later spread overrides earlier values
 { ...a, ...b }        // { x: 1, y: 20, z: 30 } (b.y overrides a.y)
@@ -127,18 +127,18 @@ let b = { y: 20, z: 30 }
 When a variable name matches the field name, you can use shorthand syntax:
 
 ```vibefun
-let name = "Alice"
-let age = 30
+let name = "Alice";
+let age = 30;
 
 // Shorthand
-let person = { name, age }
+let person = { name, age };
 // Equivalent to: { name: name, age: age }
 
 // Mix shorthand and regular fields
-let extended = { name, age, email: "alice@example.com" }
+let extended = { name, age, email: "alice@example.com" };
 
 // Useful with function parameters
-let makePerson = (name, age, email) => { name, age, email }
+let makePerson = (name, age, email) => { name, age, email };
 ```
 
 **Type inference with field shorthand:**
@@ -147,9 +147,9 @@ The type checker uses the variable's type for the record field type. The shortha
 - Field `age` has the same type as variable `age`
 
 ```vibefun
-let name: String = "Alice"
-let age: Int = 30
-let person = { name, age }  // Type: { name: String, age: Int }
+let name: String = "Alice";
+let age: Int = 30;
+let person = { name, age };  // Type: { name: String, age: Int }
 ```
 
 **Lexer behavior:**
@@ -161,15 +161,15 @@ The type checker infers record types from their structure:
 
 ```vibefun
 // Type inferred from literal
-let point = { x: 10, y: 20 }
+let point = { x: 10, y: 20 };
 // Inferred type: { x: Int, y: Int }
 
 // Type inferred from update
-let updated = { ...point, z: 30 }
+let updated = { ...point, z: 30 };
 // Inferred type: { x: Int, y: Int, z: Int }
 
 // Type annotation when needed
-let typed: { name: String, age: Int } = { name: "Alice", age: 30 }
+let typed: { name: String, age: Int } = { name: "Alice", age: 30 };
 ```
 
 #### Nested Records
@@ -193,8 +193,8 @@ let config = {
 }
 
 // Access nested fields
-config.server.host          // "localhost"
-config.server.ssl.enabled   // true
+config.server.host;  // "localhost"
+config.server.ssl.enabled;  // true
 
 // Update nested fields (requires spreading each level)
 let newConfig = {
@@ -212,14 +212,14 @@ Common patterns for working with records:
 
 ```vibefun
 // Conditional update
-let person = { name: "Alice", age: 30 }
-let updated = if shouldAge then { ...person, age: person.age + 1 } else person
+let person = { name: "Alice", age: 30 };
+let updated = if shouldAge then { ...person, age: person.age + 1 } else person;
 
 // Update with computed field
-let incremented = { ...point, x: point.x + 1 }
+let incremented = { ...point, x: point.x + 1 };
 
 // Merge records
-let merged = { ...defaults, ...overrides }
+let merged = { ...defaults, ...overrides };
 
 // Add field conditionally (using Option)
 let withOptional = match maybeEmail {
@@ -233,9 +233,9 @@ let withOptional = match maybeEmail {
 Lists are the primary collection type in Vibefun, representing homogeneous sequences of values.
 
 ```vibefun
-[]                     // Empty list
-[1, 2, 3]              // List literal
-[1, 2, ...rest]        // Spread
+[];  // Empty list
+[1, 2, 3];  // List literal
+[1, 2, ...rest];  // Spread
 x :: xs                // Cons
 ```
 
@@ -243,14 +243,14 @@ x :: xs                // Cons
 
 ```vibefun
 // Empty list (needs type annotation or context)
-let empty: List<Int> = []  // Explicit type annotation
+let empty: List<Int> = [];  // Explicit type annotation
 
 // List with elements
 let numbers = [1, 2, 3, 4, 5]  // Type: List<Int>
 let names = ["Alice", "Bob", "Charlie"]  // Type: List<String>
 
 // All elements must have the same type
-let mixed = [1, "hello"]  // ❌ Error: Expected Int, got String
+let mixed = [1, "hello"];  // ❌ Error: Expected Int, got String
 ```
 
 #### Empty List Type Inference
@@ -262,13 +262,13 @@ The empty list literal `[]` **as an expression** has polymorphic type `List<T>`,
 let empty: List<Int> = []  // List<Int>
 
 // ✅ Type inferred from usage
-let withElements = [1, ...[] ]  // List<Int> (inferred from 1)
+let withElements = [1, ...[] ];  // List<Int> (inferred from 1)
 
 // ✅ Type inferred from function return type
-let getEmptyInts: () -> List<Int> = () => []
+let getEmptyInts: () -> List<Int> = () => [];
 
 // ❌ Problematic: value restriction applies
-let ambiguous = []  // List<T> where T is a fresh monomorphic type variable
+let ambiguous = [];  // List<T> where T is a fresh monomorphic type variable
 
 // First use of 'ambiguous' fixes its type
 let nums = [1, ...ambiguous]  // T := Int, so ambiguous: List<Int>
@@ -287,7 +287,7 @@ let strs = ["hello", ...ambiguous]  // ❌ Error: ambiguous is already List<Int>
 
 ```vibefun
 // Polymorphic function returning empty list
-let empty = <T>(): List<T> => []
+let empty = <T>(): List<T> => [];
 
 // Each call gets a fresh type
 let nums: List<Int> = empty()     // List<Int>
@@ -301,17 +301,17 @@ Or simply use `[]` directly where needed instead of binding it.
 The spread operator `...` expands a list's elements inline:
 
 ```vibefun
-let first = [1, 2, 3]
-let second = [4, 5, 6]
+let first = [1, 2, 3];
+let second = [4, 5, 6];
 
 // Spread at end
-let combined = [0, ...first]  // [0, 1, 2, 3]
+let combined = [0, ...first];  // [0, 1, 2, 3]
 
 // Spread in middle (if supported)
-let middle = [0, ...first, 7]  // [0, 1, 2, 3, 7]
+let middle = [0, ...first, 7];  // [0, 1, 2, 3, 7]
 
 // Multiple spreads (if supported)
-let multi = [...first, ...second]  // [1, 2, 3, 4, 5, 6]
+let multi = [...first, ...second];  // [1, 2, 3, 4, 5, 6]
 ```
 
 **Spread operator limitations:**
@@ -321,13 +321,13 @@ let multi = [...first, ...second]  // [1, 2, 3, 4, 5, 6]
 
 ```vibefun
 // ✅ Spread at end (always supported)
-[1, 2, ...rest]
+[1, 2, ...rest];
 
 // ⚠️  Spread in middle (may be limited)
-[1, ...middle, 5]  // Check implementation support
+[1, ...middle, 5];  // Check implementation support
 
 // ✅ Multiple spreads (concatenation)
-[...list1, ...list2, ...list3]
+[...list1, ...list2, ...list3];
 ```
 
 #### Cons Operator (::)
@@ -335,18 +335,18 @@ let multi = [...first, ...second]  // [1, 2, 3, 4, 5, 6]
 The cons operator `::` prepends an element to the front of a list:
 
 ```vibefun
-let list = [2, 3, 4]
-let newList = 1 :: list  // [1, 2, 3, 4]
+let list = [2, 3, 4];
+let newList = 1 :: list;  // [1, 2, 3, 4]
 
 // Type: (T, List<T>) -> List<T>
 // Right-associative (see Operators Reference in Appendix)
 
 // Building lists with cons
-let numbers = 1 :: 2 :: 3 :: []  // [1, 2, 3]
+let numbers = 1 :: 2 :: 3 :: [];  // [1, 2, 3]
 // Equivalent to: 1 :: (2 :: (3 :: []))
 
 // Cons in expressions
-let prepend = (x, xs) => x :: xs
+let prepend = (x, xs) => x :: xs;
 ```
 
 **Cons vs Spread:**
@@ -366,7 +366,7 @@ let doubled = List.map(nums, (x) => x * 2)  // List<Int>
 let extended = 0 :: nums  // List<Int>
 
 // Type annotation when needed
-let typed: List<String> = []
+let typed: List<String> = [];
 ```
 
 #### Multi-Line Lists
@@ -374,19 +374,19 @@ let typed: List<String> = []
 Lists can span multiple lines:
 
 ```vibefun
-let longList = [
+let longList = [;
     1,
     2,
     3,
     4,
-    5
+    5;
 ]
 
 // Trailing comma allowed
-let withTrailing = [
+let withTrailing = [;
     "one",
     "two",
-    "three",  // Trailing comma OK
+    "three",;  // Trailing comma OK
 ]
 ```
 
@@ -403,19 +403,19 @@ let person = {
 }
 
 // Single-line also allows trailing comma
-let point = { x: 10, y: 20, }     // ✅ OK
+let point = { x: 10, y: 20, };  // ✅ OK
 ```
 
 **Lists with trailing commas:**
 ```vibefun
-let numbers = [
+let numbers = [;
     1,
     2,
-    3,   // ✅ Trailing comma allowed
+    3,;  // ✅ Trailing comma allowed
 ]
 
 // Single-line also allows trailing comma
-let items = [1, 2, 3,]            // ✅ OK
+let items = [1, 2, 3,];  // ✅ OK
 ```
 
 **Why trailing commas are useful:**
