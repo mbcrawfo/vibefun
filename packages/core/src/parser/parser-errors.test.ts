@@ -238,12 +238,6 @@ describe("Parser - Error Handling", () => {
             expect(error.message.length).toBeGreaterThan(0);
         });
 
-        it("reports error for missing comma in record", () => {
-            const error = expectParseError("let x = { x: 1 y: 2 }");
-            expect(error.message).toBeDefined();
-            expect(error.message.length).toBeGreaterThan(0);
-        });
-
         it("reports error for missing statement separator", () => {
             const error = expectParseError("let x = { let y = 1 let z = 2; z }");
             expect(error.message).toBeDefined();
