@@ -921,7 +921,6 @@ export class Parser {
             // Postfix dereference: expr!
             // Used to dereference mutable references: ref! gets the value
             // Chainable: ref!! for double dereference
-            // Spec Reference: parser-requirements.md (Deref operator)
             else if (this.match("OP_BANG")) {
                 expr = {
                     kind: "UnaryOp",
@@ -1282,8 +1281,6 @@ export class Parser {
      * - Uses RecordField union (Field | Spread) in updates array
      * - Spreads are added as Spread elements, preserving order
      * - Order in updates array determines override precedence
-     *
-     * Spec Reference: parser-requirements.md (Record expressions)
      *
      * Note: LBRACE has already been consumed by caller
      */
@@ -1755,7 +1752,6 @@ export class Parser {
         // List literal with optional spread elements
         // Syntax: [1, 2, 3] or [1, ...rest, 2] or [...items]
         // Supports multiple spreads: [...a, ...b, x, ...c]
-        // Spec Reference: parser-requirements.md (List expressions)
         if (this.check("LBRACKET")) {
             const startLoc = this.peek().loc;
             this.advance(); // consume [
