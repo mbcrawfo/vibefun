@@ -127,7 +127,7 @@ export class Parser extends ParserBase {
                     throw this.error(
                         "Expected ';' after declaration",
                         this.peek().loc,
-                        "All declarations must end with a semicolon"
+                        "All declarations must end with a semicolon",
                     );
                 }
                 this.advance(); // Consume the semicolon

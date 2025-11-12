@@ -263,7 +263,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses exported external", () => {
-            const decl = parseDecl('export external log: (String) -> Unit = "console.log"');
+            const decl = parseDecl('export external log: (String) -> Unit = "console.log";');
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
                 name: "log",
@@ -586,7 +586,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses namespace re-export", () => {
-            const decl = parseDecl('parseDecl('export * from "./mod";');
+            const decl = parseDecl('export * from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: null,
@@ -595,7 +595,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses namespace re-export from parent", () => {
-            const decl = parseDecl('parseDecl('export * from "../parent/mod";');
+            const decl = parseDecl('export * from "../parent/mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: null,
@@ -604,7 +604,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses type re-export", () => {
-            const decl = parseDecl('export { type T } from';
+            const decl = parseDecl('export { type T } from "./types";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [{ name: "T", isType: true }],
@@ -613,7 +613,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses multiple type re-exports", () => {
-            const decl = parseDecl('export { type T, type U } from';
+            const decl = parseDecl('export { type T, type U } from "./types";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -625,7 +625,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses mixed type and value re-exports", () => {
-            const decl = parseDecl('export { type T, value } from';
+            const decl = parseDecl('export { type T, value } from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -637,7 +637,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses mixed with multiple types and values", () => {
-            const decl = parseDecl('export { type T, type U, a, b } from';
+            const decl = parseDecl('export { type T, type U, a, b } from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [

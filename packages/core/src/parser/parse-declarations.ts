@@ -501,7 +501,7 @@ function parseExternalBlock(
                 throw parser.error(
                     "Expected ';' after external declaration",
                     parser.peek().loc,
-                    "External declarations in a block must end with semicolons"
+                    "External declarations in a block must end with semicolons",
                 );
             }
             parser.advance(); // Consume the semicolon

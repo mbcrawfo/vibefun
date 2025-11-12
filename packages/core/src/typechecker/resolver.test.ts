@@ -40,8 +40,8 @@ describe("Overload Resolver", () => {
                 expect(result.binding.kind).toBe("External");
                 if (result.binding.kind === "External") {
                     expect(result.binding.jsName).toBe("fetch");
-                };
-            };
+                }
+            }
         });
 
         it("throws error for undefined function", () => {

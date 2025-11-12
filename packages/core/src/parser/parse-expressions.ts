@@ -1459,7 +1459,7 @@ export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
             throw parser.error(
                 "Expected ';' after statement in block",
                 parser.peek().loc,
-                "All statements in a block must end with a semicolon"
+                "All statements in a block must end with a semicolon",
             );
         }
         parser.advance(); // Consume the semicolon
@@ -1530,7 +1530,7 @@ function parseLetExpr(parser: ParserBase, startLoc: Location): Expr {
         throw parser.error(
             "Expected ';' after let binding",
             parser.peek().loc,
-            "Let expressions in blocks must be followed by a semicolon"
+            "Let expressions in blocks must be followed by a semicolon",
         );
     }
     parser.advance(); // Consume the semicolon

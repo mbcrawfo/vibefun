@@ -32,7 +32,7 @@ describe("Environment Builder - External Overloading", () => {
             if (binding?.kind === "External") {
                 expect(binding.jsName).toBe("fetch");
                 expect(binding.from).toBeUndefined();
-            };
+            }
         });
 
         it("adds external with from clause", () => {
