@@ -1287,7 +1287,6 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
             }
 
             // Continue parsing fields and spreads (commas required between items)
-            // eslint-disable-next-line no-constant-condition
             while (true) {
                 // Check if we're at the end
                 if (parser.check("RBRACE")) {

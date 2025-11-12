@@ -4,6 +4,26 @@
 
 Records are product types with named fields.
 
+**Syntax:** Commas are required between all fields in record types, just like record expressions and patterns. This ensures consistency across all record contexts.
+
+```vibefun
+// ✅ Commas required
+type Person = { name: String, age: Int, email: String }
+
+// ✅ Multi-line with commas
+type Config = {
+    host: String,
+    port: Int,
+    ssl: Bool
+}
+
+// ✅ Trailing comma allowed
+type Point = { x: Int, y: Int, }
+
+// ❌ Missing comma
+type Bad = { x: Int y: Int }  // Error
+```
+
 #### Type Definition
 
 ```vibefun

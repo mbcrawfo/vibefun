@@ -15,6 +15,32 @@ person.name;
 { ...person, age: 31 }
 ```
 
+**Syntax Requirements:**
+- **Commas are required** between all record fields (both in expressions, types, and patterns)
+- **Trailing commas are optional** but recommended for multi-line records
+- This consistent syntax matches JavaScript/TypeScript and other modern languages
+
+```vibefun
+// ✅ Commas required between fields
+{ x: 1, y: 2, z: 3 }
+
+// ✅ Multi-line with commas
+{
+    name: "Alice",
+    age: 30,
+    email: "alice@example.com"
+}
+
+// ✅ Trailing comma allowed
+{ x: 1, y: 2, }
+
+// ✅ Single field needs no comma
+{ name: "Alice" }
+
+// ❌ Missing comma between fields
+{ x: 1 y: 2 }  // Error: Expected ',' between record fields
+```
+
 #### Record Construction
 
 ```vibefun
@@ -139,6 +165,19 @@ let extended = { name, age, email: "alice@example.com" };
 
 // Useful with function parameters
 let makePerson = (name, age, email) => { name, age, email };
+```
+
+**Important:** Commas are still required between shorthand fields, just like regular fields:
+
+```vibefun
+// ✅ Correct - commas between shorthand fields
+{ name, age, email }
+
+// ❌ Error - missing commas
+{ name age email }
+
+// ✅ Correct - mixing shorthand and regular
+{ name, age, email: "alice@example.com" }
 ```
 
 **Type inference with field shorthand:**

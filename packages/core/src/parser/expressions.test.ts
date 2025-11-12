@@ -2340,6 +2340,161 @@ describe("Parser - Expressions", () => {
             });
         });
 
+        describe("Record field comma requirements", () => {
+            // Negative tests - should error when commas are missing
+
+            it("should require comma between regular fields on same line", () => {
+                expect(() => parseExpression("{ x: 1 y: 2 }")).toThrow(ParserError);
+                expect(() => parseExpression("{ x: 1 y: 2 }")).toThrow(/Expected ',' between record fields/);
+            });
+
+            it("should require comma between shorthand fields", () => {
+                // Note: Error is "Expected ':' after field name" because parser
+                // tries to parse 'y' as a regular field after shorthand 'x'
+                expect(() => parseExpression("{ x y z }")).toThrow(ParserError);
+            });
+
+            it("should require comma in multi-line records", () => {
+                expect(() =>
+                    parseExpression(`{
+                        x: 1
+                        y: 2
+                    }`),
+                ).toThrow(ParserError);
+                expect(() =>
+                    parseExpression(`{
+                        x: 1
+                        y: 2
+                    }`),
+                ).toThrow(/Expected ',' between record fields/);
+            });
+
+            it("should require comma after spread operator", () => {
+                expect(() => parseExpression("{ ...base x: 1 }")).toThrow(ParserError);
+                expect(() => parseExpression("{ ...base x: 1 }")).toThrow(/Expected ',' between record fields/);
+            });
+
+            it("should require comma in mixed shorthand and regular fields", () => {
+                // Note: Error is "Expected ':' after field name" because parser
+                // tries to parse 'age' as a regular field after shorthand 'x'
+                expect(() => parseExpression("{ x age: 30 }")).toThrow(ParserError);
+            });
+
+            it("should require comma after field even with comment-induced newline", () => {
+                // Comments are not yet implemented, but when they are, this should error
+                // For now, this tests that newlines alone don't substitute for commas
+                expect(() =>
+                    parseExpression(`{
+                        x: 1
+                        y: 2
+                    }`),
+                ).toThrow(/Expected ',' between record fields/);
+            });
+
+            it("should error on first missing comma when multiple are missing", () => {
+                expect(() => parseExpression("{ x: 1 y: 2 z: 3 }")).toThrow(ParserError);
+                expect(() => parseExpression("{ x: 1 y: 2 z: 3 }")).toThrow(/Expected ',' between record fields/);
+            });
+
+            it("should error on missing comma in nested record", () => {
+                expect(() => parseExpression("{ a: 1, b: { x: 1 y: 2 }, c: 3 }")).toThrow(ParserError);
+                expect(() => parseExpression("{ a: 1, b: { x: 1 y: 2 }, c: 3 }")).toThrow(
+                    /Expected ',' between record fields/,
+                );
+            });
+
+            it("should require comma when shorthand follows regular field", () => {
+                expect(() => parseExpression("{ x: 1 name }")).toThrow(ParserError);
+                expect(() => parseExpression("{ x: 1 name }")).toThrow(/Expected ',' between record fields/);
+            });
+
+            // Positive tests - should parse successfully with commas
+
+            it("should accept trailing comma", () => {
+                const expr = parseExpression("{ x: 1, y: 2, }");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(2);
+            });
+
+            it("should parse single field without comma", () => {
+                const expr = parseExpression("{ x: 1 }");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(1);
+            });
+
+            it("should parse single shorthand field without comma", () => {
+                const expr = parseExpression("{ name }");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(1);
+            });
+
+            it("should parse multiple fields with commas", () => {
+                const expr = parseExpression("{ x: 1, y: 2, z: 3 }");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(3);
+            });
+
+            it("should parse nested records with commas", () => {
+                const expr = parseExpression("{ outer: { inner: 1, x: 2 }, y: 3 }");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(2);
+            });
+
+            it("should parse multi-line with commas", () => {
+                const expr = parseExpression(`{
+                    x: 1,
+                    y: 2
+                }`);
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(2);
+            });
+
+            it("should parse empty record", () => {
+                const expr = parseExpression("{}");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(0);
+            });
+
+            it("should parse empty record with whitespace", () => {
+                const expr = parseExpression("{ }");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(0);
+            });
+
+            it("should parse empty record with newlines", () => {
+                const expr = parseExpression("{\n}");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(0);
+            });
+
+            it("should parse empty record with multiple newlines", () => {
+                const expr = parseExpression("{\n\n}");
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(0);
+            });
+
+            it("should parse trailing comma with newlines", () => {
+                const expr = parseExpression(`{
+                    x: 1,
+                    y: 2,
+
+                }`);
+                expect(expr.kind).toBe("Record");
+                if (expr.kind !== "Record") return;
+                expect(expr.fields).toHaveLength(2);
+            });
+        });
+
         describe("record access", () => {
             it("should parse record field access", () => {
                 const expr = parseExpression("record.field");
