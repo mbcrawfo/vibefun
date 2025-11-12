@@ -109,30 +109,6 @@ vibefun/
 - **Source maps**: Enable debugging in JavaScript context
 - **Implementation flexibility**: Specific generation patterns (currying, variant representation) are implementation details that may evolve
 
-### External Function Overloading
-- **Scope**: Only `external` declarations can be overloaded (not pure vibefun functions)
-- **Purpose**: Enables natural JavaScript interop for APIs with multiple signatures (e.g., `fetch`, `setTimeout`)
-- **Resolution**: Compile-time resolution based on argument count (arity)
-- **Validation**: All overloads must map to the same JavaScript function and module
-- **Type system**: Scoped to externals only - no impact on Hindley-Milner inference for pure vibefun code
-- **Alternative**: Pure vibefun code uses pattern matching or different function names instead of overloading
-
-See [JavaScript Interop: External Declarations](./docs/spec/10-javascript-interop/external-declarations.md) for complete details on overloaded external functions.
-
-### Type Checker Implementation
-- **Algorithm**: Constraint-based Hindley-Milner inference (Algorithm W)
-- **Type variable scoping**: Level-based approach (Standard ML style) to prevent type variable escape
-- **Polymorphism**: Let-polymorphism with full syntactic value restriction (OCaml/SML semantics)
-- **Mutable references**: `Ref<T>` type with RefAssign (`:=`) and Deref (`!`) operators
-- **Records**: Width subtyping (permissive - extra fields allowed)
-- **Variants**: Nominal typing (exact name matching required)
-- **Pattern matching**: Exhaustiveness checking with matrix-based algorithm
-- **Mutual recursion**: Supported via `let rec f = ... and g = ...` syntax
-- **Built-ins**: 46 standard library functions (List, Option, Result, String, Int, Float modules)
-- **Error reporting**: Type mismatch, undefined variables, non-exhaustive patterns with helpful suggestions
-
-See `.claude/active/type-checker/` for detailed implementation documentation.
-
 ## Development Workflow
 
 ### Compiler Development Commands
@@ -207,7 +183,6 @@ vibefun run src/main.vf            # Compile and run
 - JavaScript interop must be explicit and type-safe
 - Generated code should be readable for debugging
 - Developer experience is a first-class concern
-- Document design decisions as we make them
 
 ## Documentation Resources
 
