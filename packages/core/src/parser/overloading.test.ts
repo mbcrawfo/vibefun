@@ -20,8 +20,8 @@ describe("Parser - External Overloading", () => {
     describe("multiple external declarations with same name", () => {
         it("parses multiple external declarations for same function name", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
 
             const module = parseModule(source);
@@ -44,9 +44,9 @@ describe("Parser - External Overloading", () => {
         it("parses external overloads in external block", () => {
             const source = `
                 external {
-                    fetch: (String) -> Promise<Response> = "fetch"
-                    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
-                }
+                    fetch: (String) -> Promise<Response> = "fetch";
+                    fetch: (String, RequestInit) -> Promise<Response> = "fetch";
+                };
             `;
 
             const module = parseModule(source);
@@ -77,9 +77,9 @@ describe("Parser - External Overloading", () => {
         it("parses external overloads with from clause", () => {
             const source = `
                 external from "node:timers" {
-                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
-                }
+                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
+                };
             `;
 
             const module = parseModule(source);
@@ -103,10 +103,10 @@ describe("Parser - External Overloading", () => {
 
         it("parses mixed normal and overloaded externals", () => {
             const source = `
-                external console_log: (String) -> Unit = "console.log"
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
-                external process_env: JsObject = "process.env"
+                external console_log: (String) -> Unit = "console.log";
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
+                external process_env: JsObject = "process.env";
             `;
 
             const module = parseModule(source);
@@ -120,8 +120,8 @@ describe("Parser - External Overloading", () => {
     describe("exported external overloads", () => {
         it("parses exported external overloads", () => {
             const source = `
-                export external fetch: (String) -> Promise<Response> = "fetch"
-                export external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                export external fetch: (String) -> Promise<Response> = "fetch";
+                export external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
 
             const module = parseModule(source);
@@ -137,9 +137,9 @@ describe("Parser - External Overloading", () => {
         it("parses exported external block with overloads", () => {
             const source = `
                 export external {
-                    fetch: (String) -> Promise<Response> = "fetch"
-                    fetch: (String, RequestInit) -> Promise<Response> = "fetch"
-                }
+                    fetch: (String) -> Promise<Response> = "fetch";
+                    fetch: (String, RequestInit) -> Promise<Response> = "fetch";
+                };
             `;
 
             const module = parseModule(source);

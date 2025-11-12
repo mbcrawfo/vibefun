@@ -40,8 +40,8 @@ describe("Overload Resolver", () => {
                 expect(result.binding.kind).toBe("External");
                 if (result.binding.kind === "External") {
                     expect(result.binding.jsName).toBe("fetch");
-                }
-            }
+                };
+            };
         });
 
         it("throws error for undefined function", () => {
@@ -59,8 +59,8 @@ describe("Overload Resolver", () => {
     describe("overload resolution by arity", () => {
         it("resolves overload with 1 argument", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -78,8 +78,8 @@ describe("Overload Resolver", () => {
 
         it("resolves overload with 2 arguments", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -97,9 +97,9 @@ describe("Overload Resolver", () => {
 
         it("resolves among three overloads", () => {
             const source = `
-                external parseInt: (String) -> Int = "parseInt"
-                external parseInt: (String, Int) -> Int = "parseInt"
-                external parseInt: (String, Int, Bool) -> Int = "parseInt"
+                external parseInt: (String) -> Int = "parseInt";
+                external parseInt: (String, Int) -> Int = "parseInt";
+                external parseInt: (String, Int, Bool) -> Int = "parseInt";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -129,8 +129,8 @@ describe("Overload Resolver", () => {
     describe("resolution errors", () => {
         it("throws error when no overload matches argument count", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -148,8 +148,8 @@ describe("Overload Resolver", () => {
 
         it("error message shows expected argument counts", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -170,8 +170,8 @@ describe("Overload Resolver", () => {
 
         it("throws ambiguous error when multiple overloads have same arity", () => {
             const source = `
-                external log: (String) -> Unit = "console.log"
-                external log: (Int) -> Unit = "console.log"
+                external log: (String) -> Unit = "console.log";
+                external log: (Int) -> Unit = "console.log";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -187,8 +187,8 @@ describe("Overload Resolver", () => {
     describe("helper functions", () => {
         it("isOverloaded returns true for overloaded functions", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -214,8 +214,8 @@ describe("Overload Resolver", () => {
 
         it("getOverloads returns overloads for overloaded functions", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -238,9 +238,9 @@ describe("Overload Resolver", () => {
         it("resolves overloads from external blocks", () => {
             const source = `
                 external {
-                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
-                }
+                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
+                };
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -263,9 +263,9 @@ describe("Overload Resolver", () => {
         it("preserves from clause in resolution result", () => {
             const source = `
                 external from "node:timers" {
-                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
-                }
+                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
+                };
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);

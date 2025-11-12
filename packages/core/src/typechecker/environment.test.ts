@@ -32,7 +32,7 @@ describe("Environment Builder - External Overloading", () => {
             if (binding?.kind === "External") {
                 expect(binding.jsName).toBe("fetch");
                 expect(binding.from).toBeUndefined();
-            }
+            };
         });
 
         it("adds external with from clause", () => {
@@ -51,8 +51,8 @@ describe("Environment Builder - External Overloading", () => {
     describe("overloaded external declarations", () => {
         it("detects and groups multiple external declarations with same name", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -83,7 +83,7 @@ describe("Environment Builder - External Overloading", () => {
                 external {
                     setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
                     setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
-                }
+                };
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -103,7 +103,7 @@ describe("Environment Builder - External Overloading", () => {
                 external from "node:timers" {
                     setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
                     setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
-                }
+                };
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -117,9 +117,9 @@ describe("Environment Builder - External Overloading", () => {
 
         it("handles three or more overloads", () => {
             const source = `
-                external parseInt: (String) -> Int = "parseInt"
-                external parseInt: (String, Int) -> Int = "parseInt"
-                external parseInt: (String, Int, Bool) -> Int = "parseInt"
+                external parseInt: (String) -> Int = "parseInt";
+                external parseInt: (String, Int) -> Int = "parseInt";
+                external parseInt: (String, Int, Bool) -> Int = "parseInt";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -134,10 +134,10 @@ describe("Environment Builder - External Overloading", () => {
     describe("mixed declarations", () => {
         it("handles mix of single and overloaded externals", () => {
             const source = `
-                external log: (String) -> Unit = "console.log"
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
-                external env: JsObject = "process.env"
+                external log: (String) -> Unit = "console.log";
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
+                external env: JsObject = "process.env";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -158,8 +158,8 @@ describe("Environment Builder - External Overloading", () => {
     describe("validation errors", () => {
         it("throws error for inconsistent jsName in overloads", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "window.fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "window.fetch";
             `;
             const module = parseModule(source);
 
@@ -169,8 +169,8 @@ describe("Environment Builder - External Overloading", () => {
 
         it("throws error for inconsistent from clause in overloads", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch" from "undici"
+                external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch" from "undici";
             `;
             const module = parseModule(source);
 
@@ -180,8 +180,8 @@ describe("Environment Builder - External Overloading", () => {
 
         it("throws error for overload without from when first has from", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"
-                external fetch: (String, RequestInit) -> Promise<Response> = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch";
+                external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
             `;
             const module = parseModule(source);
 
@@ -191,8 +191,8 @@ describe("Environment Builder - External Overloading", () => {
 
         it("throws error for non-function type in overloads", () => {
             const source = `
-                external fetch: (String) -> Promise<Response> = "fetch"
-                external fetch: JsObject = "fetch"
+                external fetch: (String) -> Promise<Response> = "fetch";
+                external fetch: JsObject = "fetch";
             `;
             const module = parseModule(source);
 
@@ -207,7 +207,7 @@ describe("Environment Builder - External Overloading", () => {
                 external {
                     log: (String) -> Unit = "console.log"
                     error: (String) -> Unit = "console.error"
-                }
+                };
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -225,7 +225,7 @@ describe("Environment Builder - External Overloading", () => {
                     log: (String) -> Unit = "console.log"
                     log: (Int) -> Unit = "console.log"
                     error: (String) -> Unit = "console.error"
-                }
+                };
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -279,7 +279,7 @@ describe("Environment Builder - External Overloading", () => {
 
         it("does not allow user declarations to override built-ins", () => {
             const source = `
-                external panic: (Int) -> String = "panic"
+                external panic: (Int) -> String = "panic";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);
@@ -291,7 +291,7 @@ describe("Environment Builder - External Overloading", () => {
 
         it("preserves built-ins alongside user declarations", () => {
             const source = `
-                external myFunction: (String) -> Int = "myFunc"
+                external myFunction: (String) -> Int = "myFunc";
             `;
             const module = parseModule(source);
             const env = buildEnvironment(module);

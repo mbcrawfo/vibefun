@@ -30,7 +30,7 @@ function parseDecl(source: string): Declaration {
 describe("Parser - Declarations", () => {
     describe("let declarations", () => {
         it("parses simple let binding", () => {
-            const decl = parseDecl("let x = 42");
+            const decl = parseDecl("let x = 42;");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "x" },
@@ -42,7 +42,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses let with type annotation", () => {
-            const decl = parseDecl("let x: Int = 42");
+            const decl = parseDecl("let x: Int = 42;");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "x" },
@@ -51,7 +51,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses mutable let binding", () => {
-            const decl = parseDecl("let mut counter = 0");
+            const decl = parseDecl("let mut counter = 0;");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "counter" },
@@ -62,7 +62,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses recursive let binding", () => {
-            const decl = parseDecl("let rec factorial = (n) => if n == 0 then 1 else n * factorial(n - 1)");
+            const decl = parseDecl("let rec factorial = (n) => if n == 0 then 1 else n * factorial(n - 1);");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "factorial" },
@@ -72,7 +72,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses let with both mut and rec", () => {
-            const decl = parseDecl("let mut rec state = initialState()");
+            const decl = parseDecl("let mut rec state = initialState();");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "state" },
@@ -82,7 +82,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses exported let binding", () => {
-            const decl = parseDecl("export let pi = 3.14159");
+            const decl = parseDecl("export let pi = 3.14159;");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "pi" },
@@ -91,7 +91,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses let with pattern destructuring", () => {
-            const decl = parseDecl("let { x, y } = point");
+            const decl = parseDecl("let { x, y } = point;");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: {
@@ -105,7 +105,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses let with function value", () => {
-            const decl = parseDecl("let add = (x, y) => x + y");
+            const decl = parseDecl("let add = (x, y) => x + y;");
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "add" },
@@ -116,7 +116,7 @@ describe("Parser - Declarations", () => {
 
     describe("type declarations", () => {
         it("parses type alias", () => {
-            const decl = parseDecl("type UserId = Int");
+            const decl = parseDecl("type UserId = Int;");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "UserId",
@@ -130,7 +130,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses generic type alias", () => {
-            const decl = parseDecl("type Box<T> = { value: T }");
+            const decl = parseDecl("type Box<T> = { value: T };");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "Box",
@@ -140,7 +140,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses record type", () => {
-            const decl = parseDecl("type Point = { x: Int, y: Int }");
+            const decl = parseDecl("type Point = { x: Int, y: Int };");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "Point",
@@ -156,7 +156,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses variant type with constructors", () => {
-            const decl = parseDecl("type Option<t> = Some(t) | None");
+            const decl = parseDecl("type Option<t> = Some(t) | None;");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "Option",
@@ -172,7 +172,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses variant type with multiple constructors", () => {
-            const decl = parseDecl("type Shape = Circle(Int) | Rectangle(Int, Int) | Triangle(Int, Int, Int)");
+            const decl = parseDecl("type Shape = Circle(Int) | Rectangle(Int, Int) | Triangle(Int, Int, Int);");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "Shape",
@@ -201,7 +201,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses exported type", () => {
-            const decl = parseDecl("export type Status = String");
+            const decl = parseDecl("export type Status = String;");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "Status",
@@ -210,7 +210,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses multiline variant type", () => {
-            const decl = parseDecl("type Result<t, e> = | Ok(t) | Err(e)");
+            const decl = parseDecl("type Result<t, e> = | Ok(t) | Err(e);");
             expect(decl).toMatchObject({
                 kind: "TypeDecl",
                 name: "Result",
@@ -228,7 +228,7 @@ describe("Parser - Declarations", () => {
 
     describe("external declarations", () => {
         it("parses simple external", () => {
-            const decl = parseDecl('external log: (String) -> Unit = "console.log"');
+            const decl = parseDecl('external log: (String) -> Unit = "console.log";');
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
                 name: "log",
@@ -243,7 +243,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses external with from clause", () => {
-            const decl = parseDecl('external fetch: (String) -> Promise = "fetch" from "node-fetch"');
+            const decl = parseDecl('external fetch: (String) -> Promise = "fetch" from "node-fetch";');
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
                 name: "fetch",
@@ -253,7 +253,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses external with complex type", () => {
-            const decl = parseDecl('external map: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map"');
+            const decl = parseDecl('external map: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map";');
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
                 name: "map",
@@ -275,9 +275,9 @@ describe("Parser - Declarations", () => {
     describe("external blocks", () => {
         it("parses simple external block", () => {
             const decl = parseDecl(`external {
-                log: (String) -> Unit = "console.log"
-                error: (String) -> Unit = "console.error"
-            }`);
+                log: (String) -> Unit = "console.log";
+                error: (String) -> Unit = "console.error";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -298,9 +298,9 @@ describe("Parser - Declarations", () => {
 
         it("parses external block with from clause", () => {
             const decl = parseDecl(`external from "node-fetch" {
-                fetch: (String) -> Promise = "fetch"
-                Headers: Type = "Headers"
-            }`);
+                fetch: (String) -> Promise = "fetch";
+                Headers: Type = "Headers";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -311,8 +311,8 @@ describe("Parser - Declarations", () => {
 
         it("parses exported external block", () => {
             const decl = parseDecl(`export external {
-                log: (String) -> Unit = "console.log"
-            }`);
+                log: (String) -> Unit = "console.log";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -322,9 +322,9 @@ describe("Parser - Declarations", () => {
 
         it("parses external block with type declarations", () => {
             const decl = parseDecl(`external {
-                type Response = { ok: Bool, status: Int }
-                fetch: (String) -> Promise = "fetch"
-            }`);
+                type Response = { ok: Bool, status: Int };
+                fetch: (String) -> Promise = "fetch";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -353,9 +353,9 @@ describe("Parser - Declarations", () => {
 
         it("parses exported external block with from clause", () => {
             const decl = parseDecl(`export external from "react" {
-                useState: (a) -> (a, (a) -> Unit) = "useState"
-                useEffect: ((Unit) -> Unit) -> Unit = "useEffect"
-            }`);
+                useState: (a) -> (a, (a) -> Unit) = "useState";
+                useEffect: ((Unit) -> Unit) -> Unit = "useEffect";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -365,7 +365,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses empty external block", () => {
-            const decl = parseDecl("external {}");
+            const decl = parseDecl("external {};");
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -374,8 +374,8 @@ describe("Parser - Declarations", () => {
 
         it("parses external block with single item", () => {
             const decl = parseDecl(`external {
-                log: (String) -> Unit = "console.log"
-            }`);
+                log: (String) -> Unit = "console.log";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -388,9 +388,9 @@ describe("Parser - Declarations", () => {
 
         it("parses external block with complex types", () => {
             const decl = parseDecl(`external {
-                map: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map"
-                filter: (List<a>, (a) -> Bool) -> List<a> = "Array.prototype.filter"
-            }`);
+                map: (List<a>, (a) -> b) -> List<b> = "Array.prototype.map";
+                filter: (List<a>, (a) -> Bool) -> List<a> = "Array.prototype.filter";
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -403,7 +403,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("handles inline formatting in external blocks", () => {
-            const decl = parseDecl('external { log: (String) -> Unit = "console.log" }');
+            const decl = parseDecl('external { log: (String) -> Unit = "console.log" };');
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -412,9 +412,9 @@ describe("Parser - Declarations", () => {
 
         it("parses external block with only type declarations", () => {
             const decl = parseDecl(`external {
-                type Request = { url: String, method: String }
-                type Response = { status: Int, body: String }
-            }`);
+                type Request = { url: String, method: String };
+                type Response = { status: Int, body: String };
+            };`);
             expect(decl.kind).toBe("ExternalBlock");
             if (decl.kind !== "ExternalBlock") return;
 
@@ -426,7 +426,7 @@ describe("Parser - Declarations", () => {
 
     describe("imports", () => {
         it("parses named import", () => {
-            const module = parseModule('import { map, filter } from "./list"');
+            const module = parseModule('import { map, filter } from "./list";');
             expect(module.imports).toHaveLength(1);
             const imp = module.imports[0]!;
             expect(imp).toBeDefined();
@@ -441,7 +441,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses import with alias", () => {
-            const module = parseModule('import { map as listMap } from "./list"');
+            const module = parseModule('import { map as listMap } from "./list";');
             const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
@@ -452,7 +452,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses import all as namespace", () => {
-            const module = parseModule('import * as List from "./list"');
+            const module = parseModule('import * as List from "./list";');
             const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
@@ -463,7 +463,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses type import", () => {
-            const module = parseModule('import { type User, type Post } from "./types"');
+            const module = parseModule('import { type User, type Post } from "./types";');
             const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
@@ -477,7 +477,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses mixed import", () => {
-            const module = parseModule('import { type User, getUser, updateUser } from "./api"');
+            const module = parseModule('import { type User, getUser, updateUser } from "./api";');
             const imp = module.imports[0]!;
             expect(imp).toBeDefined();
             expect(imp).toMatchObject({
@@ -494,16 +494,16 @@ describe("Parser - Declarations", () => {
 
     describe("module structure", () => {
         it("parses module with multiple declarations", () => {
-            const source = `let x = 42
-                let y = 10
-                let z = x + y`;
+            const source = `let x = 42;
+                let y = 10;
+                let z = x + y;`;
             const module = parseModule(source);
             expect(module.declarations).toHaveLength(3);
         });
 
         it("parses module with imports and declarations", () => {
-            const source = `import { map } from "./list"
-                let doubled = map(list, (x) => x * 2)`;
+            const source = `import { map } from "./list";
+                let doubled = map(list, (x) => x * 2);`;
             const module = parseModule(source);
             expect(module.imports).toHaveLength(1);
             expect(module.declarations).toHaveLength(1);
@@ -522,13 +522,13 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses module with mixed declaration types", () => {
-            const source = `import { Option } from "./option"
-                type Result<T, E> = Ok(T) | Err(E)
-                external log: (String) -> Unit = "console.log"
+            const source = `import { Option } from "./option";
+                type Result<T, E> = Ok(T) | Err(E);
+                external log: (String) -> Unit = "console.log";
                 let processResult = (r) => match r {
                     | Ok(x) => log(x)
                     | Err(e) => log(e)
-                }`;
+                };`;
             const module = parseModule(source);
             expect(module.imports).toHaveLength(1);
             expect(module.declarations).toHaveLength(3);
@@ -543,7 +543,7 @@ describe("Parser - Declarations", () => {
 
     describe("re-export declarations", () => {
         it("parses named re-export", () => {
-            const decl = parseDecl('export { x } from "./mod"');
+            const decl = parseDecl('export { x } from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [{ name: "x", isType: false }],
@@ -552,7 +552,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses multiple named re-exports", () => {
-            const decl = parseDecl('export { x, y, z } from "./mod"');
+            const decl = parseDecl('export { x, y, z } from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -565,7 +565,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses aliased re-export", () => {
-            const decl = parseDecl('export { x as y } from "./mod"');
+            const decl = parseDecl('export { x as y } from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [{ name: "x", alias: "y", isType: false }],
@@ -574,7 +574,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses multiple aliased re-exports", () => {
-            const decl = parseDecl('export { x as a, y as b } from "./mod"');
+            const decl = parseDecl('export { x as a, y as b } from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -586,7 +586,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses namespace re-export", () => {
-            const decl = parseDecl('export * from "./mod"');
+            const decl = parseDecl('parseDecl('export * from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: null,
@@ -595,7 +595,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses namespace re-export from parent", () => {
-            const decl = parseDecl('export * from "../parent/mod"');
+            const decl = parseDecl('parseDecl('export * from "../parent/mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: null,
@@ -604,7 +604,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses type re-export", () => {
-            const decl = parseDecl('export { type T } from "./types"');
+            const decl = parseDecl('export { type T } from';
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [{ name: "T", isType: true }],
@@ -613,7 +613,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses multiple type re-exports", () => {
-            const decl = parseDecl('export { type T, type U } from "./types"');
+            const decl = parseDecl('export { type T, type U } from';
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -625,7 +625,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses mixed type and value re-exports", () => {
-            const decl = parseDecl('export { type T, value } from "./mod"');
+            const decl = parseDecl('export { type T, value } from';
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -637,7 +637,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses mixed with multiple types and values", () => {
-            const decl = parseDecl('export { type T, type U, a, b } from "./mod"');
+            const decl = parseDecl('export { type T, type U, a, b } from';
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [
@@ -651,7 +651,7 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses empty re-export", () => {
-            const decl = parseDecl('export {} from "./mod"');
+            const decl = parseDecl('export {} from "./mod";');
             expect(decl).toMatchObject({
                 kind: "ReExportDecl",
                 items: [],
@@ -660,19 +660,19 @@ describe("Parser - Declarations", () => {
         });
 
         it("parses re-export with relative paths", () => {
-            const decl1 = parseDecl('export { x } from "./sibling"');
+            const decl1 = parseDecl('export { x } from "./sibling";');
             expect(decl1).toMatchObject({
                 kind: "ReExportDecl",
                 from: "./sibling",
             });
 
-            const decl2 = parseDecl('export { x } from "../parent"');
+            const decl2 = parseDecl('export { x } from "../parent";');
             expect(decl2).toMatchObject({
                 kind: "ReExportDecl",
                 from: "../parent",
             });
 
-            const decl3 = parseDecl('export { x } from "../../grandparent"');
+            const decl3 = parseDecl('export { x } from "../../grandparent";');
             expect(decl3).toMatchObject({
                 kind: "ReExportDecl",
                 from: "../../grandparent",

@@ -84,7 +84,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
                 typeStr = `List<${typeStr}>`;
             }
 
-            const source = `type Nested = ${typeStr}`;
+            const source = `type Nested = ${typeStr};`;
             const module = parseModule(source);
 
             // Should successfully parse without stack overflow
@@ -94,7 +94,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
 
         it("should parse deeply nested generic types in declaration", () => {
             // Option<Result<Either<A, B>, C>>
-            const source = "type Complex = Option<Result<Either<A, B>, C>>";
+            const source = "type Complex = Option<Result<Either<A, B>, C>>;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -107,7 +107,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
                 typeStr = `Option<${typeStr}>`;
             }
 
-            const source = `type VeryNested = ${typeStr}`;
+            const source = `type VeryNested = ${typeStr};`;
             const module = parseModule(source);
 
             // Verify it parses successfully without stack overflow
@@ -122,7 +122,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
                 pattern = `Some(${pattern})`;
             }
 
-            const source = `let f = () => match value { | ${pattern} => 1 | None => 0 }`;
+            const source = `let f = () => match value { | ${pattern} => 1 | None => 0 };`;
             const module = parseModule(source);
 
             // Should parse successfully without stack overflow
@@ -135,7 +135,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
         });
 
         it("should parse deeply nested constructor patterns", () => {
-            const source = `let f = () => match value { | Some(Some(Some(x))) => 1 | _ => 0 }`;
+            const source = `let f = () => match value { | Some(Some(Some(x))) => 1 | _ => 0 };`;
             const module = parseModule(source);
 
             // Should parse successfully
@@ -145,7 +145,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
 
     describe("deeply nested match expressions", () => {
         it("should parse nested match expressions", () => {
-            const source = `let f = () => match x { | Some(y) => match y { | Some(z) => match z { | Some(w) => w | None => 0 } | None => 0 } | None => 0 }`;
+            const source = `let f = () => match x { | Some(y) => match y { | Some(z) => match z { | Some(w) => w | None => 0 } | None => 0 } | None => 0 };`;
             const module = parseModule(source);
 
             // Should parse successfully
@@ -159,7 +159,7 @@ describe("Parser - Deep Nesting Edge Cases", () => {
                 source = `match ${source} { | Some(x) => x | None => 0 }`;
             }
 
-            const fullSource = `let f = () => ${source}`;
+            const fullSource = `let f = () => ${source};`;
             const module = parseModule(fullSource);
 
             // Verify it parses successfully without stack overflow

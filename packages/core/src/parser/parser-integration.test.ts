@@ -23,7 +23,7 @@ function parseModule(source: string): Module {
 describe("Parser - Integration", () => {
     describe("simple function definitions", () => {
         it("parses identity function", () => {
-            const source = "let identity = (x) => x";
+            const source = "let identity = (x) => x;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -35,7 +35,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses add function with explicit parameters", () => {
-            const source = "let add = (x, y) => x + y";
+            const source = "let add = (x, y) => x + y;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -55,7 +55,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses curried function", () => {
-            const source = "let multiply = (x) => (y) => x * y";
+            const source = "let multiply = (x) => (y) => x * y;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -74,7 +74,7 @@ describe("Parser - Integration", () => {
 
     describe("recursive functions", () => {
         it("parses factorial function", () => {
-            const source = "let rec factorial = (n) => if n == 0 then 1 else n * factorial(n - 1)";
+            const source = "let rec factorial = (n) => if n == 0 then 1 else n * factorial(n - 1);";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -94,7 +94,7 @@ describe("Parser - Integration", () => {
                 | 0 => 0
                 | 1 => 1
                 | _ => fib(n - 1) + fib(n - 2)
-            }`;
+            };`;
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -184,7 +184,7 @@ describe("Parser - Integration", () => {
     describe("programs with imports", () => {
         it("parses module with named imports", () => {
             const source = `import { map, filter } from "./list"
-                let doubled = map(list, (x) => x * 2)`;
+                let doubled = map(list, (x) => x * 2);`;
             const module = parseModule(source);
 
             expect(module.imports).toHaveLength(1);
@@ -279,17 +279,17 @@ describe("Parser - Integration", () => {
     describe("real-world examples", () => {
         it("parses Option type module", () => {
             const source = `
-                type Option<t> = Some(t) | None
+                type Option<t> = Some(t) | None;
 
-                export let map = (opt, f) => match opt {
+                export let map = (opt, f) => match opt {;
                     | Some(x) => Some(f(x))
                     | None => None
-                }
+                };
 
-                export let getOrElse = (opt, default) => match opt {
+                export let getOrElse = (opt, default) => match opt {;
                     | Some(x) => x
                     | None => default
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -304,20 +304,20 @@ describe("Parser - Integration", () => {
 
         it("parses List utilities module", () => {
             const source = `
-                export let rec map = (list, f) => match list {
+                export let rec map = (list, f) => match list {;
                     | [] => []
                     | [head, ...tail] => [f(head)]
-                }
+                };
 
-                export let rec filter = (list, pred) => match list {
+                export let rec filter = (list, pred) => match list {;
                     | [] => []
                     | [head, ...tail] => if pred(head) then [head] else filter(tail, pred)
-                }
+                };
 
-                export let rec fold = (list, init, f) => match list {
+                export let rec fold = (list, init, f) => match list {;
                     | [] => init
                     | [head, ...tail] => fold(tail, f(init, head), f)
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -331,15 +331,15 @@ describe("Parser - Integration", () => {
 
         it("parses Counter module with mutable state", () => {
             const source = `
-                let mut count = 0
+                let mut count = 0;
 
-                export let increment = () => count := count + 1
+                export let increment = () => count := count + 1;
 
-                export let decrement = () => count := count - 1
+                export let decrement = () => count := count - 1;
 
-                export let getCount = () => count
+                export let getCount = () => count;
 
-                export let reset = () => count := 0
+                export let reset = () => count := 0;
             `;
             const module = parseModule(source);
 
@@ -356,13 +356,13 @@ describe("Parser - Integration", () => {
 
         it("parses Point module with type and functions", () => {
             const source = `
-                export type Point = { x: Int, y: Int }
+                export type Point = { x: Int, y: Int };
 
-                export let origin = { x: 0, y: 0 }
+                export let origin = { x: 0, y: 0 };
 
-                export let distance = (p1, p2) => (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y)
+                export let distance = (p1, p2) => (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
 
-                export let translate = (point, dx, dy) => { ...point, x: point.x + dx, y: point.y + dy }
+                export let translate = (point, dx, dy) => { ...point, x: point.x + dx, y: point.y + dy };
             `;
             const module = parseModule(source);
 
@@ -384,18 +384,18 @@ describe("Parser - Integration", () => {
                 import { type Option, Some, None } from "./option"
                 import * as List from "./list"
 
-                export type User = { id: Int, name: String, email: String }
+                export type User = { id: Int, name: String, email: String };
 
-                external log: (String) -> Unit = "console.log"
+                external log: (String) -> Unit = "console.log";
 
-                let defaultUser = { id: 0, name: "Unknown", email: "" }
+                let defaultUser = { id: 0, name: "Unknown", email: "" };
 
-                export let findUserById = (users, id) => match List.find(users, (user) => user.id == id) {
+                export let findUserById = (users, id) => match List.find(users, (user) => user.id == id) {;
                     | Some(user) => user
                     | None => defaultUser
-                }
+                };
 
-                export let getUserEmail = (user) => user.email
+                export let getUserEmail = (user) => user.email;
             `;
             const module = parseModule(source);
 
@@ -420,7 +420,7 @@ describe("Parser - Integration", () => {
                 let rec sum = (list) => match list {
                     | [] => 0
                     | [head, ...tail] => head + sum(tail)
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -452,7 +452,7 @@ describe("Parser - Integration", () => {
                     | Ok(Some(value)) => value
                     | Ok(None()) => 0
                     | Err(_) => -1
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -477,8 +477,8 @@ describe("Parser - Integration", () => {
 
         it("parses record destructuring in let binding", () => {
             const source = `
-                let { x, y } = point
-                let distance = x * x + y * y
+                let { x, y } = point;
+                let distance = x * x + y * y;
             `;
             const module = parseModule(source);
 
@@ -495,7 +495,7 @@ describe("Parser - Integration", () => {
 
     describe("complex expressions in programs", () => {
         it("parses pipe operator chains", () => {
-            const source = "let result = data |> filter((x) => x > 0) |> map((x) => x * 2) |> sum";
+            const source = "let result = data |> filter((x) => x > 0) |> map((x) => x * 2) |> sum;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -509,8 +509,8 @@ describe("Parser - Integration", () => {
 
         it("parses record construction and update", () => {
             const source = `
-                let point = { x: 10, y: 20 }
-                let movedPoint = { ...point, x: point.x + 5 }
+                let point = { x: 10, y: 20 };
+                let movedPoint = { ...point, x: point.x + 5 };
             `;
             const module = parseModule(source);
 
@@ -527,9 +527,9 @@ describe("Parser - Integration", () => {
 
         it("parses list operations", () => {
             const source = `
-                let numbers = [1, 2, 3, 4, 5]
-                let moreNumbers = 0 :: numbers
-                let firstThree = [1, 2, 3]
+                let numbers = [1, 2, 3, 4, 5];
+                let moreNumbers = 0 :: numbers;
+                let firstThree = [1, 2, 3];
             `;
             const module = parseModule(source);
 
@@ -548,13 +548,13 @@ describe("Parser - Integration", () => {
     describe("new features integration (Phase 4)", () => {
         it("parses counter module with ref operations and dereference", () => {
             const source = `
-                external refCreate: (Int) -> Ref = "ref" from "@vibefun/runtime"
-                let counter = refCreate(0)
-                export let increment = () => counter := counter! + 1
-                export let decrement = () => counter := counter! - 1
-                export let getValue = () => counter!
-                export let reset = () => counter := 0
-                export let addN = (n) => counter := counter! + n
+                external refCreate: (Int) -> Ref = "ref" from "@vibefun/runtime";
+                let counter = refCreate(0);
+                export let increment = () => counter := counter! + 1;
+                export let decrement = () => counter := counter! - 1;
+                export let getValue = () => counter!;
+                export let reset = () => counter := 0;
+                export let addN = (n) => counter := counter! + n;
             `;
             const module = parseModule(source);
 
@@ -582,12 +582,12 @@ describe("Parser - Integration", () => {
 
         it("parses list processing with spreads and transformations", () => {
             const source = `
-                let items = [1, 2, 3]
-                let extended = [...items, 4, 5]
-                let combined = [...items, ...extended]
-                let withPrefix = [0, ...items]
-                let sandwich = [...items, 99, ...items]
-                export let pipeline = items |> (list) => [...list, 10] |> (list) => [0, ...list]
+                let items = [1, 2, 3];
+                let extended = [...items, 4, 5];
+                let combined = [...items, ...extended];
+                let withPrefix = [0, ...items];
+                let sandwich = [...items, 99, ...items];
+                export let pipeline = items |> (list) => [...list, 10] |> (list) => [0, ...list];
             `;
             const module = parseModule(source);
 
@@ -617,15 +617,15 @@ describe("Parser - Integration", () => {
                 import { type User, createUser } from "./user"
                 import * as Utils from "./utils"
 
-                export { type User, createUser } from "./user"
+                export { type User, createUser } from "./user";
 
-                export * from "./helpers"
+                export * from "./helpers";
 
-                export { map, filter } from "./list"
+                export { map, filter } from "./list";
 
-                export { sum as total, avg as mean } from "./math"
+                export { sum as total, avg as mean } from "./math";
 
-                export let processUser = (user) => user
+                export let processUser = (user) => user;
             `;
             const module = parseModule(source);
 
@@ -660,17 +660,17 @@ describe("Parser - Integration", () => {
 
         it("parses complex pattern matching with deref and guards", () => {
             const source = `
-                external refCreate: ({}) -> Ref = "ref" from "@vibefun/runtime"
-                type Status = Active | Pending | Inactive
-                type UserData<t> = Some(t) | None
-                type UserRecord = { status: Status, data: UserData<String>, verified: Bool }
-                let userRef = refCreate({ status: Active, data: Some("info"), verified: true })
-                export let processUser = () => match userRef! {
+                external refCreate: ({}) -> Ref = "ref" from "@vibefun/runtime";
+                type Status = Active | Pending | Inactive;
+                type UserData<t> = Some(t) | None;
+                type UserRecord = { status: Status, data: UserData<String>, verified: Bool };
+                let userRef = refCreate({ status: Active, data: Some("info"), verified: true });
+                export let processUser = () => match userRef! {;
                     | { status: Active, data: Some(info), verified: v } when v => info
                     | { status: Pending, data: _ } => "pending"
                     | { status: Inactive } => "inactive"
                     | _ => "unknown"
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -695,9 +695,9 @@ describe("Parser - Integration", () => {
 
         it("parses pipeline with spreads and composition", () => {
             const source = `
-                let data = [1, 2, 3, 4, 5]
-                let extras = [10, 20]
-                let result = data |> (xs) => [...xs, ...extras] |> (xs) => [0, ...xs] |> (xs) => match xs { | [first, ...rest] => [...rest, first] | [] => [] } |> (xs) => xs
+                let data = [1, 2, 3, 4, 5];
+                let extras = [10, 20];
+                let result = data |> (xs) => [...xs, ...extras] |> (xs) => [0, ...xs] |> (xs) => match xs { | [first, ...rest] => [...rest, first] | [] => [] } |> (xs) => xs;
             `;
             const module = parseModule(source);
 
@@ -711,18 +711,18 @@ describe("Parser - Integration", () => {
 
         it("parses record operations with multiple spreads", () => {
             const source = `
-                let base = { a: 1, b: 2 }
-                let overrides = { b: 20, c: 30 }
+                let base = { a: 1, b: 2 };
+                let overrides = { b: 20, c: 30 };
 
-                let merged = { ...base, ...overrides }
+                let merged = { ...base, ...overrides };
 
-                let customized = { ...base, ...overrides, d: 40 }
+                let customized = { ...base, ...overrides, d: 40 };
 
-                let reversed = { ...overrides, ...base }
+                let reversed = { ...overrides, ...base };
 
-                let nested = { ...base, inner: { ...overrides, x: 100 } }
+                let nested = { ...base, inner: { ...overrides, x: 100 } };
 
-                export let update = (record, field, value) => { ...record, field: value }
+                export let update = (record, field, value) => { ...record, field: value };
             `;
             const module = parseModule(source);
 
@@ -749,14 +749,14 @@ describe("Parser - Integration", () => {
 
         it("parses external API with overloading", () => {
             const source = `
-                external setTimeout: ((() -> Unit), Int) -> Int = "setTimeout"
-                external setTimeout: ((() -> Unit)) -> Int = "setTimeout"
+                external setTimeout: ((() -> Unit), Int) -> Int = "setTimeout";
+                external setTimeout: ((() -> Unit)) -> Int = "setTimeout";
 
-                external fetch: (String) -> Promise = "fetch"
-                external fetch: (String, {}) -> Promise = "fetch"
+                external fetch: (String) -> Promise = "fetch";
+                external fetch: (String, {}) -> Promise = "fetch";
 
-                let delay1 = setTimeout(callback, 1000)
-                let delay2 = setTimeout(callback)
+                let delay1 = setTimeout(callback, 1000);
+                let delay2 = setTimeout(callback);
             `;
             const module = parseModule(source);
 
@@ -785,16 +785,16 @@ describe("Parser - Integration", () => {
 
         it("parses nested match with guards and derefs", () => {
             const source = `
-                external refCreate: (Inner) -> Ref = "ref" from "@vibefun/runtime"
-                type Inner = IVal(Int) | INone
-                type Outer = OVal(Inner) | ONone
-                let outerRef = refCreate(OVal(IVal(42)))
-                export let process = () => match outerRef! {
+                external refCreate: (Inner) -> Ref = "ref" from "@vibefun/runtime";
+                type Inner = IVal(Int) | INone;
+                type Outer = OVal(Inner) | ONone;
+                let outerRef = refCreate(OVal(IVal(42)));
+                export let process = () => match outerRef! {;
                     | OVal(IVal(n)) when n > 0 => n
                     | OVal(IVal(n)) when n <= 0 => 0
                     | OVal(INone) => -1
                     | ONone => -2
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -815,10 +815,10 @@ describe("Parser - Integration", () => {
 
         it("parses higher-order functions with complex types", () => {
             const source = `
-                type Func<a, b> = (a) -> b
-                export let compose = (f, g) => (x) => f(g(x))
-                export let pipe = (f, g) => (x) => g(f(x))
-                export let curry = (f) => (x) => (y) => f(x, y)
+                type Func<a, b> = (a) -> b;
+                export let compose = (f, g) => (x) => f(g(x));
+                export let pipe = (f, g) => (x) => g(f(x));
+                export let curry = (f) => (x) => (y) => f(x, y);
             `;
             const module = parseModule(source);
 
@@ -837,16 +837,16 @@ describe("Parser - Integration", () => {
                 import { type Result } from "./result"
                 import * as List from "./list"
 
-                export { type Option, Some, None } from "./option"
-                export * from "./utils"
+                export { type Option, Some, None } from "./option";
+                export * from "./utils";
 
-                export type User = { id: Int, name: String }
+                export type User = { id: Int, name: String };
 
-                external log: (String) -> Unit = "console.log"
+                external log: (String) -> Unit = "console.log";
 
-                let defaultUser = { id: 0, name: "Unknown" }
+                let defaultUser = { id: 0, name: "Unknown" };
 
-                export let findUser = (users, id) => List.find(users, (u) => u.id == id)
+                export let findUser = (users, id) => List.find(users, (u) => u.id == id);
             `;
             const module = parseModule(source);
 
@@ -869,8 +869,8 @@ describe("Parser - Integration", () => {
 
         it("parses data transformation pipeline with spreads", () => {
             const source = `
-                let input = [1, 2, 3, 4, 5]
-                let transformed = input |> (xs) => [...xs, 6, 7] |> (xs) => [0, ...xs] |> (xs) => match xs { | [first, ...rest] => rest | [] => [] } |> (xs) => [...xs, ...xs]
+                let input = [1, 2, 3, 4, 5];
+                let transformed = input |> (xs) => [...xs, 6, 7] |> (xs) => [0, ...xs] |> (xs) => match xs { | [first, ...rest] => rest | [] => [] } |> (xs) => [...xs, ...xs];
             `;
             const module = parseModule(source);
 
@@ -883,14 +883,14 @@ describe("Parser - Integration", () => {
 
         it("parses state management pattern with refs", () => {
             const source = `
-                external refCreate: (State) -> Ref = "ref" from "@vibefun/runtime"
-                type State = { count: Int, items: List<String> }
-                let initialState = { count: 0, items: [] }
-                let stateRef = refCreate(initialState)
-                export let getState = () => stateRef!
-                export let updateCount = (n) => stateRef := { ...stateRef!, count: n }
-                export let addItem = (item) => stateRef := { ...stateRef!, items: [item, ...stateRef!.items] }
-                export let reset = () => stateRef := initialState
+                external refCreate: (State) -> Ref = "ref" from "@vibefun/runtime";
+                type State = { count: Int, items: List<String> };
+                let initialState = { count: 0, items: [] };
+                let stateRef = refCreate(initialState);
+                export let getState = () => stateRef!;
+                export let updateCount = (n) => stateRef := { ...stateRef!, count: n };
+                export let addItem = (item) => stateRef := { ...stateRef!, items: [item, ...stateRef!.items] };
+                export let reset = () => stateRef := initialState;
             `;
             const module = parseModule(source);
 
@@ -910,17 +910,17 @@ describe("Parser - Integration", () => {
 
         it("parses recursive data structure operations", () => {
             const source = `
-                type Tree<t> = Leaf(t) | Node(Tree<t>, Tree<t>)
+                type Tree<t> = Leaf(t) | Node(Tree<t>, Tree<t>);
 
                 let rec map = (tree, f) => match tree {
                     | Leaf(value) => Leaf(f(value))
                     | Node(left, right) => Node(map(left, f), map(right, f))
-                }
+                };
 
                 let rec fold = (tree, init, f) => match tree {
                     | Leaf(value) => f(init, value)
                     | Node(left, right) => fold(right, fold(left, init, f), f)
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -939,11 +939,11 @@ describe("Parser - Integration", () => {
 
         it("parses complex type expressions with generics", () => {
             const source = `
-                type Either<a, b> = Left(a) | Right(b)
-                type Pair<a, b> = (a, b)
-                type Func<a, b> = (a) -> b
-                export let bimap = (either, f, g) => match either { | Left(a) => Left(f(a)) | Right(b) => Right(g(b)) }
-                export let isLeft = (either) => match either { | Left(_) => true | Right(_) => false }
+                type Either<a, b> = Left(a) | Right(b);
+                type Pair<a, b> = (a, b);
+                type Func<a, b> = (a) -> b;
+                export let bimap = (either, f, g) => match either { | Left(a) => Left(f(a)) | Right(b) => Right(g(b)) };
+                export let isLeft = (either) => match either { | Left(_) => true | Right(_) => false };
             `;
             const module = parseModule(source);
 
@@ -958,21 +958,21 @@ describe("Parser - Integration", () => {
 
         it("parses API wrapper pattern with externals and re-exports", () => {
             const source = `
-                external fetch: (String) -> Promise = "fetch"
-                external fetch: (String, {}) -> Promise = "fetch"
+                external fetch: (String) -> Promise = "fetch";
+                external fetch: (String, {}) -> Promise = "fetch";
 
-                export { type Response } from "./types"
+                export { type Response } from "./types";
 
-                export let get = (url) => fetch(url)
+                export let get = (url) => fetch(url);
 
-                export let post = (url, data) => fetch(url, { method: "POST", body: data })
+                export let post = (url, data) => fetch(url, { method: "POST", body: data });
 
-                let handleError = (err) => err
+                let handleError = (err) => err;
 
-                export let safeGet = (url) => match get(url) {
+                export let safeGet = (url) => match get(url) {;
                     | Ok(response) => response
                     | Err(error) => handleError(error)
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -991,7 +991,7 @@ describe("Parser - Integration", () => {
 
         it("parses complex guard conditions in pattern matching", () => {
             const source = `
-                type Point = { x: Int, y: Int }
+                type Point = { x: Int, y: Int };
 
                 let quadrant = (point) => match point {
                     | { x, y } when x > 0 && y > 0 => "Q1"
@@ -1001,7 +1001,7 @@ describe("Parser - Integration", () => {
                     | { x: 0, y } when y != 0 => "Y-axis"
                     | { x, y: 0 } when x != 0 => "X-axis"
                     | _ => "Origin"
-                }
+                };
             `;
             const module = parseModule(source);
 
@@ -1023,16 +1023,16 @@ describe("Parser - Integration", () => {
             const source = `
                 import { type Option, Some, None } from "./option"
                 import * as List from "./list"
-                export { type Option } from "./option"
-                export * from "./utils"
-                external refCreate: (State) -> Ref = "ref" from "@vibefun/runtime"
-                external log: (String) -> Unit = "console.log"
-                type State = { items: List<Int>, total: Int }
-                let initialState = { items: [], total: 0 }
-                let stateRef = refCreate(initialState)
-                export let addItem = (item) => stateRef := { ...stateRef!, items: [item, ...stateRef!.items] }
-                export let getItems = () => stateRef!.items
-                export let processItems = () => stateRef!.items |> (xs) => [0, ...xs] |> (xs) => match xs { | [first, ...rest] when first == 0 => rest | xs => xs }
+                export { type Option } from "./option";
+                export * from "./utils";
+                external refCreate: (State) -> Ref = "ref" from "@vibefun/runtime";
+                external log: (String) -> Unit = "console.log";
+                type State = { items: List<Int>, total: Int };
+                let initialState = { items: [], total: 0 };
+                let stateRef = refCreate(initialState);
+                export let addItem = (item) => stateRef := { ...stateRef!, items: [item, ...stateRef!.items] };
+                export let getItems = () => stateRef!.items;
+                export let processItems = () => stateRef!.items |> (xs) => [0, ...xs] |> (xs) => match xs { | [first, ...rest] when first == 0 => rest | xs => xs };
             `;
             const module = parseModule(source);
 

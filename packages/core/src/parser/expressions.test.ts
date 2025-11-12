@@ -1495,7 +1495,7 @@ describe("Parser - Expressions", () => {
 
     describe("block expressions", () => {
         it("should parse block with multiple expressions", () => {
-            const expr = parseExpression("{ 1; 2; 3 }");
+            const expr = parseExpression("{ 1; 2; 3; }");
 
             expect(expr).toMatchObject({
                 kind: "Block",
@@ -1520,7 +1520,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should parse block starting with if", () => {
-            const expr = parseExpression("{ if true then 1 else 2; 3 }");
+            const expr = parseExpression("{ if true then 1 else 2; 3; }");
 
             expect(expr).toMatchObject({
                 kind: "Block",
@@ -1537,7 +1537,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should parse nested blocks", () => {
-            const expr = parseExpression("{ { 1; 2 }; 3 }");
+            const expr = parseExpression("{ { 1; 2; }; 3; }");
 
             expect(expr).toMatchObject({
                 kind: "Block",
@@ -1555,7 +1555,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should parse block with function calls", () => {
-            const expr = parseExpression("{ print(x); y }");
+            const expr = parseExpression("{ print(x); y; }");
 
             expect(expr).toMatchObject({
                 kind: "Block",
@@ -1571,7 +1571,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should parse block with complex expressions", () => {
-            const expr = parseExpression("{ (x) => x + 1; 10 }");
+            const expr = parseExpression("{ (x) => x + 1; 10; }");
 
             expect(expr).toMatchObject({
                 kind: "Block",
@@ -1611,7 +1611,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should parse block with match expression", () => {
-            const expr = parseExpression("{ match x { | 1 => a | 2 => b }; c }");
+            const expr = parseExpression("{ match x { | 1 => a | 2 => b }; c; }");
 
             expect(expr).toMatchObject({
                 kind: "Block",
@@ -1627,7 +1627,7 @@ describe("Parser - Expressions", () => {
 
         it("should parse single field shorthand as record (not ambiguous)", () => {
             // Single field shorthand like { x } is valid - creates record with field x
-            const expr = parseExpression("{ x }");
+            const expr = parseExpression("{ x; }");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(1);
