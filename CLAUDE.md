@@ -109,6 +109,17 @@ vibefun/
 - **Source maps**: Enable debugging in JavaScript context
 - **Implementation flexibility**: Specific generation patterns (currying, variant representation) are implementation details that may evolve
 
+### Syntax and Semicolons
+- **Semicolons required**: Vibefun requires explicit semicolons - no ASI (Automatic Semicolon Insertion)
+- **Top-level declarations**: Every `let`, `type`, `external`, `import`, and `export` must end with `;`
+- **Block expressions**: Every statement in a block must end with `;` (including the last one)
+- **External blocks**: Items in `external { }` blocks use `;` as separators
+- **Records**: Record literals use commas: `{ x: 1, y: 2 }` (not semicolons)
+- **Empty blocks**: `{}` is valid without a semicolon inside
+- **Multi-line expressions**: Expressions can span lines; semicolon only at the end
+- **Lambda newlines**: `(x, y)\n=> body` is allowed (special case preserved)
+- **Rationale**: Explicit semicolons eliminate ambiguity, simplify parsing, and prevent ASI-related bugs
+
 ### External Function Overloading
 - **Scope**: Only `external` declarations can be overloaded (not pure vibefun functions)
 - **Purpose**: Enables natural JavaScript interop for APIs with multiple signatures (e.g., `fetch`, `setTimeout`)
