@@ -254,7 +254,7 @@ describe("Semicolon Requirements", () => {
             expect(() => parse("let x = { a: 1, b: 2 };")).not.toThrow();
         });
 
-        it("should recognize records with newlines", () => {
+        it("should require commas between record fields", () => {
             expect(() =>
                 parse(`
                     let x = {
@@ -262,7 +262,7 @@ describe("Semicolon Requirements", () => {
                         b: 2
                     };
                 `),
-            ).not.toThrow();
+            ).toThrow(/Expected ',' between record fields/);
         });
     });
 

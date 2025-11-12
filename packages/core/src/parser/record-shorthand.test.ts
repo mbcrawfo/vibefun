@@ -95,8 +95,8 @@ describe("Record Shorthand - Construction", () => {
     describe("Shorthand with Multi-line", () => {
         it("should parse shorthand fields on separate lines", () => {
             const expr = parseExpr(`let obj = {
-                name
-                age
+                name,
+                age,
                 active
             };`);
             expect(expr.kind).toBe("Record");
@@ -106,8 +106,8 @@ describe("Record Shorthand - Construction", () => {
 
         it("should parse mixed fields on separate lines", () => {
             const expr = parseExpr(`let obj = {
-                name
-                age: 30
+                name,
+                age: 30,
                 active
             };`);
             expect(expr.kind).toBe("Record");
@@ -185,8 +185,8 @@ describe("Record Shorthand - Update with Spread", () => {
     describe("Shorthand in Multi-line Update", () => {
         it("should parse shorthand in multi-line update", () => {
             const expr = parseExpr(`let updated = {
-                ...base
-                name
+                ...base,
+                name,
                 age
             };`);
             expect(expr.kind).toBe("RecordUpdate");
@@ -199,9 +199,9 @@ describe("Record Shorthand - Update with Spread", () => {
 
         it("should parse mixed fields in multi-line update", () => {
             const expr = parseExpr(`let updated = {
-                ...base
-                name
-                x: 42
+                ...base,
+                name,
+                x: 42,
                 age
             };`);
             expect(expr.kind).toBe("RecordUpdate");

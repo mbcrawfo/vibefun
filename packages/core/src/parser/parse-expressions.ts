@@ -837,15 +837,17 @@ function parsePrimary(parser: ParserBase): Expr {
             return parseRecordExpr(parser, startLoc);
         }
 
-        // Check for record shorthand: { id } or { id, ... } or { id\nid\n... }
-        // Lookahead past newlines to check for COMMA, RBRACE, or another IDENTIFIER
+        // Check for record shorthand: { id } or { id, ... }
+        // Lookahead past newlines to check for COMMA or RBRACE
+        // Note: Single-field records like { name } are still valid (detected by RBRACE)
+        // Multiple fields now require commas between them for consistency
         if (parser.check("IDENTIFIER")) {
             let offset = 1;
             while (parser.peek(offset).type === "NEWLINE") {
                 offset++;
             }
             const nextToken = parser.peek(offset);
-            if (nextToken.type === "COMMA" || nextToken.type === "RBRACE" || nextToken.type === "IDENTIFIER") {
+            if (nextToken.type === "COMMA" || nextToken.type === "RBRACE") {
                 return parseRecordExpr(parser, startLoc);
             }
         }
@@ -1279,27 +1281,41 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
             // Collect remaining fields and spreads
             const updates: RecordField[] = [];
 
-            // Skip newlines after spread expr (supports: { ...base\n name: value })
+            // Skip newlines after spread expr
             while (parser.check("NEWLINE")) {
                 parser.advance();
             }
 
-            // Continue parsing fields (with or without commas)
-            while (parser.check("COMMA") || parser.check("SPREAD") || parser.check("IDENTIFIER")) {
-                // Consume comma if present
-                if (parser.match("COMMA")) {
-                    // Skip newlines after comma
-                    while (parser.check("NEWLINE")) {
-                        parser.advance();
-                    }
-
-                    // Check for trailing comma before closing brace
-                    if (parser.check("RBRACE")) {
-                        break; // Trailing comma allowed, exit loop
-                    }
+            // Continue parsing fields and spreads (commas required between items)
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                // Check if we're at the end
+                if (parser.check("RBRACE")) {
+                    break; // End of record update
                 }
 
-                // Check for another spread
+                // Require comma before next item
+                if (!parser.check("COMMA")) {
+                    const nextToken = parser.peek();
+                    throw parser.error(
+                        `Expected ',' between record fields`,
+                        parser.peek(-1).loc,
+                        `Found ${nextToken.type} instead. Add a comma to separate fields.`,
+                    );
+                }
+                parser.advance(); // Consume comma
+
+                // Skip newlines after comma
+                while (parser.check("NEWLINE")) {
+                    parser.advance();
+                }
+
+                // Check for trailing comma before closing brace
+                if (parser.check("RBRACE")) {
+                    break; // Trailing comma allowed, exit loop
+                }
+
+                // Parse spread or field
                 if (parser.check("SPREAD")) {
                     parser.advance(); // consume ...
                     const expr = parseExpression(parser);
@@ -1308,6 +1324,11 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                         expr,
                         loc: parser.peek(-1).loc,
                     });
+
+                    // Skip newlines after spread
+                    while (parser.check("NEWLINE")) {
+                        parser.advance();
+                    }
                 } else if (parser.check("IDENTIFIER")) {
                     // Regular field or shorthand
                     const fieldToken = parser.advance();
@@ -1318,8 +1339,9 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                         parser.advance();
                     }
 
-                    // Check for shorthand: { ...base, name } or { ...base, name\notherId }
-                    if (parser.check("COMMA") || parser.check("RBRACE") || parser.check("IDENTIFIER")) {
+                    // Check for shorthand: { ...base, name } or { ...base, name, ... }
+                    // Note: Commas now required between fields for consistency
+                    if (parser.check("COMMA") || parser.check("RBRACE")) {
                         // Shorthand in update: { ...base, name }
                         updates.push({
                             kind: "Field",
@@ -1348,7 +1370,8 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                         parser.advance();
                     }
                 } else {
-                    break; // End of fields
+                    // Unexpected token - error will be thrown at top of loop
+                    break;
                 }
             }
 
@@ -1374,8 +1397,9 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                 parser.advance();
             }
 
-            // Check for shorthand: { name } or { name, ... } or { name\notherId }
-            if (parser.check("COMMA") || parser.check("RBRACE") || parser.check("IDENTIFIER")) {
+            // Check for shorthand: { name } or { name, ... }
+            // Note: Commas now required between fields for consistency
+            if (parser.check("COMMA") || parser.check("RBRACE")) {
                 // Shorthand: { name } → { name: Var(name) }
                 fields.push({
                     kind: "Field",
@@ -1400,24 +1424,35 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                 });
             }
 
-            // Skip newlines and commas (supports multi-line record fields)
+            // Skip newlines after field
             while (parser.check("NEWLINE")) {
                 parser.advance();
             }
 
-            if (parser.check("COMMA")) {
-                parser.advance(); // consume comma
-                while (parser.check("NEWLINE")) {
-                    parser.advance();
-                }
+            // Check if we're at the end
+            if (parser.check("RBRACE")) {
+                break; // End of record
+            }
 
-                // Check for trailing comma before closing brace
-                if (parser.check("RBRACE")) {
-                    break; // Trailing comma allowed, exit loop
-                }
-            } else if (!parser.check("IDENTIFIER")) {
-                // No more fields (either RBRACE or something else)
-                break;
+            // Require comma before next field - enhanced error message
+            if (!parser.check("COMMA")) {
+                const nextToken = parser.peek();
+                throw parser.error(
+                    `Expected ',' between record fields`,
+                    parser.peek(-1).loc,
+                    `Found ${nextToken.type} instead. Add a comma to separate fields.`,
+                );
+            }
+            parser.advance(); // Consume comma
+
+            // Skip newlines after comma
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+
+            // Check for trailing comma
+            if (parser.check("RBRACE")) {
+                break; // Trailing comma allowed
             }
             // eslint-disable-next-line no-constant-condition
         } while (true);
