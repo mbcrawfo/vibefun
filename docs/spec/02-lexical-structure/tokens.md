@@ -2,14 +2,14 @@
 
 ## Keywords
 
-Vibefun has 19 reserved keywords:
+Vibefun has 20 reserved keywords:
 
 ```
 let       mut       type      if
 then      else      match     when
 rec       and       import    export
 external  unsafe    from      as
-ref       try       catch
+ref       try       catch     while
 ```
 
 **Note:** `try` and `catch` are used in unsafe blocks for JavaScript exception handling interop.

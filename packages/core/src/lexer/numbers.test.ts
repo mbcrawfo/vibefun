@@ -655,6 +655,12 @@ describe("Lexer - Number Separators (Underscores)", () => {
 
             expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
         });
+
+        it("should throw error on integer with consecutive underscores", () => {
+            const lexer = new Lexer("1__000", "test.vf");
+
+            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+        });
     });
 
     describe("Decimal floats with separators", () => {

@@ -78,6 +78,7 @@ pattern when guard
 | `from`     | Import source                     |
 | `as`       | Import alias                      |
 | `ref`      | Create mutable reference          |
+| `while`    | While loop construct              |
 
 ### Operators Reference
 
