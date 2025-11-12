@@ -372,7 +372,7 @@ describe("Parser - Core", () => {
         });
 
         it("should have location information", () => {
-            const parser = createParser("let x = 42");
+            const parser = createParser("let x = 42;");
             const module = parser.parse();
 
             expect(module.loc).toBeDefined();

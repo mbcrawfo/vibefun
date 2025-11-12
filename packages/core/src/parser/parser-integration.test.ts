@@ -118,7 +118,7 @@ describe("Parser - Integration", () => {
 
     describe("type definitions", () => {
         it("parses type alias", () => {
-            const source = "type UserId = Int";
+            const source = "type UserId = Int;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -131,7 +131,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses record type", () => {
-            const source = "type Point = { x: Int, y: Int }";
+            const source = "type Point = { x: Int, y: Int };";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -146,7 +146,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses variant type with constructors", () => {
-            const source = "type option<t> = Some(t) | None";
+            const source = "type option<t> = Some(t) | None;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -162,7 +162,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses Result type with two type parameters", () => {
-            const source = "type Result<t, e> = Ok(t) | Err(e)";
+            const source = "type Result<t, e> = Ok(t) | Err(e);";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -183,7 +183,7 @@ describe("Parser - Integration", () => {
 
     describe("programs with imports", () => {
         it("parses module with named imports", () => {
-            const source = `import { map, filter } from "./list"
+            const source = `import { map, filter } from "./list";
                 let doubled = map(list, (x) => x * 2);`;
             const module = parseModule(source);
 
@@ -197,8 +197,8 @@ describe("Parser - Integration", () => {
         });
 
         it("parses module with namespace import", () => {
-            const source = `import * as List from "./list"
-                let result = List.map(data, fn)`;
+            const source = `import * as List from "./list";
+                let result = List.map(data, fn);`;
             const module = parseModule(source);
 
             expect(module.imports).toHaveLength(1);
@@ -210,8 +210,8 @@ describe("Parser - Integration", () => {
         });
 
         it("parses module with type imports", () => {
-            const source = `import { type User, getUser } from "./api"
-                let currentUser = getUser()`;
+            const source = `import { type User, getUser } from "./api";
+                let currentUser = getUser();`;
             const module = parseModule(source);
 
             expect(module.imports).toHaveLength(1);
@@ -227,7 +227,7 @@ describe("Parser - Integration", () => {
 
     describe("programs with external declarations", () => {
         it("parses module with external function", () => {
-            const source = 'external log: (String) -> Unit = "console.log"';
+            const source = 'external log: (String) -> Unit = "console.log";';
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -239,7 +239,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses external with from clause", () => {
-            const source = 'external fetch: (String) -> Promise = "fetch" from "node-fetch"';
+            const source = 'external fetch: (String) -> Promise = "fetch" from "node-fetch";';
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -254,7 +254,7 @@ describe("Parser - Integration", () => {
 
     describe("programs with exports", () => {
         it("parses exported function", () => {
-            const source = "export let add = (x, y) => x + y";
+            const source = "export let add = (x, y) => x + y;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -265,7 +265,7 @@ describe("Parser - Integration", () => {
         });
 
         it("parses exported type", () => {
-            const source = "export type Point = { x: Int, y: Int }";
+            const source = "export type Point = { x: Int, y: Int };";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -281,12 +281,12 @@ describe("Parser - Integration", () => {
             const source = `
                 type Option<t> = Some(t) | None;
 
-                export let map = (opt, f) => match opt {;
+                export let map = (opt, f) => match opt {
                     | Some(x) => Some(f(x))
                     | None => None
                 };
 
-                export let getOrElse = (opt, default) => match opt {;
+                export let getOrElse = (opt, default) => match opt {
                     | Some(x) => x
                     | None => default
                 };
@@ -304,17 +304,17 @@ describe("Parser - Integration", () => {
 
         it("parses List utilities module", () => {
             const source = `
-                export let rec map = (list, f) => match list {;
+                export let rec map = (list, f) => match list {
                     | [] => []
                     | [head, ...tail] => [f(head)]
                 };
 
-                export let rec filter = (list, pred) => match list {;
+                export let rec filter = (list, pred) => match list {
                     | [] => []
                     | [head, ...tail] => if pred(head) then [head] else filter(tail, pred)
                 };
 
-                export let rec fold = (list, init, f) => match list {;
+                export let rec fold = (list, init, f) => match list {
                     | [] => init
                     | [head, ...tail] => fold(tail, f(init, head), f)
                 };
@@ -381,8 +381,8 @@ describe("Parser - Integration", () => {
 
         it("parses comprehensive module with imports, types, and functions", () => {
             const source = `
-                import { type Option, Some, None } from "./option"
-                import * as List from "./list"
+                import { type Option, Some, None } from "./option";
+                import * as List from "./list";
 
                 export type User = { id: Int, name: String, email: String };
 
@@ -390,7 +390,7 @@ describe("Parser - Integration", () => {
 
                 let defaultUser = { id: 0, name: "Unknown", email: "" };
 
-                export let findUserById = (users, id) => match List.find(users, (user) => user.id == id) {;
+                export let findUserById = (users, id) => match List.find(users, (user) => user.id == id) {
                     | Some(user) => user
                     | None => defaultUser
                 };
@@ -614,8 +614,8 @@ describe("Parser - Integration", () => {
 
         it("parses module system with re-exports", () => {
             const source = `
-                import { type User, createUser } from "./user"
-                import * as Utils from "./utils"
+                import { type User, createUser } from "./user";
+                import * as Utils from "./utils";
 
                 export { type User, createUser } from "./user";
 
@@ -665,7 +665,7 @@ describe("Parser - Integration", () => {
                 type UserData<t> = Some(t) | None;
                 type UserRecord = { status: Status, data: UserData<String>, verified: Bool };
                 let userRef = refCreate({ status: Active, data: Some("info"), verified: true });
-                export let processUser = () => match userRef! {;
+                export let processUser = () => match userRef! {
                     | { status: Active, data: Some(info), verified: v } when v => info
                     | { status: Pending, data: _ } => "pending"
                     | { status: Inactive } => "inactive"
@@ -789,7 +789,7 @@ describe("Parser - Integration", () => {
                 type Inner = IVal(Int) | INone;
                 type Outer = OVal(Inner) | ONone;
                 let outerRef = refCreate(OVal(IVal(42)));
-                export let process = () => match outerRef! {;
+                export let process = () => match outerRef! {
                     | OVal(IVal(n)) when n > 0 => n
                     | OVal(IVal(n)) when n <= 0 => 0
                     | OVal(INone) => -1
@@ -833,9 +833,9 @@ describe("Parser - Integration", () => {
 
         it("parses mixed module with imports, exports, and re-exports", () => {
             const source = `
-                import { type Option, Some, None } from "./option"
-                import { type Result } from "./result"
-                import * as List from "./list"
+                import { type Option, Some, None } from "./option";
+                import { type Result } from "./result";
+                import * as List from "./list";
 
                 export { type Option, Some, None } from "./option";
                 export * from "./utils";
@@ -969,7 +969,7 @@ describe("Parser - Integration", () => {
 
                 let handleError = (err) => err;
 
-                export let safeGet = (url) => match get(url) {;
+                export let safeGet = (url) => match get(url) {
                     | Ok(response) => response
                     | Err(error) => handleError(error)
                 };
@@ -1021,8 +1021,8 @@ describe("Parser - Integration", () => {
 
         it("parses module with all feature types combined", () => {
             const source = `
-                import { type Option, Some, None } from "./option"
-                import * as List from "./list"
+                import { type Option, Some, None } from "./option";
+                import * as List from "./list";
                 export { type Option } from "./option";
                 export * from "./utils";
                 external refCreate: (State) -> Ref = "ref" from "@vibefun/runtime";

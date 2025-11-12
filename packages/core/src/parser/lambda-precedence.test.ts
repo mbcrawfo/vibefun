@@ -26,7 +26,7 @@ function parse(source: string): Expr {
 
 describe("Lambda Precedence - Level 0", () => {
     it("should parse single-parameter lambda without parens", () => {
-        const expr = parse("let f = x => x + 1");
+        const expr = parse("let f = x => x + 1;");
         expect(expr.kind).toBe("Lambda");
         if (expr.kind !== "Lambda") return;
         expect(expr.params).toHaveLength(1);
@@ -34,7 +34,7 @@ describe("Lambda Precedence - Level 0", () => {
     });
 
     it("should parse multi-parameter lambda with parens", () => {
-        const expr = parse("let f = (x, y) => x + y");
+        const expr = parse("let f = (x, y) => x + y;");
         expect(expr.kind).toBe("Lambda");
         if (expr.kind !== "Lambda") return;
         expect(expr.params).toHaveLength(2);
@@ -42,7 +42,7 @@ describe("Lambda Precedence - Level 0", () => {
 
     describe("Right Associativity", () => {
         it("should parse x => y => z as x => (y => z)", () => {
-            const expr = parse("let f = x => y => z");
+            const expr = parse("let f = x => y => z;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.params).toHaveLength(1);
@@ -58,7 +58,7 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse a => b => c => d as nested right-associative", () => {
-            const expr = parse("let f = a => b => c => d");
+            const expr = parse("let f = a => b => c => d;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
 
@@ -78,7 +78,7 @@ describe("Lambda Precedence - Level 0", () => {
 
     describe("Lambda Body Extends to End", () => {
         it("should parse x => x + 1 * 2 with full expression as body", () => {
-            const expr = parse("let f = x => x + 1 * 2");
+            const expr = parse("let f = x => x + 1 * 2;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
 
@@ -89,14 +89,14 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse x => if y then 1 else 2 with if as body", () => {
-            const expr = parse("let f = x => if y then 1 else 2");
+            const expr = parse("let f = x => if y then 1 else 2;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.body.kind).toBe("If");
         });
 
         it("should parse x => match y { | Some(v) => v | None => 0 }", () => {
-            const expr = parse("let f = x => match y { | Some(v) => v | None => 0 }");
+            const expr = parse("let f = x => match y { | Some(v) => v | None => 0 };");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.body.kind).toBe("Match");
@@ -105,7 +105,7 @@ describe("Lambda Precedence - Level 0", () => {
 
     describe("Lambda with Other Operators", () => {
         it("should parse x => y := 42 (ref assign in body)", () => {
-            const expr = parse("let f = x => y := 42");
+            const expr = parse("let f = x => y := 42;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.body.kind).toBe("BinOp");
@@ -114,7 +114,7 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse x => y :: ys (cons in body)", () => {
-            const expr = parse("let f = x => y :: ys");
+            const expr = parse("let f = x => y :: ys;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.body.kind).toBe("BinOp");
@@ -123,7 +123,7 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse x => y |> f (pipe in body)", () => {
-            const expr = parse("let f = x => y |> f");
+            const expr = parse("let f = x => y |> f;");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.body.kind).toBe("Pipe");
@@ -132,7 +132,7 @@ describe("Lambda Precedence - Level 0", () => {
 
     describe("Lambda in Different Contexts", () => {
         it("should parse lambda in record: { transform: x => x * 2 }", () => {
-            const expr = parse("let config = { transform: x => x * 2 }");
+            const expr = parse("let config = { transform: x => x * 2 };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
 
@@ -142,7 +142,7 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse lambda in list: [x => x + 1, y => y * 2]", () => {
-            const expr = parse("let fns = [x => x + 1, y => y * 2]");
+            const expr = parse("let fns = [x => x + 1, y => y * 2];");
             expect(expr.kind).toBe("List");
             if (expr.kind !== "List") return;
 
@@ -156,7 +156,7 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse lambda in tuple: (x => x, y => y)", () => {
-            const expr = parse("let pair = (x => x, y => y)");
+            const expr = parse("let pair = (x => x, y => y);");
             expect(expr.kind).toBe("Tuple");
             if (expr.kind !== "Tuple") return;
             expect(expr.elements).toHaveLength(2);
@@ -167,7 +167,7 @@ describe("Lambda Precedence - Level 0", () => {
 
     describe("Complex Lambda Expressions", () => {
         it("should parse lambda returning lambda: x => (y => x + y)", () => {
-            const expr = parse("let f = x => (y => x + y)");
+            const expr = parse("let f = x => (y => x + y);");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
 
@@ -177,14 +177,14 @@ describe("Lambda Precedence - Level 0", () => {
         });
 
         it("should parse lambda with block body: x => { let y = x * 2; y + 1 }", () => {
-            const expr = parse("let f = x => { let y = x * 2; y + 1 }");
+            const expr = parse("let f = x => { let y = x * 2; y + 1; };");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.body.kind).toBe("Block");
         });
 
         it("should parse lambda with pattern matching: (x, y) => match (x, y) { | (0, 0) => 0 | _ => 1 }", () => {
-            const expr = parse("let f = (x, y) => match (x, y) { | (0, 0) => 0 | _ => 1 }");
+            const expr = parse("let f = (x, y) => match (x, y) { | (0, 0) => 0 | _ => 1 };");
             expect(expr.kind).toBe("Lambda");
             if (expr.kind !== "Lambda") return;
             expect(expr.params).toHaveLength(2);

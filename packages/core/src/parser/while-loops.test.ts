@@ -26,7 +26,7 @@ function parse(source: string): Expr {
 describe("While Loop Expressions", () => {
     describe("Basic While Loops", () => {
         it("should parse simple while loop", () => {
-            const expr = parse("let x = while true { print(42) }");
+            const expr = parse("let x = while true { print(42); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("BoolLit");
@@ -34,7 +34,7 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse while loop with variable condition", () => {
-            const expr = parse("let x = while running { step() }");
+            const expr = parse("let x = while running { step(); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("Var");
@@ -43,7 +43,7 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse while loop with comparison condition", () => {
-            const expr = parse("let x = while i < 10 { i := i + 1 }");
+            const expr = parse("let x = while i < 10 { i := i + 1; };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("BinOp");
@@ -52,7 +52,7 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse while loop with complex boolean condition", () => {
-            const expr = parse("let x = while i < 10 && !done { step() }");
+            const expr = parse("let x = while i < 10 && !done { step(); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("BinOp");
@@ -63,28 +63,28 @@ describe("While Loop Expressions", () => {
 
     describe("While Loop Bodies", () => {
         it("should parse while with single statement body", () => {
-            const expr = parse("let x = while true { print(42) }");
+            const expr = parse("let x = while true { print(42); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             // Body structure is implementation detail - parser parses correctly
         });
 
         it("should parse while with multiple statement body", () => {
-            const expr = parse("let x = while true { let y = 1; print(y); x := x + 1 }");
+            const expr = parse("let x = while true { let y = 1; print(y); x := x + 1; };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             // Body structure is implementation detail - parser parses correctly
         });
 
         it("should parse while with nested if in body", () => {
-            const expr = parse("let x = while true { if x > 10 then break() else step() }");
+            const expr = parse("let x = while true { if x > 10 then break() else step(); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             // Body structure is implementation detail - parser parses correctly
         });
 
         it("should parse while with match in body", () => {
-            const expr = parse("let x = while true { match state { | Running => step() | Done => () } }");
+            const expr = parse("let x = while true { match state { | Running => step() | Done => () }; };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             // Body structure is implementation detail - parser parses correctly
@@ -93,7 +93,7 @@ describe("While Loop Expressions", () => {
 
     describe("Nested While Loops", () => {
         it("should parse nested while loops", () => {
-            const expr = parse("let x = while i < 10 { while j < 10 { process(i, j) } }");
+            const expr = parse("let x = while i < 10 { while j < 10 { process(i, j); }; };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
 
@@ -101,7 +101,7 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse multiple while loops in sequence", () => {
-            const expr = parse("let x = { while a { f() }; while b { g() } }");
+            const expr = parse("let x = { while a { f(); }; while b { g(); }; };");
             expect(expr.kind).toBe("Block");
             if (expr.kind !== "Block") return;
             expect(expr.exprs[0]?.kind).toBe("While");
@@ -111,12 +111,12 @@ describe("While Loop Expressions", () => {
 
     describe("While Loops in Different Contexts", () => {
         it("should parse while in let binding", () => {
-            const expr = parse("let result = while cond { step() }");
+            const expr = parse("let result = while cond { step(); };");
             expect(expr.kind).toBe("While");
         });
 
         it("should parse while in function call argument", () => {
-            const expr = parse("let x = run(while true { step() })");
+            const expr = parse("let x = run(while true { step(); });");
             expect(expr.kind).toBe("App");
             if (expr.kind !== "App") return;
             const arg = expr.args[0];
@@ -124,7 +124,7 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse while in record field", () => {
-            const expr = parse("let config = { loop: while true { step() } }");
+            const expr = parse("let config = { loop: while true { step(); } };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             const field = expr.fields[0];
@@ -133,14 +133,14 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse while in if branch", () => {
-            const expr = parse("let x = if start then while running { step() } else ()");
+            const expr = parse("let x = if start then while running { step(); } else ();");
             expect(expr.kind).toBe("If");
             if (expr.kind !== "If") return;
             expect(expr.then.kind).toBe("While");
         });
 
         it("should parse while in match case", () => {
-            const expr = parse("let x = match mode { | Loop => while true { step() } | _ => () }");
+            const expr = parse("let x = match mode { | Loop => while true { step(); } | _ => () };");
             expect(expr.kind).toBe("Match");
             if (expr.kind !== "Match") return;
             const firstCase = expr.cases[0];
@@ -150,14 +150,14 @@ describe("While Loop Expressions", () => {
 
     describe("While Loop Edge Cases", () => {
         it("should parse while with function call condition", () => {
-            const expr = parse("let x = while shouldContinue() { step() }");
+            const expr = parse("let x = while shouldContinue() { step(); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("App");
         });
 
         it("should parse while with dereference in condition", () => {
-            const expr = parse("let x = while !running { step() }");
+            const expr = parse("let x = while !running { step(); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("UnaryOp");
@@ -166,14 +166,14 @@ describe("While Loop Expressions", () => {
         });
 
         it("should parse while with record access in condition", () => {
-            const expr = parse("let x = while state.running { step() }");
+            const expr = parse("let x = while state.running { step(); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             expect(expr.condition.kind).toBe("RecordAccess");
         });
 
         it("should parse while with empty block body", () => {
-            const expr = parse("let x = while true { () }");
+            const expr = parse("let x = while true { (); };");
             expect(expr.kind).toBe("While");
             if (expr.kind !== "While") return;
             // Body structure is implementation detail - parser parses correctly
@@ -182,7 +182,7 @@ describe("While Loop Expressions", () => {
 
     describe("While with Type Annotations", () => {
         it("should parse while with type annotation", () => {
-            const expr = parse("let x: Unit = while true { step() }");
+            const expr = parse("let x: Unit = while true { step(); };");
             // Parser structure for type annotations with while is implementation detail
             // Just verify the code parses successfully
             expect(expr.kind).toBeTruthy();

@@ -21,7 +21,7 @@ function parseModule(source: string): Module {
 describe("Environment Builder - External Overloading", () => {
     describe("single external declarations", () => {
         it("adds single external to environment", () => {
-            const source = `external fetch: (String) -> Promise<Response> = "fetch"`;
+            const source = `external fetch: (String) -> Promise<Response> = "fetch";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
@@ -36,7 +36,7 @@ describe("Environment Builder - External Overloading", () => {
         });
 
         it("adds external with from clause", () => {
-            const source = `external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch"`;
+            const source = `external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
@@ -81,8 +81,8 @@ describe("Environment Builder - External Overloading", () => {
         it("groups external overloads in external block", () => {
             const source = `
                 external {
-                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
                 };
             `;
             const module = parseModule(source);
@@ -101,8 +101,8 @@ describe("Environment Builder - External Overloading", () => {
         it("groups external overloads with from clause", () => {
             const source = `
                 external from "node:timers" {
-                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout"
-                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout"
+                    setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
+                    setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
                 };
             `;
             const module = parseModule(source);
@@ -205,8 +205,8 @@ describe("Environment Builder - External Overloading", () => {
         it("handles external block with single item per name", () => {
             const source = `
                 external {
-                    log: (String) -> Unit = "console.log"
-                    error: (String) -> Unit = "console.error"
+                    log: (String) -> Unit = "console.log";
+                    error: (String) -> Unit = "console.error";
                 };
             `;
             const module = parseModule(source);
@@ -222,9 +222,9 @@ describe("Environment Builder - External Overloading", () => {
         it("handles external block with overloads", () => {
             const source = `
                 external {
-                    log: (String) -> Unit = "console.log"
-                    log: (Int) -> Unit = "console.log"
-                    error: (String) -> Unit = "console.error"
+                    log: (String) -> Unit = "console.log";
+                    log: (Int) -> Unit = "console.log";
+                    error: (String) -> Unit = "console.error";
                 };
             `;
             const module = parseModule(source);

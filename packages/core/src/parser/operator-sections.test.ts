@@ -166,28 +166,28 @@ describe("Operator Sections - Rejection", () => {
 
     describe("Valid Alternatives (Not Operator Sections)", () => {
         it("should allow lambda as alternative: (x, y) => x + y", () => {
-            const lexer = new Lexer("let add = (x, y) => x + y", "test.vf");
+            const lexer = new Lexer("let add = (x, y) => x + y;", "test.vf");
             const tokens = lexer.tokenize();
             const parser = new Parser(tokens, "test.vf");
             expect(() => parser.parse()).not.toThrow();
         });
 
         it("should allow regular expressions with operators: (x + y)", () => {
-            const lexer = new Lexer("let result = (x + y)", "test.vf");
+            const lexer = new Lexer("let result = (x + y);", "test.vf");
             const tokens = lexer.tokenize();
             const parser = new Parser(tokens, "test.vf");
             expect(() => parser.parse()).not.toThrow();
         });
 
         it("should allow unary negation: (-x)", () => {
-            const lexer = new Lexer("let neg = (-x)", "test.vf");
+            const lexer = new Lexer("let neg = (-x);", "test.vf");
             const tokens = lexer.tokenize();
             const parser = new Parser(tokens, "test.vf");
             expect(() => parser.parse()).not.toThrow();
         });
 
         it("should allow logical not: (!flag)", () => {
-            const lexer = new Lexer("let inverted = (!flag)", "test.vf");
+            const lexer = new Lexer("let inverted = (!flag);", "test.vf");
             const tokens = lexer.tokenize();
             const parser = new Parser(tokens, "test.vf");
             expect(() => parser.parse()).not.toThrow();

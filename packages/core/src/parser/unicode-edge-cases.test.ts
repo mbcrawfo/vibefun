@@ -38,7 +38,7 @@ function parseModule(source: string) {
 describe("Parser - Unicode Edge Cases", () => {
     describe("emoji identifiers in expressions", () => {
         it("should parse emoji identifier in let binding", () => {
-            const source = "let 🚀 = 42";
+            const source = "let 🚀 = 42;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -131,7 +131,7 @@ describe("Parser - Unicode Edge Cases", () => {
 
     describe("math symbol identifiers", () => {
         it("should parse Greek letter identifier (π)", () => {
-            const source = "let π = 3.14";
+            const source = "let π = 3.14;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -312,7 +312,7 @@ describe("Parser - Unicode Edge Cases", () => {
 
     describe("unicode in function definitions", () => {
         it("should parse unicode function name", () => {
-            const source = "let 🚀 = (x) => x + 1";
+            const source = "let 🚀 = (x) => x + 1;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -362,7 +362,7 @@ describe("Parser - Unicode Edge Cases", () => {
 
     describe("unicode in type definitions", () => {
         it("should parse Greek letter type name", () => {
-            const source = "type Π = Int";
+            const source = "type Π = Int;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -375,7 +375,7 @@ describe("Parser - Unicode Edge Cases", () => {
         });
 
         it("should parse unicode variant constructor (Greek letters)", () => {
-            const source = "type Result = Σ(Int) | Δ";
+            const source = "type Result = Σ(Int) | Δ;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -398,7 +398,7 @@ describe("Parser - Unicode Edge Cases", () => {
         });
 
         it("should parse unicode record field name", () => {
-            const source = "type Point = { α: Int, β: Int }";
+            const source = "type Point = { α: Int, β: Int };";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -423,7 +423,7 @@ describe("Parser - Unicode Edge Cases", () => {
 
     describe("CJK (Chinese, Japanese, Korean) characters", () => {
         it("should parse Chinese identifiers", () => {
-            const source = "let 变量 = 42";
+            const source = "let 变量 = 42;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -435,7 +435,7 @@ describe("Parser - Unicode Edge Cases", () => {
         });
 
         it("should parse Japanese identifiers", () => {
-            const source = "let 変数 = 42";
+            const source = "let 変数 = 42;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);
@@ -447,7 +447,7 @@ describe("Parser - Unicode Edge Cases", () => {
         });
 
         it("should parse Korean identifiers", () => {
-            const source = "let 변수 = 42";
+            const source = "let 변수 = 42;";
             const module = parseModule(source);
 
             expect(module.declarations).toHaveLength(1);

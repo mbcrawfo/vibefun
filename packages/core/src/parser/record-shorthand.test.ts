@@ -26,7 +26,7 @@ function parseExpr(source: string): Expr {
 describe("Record Shorthand - Construction", () => {
     describe("Basic Shorthand", () => {
         it("should parse single shorthand field", () => {
-            const expr = parseExpr("let obj = { name }");
+            const expr = parseExpr("let obj = { name };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(1);
@@ -39,7 +39,7 @@ describe("Record Shorthand - Construction", () => {
         });
 
         it("should parse multiple shorthand fields", () => {
-            const expr = parseExpr("let obj = { name, age, active }");
+            const expr = parseExpr("let obj = { name, age, active };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(3);
@@ -61,7 +61,7 @@ describe("Record Shorthand - Construction", () => {
 
     describe("Mixed Shorthand and Regular Fields", () => {
         it("should parse shorthand and regular fields together", () => {
-            const expr = parseExpr("let obj = { name, age: 30 }");
+            const expr = parseExpr("let obj = { name, age: 30 };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(2);
@@ -78,14 +78,14 @@ describe("Record Shorthand - Construction", () => {
         });
 
         it("should parse regular fields before shorthand", () => {
-            const expr = parseExpr("let obj = { x: 1, y: 2, name }");
+            const expr = parseExpr("let obj = { x: 1, y: 2, name };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(3);
         });
 
         it("should parse alternating shorthand and regular fields", () => {
-            const expr = parseExpr("let obj = { name, x: 1, age, y: 2 }");
+            const expr = parseExpr("let obj = { name, x: 1, age, y: 2 };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(4);
@@ -98,7 +98,7 @@ describe("Record Shorthand - Construction", () => {
                 name
                 age
                 active
-            }`);
+            };`);
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(3);
@@ -109,7 +109,7 @@ describe("Record Shorthand - Construction", () => {
                 name
                 age: 30
                 active
-            }`);
+            };`);
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(3);
@@ -120,7 +120,7 @@ describe("Record Shorthand - Construction", () => {
 describe("Record Shorthand - Update with Spread", () => {
     describe("Shorthand in Update", () => {
         it("should parse shorthand in record update", () => {
-            const expr = parseExpr("let updated = { ...base, name }");
+            const expr = parseExpr("let updated = { ...base, name };");
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
@@ -141,7 +141,7 @@ describe("Record Shorthand - Update with Spread", () => {
         });
 
         it("should parse multiple shorthand fields in update", () => {
-            const expr = parseExpr("let updated = { ...base, name, age, active }");
+            const expr = parseExpr("let updated = { ...base, name, age, active };");
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
@@ -151,7 +151,7 @@ describe("Record Shorthand - Update with Spread", () => {
         });
 
         it("should parse mixed shorthand and regular in update", () => {
-            const expr = parseExpr("let updated = { ...base, name, x: 1, age }");
+            const expr = parseExpr("let updated = { ...base, name, x: 1, age };");
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
@@ -164,7 +164,7 @@ describe("Record Shorthand - Update with Spread", () => {
 
     describe("Shorthand with Multiple Spreads", () => {
         it("should parse shorthand with multiple spreads", () => {
-            const expr = parseExpr("let updated = { ...base, name, ...extra, age }");
+            const expr = parseExpr("let updated = { ...base, name, ...extra, age };");
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
@@ -188,7 +188,7 @@ describe("Record Shorthand - Update with Spread", () => {
                 ...base
                 name
                 age
-            }`);
+            };`);
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
@@ -203,7 +203,7 @@ describe("Record Shorthand - Update with Spread", () => {
                 name
                 x: 42
                 age
-            }`);
+            };`);
             expect(expr.kind).toBe("RecordUpdate");
             if (expr.kind !== "RecordUpdate") return;
 
@@ -217,14 +217,14 @@ describe("Record Shorthand - Update with Spread", () => {
 describe("Record Shorthand - Edge Cases", () => {
     describe("Empty and Single Field", () => {
         it("should parse single shorthand field", () => {
-            const expr = parseExpr("let obj = { x }");
+            const expr = parseExpr("let obj = { x };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(1);
         });
 
         it("should NOT parse empty record as shorthand", () => {
-            const expr = parseExpr("let obj = { }");
+            const expr = parseExpr("let obj = { };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(0);
@@ -233,7 +233,7 @@ describe("Record Shorthand - Edge Cases", () => {
 
     describe("Shorthand in Nested Records", () => {
         it("should parse shorthand in nested record", () => {
-            const expr = parseExpr("let obj = { outer: { name, age } }");
+            const expr = parseExpr("let obj = { outer: { name, age } };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
 
@@ -247,7 +247,7 @@ describe("Record Shorthand - Edge Cases", () => {
         });
 
         it("should parse shorthand at multiple nesting levels", () => {
-            const expr = parseExpr("let obj = { a, nested: { b, inner: { c } } }");
+            const expr = parseExpr("let obj = { a, nested: { b, inner: { c } } };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields.length).toBeGreaterThanOrEqual(2);
@@ -257,12 +257,12 @@ describe("Record Shorthand - Edge Cases", () => {
     describe("Shorthand with Complex Values", () => {
         it("should parse shorthand where variable is result of call", () => {
             // Note: shorthand { name } means { name: name }, so name must be a variable
-            const expr = parseExpr("let result = { name, computed }");
+            const expr = parseExpr("let result = { name, computed };");
             expect(expr.kind).toBe("Record");
         });
 
         it("should parse shorthand in record within list", () => {
-            const expr = parseExpr("let list = [{ name }, { age }]");
+            const expr = parseExpr("let list = [{ name }, { age }];");
             expect(expr.kind).toBe("List");
             if (expr.kind !== "List") return;
 
@@ -272,7 +272,7 @@ describe("Record Shorthand - Edge Cases", () => {
         });
 
         it("should parse shorthand in record within tuple", () => {
-            const expr = parseExpr("let pair = ({ name }, { age })");
+            const expr = parseExpr("let pair = ({ name }, { age });");
             expect(expr.kind).toBe("Tuple");
             if (expr.kind !== "Tuple") return;
             expect(expr.elements[0]?.kind).toBe("Record");
@@ -282,14 +282,14 @@ describe("Record Shorthand - Edge Cases", () => {
 
     describe("Trailing Commas with Shorthand", () => {
         it("should parse shorthand with trailing comma", () => {
-            const expr = parseExpr("let obj = { name, age, }");
+            const expr = parseExpr("let obj = { name, age, };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(2);
         });
 
         it("should parse single shorthand with trailing comma", () => {
-            const expr = parseExpr("let obj = { name, }");
+            const expr = parseExpr("let obj = { name, };");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(1);

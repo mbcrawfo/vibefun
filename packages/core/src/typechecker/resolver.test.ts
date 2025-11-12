@@ -28,7 +28,7 @@ function dummyExpr(count: number): Expr[] {
 describe("Overload Resolver", () => {
     describe("single function lookup", () => {
         it("resolves single external function", () => {
-            const source = `external fetch: (String) -> Promise<Response> = "fetch"`;
+            const source = `external fetch: (String) -> Promise<Response> = "fetch";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
@@ -45,7 +45,7 @@ describe("Overload Resolver", () => {
         });
 
         it("throws error for undefined function", () => {
-            const source = `external fetch: (String) -> Promise<Response> = "fetch"`;
+            const source = `external fetch: (String) -> Promise<Response> = "fetch";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
@@ -197,7 +197,7 @@ describe("Overload Resolver", () => {
         });
 
         it("isOverloaded returns false for single functions", () => {
-            const source = `external log: (String) -> Unit = "console.log"`;
+            const source = `external log: (String) -> Unit = "console.log";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
@@ -205,7 +205,7 @@ describe("Overload Resolver", () => {
         });
 
         it("isOverloaded returns false for undefined functions", () => {
-            const source = `external log: (String) -> Unit = "console.log"`;
+            const source = `external log: (String) -> Unit = "console.log";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
@@ -226,7 +226,7 @@ describe("Overload Resolver", () => {
         });
 
         it("getOverloads returns undefined for single functions", () => {
-            const source = `external log: (String) -> Unit = "console.log"`;
+            const source = `external log: (String) -> Unit = "console.log";`;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 

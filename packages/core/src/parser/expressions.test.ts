@@ -1590,7 +1590,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should parse block in lambda body", () => {
-            const expr = parseExpression("(x) => { x + 1; x }");
+            const expr = parseExpression("(x) => { x + 1; x; }");
 
             expect(expr).toMatchObject({
                 kind: "Lambda",
@@ -1627,7 +1627,7 @@ describe("Parser - Expressions", () => {
 
         it("should parse single field shorthand as record (not ambiguous)", () => {
             // Single field shorthand like { x } is valid - creates record with field x
-            const expr = parseExpression("{ x; }");
+            const expr = parseExpression("{ x }");
             expect(expr.kind).toBe("Record");
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(1);
@@ -1651,7 +1651,7 @@ describe("Parser - Expressions", () => {
         });
 
         it("should distinguish blocks from records", () => {
-            const block = parseExpression("{ 1; 2 }");
+            const block = parseExpression("{ 1; 2; }");
             const record = parseExpression("{ x: 1 }");
 
             expect(block.kind).toBe("Block");
