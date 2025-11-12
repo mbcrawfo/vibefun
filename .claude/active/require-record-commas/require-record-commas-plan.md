@@ -50,8 +50,16 @@ if (parser.check("RBRACE")) {
     break; // End of record
 }
 
-// Require comma before next field
-parser.expect("COMMA", "Expected ',' between record fields");
+// Require comma before next field - enhanced error message
+if (!parser.check("COMMA")) {
+    const nextToken = parser.peek();
+    throw parser.error(
+        `Expected ',' between record fields`,
+        parser.peek(-1).loc,
+        `Found ${nextToken.type} instead. Add a comma to separate fields.`
+    );
+}
+parser.advance(); // Consume comma
 
 // Skip newlines after comma
 while (parser.check("NEWLINE")) {
@@ -77,6 +85,8 @@ Update shorthand detection at line 848:
 - Remove `|| nextToken.type === "IDENTIFIER"` from continuation check
 - Records only detected by COMMA or RBRACE after identifier
 - This prevents `{ name\n age }` from being detected as a record (will be a block instead)
+- **IMPORTANT**: Single-field records like `{ name }` should still work (RBRACE after identifier)
+- No comma needed for single field (no "between" to separate)
 
 ### Phase 2: Update Language Specification
 
@@ -100,11 +110,16 @@ Update shorthand detection at line 848:
   - Lines 97-101, 108-116: Add commas to newline-separated fields
 - `packages/core/src/parser/expressions.test.ts`
   - Lines 2265-2341: Verify all have commas
+- `packages/core/src/parser/semicolon-required.test.ts` ⚠️ **NEW**
+  - Lines 257-266: Update test "should recognize records with newlines"
+  - Change from expecting success to expecting error
+  - This test validates the OLD behavior (comma-less records)
 
 **Actions**:
 - Add commas to all newline-separated record fields in test inputs
 - Verify all record tests have commas between fields
 - Update test descriptions if they mention optional commas
+- **Update semicolon-required.test.ts** to expect error for comma-less records
 
 ### Phase 4: Add Comprehensive Error Tests
 
@@ -151,6 +166,34 @@ Test cases to add:
 
 10. **Multi-line with commas** (positive test)
     - Input: `{\n  x: 1,\n  y: 2\n}`
+    - Expected: Parses successfully
+
+11. **Single shorthand field** (positive test)
+    - Input: `{ name }`
+    - Expected: Parses successfully (no comma needed for single field)
+
+12. **Comment-induced newline without comma** (negative test)
+    - Input: `{ x: 1, // comment\n y: 2 }`
+    - Expected: Error (newline after comment requires comma before next field)
+
+13. **Multiple consecutive missing commas**
+    - Input: `{ x: 1 y: 2 z: 3 }`
+    - Expected: Error on first missing comma
+
+14. **Nested record with missing comma**
+    - Input: `{ a: 1, b: { x: 1 y: 2 }, c: 3 }`
+    - Expected: Error for missing comma in nested record
+
+15. **Shorthand after regular without comma**
+    - Input: `{ x: 1 name }`
+    - Expected: Error "Expected ',' between record fields"
+
+16. **Empty record with whitespace variations** (positive tests)
+    - Inputs: `{}`, `{ }`, `{\n}`, `{\n\n}`
+    - Expected: All parse successfully
+
+17. **Trailing comma with newlines** (positive test)
+    - Input: `{ x: 1, y: 2,\n\n}`
     - Expected: Parses successfully
 
 ### Phase 5: Update Example Files
@@ -269,6 +312,11 @@ Files:
    - Commas required between all fields
    - Works with updated parsing logic
 
+9. **Single-field records**: `{ name }` or `{ x: 1 }`
+   - No comma needed (nothing to separate)
+   - RBRACE detection still identifies these as records
+   - Block disambiguation logic preserves this behavior
+
 ## Breaking Change Notes
 
 - This reverses the 2025-11-10 design decision to allow optional commas
@@ -344,24 +392,37 @@ parser.expect("COMMA", "Expected ',' between record fields");
 
 ### Error Message
 
-Use clear, helpful error message:
+Use enhanced error message with context:
 - Primary: "Expected ',' between record fields"
-- Context: Include location information
-- Future: Could add suggestion like "Add a comma to separate fields"
+- Secondary: Show what was found instead (e.g., "Found IDENTIFIER instead")
+- Hint: "Add a comma to separate fields"
+- Location: Point to the token after the field (where comma should be)
+
+Implementation:
+```typescript
+if (!parser.check("COMMA")) {
+    const nextToken = parser.peek();
+    throw parser.error(
+        `Expected ',' between record fields`,
+        parser.peek(-1).loc,
+        `Found ${nextToken.type} instead. Add a comma to separate fields.`
+    );
+}
+```
 
 ## Timeline
 
 Expected implementation time:
-- Phase 1 (Parser): 30-45 minutes
+- Phase 1 (Parser): 40-50 minutes (enhanced error messages)
 - Phase 2 (Spec): 15-20 minutes
-- Phase 3 (Update tests): 10-15 minutes
-- Phase 4 (New tests): 20-30 minutes
+- Phase 3 (Update tests): 15-20 minutes (added semicolon-required.test.ts)
+- Phase 4 (New tests): 30-40 minutes (17 test cases instead of 10)
 - Phase 5 (Examples): 5-10 minutes
 - Phase 6 (Comments): 10-15 minutes
 - Phase 7 (Rationale): 10-15 minutes
 - Phase 8 (Quality): 5-10 minutes
 
-**Total**: ~2-3 hours
+**Total**: ~2.5-3.5 hours
 
 ## References
 

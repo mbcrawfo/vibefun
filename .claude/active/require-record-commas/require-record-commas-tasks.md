@@ -14,7 +14,18 @@
 - [ ] Locate the field parsing loop in `parseRecordExpr`
 - [ ] After parsing each field, add newline skipping logic
 - [ ] Add RBRACE check (break if found)
-- [ ] Replace `if (parser.check("COMMA"))` with `parser.expect("COMMA", "Expected ',' between record fields")`
+- [ ] Replace `if (parser.check("COMMA"))` with enhanced error handling:
+  ```typescript
+  if (!parser.check("COMMA")) {
+      const nextToken = parser.peek();
+      throw parser.error(
+          `Expected ',' between record fields`,
+          parser.peek(-1).loc,
+          `Found ${nextToken.type} instead. Add a comma to separate fields.`
+      );
+  }
+  parser.advance(); // Consume comma
+  ```
 - [ ] Add newline skipping after comma
 - [ ] Keep trailing comma check (if RBRACE after comma, break)
 - [ ] Remove the `else if (!parser.check("IDENTIFIER"))` fallback logic
@@ -41,7 +52,10 @@
 - [ ] Locate shorthand detection logic (around line 848)
 - [ ] Remove `|| nextToken.type === "IDENTIFIER"` from line 848
 - [ ] Verify logic only continues on COMMA or RBRACE
-- [ ] Add comment explaining why IDENTIFIER is not a continuation
+- [ ] **IMPORTANT**: Verify `{ name }` still works (RBRACE after identifier should match)
+- [ ] Add comment explaining:
+  - Why IDENTIFIER is not a continuation (commas required between fields)
+  - That single-field records like `{ name }` still work via RBRACE detection
 
 **Key line to modify**: Line 848
 
@@ -109,6 +123,43 @@
 
 **Estimated test updates**: 0-2 test cases (most already have commas)
 
+### Task 3.3: Update semicolon-required.test.ts ⚠️ CRITICAL
+**File**: `packages/core/src/parser/semicolon-required.test.ts`
+
+**Changes**:
+- [ ] Locate test "should recognize records with newlines" (lines 257-266)
+- [ ] Change test from `.not.toThrow()` to `.toThrow()`
+- [ ] Update test to expect a parser error about missing commas
+- [ ] Update test description to reflect new behavior
+
+**Current test** (validates OLD behavior):
+```typescript
+it("should recognize records with newlines", () => {
+    expect(() =>
+        parse(`
+            let x = {
+                a: 1
+                b: 2
+            };
+        `),
+    ).not.toThrow();
+});
+```
+
+**New test** (validates NEW behavior):
+```typescript
+it("should require commas between record fields", () => {
+    expect(() =>
+        parse(`
+            let x = {
+                a: 1
+                b: 2
+            };
+        `),
+    ).toThrow(/Expected ',' between record fields/);
+});
+```
+
 ---
 
 ## Phase 4: Add Comprehensive Error Tests ⏳
@@ -150,6 +201,10 @@
   - Input: `{ x: 1 }`
   - Expected: Parses successfully
 
+- [ ] Test: Single shorthand field
+  - Input: `{ name }`
+  - Expected: Parses successfully (no comma needed)
+
 - [ ] Test: Multiple fields with commas
   - Input: `{ x: 1, y: 2, z: 3 }`
   - Expected: Parses successfully
@@ -162,7 +217,32 @@
   - Input: `{\n  x: 1,\n  y: 2\n}`
   - Expected: Parses successfully
 
-**Total new tests**: ~10 test cases
+- [ ] Test: Empty record variations
+  - Inputs: `{}`, `{ }`, `{\n}`, `{\n\n}`
+  - Expected: All parse successfully
+
+- [ ] Test: Trailing comma with newlines
+  - Input: `{ x: 1, y: 2,\n\n}`
+  - Expected: Parses successfully
+
+### Task 4.4: Add additional edge case tests
+- [ ] Test: Comment-induced newline without comma
+  - Input: `{ x: 1, // comment\n y: 2 }`
+  - Expected: Error (comma required before y)
+
+- [ ] Test: Multiple consecutive missing commas
+  - Input: `{ x: 1 y: 2 z: 3 }`
+  - Expected: Error on first missing comma
+
+- [ ] Test: Nested record with missing comma
+  - Input: `{ a: 1, b: { x: 1 y: 2 }, c: 3 }`
+  - Expected: Error in nested record
+
+- [ ] Test: Shorthand after regular without comma
+  - Input: `{ x: 1 name }`
+  - Expected: Error "Expected ',' between record fields"
+
+**Total new tests**: ~17 test cases
 
 ---
 
@@ -292,7 +372,14 @@
 - ⏳ In Progress
 - 🔜 Not Started
 
-**Last Updated**: 2025-11-11 (after creating task documentation)
+**Last Updated**: 2025-11-11 (after plan review and updates)
+
+**Plan Updates Applied**:
+- ✅ Added semicolon-required.test.ts to Phase 3 (critical missing test file)
+- ✅ Enhanced error messages with context about what was found
+- ✅ Clarified single-field record behavior (`{ name }` still works)
+- ✅ Added 7 additional edge case tests (17 total instead of 10)
+- ✅ Updated time estimates (2.5-3.5 hours instead of 2-3 hours)
 
 ---
 

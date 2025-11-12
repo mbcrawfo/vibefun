@@ -221,6 +221,27 @@ do {
 
 These tests **validate the old behavior** and must be updated.
 
+#### Semicolon-Required Tests ⚠️ CRITICAL
+**File**: `packages/core/src/parser/semicolon-required.test.ts` (lines 257-266)
+
+**Test that will FAIL**:
+```typescript
+it("should recognize records with newlines", () => {
+    expect(() =>
+        parse(`
+            let x = {
+                a: 1
+                b: 2
+            };
+        `),
+    ).not.toThrow();
+});
+```
+
+**This test explicitly validates comma-less records** and was NOT mentioned in original plan.
+
+**Required action**: Update test to expect an error instead of success.
+
 #### Record Pattern Tests
 **File**: `packages/core/src/parser/patterns.test.ts` (lines 163-272)
 
@@ -363,6 +384,14 @@ The archived document (2025-11-10) shows that attempting context-sensitive comma
 **Chosen**: Exact consistency required
 **Rationale**: Easier to learn, no special cases
 
+### Decision 5: Single-Field Records
+**Chosen**: No comma needed for single fields
+**Rationale**: No "between" to separate - `{ name }` remains valid
+
+### Decision 6: Error Message Enhancement
+**Chosen**: Show what token was found instead of comma
+**Rationale**: More helpful for users to understand what went wrong
+
 ## Files Requiring Changes
 
 ### Parser Files
@@ -378,6 +407,7 @@ The archived document (2025-11-10) shows that attempting context-sensitive comma
 ### Test Files
 - ✅ `packages/core/src/parser/record-shorthand.test.ts` - UPDATE
 - ✅ `packages/core/src/parser/expressions.test.ts` - UPDATE + ADD NEW TESTS
+- ✅ `packages/core/src/parser/semicolon-required.test.ts` - UPDATE (lines 257-266) **CRITICAL**
 - ⚠️ `packages/core/src/parser/patterns.test.ts` - VERIFY (likely no change)
 - ⚠️ `packages/core/src/parser/types.test.ts` - VERIFY (likely no change)
 
@@ -408,7 +438,10 @@ After implementation, verify:
 **Mitigation**: Search all `.vf` files and code examples in comments
 
 ### Risk 3: Unclear Error Messages
-**Mitigation**: Use explicit message "Expected ',' between record fields"
+**Mitigation**: Use enhanced error message showing what was found:
+```typescript
+`Expected ',' between record fields, but found ${nextToken.type} instead`
+```
 
 ### Risk 4: Regression in Other Features
 **Mitigation**: Run full test suite, not just record tests
