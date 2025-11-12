@@ -26,7 +26,7 @@ export class ParserBase {
     /** Source filename for error reporting */
     protected filename: string;
 
-    /** Used by ASI to disable automatic semicolon insertion inside records */
+    /** Tracks whether we're parsing inside a record (for record vs block disambiguation) */
     protected inRecordContext: boolean = false;
 
     /** Multi-error collection */

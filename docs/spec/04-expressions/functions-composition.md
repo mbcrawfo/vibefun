@@ -127,9 +127,9 @@ Blocks are sequences of expressions enclosed in braces `{ }`. The last expressio
 ```
 
 **Rules:**
-- Expressions are separated by semicolons or newlines (automatic semicolon insertion)
-- The **last expression** is the result value (no semicolon required)
-- If the last expression has a semicolon, the block returns `()`
+- Expressions are separated by explicit semicolons (required)
+- All statements must end with semicolons, including the last one
+- The last expression in the block is the result value
 
 #### Scoping in Blocks
 

@@ -1,8 +1,8 @@
 # Remove ASI - Context and Key Information
 
 **Created**: 2025-11-11
-**Last Updated**: 2025-11-11 (COMPLETE)
-**Status**: ✅ **COMPLETE** - All phases finished, all tests passing
+**Last Updated**: 2025-11-11 (COMPLETE - gaps fixed)
+**Status**: ✅ **COMPLETE** - All phases finished, all tests passing, documentation and test gaps resolved
 **Completion Date**: 2025-11-11
 
 ## Baseline Metrics (Phase 0)
@@ -253,3 +253,25 @@ This is a **breaking change** for all vibefun code:
 3. **Better errors**: Clear messages about missing semicolons
 4. **Consistency**: One rule for all declarations and statements
 5. **Performance**: Faster parsing (no ASI checks on newlines)
+
+### Post-Implementation Fixes (2025-11-11)
+
+After initial implementation audit, the following gaps were identified and fixed:
+
+1. **Documentation ASI References** - Fixed 2 stale ASI references in spec:
+   - Updated `docs/spec/02-lexical-structure/README.md` line 15
+   - Updated `docs/spec/04-expressions/functions-composition.md` lines 130-132
+
+2. **Test Coverage Expansion** - Expanded `semicolon-required.test.ts` from 66 to 469 lines:
+   - Added 13 new test describe blocks (50+ test cases total)
+   - Comprehensive coverage: match blocks, if-then-else, while loops, lambdas
+   - Lambda newline exception tests, error recovery, comments, edge cases
+   - Records vs blocks disambiguation tests
+
+3. **Code Comment Cleanup** - Updated 4 outdated ASI references in parser:
+   - `parser-base.ts:29` - Fixed `inRecordContext` comment
+   - `parse-expressions.ts:1257` - Updated record context comment
+   - `parse-expressions.ts:1449` - Removed ASI reference
+   - `parse-expressions.ts:1467` - Removed ASI reference
+
+**All identified gaps now resolved.** Feature is truly complete with comprehensive test coverage and accurate documentation.

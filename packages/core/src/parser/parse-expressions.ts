@@ -1254,7 +1254,7 @@ function parseMatchExpr(parser: ParserBase, startLoc: Location): Expr {
  * Note: LBRACE has already been consumed by caller
  */
 function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
-    // Set record context to disable ASI inside records
+    // Set record context for disambiguation (records vs blocks)
     const p = parser as unknown as { inRecordContext: boolean };
     p.inRecordContext = true;
 
@@ -1446,7 +1446,7 @@ export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
 
     const exprs: Expr[] = [];
 
-    // Parse expressions separated by semicolons (or ASI)
+    // Parse expressions separated by explicit semicolons
     while (!parser.check("RBRACE") && !parser.isAtEnd()) {
         const expr = parseExpression(parser);
         exprs.push(expr);
@@ -1464,7 +1464,7 @@ export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
         }
         parser.advance(); // Consume the semicolon
 
-        // Skip newlines after semicolon/ASI
+        // Skip newlines after semicolon
         while (parser.match("NEWLINE"));
 
         // Check if closing brace follows (trailing semicolon case)

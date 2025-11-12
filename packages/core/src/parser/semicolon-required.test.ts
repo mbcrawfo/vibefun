@@ -63,4 +63,402 @@ describe("Semicolon Requirements", () => {
             ).not.toThrow();
         });
     });
+
+    describe("Match expressions with block bodies", () => {
+        it("should require semicolons in match case blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = match Some(42) {
+                        | Some(v) => { let y = v\ny + 1 }
+                        | None => 0
+                    };
+                `),
+            ).toThrow(ParserError);
+        });
+
+        it("should accept semicolons in match case blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = match Some(42) {
+                        | Some(v) => { let y = v; y + 1; }
+                        | None => 0
+                    };
+                `),
+            ).not.toThrow();
+        });
+
+        it("should handle nested match expressions", () => {
+            expect(() =>
+                parse(`
+                    let x = match outer {
+                        | Some(v) => match v {
+                            | Ok(inner) => { let result = inner; result; }
+                            | Err(_) => 0
+                        }
+                        | None => 0
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("If-then-else with block bodies", () => {
+        it("should require semicolons in if-then blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = if true then { let y = 1\ny } else 0;
+                `),
+            ).toThrow(ParserError);
+        });
+
+        it("should accept semicolons in if-then blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = if true then { let y = 1; y; } else 0;
+                `),
+            ).not.toThrow();
+        });
+
+        it("should require semicolons in if-else blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = if false then 1 else { let y = 2\ny };
+                `),
+            ).toThrow(ParserError);
+        });
+
+        it("should handle if-then-else-if chains", () => {
+            expect(() =>
+                parse(`
+                    let x = if a then { let x = 1; x; }
+                            else if b then { let y = 2; y; }
+                            else { let z = 3; z; };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("While loops with blocks", () => {
+        it("should require semicolons in while body blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = while true { let i = 0\ni };
+                `),
+            ).toThrow(ParserError);
+        });
+
+        it("should accept semicolons in while body blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = while true { let i = 0; i; };
+                `),
+            ).not.toThrow();
+        });
+
+        it("should accept empty while blocks", () => {
+            expect(() => parse("let x = while true {};")).not.toThrow();
+        });
+
+        it("should handle nested blocks in while loops", () => {
+            expect(() =>
+                parse(`
+                    let x = while condition {
+                        if check then { let temp = 1; temp; };
+                        result;
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Lambda block bodies", () => {
+        it("should require semicolons in lambda blocks", () => {
+            expect(() =>
+                parse(`
+                    let f = (x) => { let y = x + 1\ny * 2 };
+                `),
+            ).toThrow(ParserError);
+        });
+
+        it("should accept semicolons in lambda blocks", () => {
+            expect(() =>
+                parse(`
+                    let f = (x) => { let y = x + 1; y * 2; };
+                `),
+            ).not.toThrow();
+        });
+
+        it("should handle nested lambdas with blocks", () => {
+            expect(() =>
+                parse(`
+                    let f = (x) => (y) => { let sum = x + y; sum * 2; };
+                `),
+            ).not.toThrow();
+        });
+
+        it("should handle lambda returning block expression", () => {
+            expect(() =>
+                parse(`
+                    let makeAdder = (n) => {
+                        let adder = (x) => { let result = x + n; result; };
+                        adder;
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Lambda newline exception", () => {
+        it("should allow newlines before fat arrow with multiple params", () => {
+            expect(() =>
+                parse(`
+                    let f = (x, y)
+                    => x + y;
+                `),
+            ).not.toThrow();
+        });
+
+        it("should allow newlines before fat arrow with single param", () => {
+            expect(() =>
+                parse(`
+                    let f = x
+                    => x + 1;
+                `),
+            ).not.toThrow();
+        });
+
+        it("should allow newlines after closing paren before arrow", () => {
+            expect(() =>
+                parse(`
+                    let f = (x, y, z)
+                    => x + y + z;
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Records vs blocks disambiguation", () => {
+        it("should recognize blocks with semicolons", () => {
+            expect(() => parse("let x = { y; };")).not.toThrow();
+        });
+
+        it("should recognize records without semicolons", () => {
+            expect(() => parse("let x = { y };")).not.toThrow();
+        });
+
+        it("should recognize records with colons", () => {
+            expect(() => parse("let x = { y: 42 };")).not.toThrow();
+        });
+
+        it("should recognize records with commas", () => {
+            expect(() => parse("let x = { a: 1, b: 2 };")).not.toThrow();
+        });
+
+        it("should recognize records with newlines", () => {
+            expect(() =>
+                parse(`
+                    let x = {
+                        a: 1
+                        b: 2
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Operator sections and type annotations", () => {
+        it("should handle type annotations with semicolons", () => {
+            expect(() => parse("let x: Int = 1;")).not.toThrow();
+        });
+
+        it("should handle complex type annotations", () => {
+            expect(() => parse("let f: (Int, Int) -> Int = (x, y) => x + y;")).not.toThrow();
+        });
+
+        it("should handle type annotations in blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = {
+                        let y: Int = 42;
+                        y + 1;
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Pipe operators and multi-line expressions", () => {
+        it("should allow pipe operator continuation", () => {
+            expect(() =>
+                parse(`
+                    let result = data
+                        |> filter((x) => x > 0)
+                        |> map((x) => x * 2);
+                `),
+            ).not.toThrow();
+        });
+
+        it("should require semicolon at end of pipe chain", () => {
+            expect(() =>
+                parse(`
+                    let result = data
+                        |> filter((x) => x > 0)
+                        |> map((x) => x * 2)
+                `),
+            ).toThrow(ParserError);
+        });
+
+        it("should allow binary operators for line continuation", () => {
+            expect(() =>
+                parse(`
+                    let result = x + y +
+                                 z + w;
+                `),
+            ).not.toThrow();
+        });
+
+        it("should allow multi-line expressions in blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = {
+                        let result = a + b +
+                                     c + d;
+                        result;
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Deep nesting scenarios", () => {
+        it("should handle blocks within match within blocks", () => {
+            expect(() =>
+                parse(`
+                    let f = (opt) => {
+                        let result = match opt {
+                            | Some(v) => {
+                                let processed = v * 2;
+                                processed + 1;
+                            }
+                            | None => 0
+                        };
+                        result;
+                    };
+                `),
+            ).not.toThrow();
+        });
+
+        it("should handle deeply nested blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = {
+                        let y = {
+                            let z = {
+                                let w = 42;
+                                w;
+                            };
+                            z;
+                        };
+                        y;
+                    };
+                `),
+            ).not.toThrow();
+        });
+
+        it("should handle mixed record and block contexts", () => {
+            expect(() =>
+                parse(`
+                    let config = {
+                        handler: (x) => {
+                            let processed = x * 2;
+                            processed;
+                        },
+                        data: { value: 42 }
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Error recovery", () => {
+        it("should report errors for missing semicolons", () => {
+            try {
+                parse("let x = 1\nlet y = 2");
+                expect.fail("Should have thrown ParserError");
+            } catch (error) {
+                expect(error).toBeInstanceOf(ParserError);
+                expect((error as ParserError).message).toContain("Expected ';'");
+            }
+        });
+
+        it("should provide helpful error messages for blocks", () => {
+            try {
+                parse("let x = { let y = 1\ny }");
+                expect.fail("Should have thrown ParserError");
+            } catch (error) {
+                expect(error).toBeInstanceOf(ParserError);
+                expect((error as ParserError).message).toContain(";");
+            }
+        });
+
+        it("should provide helpful error messages for external blocks", () => {
+            try {
+                parse('external { log: (String) -> Unit = "console.log"\nerror: (String) -> Unit = "console.error" }');
+                expect.fail("Should have thrown ParserError");
+            } catch (error) {
+                expect(error).toBeInstanceOf(ParserError);
+                expect((error as ParserError).message).toContain(";");
+            }
+        });
+    });
+
+    describe("Comments after semicolons", () => {
+        it("should allow single-line comments after semicolons", () => {
+            expect(() => parse("let x = 1; // comment")).not.toThrow();
+        });
+
+        it("should allow multi-line comments after semicolons", () => {
+            expect(() => parse("let x = 1; /* comment */")).not.toThrow();
+        });
+
+        it("should allow comments in blocks", () => {
+            expect(() =>
+                parse(`
+                    let x = {
+                        let y = 1; // first
+                        let z = 2; /* second */
+                        y + z; // result
+                    };
+                `),
+            ).not.toThrow();
+        });
+    });
+
+    describe("Edge cases", () => {
+        it("should handle single statement blocks", () => {
+            expect(() => parse("let x = { 42; };")).not.toThrow();
+        });
+
+        it("should handle trailing semicolons in blocks", () => {
+            expect(() => parse("let x = { let y = 1; y; };")).not.toThrow();
+        });
+
+        it("should handle multiple declarations with semicolons", () => {
+            expect(() => parse("let x = 1; let y = 2; let z = 3;")).not.toThrow();
+        });
+
+        it("should handle semicolons with various whitespace", () => {
+            expect(() =>
+                parse(`
+                    let x = 1   ;
+                    let y = 2;
+                    let z = 3		;
+                `),
+            ).not.toThrow();
+        });
+
+        it("should handle records with trailing comma", () => {
+            expect(() => parse("let x = { a: 1, b: 2, };")).not.toThrow();
+        });
+    });
 });

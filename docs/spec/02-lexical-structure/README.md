@@ -12,7 +12,7 @@ This section defines how Vibefun source code is tokenized and lexically analyzed
 
 Vibefun source files use the `.vf` extension and are encoded in UTF-8. The lexer performs tokenization with support for:
 - Single-line (`//`) and nested multi-line (`/* */`) comments
-- Automatic semicolon insertion (ASI) similar to JavaScript
+- Explicit semicolons required for statements and declarations
 - Unicode identifiers with NFC normalization
 - Rich literal syntax (integers, floats, strings, booleans, unit)
 - Comprehensive operator set for functional programming
