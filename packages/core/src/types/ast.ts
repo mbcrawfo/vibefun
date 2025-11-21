@@ -164,7 +164,13 @@ export type Pattern =
           loc: Location;
       }
     | { kind: "OrPattern"; patterns: Pattern[]; loc: Location }
-    | { kind: "TuplePattern"; elements: Pattern[]; loc: Location };
+    | { kind: "TuplePattern"; elements: Pattern[]; loc: Location }
+    | {
+          kind: "TypeAnnotatedPattern";
+          pattern: Pattern;
+          typeExpr: TypeExpr;
+          loc: Location;
+      };
 
 /**
  * Record field in pattern matching

@@ -2,7 +2,7 @@
 
 **Last Updated**: 2025-11-20
 **Approach**: Test-Driven Development (TDD)
-**Status**: In Progress - Phase 1.1 Complete
+**Status**: In Progress - Phase 1.2 Complete (2/18 features done, 11%)
 
 ## Task Format
 
@@ -32,23 +32,27 @@ Each task follows: `[ ] Feature - Write tests → Implement → Verify`
 
 **Acceptance**: All guard tests pass, spec examples covered, guards work in all pattern contexts
 
-### 1.2 Type Annotations in Patterns
+### 1.2 Type Annotations in Patterns ✅ COMPLETE
 
-- [ ] Create `packages/core/src/parser/pattern-type-annotations.test.ts`
-- [ ] Write test: Variable pattern with type `(x: Int) in match`
-- [ ] Write test: Tuple pattern with types `((x: Int, y: String))`
-- [ ] Write test: Record pattern with field types `{ name: String, age: Int }`
-- [ ] Write test: Constructor pattern with typed params `Some(x: Int)`
-- [ ] Write test: Nested patterns with type annotations
-- [ ] Write test: Type annotation with complex types `(list: List<Int>)`
-- [ ] Write test: Error cases (type mismatch, invalid syntax)
-- [ ] Run tests (expect failures)
-- [ ] Add `typeAnnotation?: TypeExpr` to pattern AST nodes
-- [ ] Update `parse-patterns.ts` to parse `:` followed by type after patterns
-- [ ] Implement for variable patterns first
-- [ ] Extend to tuple and record patterns
-- [ ] Verify all tests pass
-- [ ] Run `npm run verify`
+- [x] Create `packages/core/src/parser/pattern-type-annotations.test.ts`
+- [x] Write test: Variable pattern with type `(x: Int) in match`
+- [x] Write test: Tuple pattern with types `((x: Int, y: String))`
+- [x] Write test: Record pattern with field types `{ name: String, age: Int }`
+- [x] Write test: Constructor pattern with typed params `Some(x: Int)`
+- [x] Write test: Nested patterns with type annotations
+- [x] Write test: Type annotation with complex types `(list: List<Int>)`
+- [x] Write test: Error cases (type mismatch, invalid syntax)
+- [x] Run tests (expect failures)
+- [x] Add `TypeAnnotatedPattern` to Pattern AST type (new kind)
+- [x] Update `parse-patterns.ts` to parse `:` followed by type after patterns
+- [x] Add forward declaration and setter for parseTypeExpr in parse-patterns.ts
+- [x] Wire up setParseTypeExpr in parser.ts initialization
+- [x] Implement type annotation parsing in parenthesized pattern section
+- [x] Add support for record shorthand with type annotations `{ (name: String), age }`
+- [x] Verify all 26 tests pass
+- [x] Run `npm run verify` - all checks passing (2227 total tests)
+
+**Status**: ✅ COMPLETE - Type annotations fully implemented and tested
 
 **Acceptance**: Type annotations parse correctly in all pattern contexts, AST preserves type info
 
@@ -373,11 +377,11 @@ type Option<T> =
 
 ## Progress Tracking
 
-### Phases Completed: 0/7 (14% started)
+### Phases Completed: 0/7 (67% Phase 1)
 
-- [~] Phase 1: Pattern Matching Features (1/3 features - 33%)
+- [~] Phase 1: Pattern Matching Features (2/3 features - 67%)
   - [x] 1.1 Pattern Guards ✅
-  - [ ] 1.2 Type Annotations in Patterns
+  - [x] 1.2 Type Annotations in Patterns ✅
   - [ ] 1.3 Nested Or-Patterns
 - [ ] Phase 2: Lambda Expression Features (0/3 features)
 - [ ] Phase 3: External Declaration Features (0/3 features)
@@ -386,7 +390,7 @@ type Option<T> =
 - [ ] Phase 6: Type System Features (0/2 features)
 - [ ] Phase 7: Syntax Edge Cases (0/2 features)
 
-### Total Features: 1/18 completed (6%)
+### Total Features: 2/18 completed (11%)
 
 ---
 
@@ -400,4 +404,4 @@ type Option<T> =
 
 ## Next Action
 
-Continue Phase 1: Start Phase 1.2 - Type Annotations in Patterns. Create test file and write comprehensive tests following TDD approach.
+Continue Phase 1: Start Phase 1.3 - Nested Or-Patterns. Create test file and write comprehensive tests following TDD approach to verify current implementation and identify any gaps.

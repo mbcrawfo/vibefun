@@ -9,6 +9,16 @@ import type { ParserBase } from "./parser-base.js";
 
 import { ParserError } from "../utils/index.js";
 
+// Forward declaration for circular dependency
+let parseTypeExpr: (parser: ParserBase) => import("../types/index.js").TypeExpr;
+
+/**
+ * Set the type expression parsing function (called during initialization)
+ */
+export function setParseTypeExpr(fn: (parser: ParserBase) => import("../types/index.js").TypeExpr): void {
+    parseTypeExpr = fn;
+}
+
 /**
  * Parse a pattern (with or-pattern support)
  * Syntax: pattern ('|' pattern)*
@@ -143,6 +153,7 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
     }
 
     // Tuple pattern or parenthesized pattern: (pattern) or (p1, p2, ...)
+    // Or type-annotated pattern: (pattern: Type)
     if (parser.check("LPAREN")) {
         parser.advance(); // consume (
 
@@ -154,6 +165,25 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
 
         const patterns: Pattern[] = [];
         patterns.push(parsePattern(parser));
+
+        // Check for type annotation: (pattern: Type)
+        if (patterns.length === 1 && parser.check("COLON")) {
+            parser.advance(); // consume :
+            const typeExpr = parseTypeExpr(parser);
+            parser.expect("RPAREN", "Expected ')' after type annotation");
+
+            const pattern = patterns[0];
+            if (!pattern) {
+                throw new ParserError("Internal error: empty patterns array", parser.peek().loc);
+            }
+
+            return {
+                kind: "TypeAnnotatedPattern",
+                pattern,
+                typeExpr,
+                loc: startLoc,
+            };
+        }
 
         while (parser.match("COMMA")) {
             patterns.push(parsePattern(parser));
@@ -182,24 +212,53 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
 
         if (!parser.check("RBRACE")) {
             do {
-                const fieldNameToken = parser.expect("IDENTIFIER", "Expected field name in record pattern");
-                const fieldName = fieldNameToken.value as string;
-
-                // Check for field rename: { field: pattern }
-                if (parser.match("COLON")) {
+                // Check for shorthand with type annotation: { (name: String), ... }
+                if (parser.check("LPAREN")) {
                     const pattern = parsePattern(parser);
+                    // After parsing (name: String), we should have a TypeAnnotatedPattern
+                    // with a VarPattern inside. Extract the field name from it.
+                    let fieldName: string;
+                    let fieldPattern: Pattern = pattern;
+
+                    if (pattern.kind === "TypeAnnotatedPattern" && pattern.pattern.kind === "VarPattern") {
+                        fieldName = pattern.pattern.name;
+                        fieldPattern = pattern;
+                    } else if (pattern.kind === "VarPattern") {
+                        fieldName = pattern.name;
+                        fieldPattern = pattern;
+                    } else {
+                        throw new ParserError(
+                            "Type-annotated record shorthand must use variable pattern",
+                            pattern.loc,
+                            "Expected (fieldName: Type)",
+                        );
+                    }
+
                     fields.push({
                         name: fieldName,
-                        pattern,
-                        loc: fieldNameToken.loc,
+                        pattern: fieldPattern,
+                        loc: pattern.loc,
                     });
                 } else {
-                    // Field binding: { field } is shorthand for { field: field }
-                    fields.push({
-                        name: fieldName,
-                        pattern: { kind: "VarPattern", name: fieldName, loc: fieldNameToken.loc },
-                        loc: fieldNameToken.loc,
-                    });
+                    const fieldNameToken = parser.expect("IDENTIFIER", "Expected field name in record pattern");
+                    const fieldName = fieldNameToken.value as string;
+
+                    // Check for field rename: { field: pattern }
+                    if (parser.match("COLON")) {
+                        const pattern = parsePattern(parser);
+                        fields.push({
+                            name: fieldName,
+                            pattern,
+                            loc: fieldNameToken.loc,
+                        });
+                    } else {
+                        // Field binding: { field } is shorthand for { field: field }
+                        fields.push({
+                            name: fieldName,
+                            pattern: { kind: "VarPattern", name: fieldName, loc: fieldNameToken.loc },
+                            loc: fieldNameToken.loc,
+                        });
+                    }
                 }
             } while (parser.match("COMMA"));
         }

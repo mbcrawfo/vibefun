@@ -27,6 +27,8 @@ import { ParserBase } from "./parser-base.js";
 Expressions.setParsePattern(Patterns.parsePattern);
 Expressions.setParseTypeExpr(Types.parseTypeExpr);
 
+Patterns.setParseTypeExpr(Types.parseTypeExpr);
+
 Declarations.setParseExpression(Expressions.parseExpression);
 Declarations.setParsePattern(Patterns.parsePattern);
 Declarations.setParseTypeExpr(Types.parseTypeExpr);
