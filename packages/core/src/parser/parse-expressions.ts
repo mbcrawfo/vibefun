@@ -13,6 +13,7 @@ import type {
     MatchCase,
     Pattern,
     RecordField,
+    TypeExpr,
 } from "../types/index.js";
 import type { TokenType } from "../types/token.js";
 import type { ParserBase } from "./parser-base.js";
@@ -988,7 +989,30 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
     if (parser.check("RPAREN")) {
         parser.advance(); // consume )
 
-        // Check if it's a lambda: () => expr
+        // Skip newlines after closing paren
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        // Check for return type annotation: (): ReturnType => expr
+        let returnType: TypeExpr | undefined;
+        if (parser.check("COLON")) {
+            parser.advance(); // consume :
+
+            // Skip newlines after colon
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+
+            returnType = parseTypeExpr(parser);
+
+            // Skip newlines after return type
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+        }
+
+        // Check if it's a lambda: () => expr or (): Type => expr
         if (parser.check("FAT_ARROW")) {
             parser.advance(); // consume =>
 
@@ -998,15 +1022,30 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
             }
 
             const body = parseExpression(parser);
-            return {
+            const lambda: Expr = {
                 kind: "Lambda",
                 params: [],
                 body,
                 loc: startLoc,
             };
+
+            // Add return type if present
+            if (returnType !== undefined) {
+                (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
+            }
+
+            return lambda;
         }
 
-        // Otherwise, it's a unit literal
+        // Otherwise, it's a unit literal (but we already consumed potential type annotation - that's an error)
+        if (returnType !== undefined) {
+            throw parser.error(
+                "Unexpected return type annotation",
+                startLoc,
+                "Return type annotations are only valid for lambda expressions, expected '=>' after type",
+            );
+        }
+
         return {
             kind: "UnitLit",
             loc: startLoc,
@@ -1027,17 +1066,41 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
         // Check if it looks like lambda parameters
         if (nextToken.type === "RPAREN") {
-            // Could be (x) => or (x)
-            // Need to check if there's => after the )
+            // Could be (x) => or (x): Type => or (x)
+            // Need to check if there's => or : after the )
             const afterParen = parser.peek(2);
-            if (afterParen.type === "FAT_ARROW") {
-                // It's a lambda: (x) => expr
+            if (afterParen.type === "FAT_ARROW" || afterParen.type === "COLON") {
+                // It's a lambda: (x) => expr or (x): Type => expr
                 const pattern: Pattern = {
                     kind: "VarPattern" as const,
                     name: parser.advance().value as string,
                     loc: parser.peek(-1).loc,
                 };
                 parser.expect("RPAREN");
+
+                // Skip newlines
+                while (parser.check("NEWLINE")) {
+                    parser.advance();
+                }
+
+                // Check for return type annotation
+                let returnType: TypeExpr | undefined;
+                if (parser.check("COLON")) {
+                    parser.advance(); // consume :
+
+                    // Skip newlines after colon
+                    while (parser.check("NEWLINE")) {
+                        parser.advance();
+                    }
+
+                    returnType = parseTypeExpr(parser);
+
+                    // Skip newlines after return type
+                    while (parser.check("NEWLINE")) {
+                        parser.advance();
+                    }
+                }
+
                 parser.expect("FAT_ARROW");
 
                 // Skip newlines after => (supports: (x) =>\nbody)
@@ -1046,12 +1109,19 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
                 }
 
                 const body = parseExpression(parser);
-                return {
+                const lambda: Expr = {
                     kind: "Lambda",
                     params: [{ pattern, loc: pattern.loc }],
                     body,
                     loc: startLoc,
                 };
+
+                // Add return type if present
+                if (returnType !== undefined) {
+                    (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
+                }
+
+                return lambda;
             } else {
                 // It's a parenthesized variable: (x)
                 const name = parser.advance().value as string;
@@ -1110,12 +1180,30 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
     parser.expect("RPAREN", "Expected closing parenthesis");
 
-    // Skip newlines before checking for arrow (supports: (x, y)\n=> body)
+    // Skip newlines before checking for return type or arrow (supports: (x, y)\n: Int => body)
     while (parser.check("NEWLINE")) {
         parser.advance();
     }
 
-    // After closing paren, check for arrow (could be lambda with pattern params)
+    // Check for return type annotation: (params): ReturnType => body
+    let returnType: TypeExpr | undefined;
+    if (parser.check("COLON")) {
+        parser.advance(); // consume :
+
+        // Skip newlines after colon
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        returnType = parseTypeExpr(parser);
+
+        // Skip newlines after return type
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+    }
+
+    // After closing paren (and optional return type), check for arrow (could be lambda with pattern params)
     if (parser.check("FAT_ARROW")) {
         // It's a lambda with pattern parameters: (pattern1, pattern2) => body
         // Convert expressions to patterns (this handles more complex patterns)
@@ -1156,12 +1244,19 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
             );
         });
 
-        return {
+        const lambda: Expr = {
             kind: "Lambda",
             params,
             body,
             loc: startLoc,
         };
+
+        // Add return type if present
+        if (returnType !== undefined) {
+            (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
+        }
+
+        return lambda;
     }
 
     // Not a lambda - determine if tuple or grouped expression

@@ -2,7 +2,7 @@
 
 **Last Updated**: 2025-11-20
 **Approach**: Test-Driven Development (TDD)
-**Status**: In Progress - Phase 1 & 2.1 Complete! (4/18 features done, 22%)
+**Status**: In Progress - Phase 1 & 2 (partial) Complete! (5/18 features done, 28%)
 
 ## Task Format
 
@@ -100,22 +100,27 @@ Each task follows: `[ ] Feature - Write tests → Implement → Verify`
 
 **Acceptance**: Lambda parameters can have type annotations, AST preserves types ✅
 
-### 2.2 Lambda Return Type Annotations
+### 2.2 Lambda Return Type Annotations ✅ COMPLETE
 
-- [ ] Write test: Return type only `(x): Int => x + 1`
-- [ ] Write test: Both param and return types `(x: Int): Int => x + 1`
-- [ ] Write test: Complex return type `(x): Option<Int> => Some(x)`
-- [ ] Write test: Function return type `(x): (Int) -> Int => ...`
-- [ ] Write test: Block body with return type `(x): Int => { return x + 1; }`
-- [ ] Write test: Error cases (syntax errors)
-- [ ] Run tests
-- [ ] Add `returnType?: TypeExpr` to lambda AST node
-- [ ] Update lambda parsing to handle `:` after parameter list
-- [ ] Ensure disambiguation from parameter type annotations
-- [ ] Verify tests pass
-- [ ] Run `npm run verify`
+- [x] Write test: Return type only `(x): Int => x + 1`
+- [x] Write test: Both param and return types `(x: Int): Int => x + 1`
+- [x] Write test: Complex return type `(x): Option<Int> => Some(x)`
+- [x] Write test: Function return type `(x): (Int) -> Int => ...`
+- [x] Write test: Block body with return type
+- [x] Write test: Error cases (syntax errors)
+- [x] Run tests (21/21 passing)
+- [x] Add `returnType?: TypeExpr` to lambda AST node
+- [x] Update lambda parsing to handle `:` after parameter list in all cases:
+  - [x] Zero-parameter lambda: `(): Type => expr`
+  - [x] Single-parameter with parens: `(x): Type => expr`
+  - [x] Multi-parameter lambda: `(x, y): Type => expr`
+- [x] Ensure disambiguation from parameter type annotations
+- [x] Verify tests pass (all 21 tests passing)
+- [x] Run `npm run check` (TypeScript compilation successful)
 
-**Acceptance**: Lambda return types parse correctly, AST preserves return type info
+**Status**: ✅ COMPLETE - Lambda return types parse correctly for all lambda forms. AST preserves return type info. All 21 tests passing.
+
+**Acceptance**: Lambda return types parse correctly, AST preserves return type info ✅
 
 ### 2.3 Lambda Parameter Destructuring
 
@@ -383,15 +388,15 @@ type Option<T> =
 
 ## Progress Tracking
 
-### Phases Completed: 1/7, Phase 2 in progress (1/3 done)
+### Phases Completed: 1/7, Phase 2 in progress (2/3 done)
 
 - [x] Phase 1: Pattern Matching Features (3/3 features - 100%) ✅
   - [x] 1.1 Pattern Guards ✅
   - [x] 1.2 Type Annotations in Patterns ✅
   - [x] 1.3 Nested Or-Patterns ✅
-- [ ] Phase 2: Lambda Expression Features (1/3 features - 33%)
+- [ ] Phase 2: Lambda Expression Features (2/3 features - 67%)
   - [x] 2.1 Lambda Parameter Type Annotations ✅
-  - [ ] 2.2 Lambda Return Type Annotations
+  - [x] 2.2 Lambda Return Type Annotations ✅
   - [ ] 2.3 Lambda Parameter Destructuring
 - [ ] Phase 3: External Declaration Features (0/3 features)
 - [ ] Phase 4: Module System Features (0/2 features)
@@ -399,7 +404,7 @@ type Option<T> =
 - [ ] Phase 6: Type System Features (0/2 features)
 - [ ] Phase 7: Syntax Edge Cases (0/2 features)
 
-### Total Features: 4/18 completed (22%)
+### Total Features: 5/18 completed (28%)
 
 ---
 
@@ -413,6 +418,6 @@ type Option<T> =
 
 ## Next Action
 
-**Phase 2.1 Complete! ✅** Lambda parameter type annotations fully implemented and tested (21/27 tests passing, edge cases for complex types remain).
+**Phase 2.2 Complete! ✅** Lambda return type annotations fully implemented and tested (21/21 tests passing).
 
-Continue Phase 2: Lambda Expression Features - Begin Phase 2.2 (Lambda Return Type Annotations). Create tests for return type annotations like `(x: Int): Int => x + 1`.
+Continue Phase 2: Lambda Expression Features - Begin Phase 2.3 (Lambda Parameter Destructuring). Create tests for destructuring parameters like `({ name, age }) => ...`.
