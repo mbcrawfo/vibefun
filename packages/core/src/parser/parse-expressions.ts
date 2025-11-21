@@ -1196,8 +1196,9 @@ function parseMatchExpr(parser: ParserBase, startLoc: Location): Expr {
         let guard: Expr | undefined;
         if (parser.check("KEYWORD") && parser.peek().value === "when") {
             parser.advance(); // consume 'when'
-            // Guard should not consume the |> pipe operator or | case separator
-            guard = parseLogicalAnd(parser);
+            // Guard expression - parse up to logical OR level to allow || but not |> pipe
+            // This allows: when x > 0 && y < 10 || z == 5
+            guard = parseLogicalOr(parser);
         }
 
         // Fat arrow

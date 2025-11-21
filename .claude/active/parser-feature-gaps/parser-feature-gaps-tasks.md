@@ -1,8 +1,8 @@
 # Parser Feature Gaps - Task Checklist
 
-**Last Updated**: 2025-11-11
+**Last Updated**: 2025-11-20
 **Approach**: Test-Driven Development (TDD)
-**Status**: Ready to Start
+**Status**: In Progress - Phase 1.1 Complete
 
 ## Task Format
 
@@ -10,22 +10,25 @@ Each task follows: `[ ] Feature - Write tests → Implement → Verify`
 
 ## Phase 1: Pattern Matching Features
 
-### 1.1 Pattern Guards (when clauses)
+### 1.1 Pattern Guards (when clauses) ✅ COMPLETE
 
-- [ ] Create `packages/core/src/parser/pattern-guards.test.ts`
-- [ ] Write test: Basic guard `match x with | n when n > 0 => "positive"`
-- [ ] Write test: Guard with complex expression `when x > 0 && x < 100`
-- [ ] Write test: Guard with multiple bindings from pattern
-- [ ] Write test: Guard that evaluates to false should not match
-- [ ] Write test: Multiple patterns with different guards
-- [ ] Write test: Nested match expressions with guards
-- [ ] Write test: Guard error cases (non-boolean guard expression)
-- [ ] Run tests to verify current state (expect failures if not implemented)
-- [ ] Add `when` keyword to lexer keywords if needed
-- [ ] Add `guard?: Expr` field to pattern AST nodes
-- [ ] Update `parse-patterns.ts` to parse `when` keyword and guard expression
-- [ ] Verify all guard tests pass
-- [ ] Run `npm run verify` to ensure quality
+- [x] Create `packages/core/src/parser/pattern-guards.test.ts`
+- [x] Write test: Basic guard `match x with | n when n > 0 => "positive"`
+- [x] Write test: Guard with complex expression `when x > 0 && x < 100`
+- [x] Write test: Guard with multiple bindings from pattern
+- [x] Write test: Guard that evaluates to false should not match
+- [x] Write test: Multiple patterns with different guards
+- [x] Write test: Nested match expressions with guards
+- [x] Write test: Guard error cases (non-boolean guard expression)
+- [x] Run tests to verify current state
+- [x] `when` keyword already exists in lexer
+- [x] `guard?: Expr` field already exists in MatchCase AST node
+- [x] Guard parsing already implemented in `parse-expressions.ts`
+- [x] **FIXED BUG**: Changed guard parsing from `parseLogicalAnd` to `parseLogicalOr` to support `||` operators in guards
+- [x] Verify all guard tests pass (27/27 tests passing)
+- [x] Run `npm run verify` to ensure quality (all checks passing)
+
+**Status**: ✅ COMPLETE - Guards were already implemented, but had a bug preventing `||` operators. Bug fixed and comprehensive tests added.
 
 **Acceptance**: All guard tests pass, spec examples covered, guards work in all pattern contexts
 
@@ -370,9 +373,12 @@ type Option<T> =
 
 ## Progress Tracking
 
-### Phases Completed: 0/7 (0%)
+### Phases Completed: 0/7 (14% started)
 
-- [ ] Phase 1: Pattern Matching Features (0/3 features)
+- [~] Phase 1: Pattern Matching Features (1/3 features - 33%)
+  - [x] 1.1 Pattern Guards ✅
+  - [ ] 1.2 Type Annotations in Patterns
+  - [ ] 1.3 Nested Or-Patterns
 - [ ] Phase 2: Lambda Expression Features (0/3 features)
 - [ ] Phase 3: External Declaration Features (0/3 features)
 - [ ] Phase 4: Module System Features (0/2 features)
@@ -380,7 +386,7 @@ type Option<T> =
 - [ ] Phase 6: Type System Features (0/2 features)
 - [ ] Phase 7: Syntax Edge Cases (0/2 features)
 
-### Total Features: 0/18 completed
+### Total Features: 1/18 completed (6%)
 
 ---
 
@@ -394,4 +400,4 @@ type Option<T> =
 
 ## Next Action
 
-Start Phase 1.1: Pattern Guards - Create test file and write first tests following TDD approach.
+Continue Phase 1: Start Phase 1.2 - Type Annotations in Patterns. Create test file and write comprehensive tests following TDD approach.
