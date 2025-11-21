@@ -25,6 +25,15 @@ export type Location = {
  */
 export type ListElement = { kind: "Element"; expr: Expr } | { kind: "Spread"; expr: Expr };
 
+/**
+ * Lambda parameter with optional type annotation
+ */
+export type LambdaParam = {
+    pattern: Pattern;
+    type?: TypeExpr;
+    loc: Location;
+};
+
 // =============================================================================
 // Expressions
 // =============================================================================
@@ -51,7 +60,7 @@ export type Expr =
           loc: Location;
       }
     // Functions
-    | { kind: "Lambda"; params: Pattern[]; body: Expr; loc: Location }
+    | { kind: "Lambda"; params: LambdaParam[]; body: Expr; loc: Location }
     | { kind: "App"; func: Expr; args: Expr[]; loc: Location }
     // Control Flow
     | { kind: "If"; condition: Expr; then: Expr; else_: Expr; loc: Location }

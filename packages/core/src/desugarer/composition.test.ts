@@ -158,7 +158,7 @@ describe("Function Composition - With Lambdas", () => {
             op: "ForwardCompose",
             left: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Add",
@@ -170,7 +170,7 @@ describe("Function Composition - With Lambdas", () => {
             },
             right: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "y", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Multiply",
@@ -248,8 +248,8 @@ describe("Function Composition - Complex Cases", () => {
             left: {
                 kind: "Lambda",
                 params: [
-                    { kind: "VarPattern", name: "x", loc: testLoc },
-                    { kind: "VarPattern", name: "y", loc: testLoc },
+                    { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                    { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
                 ],
                 body: {
                     kind: "BinOp",
@@ -262,7 +262,7 @@ describe("Function Composition - Complex Cases", () => {
             },
             right: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "z", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "z", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Multiply",

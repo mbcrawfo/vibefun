@@ -337,9 +337,14 @@ describe("Parser - Unicode Edge Cases", () => {
                 const param1 = expr.params[1];
                 expect(param0).toBeDefined();
                 expect(param1).toBeDefined();
-                if (param0 && param0.kind === "VarPattern" && param1 && param1.kind === "VarPattern") {
-                    expect(param0.name).toBe("π");
-                    expect(param1.name).toBe("θ");
+                if (
+                    param0 &&
+                    param0.pattern.kind === "VarPattern" &&
+                    param1 &&
+                    param1.pattern.kind === "VarPattern"
+                ) {
+                    expect(param0.pattern.name).toBe("π");
+                    expect(param1.pattern.name).toBe("θ");
                 }
             }
         });

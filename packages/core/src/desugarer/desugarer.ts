@@ -148,8 +148,11 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
             };
 
         // Lambdas - curry multi-parameter lambdas
-        case "Lambda":
-            return curryLambda(expr.params, expr.body, expr.loc, gen, desugar, desugarPattern);
+        case "Lambda": {
+            // Extract patterns from lambda params (type annotations are discarded during desugaring)
+            const patterns = expr.params.map((p) => p.pattern);
+            return curryLambda(patterns, expr.body, expr.loc, gen, desugar, desugarPattern);
+        }
 
         // Function application - desugar function and arguments
         case "App":

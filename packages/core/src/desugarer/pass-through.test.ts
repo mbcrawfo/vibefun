@@ -79,7 +79,7 @@ describe("Mutable References - Let Bindings", () => {
             pattern: { kind: "VarPattern", name: "fact", loc: testLoc },
             value: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "n", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "n", loc: testLoc }, loc: testLoc }],
                 body: { kind: "IntLit", value: 1, loc: testLoc }, // Simplified
                 loc: testLoc,
             },
@@ -201,8 +201,8 @@ describe("Type Annotations", () => {
             expr: {
                 kind: "Lambda",
                 params: [
-                    { kind: "VarPattern", name: "x", loc: testLoc },
-                    { kind: "VarPattern", name: "y", loc: testLoc },
+                    { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                    { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
                 ],
                 body: {
                     kind: "BinOp",

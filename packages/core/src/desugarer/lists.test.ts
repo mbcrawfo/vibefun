@@ -258,7 +258,7 @@ describe("List Literals - Complex Elements", () => {
             elements: [
                 elem({
                     kind: "Lambda",
-                    params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                    params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                     body: {
                         kind: "BinOp",
                         op: "Add",
@@ -270,7 +270,7 @@ describe("List Literals - Complex Elements", () => {
                 }),
                 elem({
                     kind: "Lambda",
-                    params: [{ kind: "VarPattern", name: "y", loc: testLoc }],
+                    params: [{ pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc }],
                     body: {
                         kind: "BinOp",
                         op: "Multiply",

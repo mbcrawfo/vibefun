@@ -5,7 +5,15 @@
  * Expression parsing uses a precedence climbing approach with 16 precedence levels.
  */
 
-import type { Expr, ListElement, Location, MatchCase, Pattern, RecordField } from "../types/index.js";
+import type {
+    Expr,
+    LambdaParam,
+    ListElement,
+    Location,
+    MatchCase,
+    Pattern,
+    RecordField,
+} from "../types/index.js";
 import type { TokenType } from "../types/token.js";
 import type { ParserBase } from "./parser-base.js";
 
@@ -57,7 +65,7 @@ function parseLambda(parser: ParserBase): Expr {
 
         if (next && next.type === "FAT_ARROW") {
             const paramToken = parser.advance();
-            const param: Pattern = {
+            const pattern: Pattern = {
                 kind: "VarPattern",
                 name: paramToken.value as string,
                 loc: paramToken.loc,
@@ -80,7 +88,7 @@ function parseLambda(parser: ParserBase): Expr {
 
             return {
                 kind: "Lambda",
-                params: [param],
+                params: [{ pattern, loc: pattern.loc }],
                 body,
                 loc: paramToken.loc,
             };
@@ -1024,7 +1032,7 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
             const afterParen = parser.peek(2);
             if (afterParen.type === "FAT_ARROW") {
                 // It's a lambda: (x) => expr
-                const param = {
+                const pattern: Pattern = {
                     kind: "VarPattern" as const,
                     name: parser.advance().value as string,
                     loc: parser.peek(-1).loc,
@@ -1040,7 +1048,7 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
                 const body = parseExpression(parser);
                 return {
                     kind: "Lambda",
-                    params: [param],
+                    params: [{ pattern, loc: pattern.loc }],
                     body,
                     loc: startLoc,
                 };
@@ -1120,18 +1128,31 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
         const body = parseLambda(parser); // Right-associative
 
-        // For now, expressions in lambda params must be valid patterns
-        // This is a simplification - full implementation would convert exprs to patterns
-        const params: Pattern[] = exprs.map((e) => {
+        // Convert expressions to lambda parameters
+        // Supports: (x), (x: Int), (x, y: String), etc.
+        const params: LambdaParam[] = exprs.map((e) => {
+            // Simple identifier: x
             if (e.kind === "Var") {
-                return { kind: "VarPattern", name: e.name, loc: e.loc };
+                const pattern: Pattern = { kind: "VarPattern", name: e.name, loc: e.loc };
+                return { pattern, loc: e.loc };
+            }
+            // Type-annotated parameter: x: Int
+            if (e.kind === "TypeAnnotation") {
+                if (e.expr.kind !== "Var") {
+                    throw parser.error(
+                        "Lambda parameter type annotations must be on simple identifiers",
+                        e.loc,
+                        "Use the form 'param: Type'",
+                    );
+                }
+                const pattern: Pattern = { kind: "VarPattern", name: e.expr.name, loc: e.expr.loc };
+                return { pattern, type: e.typeExpr, loc: e.loc };
             }
             // For more complex patterns, we'd need to convert the expression AST
-            // For now, throw an error
             throw parser.error(
-                "Lambda parameters must be simple identifiers or patterns",
+                "Lambda parameters must be simple identifiers or type-annotated identifiers",
                 e.loc,
-                "Use simple parameter names like 'x' or 'y'",
+                "Use 'x' or 'x: Type'",
             );
         });
 

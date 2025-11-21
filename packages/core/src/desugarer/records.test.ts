@@ -272,7 +272,7 @@ describe("Record Update - Complex Expressions", () => {
                     name: "callback",
                     value: {
                         kind: "Lambda",
-                        params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                        params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                         body: {
                             kind: "BinOp",
                             op: "Add",

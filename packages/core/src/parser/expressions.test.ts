@@ -1199,7 +1199,7 @@ describe("Parser - Expressions", () => {
 
             expect(expr).toMatchObject({
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x" }],
+                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                 body: {
                     kind: "BinOp",
                     op: "Add",
@@ -1256,10 +1256,10 @@ describe("Parser - Expressions", () => {
 
             expect(expr).toMatchObject({
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x" }],
+                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                 body: {
                     kind: "Lambda",
-                    params: [{ kind: "VarPattern", name: "y" }],
+                    params: [{ pattern: { kind: "VarPattern", name: "y" } }],
                     body: {
                         kind: "BinOp",
                         op: "Add",
@@ -1279,7 +1279,7 @@ describe("Parser - Expressions", () => {
                 args: [
                     {
                         kind: "Lambda",
-                        params: [{ kind: "VarPattern", name: "x" }],
+                        params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                         body: {
                             kind: "BinOp",
                             op: "Multiply",
@@ -1297,7 +1297,7 @@ describe("Parser - Expressions", () => {
 
             expect(expr).toMatchObject({
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x" }],
+                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                 body: {
                     kind: "App",
                     func: { kind: "Var", name: "foo" },
@@ -1312,7 +1312,7 @@ describe("Parser - Expressions", () => {
 
             expect(lambdaExpr).toMatchObject({
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x" }],
+                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                 body: { kind: "Var", name: "x" },
             });
 
@@ -1428,7 +1428,7 @@ describe("Parser - Expressions", () => {
             // Lambda extends as far right as possible, so type annotation is inside the body
             expect(expr).toMatchObject({
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x" }],
+                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                 body: {
                     kind: "TypeAnnotation",
                     expr: {
@@ -1450,7 +1450,7 @@ describe("Parser - Expressions", () => {
                 kind: "TypeAnnotation",
                 expr: {
                     kind: "Lambda",
-                    params: [{ kind: "VarPattern", name: "x" }],
+                    params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                     body: {
                         kind: "BinOp",
                         op: "Add",
@@ -1578,7 +1578,7 @@ describe("Parser - Expressions", () => {
                 exprs: [
                     {
                         kind: "Lambda",
-                        params: [{ kind: "VarPattern", name: "x" }],
+                        params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                         body: {
                             kind: "BinOp",
                             op: "Add",
@@ -1594,7 +1594,7 @@ describe("Parser - Expressions", () => {
 
             expect(expr).toMatchObject({
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x" }],
+                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                 body: {
                     kind: "Block",
                     exprs: [
@@ -2830,7 +2830,7 @@ describe("Parser - Expressions", () => {
                             name: "callback",
                             value: {
                                 kind: "Lambda",
-                                params: [{ kind: "VarPattern", name: "x" }],
+                                params: [{ pattern: { kind: "VarPattern", name: "x" } }],
                                 body: {
                                     kind: "BinOp",
                                     op: "Add",

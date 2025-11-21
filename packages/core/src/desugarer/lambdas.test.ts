@@ -31,7 +31,7 @@ describe("Lambda Currying - Single Parameter", () => {
     it("should desugar single-parameter lambda", () => {
         const lambda: Expr = {
             kind: "Lambda",
-            params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+            params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
             body: { kind: "Var", name: "x", loc: testLoc },
             loc: testLoc,
         };
@@ -50,7 +50,7 @@ describe("Lambda Currying - Single Parameter", () => {
     it("should desugar identity function", () => {
         const lambda: Expr = {
             kind: "Lambda",
-            params: [{ kind: "VarPattern", name: "id", loc: testLoc }],
+            params: [{ pattern: { kind: "VarPattern", name: "id", loc: testLoc }, loc: testLoc }],
             body: { kind: "Var", name: "id", loc: testLoc },
             loc: testLoc,
         };
@@ -63,7 +63,7 @@ describe("Lambda Currying - Single Parameter", () => {
     it("should desugar lambda with complex body", () => {
         const lambda: Expr = {
             kind: "Lambda",
-            params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+            params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
             body: {
                 kind: "BinOp",
                 op: "Add",
@@ -89,8 +89,8 @@ describe("Lambda Currying - Two Parameters", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "x", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 kind: "BinOp",
@@ -124,8 +124,8 @@ describe("Lambda Currying - Two Parameters", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "a", loc: testLoc },
-                { kind: "VarPattern", name: "b", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "a", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "b", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 kind: "BinOp",
@@ -153,9 +153,9 @@ describe("Lambda Currying - Three Parameters", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "x", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
-                { kind: "VarPattern", name: "z", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "z", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 kind: "BinOp",
@@ -201,10 +201,10 @@ describe("Lambda Currying - Four+ Parameters", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "a", loc: testLoc },
-                { kind: "VarPattern", name: "b", loc: testLoc },
-                { kind: "VarPattern", name: "c", loc: testLoc },
-                { kind: "VarPattern", name: "d", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "a", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "b", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "c", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "d", loc: testLoc }, loc: testLoc },
             ],
             body: { kind: "IntLit", value: 42, loc: testLoc },
             loc: testLoc,
@@ -239,11 +239,11 @@ describe("Lambda Currying - Four+ Parameters", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "p1", loc: testLoc },
-                { kind: "VarPattern", name: "p2", loc: testLoc },
-                { kind: "VarPattern", name: "p3", loc: testLoc },
-                { kind: "VarPattern", name: "p4", loc: testLoc },
-                { kind: "VarPattern", name: "p5", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "p1", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "p2", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "p3", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "p4", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "p5", loc: testLoc }, loc: testLoc },
             ],
             body: { kind: "StringLit", value: "done", loc: testLoc },
             loc: testLoc,
@@ -287,15 +287,15 @@ describe("Lambda Currying - Nested Lambdas", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "x", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 // Inner lambda
                 kind: "Lambda",
                 params: [
-                    { kind: "VarPattern", name: "a", loc: testLoc },
-                    { kind: "VarPattern", name: "b", loc: testLoc },
+                    { pattern: { kind: "VarPattern", name: "a", loc: testLoc }, loc: testLoc },
+                    { pattern: { kind: "VarPattern", name: "b", loc: testLoc }, loc: testLoc },
                 ],
                 body: {
                     kind: "BinOp",
@@ -339,8 +339,8 @@ describe("Lambda Currying - Pattern Parameters", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "WildcardPattern", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
+                { pattern: { kind: "WildcardPattern", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
             ],
             body: { kind: "Var", name: "y", loc: testLoc },
             loc: testLoc,
@@ -361,12 +361,15 @@ describe("Lambda Currying - Pattern Parameters", () => {
             kind: "Lambda",
             params: [
                 {
-                    kind: "ConstructorPattern",
-                    constructor: "Some",
-                    args: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                    pattern: {
+                        kind: "ConstructorPattern",
+                        constructor: "Some",
+                        args: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                        loc: testLoc,
+                    },
                     loc: testLoc,
                 },
-                { kind: "VarPattern", name: "default", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "default", loc: testLoc }, loc: testLoc },
             ],
             body: { kind: "Var", name: "x", loc: testLoc },
             loc: testLoc,
@@ -386,21 +389,25 @@ describe("Lambda Currying - Pattern Parameters", () => {
             kind: "Lambda",
             params: [
                 {
-                    kind: "RecordPattern",
-                    fields: [
-                        {
-                            name: "x",
-                            pattern: { kind: "VarPattern", name: "x", loc: testLoc },
-                            loc: testLoc,
-                        },
-                        {
-                            name: "y",
-                            pattern: { kind: "VarPattern", name: "y", loc: testLoc },
-                            loc: testLoc,
-                        },
-                    ],
+                    pattern: {
+                        kind: "RecordPattern",
+                        fields: [
+                            {
+                                name: "x",
+                                pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                                loc: testLoc,
+                            },
+                            {
+                                name: "y",
+                                pattern: { kind: "VarPattern", name: "y", loc: testLoc },
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
                     loc: testLoc,
                 },
+                { pattern: { kind: "VarPattern", name: "z", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 kind: "BinOp",
@@ -427,8 +434,8 @@ describe("Lambda Currying - Complex Bodies", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "x", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 kind: "Let",
@@ -465,8 +472,8 @@ describe("Lambda Currying - Complex Bodies", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "x", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
             ],
             body: {
                 kind: "Match",
@@ -507,8 +514,8 @@ describe("Lambda Currying - Source Locations", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
-                { kind: "VarPattern", name: "x", loc: testLoc },
-                { kind: "VarPattern", name: "y", loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
             ],
             body: { kind: "IntLit", value: 1, loc: testLoc },
             loc: lambdaLoc,

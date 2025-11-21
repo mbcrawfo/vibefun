@@ -215,7 +215,7 @@ describe("Pipe Operator - With Lambdas", () => {
             expr: { kind: "Var", name: "data", loc: testLoc },
             func: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Add",
@@ -245,7 +245,7 @@ describe("Pipe Operator - With Lambdas", () => {
             expr: { kind: "Var", name: "data", loc: testLoc },
             func: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Add",
@@ -263,7 +263,7 @@ describe("Pipe Operator - With Lambdas", () => {
             expr: pipe1,
             func: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "y", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Multiply",

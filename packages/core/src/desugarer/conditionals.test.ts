@@ -258,7 +258,7 @@ describe("If-Then-Else - Complex Branches", () => {
             condition: { kind: "Var", name: "cond", loc: testLoc },
             then: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Add",
@@ -270,7 +270,7 @@ describe("If-Then-Else - Complex Branches", () => {
             },
             else_: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "BinOp",
                     op: "Subtract",

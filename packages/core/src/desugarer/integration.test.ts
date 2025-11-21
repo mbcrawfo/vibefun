@@ -44,8 +44,8 @@ describe("Integration - Blocks + Lambdas", () => {
                     value: {
                         kind: "Lambda",
                         params: [
-                            { kind: "VarPattern", name: "x", loc: testLoc },
-                            { kind: "VarPattern", name: "y", loc: testLoc },
+                            { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                            { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
                         ],
                         body: {
                             kind: "BinOp",
@@ -135,7 +135,7 @@ describe("Integration - Pipes + Lists", () => {
                     args: [
                         {
                             kind: "Lambda",
-                            params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                            params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                             body: {
                                 kind: "BinOp",
                                 op: "Multiply",
@@ -156,7 +156,7 @@ describe("Integration - Pipes + Lists", () => {
                 args: [
                     {
                         kind: "Lambda",
-                        params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                        params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                         body: {
                             kind: "BinOp",
                             op: "GreaterThan",
@@ -187,7 +187,7 @@ describe("Integration - Composition + If-Then-Else", () => {
             op: "ForwardCompose",
             left: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "If",
                     condition: {
@@ -329,7 +329,7 @@ describe("Integration - Complete Programs", () => {
             pattern: { kind: "VarPattern", name: "sum", loc: testLoc },
             value: {
                 kind: "Lambda",
-                params: [{ kind: "VarPattern", name: "list", loc: testLoc }],
+                params: [{ pattern: { kind: "VarPattern", name: "list", loc: testLoc }, loc: testLoc }],
                 body: {
                     kind: "Match",
                     expr: { kind: "Var", name: "list", loc: testLoc },
@@ -428,7 +428,7 @@ describe("Integration - Complete Programs", () => {
                         args: [
                             {
                                 kind: "Lambda",
-                                params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                                params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                                 body: {
                                     kind: "BinOp",
                                     op: "GreaterThan",
@@ -449,7 +449,7 @@ describe("Integration - Complete Programs", () => {
                     args: [
                         {
                             kind: "Lambda",
-                            params: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                            params: [{ pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc }],
                             body: {
                                 kind: "BinOp",
                                 op: "Multiply",
@@ -526,8 +526,8 @@ describe("Integration - Module with All Features", () => {
                     value: {
                         kind: "Lambda",
                         params: [
-                            { kind: "VarPattern", name: "x", loc: testLoc },
-                            { kind: "VarPattern", name: "y", loc: testLoc },
+                            { pattern: { kind: "VarPattern", name: "x", loc: testLoc }, loc: testLoc },
+                            { pattern: { kind: "VarPattern", name: "y", loc: testLoc }, loc: testLoc },
                         ],
                         body: {
                             kind: "Block",
