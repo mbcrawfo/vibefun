@@ -39,9 +39,11 @@ export function parsePattern(parser: ParserBase): Pattern {
             nextToken.type === "INT_LITERAL" ||
             nextToken.type === "FLOAT_LITERAL" ||
             nextToken.type === "STRING_LITERAL" ||
+            nextToken.type === "BOOL_LITERAL" ||
             nextToken.type === "KEYWORD" ||
             nextToken.type === "LBRACE" ||
-            nextToken.type === "LBRACKET"
+            nextToken.type === "LBRACKET" ||
+            nextToken.type === "LPAREN"
         ) {
             parser.advance(); // consume |
             patterns.push(parsePrimaryPattern(parser));
