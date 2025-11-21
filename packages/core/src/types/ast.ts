@@ -250,6 +250,7 @@ export type ExternalBlockItem =
     | {
           kind: "ExternalValue";
           name: string;
+          typeParams?: string[];
           typeExpr: TypeExpr;
           jsName: string;
           loc: Location;
@@ -296,6 +297,7 @@ export type Declaration =
     | {
           kind: "ExternalDecl";
           name: string;
+          typeParams?: string[];
           typeExpr: TypeExpr;
           jsName: string;
           from?: string;
