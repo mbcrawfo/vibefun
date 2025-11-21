@@ -946,6 +946,97 @@ function isOperatorToken(parser: ParserBase): boolean {
 }
 
 /**
+ * Parse a single lambda parameter (pattern with optional type annotation)
+ * Supports: x, { name }, [a, b], (x, y), x: Int, { name }: { name: String }, etc.
+ */
+function parseLambdaParam(parser: ParserBase): LambdaParam {
+    const pattern = parsePattern(parser);
+
+    // Skip newlines after pattern
+    while (parser.check("NEWLINE")) {
+        parser.advance();
+    }
+
+    // Check for optional type annotation: pattern: Type
+    if (parser.check("COLON")) {
+        parser.advance(); // consume :
+
+        // Skip newlines after colon
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        const type = parseTypeExpr(parser);
+        return {
+            pattern,
+            type,
+            loc: pattern.loc,
+        };
+    }
+
+    // No type annotation
+    return {
+        pattern,
+        loc: pattern.loc,
+    };
+}
+
+/**
+ * Check if the content inside parentheses looks like lambda parameters
+ * by performing deep lookahead to find the closing paren and check for =>
+ */
+function isLikelyLambda(parser: ParserBase): boolean {
+    let depth = 1; // We're already inside the opening paren
+    let offset = 0;
+
+    // Scan ahead to find the matching closing paren
+    while (depth > 0 && parser.peek(offset).type !== "EOF") {
+        const token = parser.peek(offset);
+
+        if (token.type === "LPAREN" || token.type === "LBRACKET" || token.type === "LBRACE") {
+            depth++;
+        } else if (token.type === "RPAREN" || token.type === "RBRACKET" || token.type === "RBRACE") {
+            depth--;
+
+            if (depth === 0) {
+                // Found the matching closing paren
+                // Now check what follows it
+                offset++;
+
+                // Skip newlines
+                while (parser.peek(offset).type === "NEWLINE") {
+                    offset++;
+                }
+
+                const next = parser.peek(offset);
+
+                // If followed by => or : (for return type), it's a lambda
+                if (next.type === "FAT_ARROW") {
+                    return true;
+                }
+
+                if (next.type === "COLON") {
+                    // Could be return type annotation
+                    // Look ahead further for =>
+                    offset++;
+                    // Skip to find =>
+                    while (parser.peek(offset).type !== "EOF" && parser.peek(offset).type !== "FAT_ARROW" && parser.peek(offset).type !== "SEMICOLON" && parser.peek(offset).type !== "RBRACE") {
+                        offset++;
+                    }
+                    return parser.peek(offset).type === "FAT_ARROW";
+                }
+
+                return false;
+            }
+        }
+
+        offset++;
+    }
+
+    return false;
+}
+
+/**
  * Parse lambda or parenthesized expression starting with LPAREN
  * Handles: () => expr, (x) => expr, (x, y) => expr, or (expr)
  * Note: LPAREN has already been consumed by caller
@@ -1052,95 +1143,80 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
         };
     }
 
-    // Lookahead to distinguish lambda from parenthesized expression
-    // Lambda: (id) => or (id, id, ...) =>
-    // Paren expr: (expr)
-    //
-    // Strategy: If we see identifier, peek ahead to see if next is ) or ,
-    // - If ), peek ahead again for =>
-    // - If ,, it must be lambda parameters
-    // - Otherwise, it's a parenthesized expression
+    // Lookahead to distinguish lambda from parenthesized expression/tuple
+    // Use deep lookahead to check for => or : Type => after the closing paren
+    // This allows us to parse lambda parameters as patterns directly
+    if (isLikelyLambda(parser)) {
+        // Parse lambda parameters as patterns (supports destructuring)
+        const params: LambdaParam[] = [];
 
-    if (parser.check("IDENTIFIER")) {
-        const nextToken = parser.peek(1);
-
-        // Check if it looks like lambda parameters
-        if (nextToken.type === "RPAREN") {
-            // Could be (x) => or (x): Type => or (x)
-            // Need to check if there's => or : after the )
-            const afterParen = parser.peek(2);
-            if (afterParen.type === "FAT_ARROW" || afterParen.type === "COLON") {
-                // It's a lambda: (x) => expr or (x): Type => expr
-                const pattern: Pattern = {
-                    kind: "VarPattern" as const,
-                    name: parser.advance().value as string,
-                    loc: parser.peek(-1).loc,
-                };
-                parser.expect("RPAREN");
-
-                // Skip newlines
+        // Parse comma-separated lambda parameters
+        if (!parser.check("RPAREN")) {
+            do {
+                // Skip newlines before parameter
                 while (parser.check("NEWLINE")) {
                     parser.advance();
                 }
 
-                // Check for return type annotation
-                let returnType: TypeExpr | undefined;
-                if (parser.check("COLON")) {
-                    parser.advance(); // consume :
+                params.push(parseLambdaParam(parser));
 
-                    // Skip newlines after colon
-                    while (parser.check("NEWLINE")) {
-                        parser.advance();
-                    }
-
-                    returnType = parseTypeExpr(parser);
-
-                    // Skip newlines after return type
-                    while (parser.check("NEWLINE")) {
-                        parser.advance();
-                    }
-                }
-
-                parser.expect("FAT_ARROW");
-
-                // Skip newlines after => (supports: (x) =>\nbody)
+                // Skip newlines after parameter
                 while (parser.check("NEWLINE")) {
                     parser.advance();
                 }
-
-                const body = parseExpression(parser);
-                const lambda: Expr = {
-                    kind: "Lambda",
-                    params: [{ pattern, loc: pattern.loc }],
-                    body,
-                    loc: startLoc,
-                };
-
-                // Add return type if present
-                if (returnType !== undefined) {
-                    (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
-                }
-
-                return lambda;
-            } else {
-                // It's a parenthesized variable: (x)
-                const name = parser.advance().value as string;
-                const varLoc = parser.peek(-1).loc;
-                parser.expect("RPAREN");
-                return {
-                    kind: "Var",
-                    name,
-                    loc: varLoc,
-                };
-            }
-        } else if (nextToken.type === "COMMA") {
-            // Could be lambda parameters or tuple - parse as expressions
-            // and check for => after closing paren
-            // Fall through to general expression parsing
+            } while (parser.match("COMMA"));
         }
+
+        parser.expect("RPAREN", "Expected closing parenthesis after lambda parameters");
+
+        // Skip newlines after closing paren
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        // Check for return type annotation: (params): ReturnType => body
+        let returnType: TypeExpr | undefined;
+        if (parser.check("COLON")) {
+            parser.advance(); // consume :
+
+            // Skip newlines after colon
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+
+            returnType = parseTypeExpr(parser);
+
+            // Skip newlines after return type
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+        }
+
+        parser.expect("FAT_ARROW", "Expected '=>' for lambda expression");
+
+        // Skip newlines after => (supports: (x, y) =>\nbody)
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        const body = parseLambda(parser); // Right-associative
+
+        const lambda: Expr = {
+            kind: "Lambda",
+            params,
+            body,
+            loc: startLoc,
+        };
+
+        // Add return type if present
+        if (returnType !== undefined) {
+            (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
+        }
+
+        return lambda;
     }
 
-    // Not a lambda, parse as parenthesized expression or tuple
+    // Not a lambda - parse as parenthesized expression or tuple
     // Parse comma-separated expressions
     const exprs: Expr[] = [];
 
@@ -1180,86 +1256,9 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
     parser.expect("RPAREN", "Expected closing parenthesis");
 
-    // Skip newlines before checking for return type or arrow (supports: (x, y)\n: Int => body)
-    while (parser.check("NEWLINE")) {
-        parser.advance();
-    }
-
-    // Check for return type annotation: (params): ReturnType => body
-    let returnType: TypeExpr | undefined;
-    if (parser.check("COLON")) {
-        parser.advance(); // consume :
-
-        // Skip newlines after colon
-        while (parser.check("NEWLINE")) {
-            parser.advance();
-        }
-
-        returnType = parseTypeExpr(parser);
-
-        // Skip newlines after return type
-        while (parser.check("NEWLINE")) {
-            parser.advance();
-        }
-    }
-
-    // After closing paren (and optional return type), check for arrow (could be lambda with pattern params)
-    if (parser.check("FAT_ARROW")) {
-        // It's a lambda with pattern parameters: (pattern1, pattern2) => body
-        // Convert expressions to patterns (this handles more complex patterns)
-        parser.advance(); // consume =>
-
-        // Skip newlines after => (supports: (x, y) =>\nbody)
-        while (parser.check("NEWLINE")) {
-            parser.advance();
-        }
-
-        const body = parseLambda(parser); // Right-associative
-
-        // Convert expressions to lambda parameters
-        // Supports: (x), (x: Int), (x, y: String), etc.
-        const params: LambdaParam[] = exprs.map((e) => {
-            // Simple identifier: x
-            if (e.kind === "Var") {
-                const pattern: Pattern = { kind: "VarPattern", name: e.name, loc: e.loc };
-                return { pattern, loc: e.loc };
-            }
-            // Type-annotated parameter: x: Int
-            if (e.kind === "TypeAnnotation") {
-                if (e.expr.kind !== "Var") {
-                    throw parser.error(
-                        "Lambda parameter type annotations must be on simple identifiers",
-                        e.loc,
-                        "Use the form 'param: Type'",
-                    );
-                }
-                const pattern: Pattern = { kind: "VarPattern", name: e.expr.name, loc: e.expr.loc };
-                return { pattern, type: e.typeExpr, loc: e.loc };
-            }
-            // For more complex patterns, we'd need to convert the expression AST
-            throw parser.error(
-                "Lambda parameters must be simple identifiers or type-annotated identifiers",
-                e.loc,
-                "Use 'x' or 'x: Type'",
-            );
-        });
-
-        const lambda: Expr = {
-            kind: "Lambda",
-            params,
-            body,
-            loc: startLoc,
-        };
-
-        // Add return type if present
-        if (returnType !== undefined) {
-            (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
-        }
-
-        return lambda;
-    }
-
-    // Not a lambda - determine if tuple or grouped expression
+    // Note: Lambda cases should have been caught by isLikelyLambda() above
+    // This is just a parenthesized expression or tuple
+    // Determine if tuple or grouped expression
     if (exprs.length === 1) {
         // Single element: just grouping/precedence, NOT a tuple
         const expr = exprs[0];

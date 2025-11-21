@@ -1215,8 +1215,8 @@ describe("Parser - Expressions", () => {
             expect(expr).toMatchObject({
                 kind: "Lambda",
                 params: [
-                    { kind: "VarPattern", name: "x" },
-                    { kind: "VarPattern", name: "y" },
+                    { pattern: { kind: "VarPattern", name: "x" } },
+                    { pattern: { kind: "VarPattern", name: "y" } },
                 ],
                 body: {
                     kind: "BinOp",
@@ -1233,9 +1233,9 @@ describe("Parser - Expressions", () => {
             expect(expr).toMatchObject({
                 kind: "Lambda",
                 params: [
-                    { kind: "VarPattern", name: "x" },
-                    { kind: "VarPattern", name: "y" },
-                    { kind: "VarPattern", name: "z" },
+                    { pattern: { kind: "VarPattern", name: "x" } },
+                    { pattern: { kind: "VarPattern", name: "y" } },
+                    { pattern: { kind: "VarPattern", name: "z" } },
                 ],
                 body: {
                     kind: "BinOp",
