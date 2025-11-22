@@ -444,16 +444,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                         "loc": {
                           "column": 9,
                           "file": "control-flow.vf",
-                          "line": 25,
-                          "offset": 572,
+                          "line": 24,
+                          "offset": 486,
                         },
                         "name": "counter",
                       },
                       "loc": {
                         "column": 9,
                         "file": "control-flow.vf",
-                        "line": 25,
-                        "offset": 572,
+                        "line": 24,
+                        "offset": 486,
                       },
                       "op": "RefAssign",
                       "right": {
@@ -463,16 +463,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                           "loc": {
                             "column": 20,
                             "file": "control-flow.vf",
-                            "line": 25,
-                            "offset": 583,
+                            "line": 24,
+                            "offset": 497,
                           },
                           "name": "counter",
                         },
                         "loc": {
                           "column": 20,
                           "file": "control-flow.vf",
-                          "line": 25,
-                          "offset": 583,
+                          "line": 24,
+                          "offset": 497,
                         },
                         "op": "Add",
                         "right": {
@@ -480,8 +480,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                           "loc": {
                             "column": 30,
                             "file": "control-flow.vf",
-                            "line": 25,
-                            "offset": 593,
+                            "line": 24,
+                            "offset": 507,
                           },
                           "value": 1,
                         },
@@ -492,8 +492,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                   "loc": {
                     "column": 24,
                     "file": "control-flow.vf",
-                    "line": 24,
-                    "offset": 562,
+                    "line": 23,
+                    "offset": 476,
                   },
                 },
                 "condition": {
@@ -503,16 +503,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                     "loc": {
                       "column": 11,
                       "file": "control-flow.vf",
-                      "line": 24,
-                      "offset": 549,
+                      "line": 23,
+                      "offset": 463,
                     },
                     "name": "counter",
                   },
                   "loc": {
                     "column": 11,
                     "file": "control-flow.vf",
-                    "line": 24,
-                    "offset": 549,
+                    "line": 23,
+                    "offset": 463,
                   },
                   "op": "LessThan",
                   "right": {
@@ -520,8 +520,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                     "loc": {
                       "column": 21,
                       "file": "control-flow.vf",
-                      "line": 24,
-                      "offset": 559,
+                      "line": 23,
+                      "offset": 473,
                     },
                     "value": 10,
                   },
@@ -530,16 +530,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                 "loc": {
                   "column": 5,
                   "file": "control-flow.vf",
-                  "line": 24,
-                  "offset": 543,
+                  "line": 23,
+                  "offset": 457,
                 },
               },
               "kind": "Let",
               "loc": {
                 "column": 5,
                 "file": "control-flow.vf",
-                "line": 23,
-                "offset": 518,
+                "line": 22,
+                "offset": 427,
               },
               "mutable": true,
               "pattern": {
@@ -547,21 +547,42 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                 "loc": {
                   "column": 13,
                   "file": "control-flow.vf",
-                  "line": 23,
-                  "offset": 526,
+                  "line": 22,
+                  "offset": 435,
                 },
                 "name": "counter",
               },
               "recursive": false,
               "value": {
-                "kind": "IntLit",
+                "args": [
+                  {
+                    "kind": "IntLit",
+                    "loc": {
+                      "column": 27,
+                      "file": "control-flow.vf",
+                      "line": 22,
+                      "offset": 449,
+                    },
+                    "value": 0,
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 23,
+                    "file": "control-flow.vf",
+                    "line": 22,
+                    "offset": 445,
+                  },
+                  "name": "ref",
+                },
+                "kind": "App",
                 "loc": {
                   "column": 23,
                   "file": "control-flow.vf",
-                  "line": 23,
-                  "offset": 536,
+                  "line": 22,
+                  "offset": 445,
                 },
-                "value": 0,
               },
             },
             {
@@ -569,8 +590,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 5,
                 "file": "control-flow.vf",
-                "line": 27,
-                "offset": 607,
+                "line": 26,
+                "offset": 521,
               },
               "name": "counter",
             },
@@ -599,8 +620,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
       "loc": {
         "column": 1,
         "file": "control-flow.vf",
-        "line": 31,
-        "offset": 640,
+        "line": 30,
+        "offset": 554,
       },
       "mutable": false,
       "pattern": {
@@ -608,8 +629,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
         "loc": {
           "column": 5,
           "file": "control-flow.vf",
-          "line": 31,
-          "offset": 644,
+          "line": 30,
+          "offset": 558,
         },
         "name": "result2",
       },
@@ -622,16 +643,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 18,
                 "file": "control-flow.vf",
-                "line": 32,
-                "offset": 685,
+                "line": 31,
+                "offset": 599,
               },
               "name": "x",
             },
             "loc": {
               "column": 7,
               "file": "control-flow.vf",
-              "line": 32,
-              "offset": 674,
+              "line": 31,
+              "offset": 588,
             },
             "pattern": {
               "args": [
@@ -640,8 +661,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                   "loc": {
                     "column": 12,
                     "file": "control-flow.vf",
-                    "line": 32,
-                    "offset": 679,
+                    "line": 31,
+                    "offset": 593,
                   },
                   "name": "x",
                 },
@@ -651,8 +672,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 7,
                 "file": "control-flow.vf",
-                "line": 32,
-                "offset": 674,
+                "line": 31,
+                "offset": 588,
               },
             },
           },
@@ -662,16 +683,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 15,
                 "file": "control-flow.vf",
-                "line": 33,
-                "offset": 701,
+                "line": 32,
+                "offset": 615,
               },
               "value": 0,
             },
             "loc": {
               "column": 7,
               "file": "control-flow.vf",
-              "line": 33,
-              "offset": 693,
+              "line": 32,
+              "offset": 607,
             },
             "pattern": {
               "args": [],
@@ -680,8 +701,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 7,
                 "file": "control-flow.vf",
-                "line": 33,
-                "offset": 693,
+                "line": 32,
+                "offset": 607,
               },
             },
           },
@@ -691,8 +712,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
           "loc": {
             "column": 21,
             "file": "control-flow.vf",
-            "line": 31,
-            "offset": 660,
+            "line": 30,
+            "offset": 574,
           },
           "name": "value",
         },
@@ -700,8 +721,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
         "loc": {
           "column": 15,
           "file": "control-flow.vf",
-          "line": 31,
-          "offset": 654,
+          "line": 30,
+          "offset": 568,
         },
       },
     },
@@ -711,8 +732,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
       "loc": {
         "column": 1,
         "file": "control-flow.vf",
-        "line": 37,
-        "offset": 723,
+        "line": 36,
+        "offset": 637,
       },
       "mutable": false,
       "pattern": {
@@ -720,8 +741,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
         "loc": {
           "column": 5,
           "file": "control-flow.vf",
-          "line": 37,
-          "offset": 727,
+          "line": 36,
+          "offset": 641,
         },
         "name": "result3",
       },
@@ -737,16 +758,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                     "loc": {
                       "column": 24,
                       "file": "control-flow.vf",
-                      "line": 39,
-                      "offset": 809,
+                      "line": 38,
+                      "offset": 723,
                     },
                     "name": "value",
                   },
                   "loc": {
                     "column": 11,
                     "file": "control-flow.vf",
-                    "line": 39,
-                    "offset": 796,
+                    "line": 38,
+                    "offset": 710,
                   },
                   "pattern": {
                     "args": [
@@ -755,8 +776,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                         "loc": {
                           "column": 14,
                           "file": "control-flow.vf",
-                          "line": 39,
-                          "offset": 799,
+                          "line": 38,
+                          "offset": 713,
                         },
                         "name": "value",
                       },
@@ -766,8 +787,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                     "loc": {
                       "column": 11,
                       "file": "control-flow.vf",
-                      "line": 39,
-                      "offset": 796,
+                      "line": 38,
+                      "offset": 710,
                     },
                   },
                 },
@@ -777,16 +798,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                     "loc": {
                       "column": 21,
                       "file": "control-flow.vf",
-                      "line": 40,
-                      "offset": 835,
+                      "line": 39,
+                      "offset": 749,
                     },
                     "value": 0,
                   },
                   "loc": {
                     "column": 11,
                     "file": "control-flow.vf",
-                    "line": 40,
-                    "offset": 825,
+                    "line": 39,
+                    "offset": 739,
                   },
                   "pattern": {
                     "args": [
@@ -795,8 +816,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                         "loc": {
                           "column": 15,
                           "file": "control-flow.vf",
-                          "line": 40,
-                          "offset": 829,
+                          "line": 39,
+                          "offset": 743,
                         },
                       },
                     ],
@@ -805,8 +826,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                     "loc": {
                       "column": 11,
                       "file": "control-flow.vf",
-                      "line": 40,
-                      "offset": 825,
+                      "line": 39,
+                      "offset": 739,
                     },
                   },
                 },
@@ -816,8 +837,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                 "loc": {
                   "column": 28,
                   "file": "control-flow.vf",
-                  "line": 38,
-                  "offset": 778,
+                  "line": 37,
+                  "offset": 692,
                 },
                 "name": "inner",
               },
@@ -825,15 +846,15 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 22,
                 "file": "control-flow.vf",
-                "line": 38,
-                "offset": 772,
+                "line": 37,
+                "offset": 686,
               },
             },
             "loc": {
               "column": 7,
               "file": "control-flow.vf",
-              "line": 38,
-              "offset": 757,
+              "line": 37,
+              "offset": 671,
             },
             "pattern": {
               "args": [
@@ -842,8 +863,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                   "loc": {
                     "column": 12,
                     "file": "control-flow.vf",
-                    "line": 38,
-                    "offset": 762,
+                    "line": 37,
+                    "offset": 676,
                   },
                   "name": "inner",
                 },
@@ -853,8 +874,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 7,
                 "file": "control-flow.vf",
-                "line": 38,
-                "offset": 757,
+                "line": 37,
+                "offset": 671,
               },
             },
           },
@@ -865,8 +886,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                 "loc": {
                   "column": 16,
                   "file": "control-flow.vf",
-                  "line": 42,
-                  "offset": 858,
+                  "line": 41,
+                  "offset": 772,
                 },
                 "value": 1,
               },
@@ -874,16 +895,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 15,
                 "file": "control-flow.vf",
-                "line": 42,
-                "offset": 857,
+                "line": 41,
+                "offset": 771,
               },
               "op": "Negate",
             },
             "loc": {
               "column": 7,
               "file": "control-flow.vf",
-              "line": 42,
-              "offset": 849,
+              "line": 41,
+              "offset": 763,
             },
             "pattern": {
               "args": [],
@@ -892,8 +913,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 7,
                 "file": "control-flow.vf",
-                "line": 42,
-                "offset": 849,
+                "line": 41,
+                "offset": 763,
               },
             },
           },
@@ -903,8 +924,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
           "loc": {
             "column": 21,
             "file": "control-flow.vf",
-            "line": 37,
-            "offset": 743,
+            "line": 36,
+            "offset": 657,
           },
           "name": "outer",
         },
@@ -912,8 +933,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
         "loc": {
           "column": 15,
           "file": "control-flow.vf",
-          "line": 37,
-          "offset": 737,
+          "line": 36,
+          "offset": 651,
         },
       },
     },
@@ -923,8 +944,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
       "loc": {
         "column": 1,
         "file": "control-flow.vf",
-        "line": 46,
-        "offset": 891,
+        "line": 45,
+        "offset": 805,
       },
       "mutable": false,
       "pattern": {
@@ -932,8 +953,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
         "loc": {
           "column": 5,
           "file": "control-flow.vf",
-          "line": 46,
-          "offset": 895,
+          "line": 45,
+          "offset": 809,
         },
         "name": "computed",
       },
@@ -949,16 +970,16 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                   "loc": {
                     "column": 5,
                     "file": "control-flow.vf",
-                    "line": 49,
-                    "offset": 944,
+                    "line": 48,
+                    "offset": 858,
                   },
                   "name": "a",
                 },
                 "loc": {
                   "column": 5,
                   "file": "control-flow.vf",
-                  "line": 49,
-                  "offset": 944,
+                  "line": 48,
+                  "offset": 858,
                 },
                 "op": "Add",
                 "right": {
@@ -966,8 +987,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                   "loc": {
                     "column": 9,
                     "file": "control-flow.vf",
-                    "line": 49,
-                    "offset": 948,
+                    "line": 48,
+                    "offset": 862,
                   },
                   "name": "b",
                 },
@@ -976,8 +997,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 5,
                 "file": "control-flow.vf",
-                "line": 48,
-                "offset": 928,
+                "line": 47,
+                "offset": 842,
               },
               "mutable": false,
               "pattern": {
@@ -985,8 +1006,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                 "loc": {
                   "column": 9,
                   "file": "control-flow.vf",
-                  "line": 48,
-                  "offset": 932,
+                  "line": 47,
+                  "offset": 846,
                 },
                 "name": "b",
               },
@@ -996,8 +1017,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
                 "loc": {
                   "column": 13,
                   "file": "control-flow.vf",
-                  "line": 48,
-                  "offset": 936,
+                  "line": 47,
+                  "offset": 850,
                 },
                 "value": 20,
               },
@@ -1006,8 +1027,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
             "loc": {
               "column": 5,
               "file": "control-flow.vf",
-              "line": 47,
-              "offset": 912,
+              "line": 46,
+              "offset": 826,
             },
             "mutable": false,
             "pattern": {
@@ -1015,8 +1036,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 9,
                 "file": "control-flow.vf",
-                "line": 47,
-                "offset": 916,
+                "line": 46,
+                "offset": 830,
               },
               "name": "a",
             },
@@ -1026,8 +1047,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
               "loc": {
                 "column": 13,
                 "file": "control-flow.vf",
-                "line": 47,
-                "offset": 920,
+                "line": 46,
+                "offset": 834,
               },
               "value": 10,
             },
@@ -1037,8 +1058,8 @@ exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
         "loc": {
           "column": 16,
           "file": "control-flow.vf",
-          "line": 46,
-          "offset": 906,
+          "line": 45,
+          "offset": 820,
         },
       },
     },
