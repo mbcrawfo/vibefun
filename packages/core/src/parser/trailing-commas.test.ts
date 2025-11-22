@@ -101,11 +101,11 @@ describe("Trailing Commas - Expression Contexts", () => {
             expect(expr.fields).toHaveLength(3);
         });
 
-        it("should parse empty record without trailing comma", () => {
+        it("should parse empty braces as empty block (spec: {} is empty block)", () => {
             const expr = parseExpr("{}");
-            expect(expr.kind).toBe("Record");
-            if (expr.kind !== "Record") return;
-            expect(expr.fields).toHaveLength(0);
+            expect(expr.kind).toBe("Block");
+            if (expr.kind !== "Block") return;
+            expect(expr.exprs).toHaveLength(0);
         });
 
         it("should parse record shorthand with trailing comma", () => {

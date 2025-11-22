@@ -323,11 +323,11 @@ describe("Record Shorthand - Edge Cases", () => {
             expect(expr.fields).toHaveLength(1);
         });
 
-        it("should NOT parse empty record as shorthand", () => {
+        it("should parse empty braces as empty block (spec: {} is empty block)", () => {
             const expr = parseExpr("let obj = { };");
-            expect(expr.kind).toBe("Record");
-            if (expr.kind !== "Record") return;
-            expect(expr.fields).toHaveLength(0);
+            expect(expr.kind).toBe("Block");
+            if (expr.kind !== "Block") return;
+            expect(expr.exprs).toHaveLength(0);
         });
     });
 

@@ -2263,12 +2263,12 @@ describe("Parser - Expressions", () => {
         });
 
         describe("records", () => {
-            it("should parse empty record", () => {
+            it("should parse empty block (spec: {} is empty block, not empty record)", () => {
                 const expr = parseExpression("{}");
 
                 expect(expr).toMatchObject({
-                    kind: "Record",
-                    fields: [],
+                    kind: "Block",
+                    exprs: [],
                 });
             });
 
@@ -2455,32 +2455,32 @@ describe("Parser - Expressions", () => {
                 expect(expr.fields).toHaveLength(2);
             });
 
-            it("should parse empty record", () => {
+            it("should parse empty block (spec: {} is empty block)", () => {
                 const expr = parseExpression("{}");
-                expect(expr.kind).toBe("Record");
-                if (expr.kind !== "Record") return;
-                expect(expr.fields).toHaveLength(0);
+                expect(expr.kind).toBe("Block");
+                if (expr.kind !== "Block") return;
+                expect(expr.exprs).toHaveLength(0);
             });
 
-            it("should parse empty record with whitespace", () => {
+            it("should parse empty block with whitespace", () => {
                 const expr = parseExpression("{ }");
-                expect(expr.kind).toBe("Record");
-                if (expr.kind !== "Record") return;
-                expect(expr.fields).toHaveLength(0);
+                expect(expr.kind).toBe("Block");
+                if (expr.kind !== "Block") return;
+                expect(expr.exprs).toHaveLength(0);
             });
 
-            it("should parse empty record with newlines", () => {
+            it("should parse empty block with newlines", () => {
                 const expr = parseExpression("{\n}");
-                expect(expr.kind).toBe("Record");
-                if (expr.kind !== "Record") return;
-                expect(expr.fields).toHaveLength(0);
+                expect(expr.kind).toBe("Block");
+                if (expr.kind !== "Block") return;
+                expect(expr.exprs).toHaveLength(0);
             });
 
-            it("should parse empty record with multiple newlines", () => {
+            it("should parse empty block with multiple newlines", () => {
                 const expr = parseExpression("{\n\n}");
-                expect(expr.kind).toBe("Record");
-                if (expr.kind !== "Record") return;
-                expect(expr.fields).toHaveLength(0);
+                expect(expr.kind).toBe("Block");
+                if (expr.kind !== "Block") return;
+                expect(expr.exprs).toHaveLength(0);
             });
 
             it("should parse trailing comma with newlines", () => {

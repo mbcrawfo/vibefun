@@ -139,12 +139,12 @@ describe("Parser - Operator Edge Cases", () => {
     });
 
     describe("empty and simple records", () => {
-        it("should parse empty braces as empty record", () => {
+        it("should parse empty braces as empty block (spec: {} is empty block)", () => {
             const expr = parseExpression("{}");
 
             expect(expr).toMatchObject({
-                kind: "Record",
-                fields: [],
+                kind: "Block",
+                exprs: [],
             });
         });
 

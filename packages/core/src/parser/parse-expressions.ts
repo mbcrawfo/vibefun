@@ -811,12 +811,13 @@ function parsePrimary(parser: ParserBase): Expr {
         // Skip leading newlines
         while (parser.match("NEWLINE"));
 
-        // Empty braces - treat as empty record (existing behavior)
+        // Empty braces - treat as empty block per spec (functions-composition.md:167)
+        // An empty block {} has type Unit and evaluates to ()
         if (parser.check("RBRACE")) {
             parser.advance();
             return {
-                kind: "Record",
-                fields: [],
+                kind: "Block",
+                exprs: [],
                 loc: startLoc,
             };
         }

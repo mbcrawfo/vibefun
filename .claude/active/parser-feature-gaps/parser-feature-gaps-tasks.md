@@ -2,7 +2,7 @@
 
 **Last Updated**: 2025-11-21
 **Approach**: Test-Driven Development (TDD)
-**Status**: In Progress - Phases 1, 2, 3, 4, 5 Complete! (15/18 features done, 83%)
+**Status**: In Progress - Phases 1-6, 7.1 Complete! (16/18 features done, 89%)
 
 ## Task Format
 
@@ -437,20 +437,32 @@ Each task follows: `[ ] Feature - Write tests → Implement → Verify`
 
 ## Phase 7: Syntax Edge Cases
 
-### 7.1 Empty Blocks
+### 7.1 Empty Blocks ✅ COMPLETE
 
-- [ ] Write test: Empty block expression `{}`
-- [ ] Write test: Empty block in lambda `() => {}`
-- [ ] Write test: Empty block evaluates to Unit type
-- [ ] Write test: Empty block in match arm
-- [ ] Write test: Error cases (if any)
-- [ ] Run tests
-- [ ] Update block parser to accept zero statements
-- [ ] Verify empty block produces correct AST (block with empty statement list)
-- [ ] Verify tests pass
-- [ ] Run `npm run verify`
+- [x] Created comprehensive test file `empty-blocks.test.ts` with 21 tests
+- [x] Write test: Empty block expression `{}`
+- [x] Write test: Empty block in lambda `() => {}`
+- [x] Write test: Empty block in if/then/else branches
+- [x] Write test: Empty block in match arms
+- [x] Write test: Empty block in nested contexts (inside blocks, function calls, lists)
+- [x] Write test: Empty block with whitespace and formatting
+- [x] Write test: Spec examples from functions-composition.md:170
+- [x] Run tests (all 21 tests passing)
+- [x] **Parser Implementation**: Changed `{}` from empty Record to empty Block per spec
+  - Modified `parse-expressions.ts:814-822` to return Block instead of Record
+  - Updated comment to reference spec (functions-composition.md:167)
+- [x] **Updated 11 existing tests** that expected empty Record to expect empty Block:
+  - expressions.test.ts: 5 tests updated
+  - record-shorthand.test.ts: 1 test updated
+  - trailing-commas.test.ts: 1 test updated
+  - operator-edge-cases.test.ts: 1 test updated
+- [x] Verify empty block produces correct AST (Block with empty exprs array)
+- [x] Verify all tests pass (2560/2560 passing, 7 skipped)
+- [x] Run `npm run verify` - all checks passing
 
-**Acceptance**: Empty blocks parse and behave per spec
+**Status**: ✅ COMPLETE - Empty blocks now parse as Block with empty exprs array per spec
+
+**Acceptance**: Empty blocks parse and behave per spec ✅
 
 ### 7.2 Multi-line Variant Types
 
@@ -528,10 +540,12 @@ type Option<T> =
 - [x] Phase 6: Type System Features (2/2 features - 100%) ✅
   - [x] 6.1 Tuple Type Syntax ✅ (Already Implemented + Enhanced)
   - [x] 6.2 Recursive Type Definitions ✅ (Already Implemented + Enhanced)
-- [ ] Phase 7: Syntax Edge Cases (0/2 features)
+- [x] Phase 7: Syntax Edge Cases (1/2 features - 50%)
+  - [x] 7.1 Empty Blocks ✅
+  - [ ] 7.2 Multi-line Variant Types
 
-### Total Features: 17/18 completed (94%)
-### Test Status: 2532/2532 passing, 7 skipped (99.72% pass rate) ✅
+### Total Features: 16/18 completed (89%)
+### Test Status: 2560/2560 passing, 7 skipped (99.73% pass rate) ✅
 
 ---
 
@@ -545,7 +559,30 @@ type Option<T> =
 
 ## Next Action
 
-**Phase 6 Complete! ✅** All Type System Features implemented:
+**Phase 7.1 Complete! ✅** Empty Blocks implemented:
+
+**Summary**:
+- ✅ Created 21 comprehensive tests for empty blocks in all contexts
+- ✅ Changed parser to treat `{}` as empty Block instead of empty Record (per spec)
+- ✅ Updated 11 existing tests to match new behavior
+- ✅ All 2560 tests passing (7 skipped)
+- ✅ Parser now complies with spec: functions-composition.md:167
+
+**Parser Changes**:
+- Modified `parse-expressions.ts:814-822` to return Block for empty braces
+- Updated comment to reference language spec
+
+**Test Updates**:
+- Created: `empty-blocks.test.ts` with 21 tests
+- Updated: expressions.test.ts, record-shorthand.test.ts, trailing-commas.test.ts, operator-edge-cases.test.ts
+
+**Progress**: 16/18 features complete (89% done!)
+
+**Ready for Phase 7.2**: Multi-line Variant Types (Final Feature!)
+
+---
+
+**Phase 6 Complete! ✅** All Type System Features implemented (previous milestone):
 
 **Phase 6.2: Recursive Type Definitions** ✅ COMPLETE
 - ✅ Feature was already fully implemented in parser
