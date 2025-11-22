@@ -286,13 +286,23 @@ export function parseTypeDeclBody(parser: ParserBase, exported: boolean, startLo
     const nameToken = parser.expect("IDENTIFIER", "Expected type name");
     const name = nameToken.value as string;
 
-    // Parse type parameters: <T, U, V>
+    // Parse type parameters: <T, U, V> or <T, U, V,>
     const params: string[] = [];
     if (parser.match("OP_LT")) {
         do {
             const paramToken = parser.expect("IDENTIFIER", "Expected type parameter");
             params.push(paramToken.value as string);
-        } while (parser.match("COMMA"));
+
+            // Check for comma
+            if (!parser.match("COMMA")) {
+                break;
+            }
+
+            // Check for trailing comma before >
+            if (parser.check("OP_GT") || parser.check("OP_GT_GT")) {
+                break; // Trailing comma allowed
+            }
+        } while (true); // eslint-disable-line no-constant-condition
 
         // Handle >> as two > tokens for nested generics
         // Access tokens via type assertion

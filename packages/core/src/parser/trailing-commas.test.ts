@@ -313,9 +313,7 @@ describe("Trailing Commas - Type Contexts", () => {
 
 describe("Trailing Commas - Declaration Contexts", () => {
     describe("Type Definitions", () => {
-        // Note: Type parameters in type definitions don't typically use trailing commas in practice
-        // Keeping this test skipped as it's an edge case
-        it.skip("should parse type definition with trailing comma in type params", () => {
+        it("should parse type definition with trailing comma in type params", () => {
             const source = "type Map<K, V,> = { get: (K) -> Option<V> };";
             const lexer = new Lexer(source, "test.vf");
             const tokens = lexer.tokenize();
