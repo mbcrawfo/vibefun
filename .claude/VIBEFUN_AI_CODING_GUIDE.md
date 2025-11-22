@@ -10,54 +10,56 @@ This guide provides practical, day-to-day knowledge for writing vibefun code. It
 
 ## Table of Contents
 
-1. [Core Syntax Fundamentals](#1-core-syntax-fundamentals)
-2. [Type System Essentials](#2-type-system-essentials)
-3. [Common Syntax Patterns](#3-common-syntax-patterns)
-4. [Key Differences from Other Languages](#4-key-differences-from-other-languages)
-5. [Idiomatic Vibefun Patterns](#5-idiomatic-vibefun-patterns)
-6. [Common Gotchas & Edge Cases](#6-common-gotchas--edge-cases)
-7. [JavaScript Interop](#7-javascript-interop)
-8. [Standard Library Overview](#8-standard-library-overview)
-9. [Common Daily Patterns](#9-common-daily-patterns)
-10. [Module System](#10-module-system)
+1. [Quick Start Essentials](#1-quick-start-essentials)
+2. [Type System Fundamentals](#2-type-system-fundamentals)
+3. [Essential Syntax Patterns](#3-essential-syntax-patterns)
+4. [Critical Gotchas](#4-critical-gotchas)
+5. [JavaScript Interop](#5-javascript-interop)
+6. [Standard Library Quick Reference](#6-standard-library-quick-reference)
+7. [Module System](#7-module-system)
+8. [Idiomatic Patterns](#8-idiomatic-patterns)
+9. [Differences from Other Languages](#9-differences-from-other-languages)
 
 ---
 
-## 1. Core Syntax Fundamentals
+## 1. Quick Start Essentials
 
-### File Structure
+### Top 10 Things to Remember
+
+Before writing vibefun code, remember:
+
+| # | Rule | Example |
+|---|------|---------|
+| 1 | **Semicolons required** | `let x = 42;` (most common error!) |
+| 2 | **No Int/Float coercion** | Use `Float.fromInt(5) + 2.0` not `5 + 2.0` |
+| 3 | **String concat with `&`** | `"Hello" & " world"` not `"Hello" + " world"` |
+| 4 | **Use `Option<T>` for nullables** | No null/undefined |
+| 5 | **Use `Result<T, E>` for errors** | No exceptions (except in unsafe) |
+| 6 | **Pattern matching exhaustive** | Compiler enforced - cover all cases |
+| 7 | **Mutable refs need `mut`** | `let mut x = ref(0)` not `let x = ref(0)` |
+| 8 | **Record fields need commas** | `{ x: 1, y: 2 }` not `{ x: 1 y: 2 }` |
+| 9 | **FFI needs unsafe blocks** | All JavaScript interop |
+| 10 | **Prefer pipes for composition** | `data \|> f \|> g \|> h` |
+
+### File Structure & Identifiers
 
 ```vibefun
 // Files use .vf extension, UTF-8 encoding
 // Each file is a module
 
-// CRITICAL: Semicolons are REQUIRED between statements/declarations
+// CRITICAL: Semicolons REQUIRED between statements
 let x = 42;
 let y = 10;
 
-// Comments
-// Single-line comment
-/* Multi-line comment
-   (can be nested) */
-```
-
-### Identifiers & Naming Conventions
-
-```vibefun
-// camelCase for values and functions
+// camelCase for values/functions, PascalCase for types/constructors
 let firstName = "Alice";
-let calculateTotal = (items) => ...;
-
-// PascalCase for types and constructors
 type Person = { name: String, age: Int };
 type Result<T, E> = Ok(T) | Err(E);
 
-// Unicode and emoji support
-let café = "coffee";
-let 🚀 = "rocket";
+// Comments: // single-line, /* multi-line (can nest) */
 ```
 
-### Keywords to Know
+### Keywords
 
 ```
 let      mut      type     if       then     else
@@ -68,122 +70,83 @@ catch    while
 
 ---
 
-## 2. Type System Essentials
+## 2. Type System Fundamentals
 
-### Primitive Types
+### Primitives & Type Inference
 
 ```vibefun
-// Core primitives
+// Core types (Hindley-Milner inference)
 let age: Int = 42;
 let price: Float = 19.99;
 let name: String = "Alice";
 let isActive: Bool = true;
-let nothing: Unit = ();  // Unit type written as ()
+let nothing: Unit = ();
 
-// NO automatic coercion between Int and Float!
-let x = 5 + 2.0;  // ❌ ERROR
-let x = Float.fromInt(5) + 2.0;  // ✅ Correct
-```
+// ❌ NO automatic coercion!
+let x = 5 + 2.0;  // ERROR
 
-### Type Inference (Hindley-Milner)
+// ✅ Explicit conversion required
+let x = Float.fromInt(5) + 2.0;
 
-```vibefun
-// Most types are inferred automatically
+// Most types inferred automatically
 let double = (x) => x * 2;  // Inferred: (Int) -> Int or (Float) -> Float
 
-// Type annotations optional but helpful at module boundaries
-export let add = (x: Int, y: Int): Int => x + y;
-
-// Generic type parameters
+// Generics
 let identity = <T>(x: T): T => x;
-let map = <A, B>(f: (A) -> B, list: List<A>): List<B> => ...;
 ```
 
-### Records (Structural Typing)
+### Records (Structural) vs Variants (Nominal)
+
+| Feature | Records | Variants |
+|---------|---------|----------|
+| **Typing** | Structural (shape matters) | Nominal (name matters) |
+| **Definition** | `type P = { name: String }` | `type O<T> = Some(T) \| None` |
+| **Construction** | `{ name: "Alice", age: 30 }` | `Some(42)` or `None` |
+| **Field access** | `p.name` | Pattern match only |
+| **Subtyping** | Width subtyping (extra fields OK) | No subtyping |
 
 ```vibefun
-// Record types use structural typing
+// Records - structural typing
 type Person = { name: String, age: Int };
-
-// Construction (commas required!)
 let alice = { name: "Alice", age: 30 };
+let older = { ...alice, age: 31 };  // Immutable update
+let bob = { name, age };  // Field shorthand
 
-// Field access
-let name = alice.name;
-
-// Immutable update
-let older = { ...alice, age: 31 };
-
-// Field shorthand
-let name = "Bob";
-let age = 25;
-let bob = { name, age };  // Equivalent to { name: name, age: age }
-
-// Width subtyping: extra fields accepted
+// Width subtyping
 let detailed = { name: "Charlie", age: 28, city: "NYC" };
 let person: Person = detailed;  // ✅ OK - has required fields
-```
 
-### Variants (Nominal Typing)
-
-```vibefun
-// Variant types use nominal typing (name matters!)
+// Variants - nominal typing (constructors are functions)
 type Option<T> = Some(T) | None;
-type Result<T, E> = Ok(T) | Err(E);
-
-// Constructors are functions
 let x = Some(42);  // Option<Int>
 let y = None;      // Option<T> (polymorphic)
 
-// Pattern matching required
-match x {
-    | Some(value) => value
-    | None => 0
-}
-
-// Two variants with same structure are DIFFERENT types
+// CRITICAL: Same structure ≠ compatible types
 type MyOption<T> = MySome(T) | MyNone;
 let a: Option<Int> = Some(42);
 let b: MyOption<Int> = MySome(42);
-// a and b are incompatible types!
+// a and b are INCOMPATIBLE!
 ```
 
-### Function Types & Currying
+### Functions & Mutable References
 
 ```vibefun
-// All functions are automatically curried
+// All functions automatically curried
 let add: (Int, Int) -> Int = (x, y) => x + y;
 // Desugars to: (Int) -> (Int) -> Int
 
-// Partial application works naturally
-let add5 = add(5);  // (Int) -> Int
+let add5 = add(5);  // Partial application
 let result = add5(3);  // 8
 
-// Both forms are equivalent:
-let f: (A, B) -> C = ...;
-let g: (A) -> (B) -> C = ...;
-// These are the same type!
-```
-
-### Mutable References
-
-```vibefun
-// Must declare with 'mut' keyword
+// Mutable references (explicit with 'mut' + 'ref')
 let mut counter = ref(0);  // Ref<Int>
-
-// Dereference with !
-let value = !counter;
-
-// Update with :=
-counter := !counter + 1;
-
-// Type annotation
-let mut state: Ref<Option<String>> = ref(None);
+let value = !counter;      // Dereference with !
+counter := !counter + 1;   // Update with :=
 ```
 
 ---
 
-## 3. Common Syntax Patterns
+## 3. Essential Syntax Patterns
 
 ### Variable Bindings
 
@@ -199,33 +162,27 @@ let rec factorial = (n) =>
     if n <= 1 then 1
     else n * factorial(n - 1);
 
-// Mutually recursive functions
+// Mutually recursive
 let rec isEven = (n) =>
-    if n == 0 then true
-    else isOdd(n - 1);
+    if n == 0 then true else isOdd(n - 1);
 and isOdd = (n) =>
-    if n == 0 then false
-    else isEven(n - 1);
+    if n == 0 then false else isEven(n - 1);
 ```
 
-### Functions
+### Functions & Lambdas
 
 ```vibefun
-// Lambda (single param - parens optional)
+// Single param (parens optional)
 let increment = x => x + 1;
-let increment = (x) => x + 1;  // Also valid
 
 // Multi-param (parens required)
 let add = (x, y) => x + y;
 
-// With type annotations
-let divide = (x: Int, y: Int): Int => x / y;
-
-// Block body
+// Block body (last expression is return value)
 let complex = (x) => {
     let doubled = x * 2;
     let squared = doubled * doubled;
-    squared + 1;  // Last expression is return value
+    squared + 1;
 };
 
 // Generic function
@@ -239,37 +196,33 @@ let identity = <T>(x: T): T => x;
 match value {
     | pattern1 => result1
     | pattern2 => result2
-    | _ => default  // Wildcard for catch-all
+    | _ => default  // Wildcard
 }
 
-// Variant patterns
+// Common patterns
+match list {
+    | [] => "empty"
+    | [x] => "single"
+    | [x, ...rest] => "many"
+}
+
 match option {
     | Some(x) => x
     | None => 0
 }
 
-// List patterns
-match list {
-    | [] => "empty"
-    | [x] => "single"
-    | [x, y] => "pair"
-    | [x, ...rest] => "many"
-}
-
-// Record patterns (partial matching OK)
+// Record patterns (partial OK)
 match person {
     | { name, age } => name & " is " & String.fromInt(age)
-    | { status: "active", id } => "Active user: " & String.fromInt(id)
 }
 
 // Nested patterns
 match result {
     | Ok(Some(value)) => value
-    | Ok(None) => 0
-    | Err(e) => -1
+    | Ok(None) | Err(_) => 0
 }
 
-// When guards
+// Guards
 match x {
     | n when n > 0 => "positive"
     | n when n < 0 => "negative"
@@ -280,18 +233,15 @@ match x {
 ### Control Flow
 
 ```vibefun
-// If-then-else (both branches must have same type)
+// If-then-else (both branches same type)
 let max = if x > y then x else y;
 
 // If without else (must return Unit)
-if condition then {
-    doSideEffect();
-};
+if condition then { doSideEffect(); };
 
-// Multi-line if
+// Multi-line
 let result = if check1 then {
-    let temp = compute1();
-    temp * 2;
+    compute1();
 } else if check2 then {
     compute2();
 } else {
@@ -306,131 +256,390 @@ while !i < 10 {
 };
 ```
 
-### Lists
+### Lists & Pipe Operator
 
 ```vibefun
-// List literals
-let empty = [];
+// List construction
 let numbers = [1, 2, 3, 4, 5];
+let list = 1 :: 2 :: 3 :: [];  // Cons operator
+let extended = [0, ...numbers, 6];  // Spread
 
-// Cons operator ::
-let list = 1 :: [2, 3];  // [1, 2, 3]
-let list = 1 :: 2 :: 3 :: [];  // [1, 2, 3]
-
-// Spread operator
-let extended = [0, ...numbers, 6];  // [0, 1, 2, 3, 4, 5, 6]
-
-// Pattern matching
-match list {
-    | [] => 0
-    | [x, ...xs] => x + sum(xs)
-}
-```
-
-### Pipe Operator
-
-```vibefun
-// Forward pipe |> (left-to-right application)
+// Pipe operator |> (left-to-right, idiomatic!)
 let result = data |> parse |> validate |> transform;
 
-// Equivalent to:
-let result = transform(validate(parse(data)));
-
-// Multi-line pipelines (idiomatic!)
+// Multi-line pipelines
 let processed = users
     |> List.filter((u) => u.active)
     |> List.map((u) => u.name)
     |> List.map(String.toUpper)
     |> List.sort;
-
-// With partial application
-let doubled = [1, 2, 3]
-    |> List.map((x) => x * 2);
 ```
 
 ---
 
-## 4. Key Differences from Other Languages
+## 4. Critical Gotchas
 
-### vs. OCaml / F#
+### #1: Missing Semicolons
 
-```vibefun
-// Semicolons REQUIRED (not optional)
-let x = 42;  // ✅
-let y = 10;  // Must have semicolon
-
-// No 'fun' keyword - use arrow functions
-let add = (x, y) => x + y;  // Vibefun
-(* let add = fun x y -> x + y  // OCaml *)
-
-// String concatenation uses &
-let greeting = "Hello" & " " & "world";
-(* OCaml uses ^: "Hello" ^ " " ^ "world" *)
-
-// rec keyword for recursion (like OCaml)
-let rec sum = (list) => match list {
-    | [] => 0
-    | [x, ...xs] => x + sum(xs)
-};
-
-// Width subtyping for records (more flexible)
-let person = { name: "Alice", age: 30, city: "NYC" };
-let basic: { name: String } = person;  // ✅ OK in Vibefun
-```
-
-### vs. Haskell
+**CRITICAL**: Most common syntax error!
 
 ```vibefun
-// Semicolons required (no layout rules)
+// ❌ ERROR
+let x = 42
+let y = 10
+
+// ✅ CORRECT
 let x = 42;
 let y = 10;
 
-// match keyword (not case)
+// Also in blocks
+let result = {
+    let a = 1;  // Required
+    let b = 2;  // Required
+    a + b;      // Optional but recommended
+};
+```
+
+### #2: No Numeric Coercion
+
+```vibefun
+// ❌ ERROR: Cannot mix Int and Float
+let x = 5 + 2.0;
+let y = 3.14 * 2;
+
+// ✅ CORRECT: Explicit conversion
+let x = Float.fromInt(5) + 2.0;  // 7.0
+let y = 3.14 * Float.fromInt(2);  // 6.28
+
+// Int: 10 / 3 = 3 (truncates)
+// Float: 10.0 / 3.0 = 3.333...
+```
+
+### #3: Value Restriction
+
+Polymorphic values must be syntactic values (functions or constructors), not computed expressions.
+
+```vibefun
+// ❌ PROBLEMATIC: Empty list becomes monomorphic at first use
+let empty = [];
+let nums = [1, ...empty];  // T := Int
+let strs = ["a", ...empty];  // ❌ ERROR: empty is now List<Int>
+
+// ✅ SOLUTION: Use function to get polymorphic list
+let empty = <T>(): List<T> => [];
+let nums = [1, ...empty()];  // List<Int>
+let strs = ["a", ...empty()];  // List<String>
+
+// Or just use [] inline
+let nums = [1, ...[]];
+let strs = ["a", ...[]];
+
+// Same issue with refs
+let mut state = ref(None);  // Ref<Option<T>> - T becomes monomorphic
+state := Some(42);  // T := Int
+state := Some("hello");  // ❌ ERROR
+
+// ✅ SOLUTION: Function or use in context
+let makeState = <T>(): Ref<Option<T>> => ref(None);
+```
+
+### #4: Pattern Exhaustiveness
+
+Compiler enforces exhaustive pattern matching.
+
+```vibefun
+// ❌ ERROR: Non-exhaustive
+match list {
+    | [x, ...xs] => x
+}  // Missing [] case
+
+// ✅ CORRECT: Cover all cases
 match list {
     | [] => 0
     | [x, ...xs] => x
 }
 
-// Eager evaluation (not lazy)
-let expensive = computeExpensive();  // Evaluated immediately
-
-// No operator sections - use lambdas
-let increment = (x) => x + 1;  // Not: (+1)
-
-// No do-notation (yet)
+// Use _ for catch-all
+match value {
+    | 0 => "zero"
+    | 1 => "one"
+    | _ => "other"
+}
 ```
 
-### vs. TypeScript / JavaScript
+### #5: Mutable References Require 'mut'
 
 ```vibefun
-// ML-family, not JavaScript-family
-// No for loops - use recursion or List operations
-let sum = (list) => List.fold(list, 0, (acc, x) => acc + x);
+// ❌ ERROR: Missing 'mut' keyword
+let counter = ref(0);
 
-// No automatic type coercion
-let x = 5 + 2.0;  // ❌ ERROR
-let x = Float.fromInt(5) + 2.0;  // ✅
+// ✅ CORRECT
+let mut counter = ref(0);
+let value = !counter;      // Dereference with !
+counter := !counter + 1;   // Update with :=
+```
 
-// No null/undefined - use Option<T>
-let maybeValue: Option<Int> = Some(42);
-let noValue: Option<Int> = None;
+### #6: Record Syntax
 
-// No exceptions - use Result<T, E>
-let divide = (a, b) =>
-    if b == 0 then Err("Division by zero")
-    else Ok(a / b);
+```vibefun
+// ❌ ERROR: Missing commas
+let person = { name: "Alice" age: 30 };
 
-// No classes (yet)
+// ✅ CORRECT: Commas required
+let person = { name: "Alice", age: 30 };
+
+// ❌ ERROR: Trailing comma not allowed
+let person = { name: "Alice", age: 30, };
+
+// ✅ Field shorthand works
+let name = "Bob";
+let age = 25;
+let bob = { name, age };
+```
+
+### #7: String Concatenation
+
+```vibefun
+// ❌ ERROR: + doesn't work for strings
+let greeting = "Hello" + "world";
+
+// ✅ CORRECT: Use & operator
+let greeting = "Hello" & " " & "world";
+let message = "Count: " & String.fromInt(42);
+```
+
+### #8: If Expression Type Matching
+
+```vibefun
+// ❌ ERROR: Branches have different types
+let result = if condition then 42 else "error";
+
+// ✅ CORRECT: Use Result or Option
+let result = if condition then Ok(42) else Err("error");
+
+// ❌ ERROR: Missing else with non-Unit type
+let value = if condition then 42;
+
+// ✅ CORRECT: Provide else branch or return Unit
+let value = if condition then 42 else 0;
+
+// Unit type doesn't need else
+if condition then { doSomething(); };
 ```
 
 ---
 
-## 5. Idiomatic Vibefun Patterns
+## 5. JavaScript Interop
+
+### External Declarations & Unsafe Blocks
+
+```vibefun
+// Single external
+external console_log: (String) -> Unit = "console.log";
+
+// External block
+external {
+    log: (String) -> Unit = "console.log";
+    error: (String) -> Unit = "console.error";
+}
+
+// From module
+external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch";
+
+// All FFI calls must be in unsafe blocks
+unsafe {
+    console_log("Hello from JavaScript!");
+}
+
+// ✅ PATTERN: Wrap unsafe in safe function
+let log = (msg) => unsafe { console_log(msg) };
+log("Safe logging");  // Can call without unsafe
+```
+
+### Opaque Types
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| `JsObject` | Arbitrary JS objects | `document.getElementById` |
+| `Json` | JSON values | `JSON.parse`, `JSON.stringify` |
+| `Promise<T>` | JS promises | `fetch` |
+| `Error` | JS errors | `throw new Error` |
+| `Any` | Escape hatch (use sparingly!) | Unsafe operations |
+
+```vibefun
+external getElementById: (String) -> JsObject = "document.getElementById";
+external JSON_parse: (String) -> Json = "JSON.parse";
+external fetch: (String) -> Promise<Response> = "fetch";
+```
+
+### Safe Wrapping Pattern
+
+```vibefun
+// Declare external
+external js_parseInt: (String, Int) -> Int = "parseInt";
+
+// Wrap in safe function with Result
+let parseNumber = (str) => unsafe {
+    try {
+        let result = js_parseInt(str, 10);
+        Ok(result);
+    } catch (e) {
+        Err("Parse error");
+    }
+};
+
+// Use safely
+match parseNumber("42") {
+    | Ok(n) => n
+    | Err(msg) => 0
+}
+```
+
+---
+
+## 6. Standard Library Quick Reference
+
+> **Full API documentation**: See `docs/spec/11-stdlib/` for complete details.
+
+### List Module
+
+**Core functions**: `map`, `filter`, `fold`, `head`, `tail`, `concat`, `flatten`, `reverse`, `length`, `take`, `drop`, `find`, `sort`
+
+```vibefun
+// Common operations
+List.map(list, fn)           // Transform elements
+List.filter(list, pred)      // Keep matching elements
+List.fold(list, init, fn)    // Reduce to single value
+List.head(list)              // Option<T> - first element
+List.tail(list)              // Option<List<T>> - all but first
+
+// ⚠️ Performance: prepending O(1), appending O(n)
+let fast = 0 :: [1, 2, 3];        // Fast
+let slow = List.concat([1, 2], [3]);  // Slower
+```
+
+**See**: `docs/spec/11-stdlib/list.md`
+
+### Option Module
+
+**Core functions**: `map`, `flatMap`, `filter`, `unwrapOr`, `isSome`, `isNone`
+
+```vibefun
+type Option<T> = Some(T) | None;
+
+Option.map(opt, fn)          // Transform if Some
+Option.flatMap(opt, fn)      // Chain operations
+Option.unwrapOr(opt, default) // Get value or default
+```
+
+**See**: `docs/spec/11-stdlib/option.md`
+
+### Result Module
+
+**Core functions**: `map`, `mapErr`, `flatMap`, `unwrapOr`, `isOk`, `isErr`
+
+```vibefun
+type Result<T, E> = Ok(T) | Err(E);
+
+Result.map(result, fn)       // Transform success
+Result.mapErr(result, fn)    // Transform error
+Result.flatMap(result, fn)   // Chain operations
+Result.unwrapOr(result, default)
+```
+
+**See**: `docs/spec/11-stdlib/result.md`
+
+### Conversions
+
+| From | To | Function | Returns |
+|------|-----|----------|---------|
+| Int | Float | `Float.fromInt(42)` | `42.0` |
+| Float | Int | `Int.fromFloat(3.14)` | `3` (truncates) |
+| Int | String | `String.fromInt(42)` | `"42"` |
+| String | Int | `Int.fromString("42")` | `Some(42)` |
+| Float | String | `String.fromFloat(3.14)` | `"3.14"` |
+| String | Float | `Float.fromString("3.14")` | `Some(3.14)` |
+| Bool | String | `String.fromBool(true)` | `"true"` |
+
+### String Module
+
+**Core functions**: `length`, `toUpper`, `toLower`, `trim`, `contains`, `startsWith`, `endsWith`, `split`, `join`, `substring`, `charAt`
+
+```vibefun
+"Hello" & " " & "world"           // Concatenation
+String.split("a,b,c", ",")        // ["a", "b", "c"]
+String.join(["a", "b"], ",")      // "a,b"
+String.contains("hello", "ell")   // true
+```
+
+**See**: `docs/spec/11-stdlib/string.md`, `array.md`, `map.md`, `set.md`, `math.md`, `json.md`
+
+---
+
+## 7. Module System
+
+### Imports & Exports
+
+```vibefun
+// Named imports
+import { map, filter } from './list';
+import { type Person, getUser } from './api';
+
+// Namespace imports
+import * as List from './list';
+import * as Utils from './utils';
+
+// Type-only imports
+import type { User, Profile } from './types';
+
+// Relative paths
+import { helper } from './utils';           // ./utils.vf
+import { config } from '../config';         // ../config.vf
+import { component } from '../../components/button';
+
+// Package imports
+import { Option, Result } from 'vibefun/std';
+import { Http } from '@myorg/http';
+```
+
+```vibefun
+// Export bindings
+export let add = (x, y) => x + y;
+export type Person = { name: String, age: Int };
+
+// Re-export
+export { map, filter } from './list';
+export type { User } from './types';
+export * from './utils';  // Re-export all
+```
+
+### Module Organization (Barrel Pattern)
+
+```vibefun
+// File: src/user/types.vf
+export type User = { id: Int, name: String };
+export type UserError = NotFound | InvalidEmail;
+
+// File: src/user/api.vf
+import type { User, UserError } from './types';
+export let getUser = (id): Result<User, UserError> => { ... };
+
+// File: src/user/index.vf (barrel export)
+export type { User, UserError } from './types';
+export { getUser, createUser } from './api';
+
+// File: src/main.vf
+import { type User, getUser } from './user';  // Imports from index.vf
+```
+
+---
+
+## 8. Idiomatic Patterns
 
 ### Error Handling with Result
 
 ```vibefun
-// Define error type
+// Define error variants
 type Error = NotFound | InvalidInput(String) | NetworkError(String);
 
 // Return Result from fallible operations
@@ -438,38 +647,35 @@ let divide = (a, b) =>
     if b == 0 then Err(InvalidInput("Division by zero"))
     else Ok(a / b);
 
-// Chain operations
+// Chain operations with flatMap
 let result = divide(10, 2)
     |> Result.flatMap((x) => divide(x, 3))
     |> Result.map((x) => x * 2);
 
-// Pattern match to handle
+// Handle with pattern matching
 match result {
     | Ok(value) => "Success: " & String.fromFloat(value)
-    | Err(NotFound) => "Not found"
     | Err(InvalidInput(msg)) => "Invalid: " & msg
     | Err(NetworkError(msg)) => "Network error: " & msg
+    | Err(NotFound) => "Not found"
 }
 ```
 
-### Option for Nullable Values
+### Data Transformation Pipelines
 
 ```vibefun
-// Use Option instead of null
-let findFirst = <T>(list: List<T>, pred: (T) -> Bool): Option<T> =>
-    match list {
-        | [] => None
-        | [x, ...xs] => if pred(x) then Some(x) else findFirst(xs, pred)
-    };
+// Idiomatic: use pipes for clarity
+let result = users
+    |> List.filter((u) => u.active)
+    |> List.map((u) => u.name)
+    |> List.map(String.toUpper)
+    |> List.sort;
 
-// Chain with flatMap
-let result = getUser(id)
-    |> Option.flatMap((u) => getProfile(u.profileId))
-    |> Option.flatMap((p) => getAvatar(p.avatarId))
-    |> Option.map((a) => a.url);
-
-// Provide default
-let name = Option.unwrapOr(maybeName, "Unknown");
+// Complex transformations
+let summary = transactions
+    |> List.filter((t) => t.amount > 100.0)
+    |> List.map((t) => { ...t, amount: t.amount * 1.1 })
+    |> List.fold(0.0, (acc, t) => acc + t.amount);
 ```
 
 ### Recursion Over Loops
@@ -481,7 +687,7 @@ let rec sum = (list) => match list {
     | [x, ...xs] => x + sum(xs)
 };
 
-// Tail recursion when possible
+// Tail recursion for large data
 let sum = (list) => {
     let rec go = (acc, items) => match items {
         | [] => acc
@@ -492,13 +698,6 @@ let sum = (list) => {
 
 // Or use fold
 let sum = (list) => List.fold(list, 0, (acc, x) => acc + x);
-
-// While loops only when necessary (imperative code)
-let mut counter = ref(0);
-while !counter < 10 {
-    performSideEffect(!counter);
-    counter := !counter + 1;
-};
 ```
 
 ### Type-Driven Development
@@ -507,9 +706,8 @@ while !counter < 10 {
 // Define types first
 type User = { id: Int, name: String, email: String };
 type UserError = NotFound | InvalidEmail | DatabaseError(String);
-type UserResult = Result<User, UserError>;
 
-// Let type inference work for you
+// Let type inference guide implementation
 let validateEmail = (email) =>
     if String.contains(email, "@") then Ok(email)
     else Err(InvalidEmail);
@@ -521,468 +719,6 @@ let createUser = (name, email) =>
         name,
         email: validEmail
     });
-```
-
-### Data Transformation Pipelines
-
-```vibefun
-// Idiomatic: use pipes for clarity
-let result = data
-    |> parse
-    |> validate
-    |> transform
-    |> format;
-
-// With List operations
-let activeUserNames = users
-    |> List.filter((u) => u.active)
-    |> List.map((u) => u.name)
-    |> List.sort;
-
-// Complex transformations
-let summary = transactions
-    |> List.filter((t) => t.amount > 100.0)
-    |> List.groupBy((t) => t.category)
-    |> List.map((category, items) => {
-        category,
-        total: List.sum(List.map(items, (t) => t.amount))
-    });
-```
-
----
-
-## 6. Common Gotchas & Edge Cases
-
-### #1 Gotcha: Missing Semicolons
-
-```vibefun
-// ❌ ERROR: Missing semicolons
-let x = 42
-let y = 10
-
-// ✅ CORRECT: Semicolons required
-let x = 42;
-let y = 10;
-
-// Also applies to expressions in blocks
-let result = {
-    let a = 1;  // Need semicolon
-    let b = 2;  // Need semicolon
-    a + b;      // Last expression - semicolon optional but recommended
-};
-```
-
-### #2 Gotcha: No Numeric Coercion
-
-```vibefun
-// ❌ ERROR: Cannot mix Int and Float
-let x = 5 + 2.0;
-let y = 3.14 * 2;
-
-// ✅ CORRECT: Explicit conversion required
-let x = Float.fromInt(5) + 2.0;  // 7.0
-let y = 3.14 * Float.fromInt(2);  // 6.28
-
-// Int operations
-let a = 5 + 2;  // 7 (Int)
-let b = 10 / 3;  // 3 (Int division)
-
-// Float operations
-let c = 5.0 + 2.0;  // 7.0 (Float)
-let d = 10.0 / 3.0;  // 3.333... (Float division)
-```
-
-### #3 Gotcha: Value Restriction
-
-```vibefun
-// ❌ PROBLEMATIC: Empty list is monomorphic
-let empty = [];  // List<T> but T becomes fixed at first use
-let nums = [1, ...empty];  // T := Int
-let strs = ["a", ...empty];  // ❌ ERROR: empty is already List<Int>
-
-// ✅ SOLUTION: Use function to get polymorphic empty list
-let empty = <T>(): List<T> => [];
-let nums = [1, ...empty()];  // List<Int>
-let strs = ["a", ...empty()];  // List<String>
-
-// Or just use [] directly where needed
-let nums = [1, ...[]];
-let strs = ["a", ...[]];
-
-// Similar issue with refs
-let mut state = ref(None);  // Ref<Option<T>> - T becomes monomorphic
-state := Some(42);  // T := Int
-state := Some("hello");  // ❌ ERROR
-
-// ✅ SOLUTION: Eta-expand or use in context
-let makeState = <T>(): Ref<Option<T>> => ref(None);
-```
-
-### #4 Gotcha: Pattern Exhaustiveness
-
-```vibefun
-// ❌ ERROR: Non-exhaustive pattern match
-match list {
-    | [x, ...xs] => x
-}  // Missing [] case
-
-// ✅ CORRECT: Cover all cases
-match list {
-    | [] => 0
-    | [x, ...xs] => x
-}
-
-// Compiler enforces exhaustiveness
-match option {
-    | Some(x) => x
-    // ❌ Must handle None case
-}
-
-// Use _ for catch-all
-match value {
-    | 0 => "zero"
-    | 1 => "one"
-    | _ => "other"
-}
-```
-
-### #5 Gotcha: Mutable References Require 'mut'
-
-```vibefun
-// ❌ ERROR: Missing 'mut' keyword
-let counter = ref(0);
-
-// ✅ CORRECT: Must use 'mut'
-let mut counter = ref(0);
-
-// Dereference with !
-let value = !counter;
-
-// Update with :=
-counter := !counter + 1;
-
-// Type annotation
-let mut state: Ref<Int> = ref(0);
-```
-
-### #6 Gotcha: Record Syntax
-
-```vibefun
-// ❌ ERROR: Missing commas in record
-let person = { name: "Alice" age: 30 };
-
-// ✅ CORRECT: Commas required
-let person = { name: "Alice", age: 30 };
-
-// ❌ ERROR: Trailing comma not allowed (currently)
-let person = { name: "Alice", age: 30, };
-
-// Field shorthand works
-let name = "Bob";
-let age = 25;
-let bob = { name, age };  // ✅ OK
-```
-
-### #7 Gotcha: String Concatenation
-
-```vibefun
-// ❌ ERROR: + doesn't work for strings
-let greeting = "Hello" + "world";
-
-// ✅ CORRECT: Use & operator
-let greeting = "Hello" & " " & "world";
-
-// Converting to string
-let message = "Count: " & String.fromInt(42);
-let price = "Price: $" & String.fromFloat(19.99);
-```
-
-### #8 Gotcha: If Expressions Must Match Types
-
-```vibefun
-// ❌ ERROR: Branches return different types
-let result = if condition then 42 else "error";
-
-// ✅ CORRECT: Use Result or Option
-let result = if condition then Ok(42) else Err("error");
-
-// ❌ ERROR: Missing else with non-Unit type
-let value = if condition then 42;
-
-// ✅ CORRECT: Provide else branch
-let value = if condition then 42 else 0;
-
-// ✅ Or if you want side effect only (Unit type)
-if condition then {
-    doSomething();
-};  // No else needed - returns Unit
-```
-
----
-
-## 7. JavaScript Interop
-
-### External Declarations
-
-```vibefun
-// Single external function
-external console_log: (String) -> Unit = "console.log";
-
-// External block (multiple declarations)
-external {
-    log: (String) -> Unit = "console.log";
-    error: (String) -> Unit = "console.error";
-    warn: (String) -> Unit = "console.warn";
-}
-
-// From specific module
-external fetch: (String) -> Promise<Response> = "fetch" from "node-fetch";
-external readFile: (String) -> Promise<String> = "readFile" from "fs/promises";
-
-// Aliasing
-external print: (String) -> Unit = "console.log" as "print";
-
-// Overloading (arity-based)
-external setTimeout: ((Unit) -> Unit, Int) -> TimeoutId = "setTimeout";
-external setTimeout: ((Unit) -> Unit, Int, Any) -> TimeoutId = "setTimeout";
-```
-
-### Unsafe Blocks
-
-```vibefun
-// All FFI calls must be in unsafe blocks
-unsafe {
-    console_log("Hello from JavaScript!");
-}
-
-// Encapsulate unsafe in safe wrapper
-let log = (msg) => unsafe {
-    console_log(msg);
-};
-
-// Now can call without unsafe
-log("Safe logging");
-
-// JavaScript try/catch (only in unsafe blocks)
-let safeOperation = () => unsafe {
-    try {
-        riskyJsFunction();
-        Ok(());
-    } catch (error) {
-        Err(error);
-    }
-};
-```
-
-### Opaque Types for JS Interop
-
-```vibefun
-// JsObject - arbitrary JavaScript objects
-external getElementById: (String) -> JsObject = "document.getElementById";
-
-// Json - JSON values
-external JSON_parse: (String) -> Json = "JSON.parse";
-external JSON_stringify: (Json) -> String = "JSON.stringify";
-
-// Promise - JavaScript promises
-external fetch: (String) -> Promise<Response> = "fetch";
-
-// Error - JavaScript errors
-external throwError: (String) -> Error = "throw new Error";
-
-// Any - escape hatch (use sparingly!)
-external dangerousOperation: (Any) -> Any = "someJsFunction";
-```
-
-### Common Interop Patterns
-
-```vibefun
-// Wrapping console functions
-external {
-    js_log: (String) -> Unit = "console.log";
-    js_error: (String) -> Unit = "console.error";
-}
-
-let log = (msg) => unsafe { js_log(msg) };
-let logError = (msg) => unsafe { js_error(msg) };
-
-// Working with Promises
-external js_fetch: (String) -> Promise<Response> = "fetch";
-
-let fetchData = (url) => unsafe {
-    js_fetch(url);
-};
-
-// Converting between types
-external js_parseInt: (String, Int) -> Int = "parseInt";
-
-let parseNumber = (str) => unsafe {
-    try {
-        let result = js_parseInt(str, 10);
-        Ok(result);
-    } catch (e) {
-        Err("Parse error");
-    }
-};
-```
-
----
-
-## 8. Standard Library Overview
-
-### List Module
-
-```vibefun
-// Construction
-let numbers = [1, 2, 3, 4, 5];
-let empty = [];
-
-// Common operations
-List.map([1, 2, 3], (x) => x * 2);  // [2, 4, 6]
-List.filter([1, 2, 3, 4], (x) => x % 2 == 0);  // [2, 4]
-List.fold([1, 2, 3], 0, (acc, x) => acc + x);  // 6
-
-// Accessing elements
-List.head([1, 2, 3]);  // Some(1)
-List.tail([1, 2, 3]);  // Some([2, 3])
-List.head([]);  // None
-
-// Combining lists
-List.concat([1, 2], [3, 4]);  // [1, 2, 3, 4]
-List.flatten([[1, 2], [3, 4], [5]]);  // [1, 2, 3, 4, 5]
-
-// Other utilities
-List.reverse([1, 2, 3]);  // [3, 2, 1]
-List.length([1, 2, 3]);  // 3
-List.take([1, 2, 3, 4], 2);  // [1, 2]
-List.drop([1, 2, 3, 4], 2);  // [3, 4]
-
-// Performance: prepending O(1), appending O(n)
-let fast = 0 :: [1, 2, 3];  // Fast
-let slow = List.concat([1, 2, 3], [4]);  // Slower
-```
-
-### Option Module
-
-```vibefun
-// Type definition
-type Option<T> = Some(T) | None;
-
-// Creating options
-let hasValue = Some(42);
-let noValue = None;
-
-// Transforming
-Option.map(Some(5), (x) => x * 2);  // Some(10)
-Option.map(None, (x) => x * 2);  // None
-
-// Chaining
-Option.flatMap(Some(5), (x) => Some(x * 2));  // Some(10)
-Option.flatMap(None, (x) => Some(x * 2));  // None
-
-// Getting values
-Option.unwrap(Some(42), 0);  // 42
-Option.unwrap(None, 0);  // 0
-
-Option.unwrapOr(Some(42), 0);  // 42
-Option.unwrapOr(None, 0);  // 0
-
-// Checking
-Option.isSome(Some(42));  // true
-Option.isNone(None);  // true
-```
-
-### Result Module
-
-```vibefun
-// Type definition
-type Result<T, E> = Ok(T) | Err(E);
-
-// Creating results
-let success = Ok(42);
-let failure = Err("Something went wrong");
-
-// Transforming success
-Result.map(Ok(5), (x) => x * 2);  // Ok(10)
-Result.map(Err("error"), (x) => x * 2);  // Err("error")
-
-// Transforming errors
-Result.mapErr(Err("error"), (e) => "Failed: " & e);  // Err("Failed: error")
-
-// Chaining operations
-Result.flatMap(Ok(10), (x) => Ok(x / 2));  // Ok(5)
-Result.flatMap(Err("error"), (x) => Ok(x / 2));  // Err("error")
-
-// Unwrapping
-Result.unwrap(Ok(42), 0);  // 42
-Result.unwrap(Err("error"), 0);  // 0
-```
-
-### Numeric Conversions
-
-```vibefun
-// Int <-> Float
-Float.fromInt(42);  // 42.0
-Int.fromFloat(3.14);  // 3 (truncates)
-Int.fromFloat(3.9);  // 3 (truncates, doesn't round)
-
-// Int <-> String
-String.fromInt(42);  // "42"
-Int.fromString("42");  // Some(42)
-Int.fromString("not a number");  // None
-
-// Float <-> String
-String.fromFloat(3.14);  // "3.14"
-Float.fromString("3.14");  // Some(3.14)
-Float.fromString("invalid");  // None
-
-// Bool <-> String
-String.fromBool(true);  // "true"
-Bool.fromString("true");  // Some(true)
-Bool.fromString("yes");  // None (only "true"/"false" supported)
-```
-
-### String Module
-
-```vibefun
-// Concatenation
-"Hello" & " " & "world";  // "Hello world"
-
-// Common operations
-String.length("hello");  // 5
-String.toUpper("hello");  // "HELLO"
-String.toLower("HELLO");  // "hello"
-String.trim("  hello  ");  // "hello"
-
-// Searching
-String.contains("hello world", "world");  // true
-String.startsWith("hello", "hel");  // true
-String.endsWith("hello", "lo");  // true
-
-// Splitting and joining
-String.split("a,b,c", ",");  // ["a", "b", "c"]
-String.join(["a", "b", "c"], ",");  // "a,b,c"
-
-// Substrings
-String.substring("hello", 1, 4);  // "ell"
-String.charAt("hello", 1);  // Some("e")
-```
-
----
-
-## 9. Common Daily Patterns
-
-### Safe Division
-
-```vibefun
-let safeDivide = (a, b) =>
-    if b == 0 then None
-    else Some(a / b);
-
-// With Result
-let divideOrError = (a, b) =>
-    if b == 0 then Err("Division by zero")
-    else Ok(a / b);
 ```
 
 ### Optional Chaining
@@ -998,32 +734,15 @@ let getDisplayName = (userId) =>
 // With Result
 let processUser = (userId) =>
     getUser(userId)
-    |> Result.flatMap((u) => validateUser(u))
-    |> Result.flatMap((u) => updateUser(u))
+    |> Result.flatMap(validateUser)
+    |> Result.flatMap(updateUser)
     |> Result.map((u) => u.id);
-```
-
-### Data Transformation Pipeline
-
-```vibefun
-// Process collection
-let result = users
-    |> List.filter((u) => u.active)
-    |> List.map((u) => u.name)
-    |> List.map(String.toUpper)
-    |> List.sort;
-
-// With intermediate processing
-let summary = transactions
-    |> List.filter((t) => t.amount > 100.0)
-    |> List.map((t) => { ...t, amount: t.amount * 1.1 })
-    |> List.fold(0.0, (acc, t) => acc + t.amount);
 ```
 
 ### Building Complex Records
 
 ```vibefun
-// Using field shorthand
+// Field shorthand
 let makePerson = (name, age, email) => {
     name,
     age,
@@ -1032,192 +751,46 @@ let makePerson = (name, age, email) => {
     id: generateId()
 };
 
-// Conditional fields (use Option or match)
-let makeUser = (name, age, maybeEmail) => {
-    let baseUser = { name, age, id: generateId() };
+// Conditional fields
+let makeUser = (name, maybeEmail) =>
     match maybeEmail {
-        | Some(email) => { ...baseUser, email: Some(email) }
-        | None => { ...baseUser, email: None }
+        | Some(email) => { name, email: Some(email), id: generateId() }
+        | None => { name, email: None, id: generateId() }
     };
-};
-```
-
-### Recursive Processing
-
-```vibefun
-// Tree traversal
-let rec sumTree = (tree) => match tree {
-    | Leaf(value) => value
-    | Node(left, right) => sumTree(left) + sumTree(right)
-};
-
-// Tail-recursive accumulation
-let sumList = (list) => {
-    let rec go = (acc, items) => match items {
-        | [] => acc
-        | [x, ...xs] => go(acc + x, xs)
-    };
-    go(0, list);
-};
-
-// Mutual recursion
-let rec processEven = (list) => match list {
-    | [] => []
-    | [x, ...xs] => [x * 2, ...processOdd(xs)]
-};
-and processOdd = (list) => match list {
-    | [] => []
-    | [x, ...xs] => [x + 1, ...processEven(xs)]
-};
-```
-
-### Error Accumulation
-
-```vibefun
-// Collect all errors vs fail fast
-let validateAll = (items) => {
-    let rec go = (acc, remaining) => match remaining {
-        | [] => Ok(List.reverse(acc))
-        | [item, ...rest] =>
-            match validate(item) {
-                | Ok(validated) => go([validated, ...acc], rest)
-                | Err(e) => Err(e)  // Fail fast
-            }
-    };
-    go([], items);
-};
-
-// Accumulate errors
-type Validation<T> = Valid(T) | Invalid(List<String>);
-
-let combineValidations = (validations) =>
-    validations
-    |> List.fold(Valid([]), (acc, v) => match (acc, v) {
-        | (Valid(items), Valid(item)) => Valid([item, ...items])
-        | (Valid(_), Invalid(errs)) => Invalid(errs)
-        | (Invalid(errs1), Invalid(errs2)) => Invalid(List.concat(errs1, errs2))
-        | (Invalid(errs), Valid(_)) => Invalid(errs)
-    });
 ```
 
 ---
 
-## 10. Module System
+## 9. Differences from Other Languages
 
-### Imports
+### Quick Comparison
 
-```vibefun
-// Named imports
-import { map, filter, fold } from './list';
-import { type Person, getUser } from './api';
+**vs. OCaml/F#:**
+- ✅ Semicolons REQUIRED (not optional)
+- ✅ Arrow functions `(x) => ...` (no `fun` keyword)
+- ✅ String concat with `&` (not `^` or `+`)
+- ✅ Width subtyping for records (more flexible)
+- ✅ `rec` keyword for recursion (same as OCaml)
 
-// Everything as namespace
-import * as List from './list';
-import * as Utils from './utils';
+**vs. Haskell:**
+- ✅ Semicolons required (no layout rules)
+- ✅ `match` keyword (not `case`)
+- ✅ Eager evaluation (not lazy)
+- ✅ No operator sections - use lambdas `(x) => x + 1` not `(+1)`
 
-// Type-only imports
-import type { User, Profile } from './types';
-
-// Mixed imports
-import { type User, type Profile, getUser, updateUser } from './api';
-
-// Relative paths
-import { helper } from './utils';
-import { config } from '../config';
-import { component } from '../../components/button';
-
-// Package imports
-import { Option, Result } from 'vibefun/std';
-import { Http } from '@myorg/http';
-```
-
-### Exports
-
-```vibefun
-// Export value bindings
-export let add = (x, y) => x + y;
-export let multiply = (x, y) => x * y;
-
-// Export type definitions
-export type Person = { name: String, age: Int };
-export type Result<T, E> = Ok(T) | Err(E);
-
-// Re-export from other modules
-export { map, filter } from './list';
-export type { User } from './types';
-
-// Re-export everything
-export * from './utils';
-
-// Export with alias
-export { internalName as publicName } from './internal';
-```
-
-### Module Organization
-
-```vibefun
-// File: src/user/types.vf
-export type User = { id: Int, name: String, email: String };
-export type UserError = NotFound | InvalidEmail;
-
-// File: src/user/api.vf
-import type { User, UserError } from './types';
-
-export let getUser = (id: Int): Result<User, UserError> => {
-    // Implementation
-};
-
-export let createUser = (name: String, email: String): Result<User, UserError> => {
-    // Implementation
-};
-
-// File: src/user/index.vf (barrel export)
-export type { User, UserError } from './types';
-export { getUser, createUser, updateUser, deleteUser } from './api';
-
-// File: src/main.vf
-import { type User, getUser } from './user';  // Imports from index.vf
-```
-
-### Module Resolution
-
-```vibefun
-// Relative imports
-import { x } from './module';  // ./module.vf or ./module/index.vf
-import { y } from '../parent';  // ../parent.vf
-import { z } from './nested/deep';  // ./nested/deep.vf
-
-// Package imports (from node_modules or vibefun packages)
-import { Option } from 'vibefun/std';
-import { Http } from '@myorg/http';
-
-// .vf extension optional in imports (required on filesystem)
-import { x } from './module';  // Looks for module.vf
-import { x } from './module.vf';  // Also valid
-```
-
----
-
-## Quick Reference Checklist
-
-Before writing vibefun code, remember:
-
-1. **✅ Semicolons required** - Most common syntax error!
-2. **✅ No Int/Float coercion** - Use explicit conversion
-3. **✅ String concatenation with `&`** - Not `+`
-4. **✅ Use `Option<T>` for nullables** - No null/undefined
-5. **✅ Use `Result<T, E>` for errors** - No exceptions (except in unsafe)
-6. **✅ Pattern matching must be exhaustive** - Compiler enforced
-7. **✅ Mutable refs need `mut` keyword** - `let mut x = ref(0)`
-8. **✅ Record fields need commas** - `{ x: 1, y: 2 }`
-9. **✅ FFI calls need unsafe blocks** - JavaScript interop
-10. **✅ Prefer pipes for composition** - `data |> f |> g |> h`
+**vs. TypeScript/JavaScript:**
+- ✅ ML-family, not JavaScript-family
+- ✅ No for loops - use recursion or List operations
+- ✅ No automatic coercion (`5 + 2.0` is an error)
+- ✅ No null/undefined - use `Option<T>`
+- ✅ No exceptions - use `Result<T, E>`
+- ✅ No classes (records + variants instead)
 
 ---
 
 ## Additional Resources
 
-- **Language Specification**: `./docs/spec/` - Complete language reference
+- **Language Specification**: `./docs/spec/` - Complete language reference (start with `.agent-map.md`)
 - **Examples**: `./examples/` - Sample vibefun programs
 - **Coding Standards**: `./.claude/CODING_STANDARDS.md` - Project conventions
 - **Project Overview**: `./CLAUDE.md` - Architecture and design decisions
