@@ -277,13 +277,11 @@ function parseLetDecl(parser: ParserBase, exported: boolean): Declaration {
 }
 
 /**
- * Parse type declaration
- * Syntax: type Name<T, U> = definition
+ * Parse type declaration body (without consuming 'type' keyword)
+ * Syntax: Name<T, U> = definition
+ * Used internally by parseTypeDecl and for 'and' keyword chaining
  */
-function parseTypeDecl(parser: ParserBase, exported: boolean): Declaration {
-    const startLoc = parser.peek().loc;
-    parser.advance(); // consume 'type'
-
+export function parseTypeDeclBody(parser: ParserBase, exported: boolean, startLoc: Location): Declaration {
     // Parse type name
     const nameToken = parser.expect("IDENTIFIER", "Expected type name");
     const name = nameToken.value as string;
@@ -328,6 +326,17 @@ function parseTypeDecl(parser: ParserBase, exported: boolean): Declaration {
         exported,
         loc: startLoc,
     };
+}
+
+/**
+ * Parse type declaration
+ * Syntax: type Name<T, U> = definition
+ */
+function parseTypeDecl(parser: ParserBase, exported: boolean): Declaration {
+    const startLoc = parser.peek().loc;
+    parser.advance(); // consume 'type'
+
+    return parseTypeDeclBody(parser, exported, startLoc);
 }
 
 /**

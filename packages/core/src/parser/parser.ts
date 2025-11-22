@@ -124,6 +124,34 @@ export class Parser extends ParserBase {
                     declarations.push(decl);
                 }
 
+                // Handle mutually recursive types with 'and' keyword
+                // type Expr = ... and Pattern = ...;
+                if (decl.kind === "TypeDecl") {
+                    const exportedStatus = decl.exported;
+
+                    while (true) {
+                        // Skip newlines after type declaration
+                        while (this.match("NEWLINE"));
+
+                        // Check for 'and' keyword
+                        if (this.check("KEYWORD") && this.peek().value === "and") {
+                            const andLoc = this.peek().loc;
+                            this.advance(); // consume 'and'
+
+                            // Skip newlines after 'and'
+                            while (this.match("NEWLINE"));
+
+                            // Parse type declaration body (without 'type' keyword)
+                            // Inherits exported status from first type
+                            const nextDecl = Declarations.parseTypeDeclBody(this, exportedStatus, andLoc);
+
+                            declarations.push(nextDecl);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
                 // Skip newlines before semicolon (for multi-line declarations)
                 while (this.match("NEWLINE"));
 

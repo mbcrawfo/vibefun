@@ -328,7 +328,7 @@ describe("Recursive Types", () => {
     });
 
     describe("mutually recursive types (with and keyword)", () => {
-        it.skip("should parse mutually recursive expression and pattern types", () => {
+        it("should parse mutually recursive expression and pattern types", () => {
             const source = `
                 type Expr = Lit(Int) | Var(String) | Lambda(Pattern, Expr) | App(Expr, Expr)
                 and Pattern = PWildcard | PVar(String) | PCons(Pattern, Pattern) | PExpr(Expr);
@@ -380,7 +380,7 @@ describe("Recursive Types", () => {
             }
         });
 
-        it.skip("should parse multiple mutually recursive types", () => {
+        it("should parse multiple mutually recursive types", () => {
             const source = `
                 type A = ConsA(B)
                 and B = ConsB(C)
