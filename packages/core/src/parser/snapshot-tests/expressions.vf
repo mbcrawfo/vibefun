@@ -44,5 +44,4 @@ let computed = {
 };
 
 // Mutable binding
-// NOTE: Spec says this should be `ref(0)`, but parser currently accepts direct values
-let mut counter = 0;
+let mut counter = ref(0);

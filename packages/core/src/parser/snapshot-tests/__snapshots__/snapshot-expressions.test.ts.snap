@@ -1205,8 +1205,8 @@ exports[`Parser Snapshot - Expressions > should parse expressions.vf 1`] = `
       "loc": {
         "column": 1,
         "file": "expressions.vf",
-        "line": 48,
-        "offset": 810,
+        "line": 47,
+        "offset": 723,
       },
       "mutable": true,
       "pattern": {
@@ -1214,21 +1214,42 @@ exports[`Parser Snapshot - Expressions > should parse expressions.vf 1`] = `
         "loc": {
           "column": 9,
           "file": "expressions.vf",
-          "line": 48,
-          "offset": 818,
+          "line": 47,
+          "offset": 731,
         },
         "name": "counter",
       },
       "recursive": false,
       "value": {
-        "kind": "IntLit",
+        "args": [
+          {
+            "kind": "IntLit",
+            "loc": {
+              "column": 23,
+              "file": "expressions.vf",
+              "line": 47,
+              "offset": 745,
+            },
+            "value": 0,
+          },
+        ],
+        "func": {
+          "kind": "Var",
+          "loc": {
+            "column": 19,
+            "file": "expressions.vf",
+            "line": 47,
+            "offset": 741,
+          },
+          "name": "ref",
+        },
+        "kind": "App",
         "loc": {
           "column": 19,
           "file": "expressions.vf",
-          "line": 48,
-          "offset": 828,
+          "line": 47,
+          "offset": 741,
         },
-        "value": 0,
       },
     },
   ],
