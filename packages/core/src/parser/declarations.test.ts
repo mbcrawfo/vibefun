@@ -173,6 +173,24 @@ describe("Parser - Declarations", () => {
             expect(() => parseDecl("let mut x = None;")).toThrow("Mutable bindings must use ref() syntax");
         });
 
+        it("should reject mut bindings with record destructuring", () => {
+            expect(() => parseDecl("let mut { x, y } = ref({ x: 1, y: 2 });")).toThrow(
+                "Mutable bindings can only use simple variable patterns",
+            );
+        });
+
+        it("should reject mut bindings with list destructuring", () => {
+            expect(() => parseDecl("let mut [head, ...tail] = ref([1, 2, 3]);")).toThrow(
+                "Mutable bindings can only use simple variable patterns",
+            );
+        });
+
+        it("should reject mut bindings with tuple destructuring", () => {
+            expect(() => parseDecl("let mut (x, y) = ref((1, 2));")).toThrow(
+                "Mutable bindings can only use simple variable patterns",
+            );
+        });
+
         it("should accept ref() with type annotations", () => {
             const decl = parseDecl("let mut x: Ref<Int> = ref(0);");
             expect(decl).toMatchObject({
