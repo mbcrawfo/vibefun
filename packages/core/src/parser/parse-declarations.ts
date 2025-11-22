@@ -627,6 +627,7 @@ function parseExternalBlockItem(parser: ParserBase): ExternalBlockItem {
  * Parse import declaration
  * Syntax: import { name, type T, name as alias } from "module"
  *         import * as Name from "module"
+ *         import type * as Name from "module"
  */
 function parseImportDecl(parser: ParserBase): Declaration {
     const startLoc = parser.peek().loc;
@@ -634,12 +635,26 @@ function parseImportDecl(parser: ParserBase): Declaration {
 
     const items: ImportItem[] = [];
 
-    // import * as Name
+    // Check for 'import type' before * or {
+    let importIsType = false;
+    if (parser.check("KEYWORD") && parser.peek().value === "type") {
+        importIsType = true;
+        parser.advance(); // consume 'type'
+    }
+
+    // import * as Name or import type * as Name
     if (parser.match("OP_STAR")) {
-        parser.expect("KEYWORD", "Expected 'as' after '*'");
-        if (parser.peek(-1).value !== "as") {
-            throw parser.error("Expected 'as' after '*'", parser.peek(-1).loc);
+        // Check for 'as' keyword (could be KEYWORD or IDENTIFIER depending on lexer)
+        const asToken = parser.peek();
+        if (
+            !(
+                (asToken.type === "KEYWORD" && asToken.value === "as") ||
+                (asToken.type === "IDENTIFIER" && asToken.value === "as")
+            )
+        ) {
+            throw parser.error("Expected 'as' after '*'", asToken.loc);
         }
+        parser.advance(); // consume 'as'
 
         const aliasToken = parser.expect("IDENTIFIER", "Expected alias name");
         const alias = aliasToken.value as string;
@@ -647,15 +662,15 @@ function parseImportDecl(parser: ParserBase): Declaration {
         items.push({
             name: "*",
             alias,
-            isType: false,
+            isType: importIsType,
         });
     }
-    // import { ... }
+    // import { ... } or import type { ... }
     else if (parser.match("LBRACE")) {
         do {
-            // Check for type import
-            let isType = false;
-            if (parser.check("KEYWORD") && parser.peek().value === "type") {
+            // Check for per-item type import (only if not already import type)
+            let isType = importIsType;
+            if (!importIsType && parser.check("KEYWORD") && parser.peek().value === "type") {
                 isType = true;
                 parser.advance();
             }
