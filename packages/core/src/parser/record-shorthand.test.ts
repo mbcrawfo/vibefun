@@ -214,6 +214,106 @@ describe("Record Shorthand - Update with Spread", () => {
     });
 });
 
+describe("Record Shorthand - Function Parameters", () => {
+    describe("Spec Example: Function Returning Shorthand Record", () => {
+        it("should parse function from spec example (data-literals.md:167)", () => {
+            // Spec example: let makePerson = (name, age, email) => { name, age, email };
+            const expr = parseExpr("let makePerson = (name, age, email) => { name, age, email };");
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            // Check lambda has 3 parameters
+            expect(expr.params).toHaveLength(3);
+
+            // Check body is a record with shorthand
+            expect(expr.body.kind).toBe("Record");
+            if (expr.body.kind !== "Record") return;
+            expect(expr.body.fields).toHaveLength(3);
+
+            // Verify all fields are shorthand (field value is Var with same name)
+            const field1 = expr.body.fields[0];
+            if (!field1 || field1.kind !== "Field") throw new Error("Expected Field");
+            expect(field1.name).toBe("name");
+            expect(field1.value.kind).toBe("Var");
+            if (field1.value.kind !== "Var") return;
+            expect(field1.value.name).toBe("name");
+        });
+
+        it("should parse shorthand in lambda returning record", () => {
+            const expr = parseExpr("let fn = (x, y) => { x, y, computed: x + y };");
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+            expect(expr.body.kind).toBe("Record");
+            if (expr.body.kind !== "Record") return;
+            expect(expr.body.fields).toHaveLength(3);
+        });
+    });
+});
+
+describe("Record Shorthand - Pattern Matching", () => {
+    describe("Shorthand in Match Patterns", () => {
+        it("should parse shorthand in match expression pattern", () => {
+            const source = `let result = match user { | { name, age } => name };`;
+            const lexer = new Lexer(source, "test.vf");
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens, "test.vf");
+            const module = parser.parse();
+            const firstDecl = module.declarations[0];
+            if (!firstDecl || firstDecl.kind !== "LetDecl") {
+                throw new Error("Expected LetDecl");
+            }
+
+            expect(firstDecl.value.kind).toBe("Match");
+            if (firstDecl.value.kind !== "Match") return;
+
+            const firstCase = firstDecl.value.cases[0];
+            if (!firstCase) throw new Error("Expected case");
+            expect(firstCase.pattern.kind).toBe("RecordPattern");
+            if (firstCase.pattern.kind !== "RecordPattern") return;
+
+            // Record pattern with shorthand should bind variables
+            expect(firstCase.pattern.fields).toHaveLength(2);
+            const field1 = firstCase.pattern.fields[0];
+            if (!field1) throw new Error("Expected field");
+            expect(field1.name).toBe("name");
+            expect(field1.pattern.kind).toBe("VarPattern");
+        });
+
+        it("should parse mixed shorthand and explicit patterns in match", () => {
+            const source = `let result = match user { | { name, age: 30 } => "match" };`;
+            const lexer = new Lexer(source, "test.vf");
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens, "test.vf");
+            const module = parser.parse();
+            const firstDecl = module.declarations[0];
+            if (!firstDecl || firstDecl.kind !== "LetDecl") {
+                throw new Error("Expected LetDecl");
+            }
+
+            expect(firstDecl.value.kind).toBe("Match");
+            if (firstDecl.value.kind !== "Match") return;
+
+            const firstCase = firstDecl.value.cases[0];
+            if (!firstCase) throw new Error("Expected case");
+            expect(firstCase.pattern.kind).toBe("RecordPattern");
+            if (firstCase.pattern.kind !== "RecordPattern") return;
+
+            expect(firstCase.pattern.fields).toHaveLength(2);
+            // First field should be shorthand variable pattern
+            const field1 = firstCase.pattern.fields[0];
+            if (!field1) throw new Error("Expected field");
+            expect(field1.name).toBe("name");
+            expect(field1.pattern.kind).toBe("VarPattern");
+
+            // Second field should have explicit pattern (literal)
+            const field2 = firstCase.pattern.fields[1];
+            if (!field2) throw new Error("Expected field");
+            expect(field2.name).toBe("age");
+            expect(field2.pattern.kind).toBe("LiteralPattern");
+        });
+    });
+});
+
 describe("Record Shorthand - Edge Cases", () => {
     describe("Empty and Single Field", () => {
         it("should parse single shorthand field", () => {
