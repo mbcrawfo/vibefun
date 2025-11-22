@@ -468,11 +468,10 @@ describe("Lambda Parameter Type Annotations", () => {
             const param = expr.params[0];
             if (param?.pattern.kind !== "VarPattern") throw new Error("Expected VarPattern");
             expect(param.pattern.name).toBe("point");
-            // Note: TupleType will be implemented in Phase 6.1
-            // For now, (Int, Int) parses as UnionType
+            // TupleType implemented in Phase 6.1
             expect(param?.type).toMatchObject({
-                kind: "UnionType",
-                types: [
+                kind: "TupleType",
+                elements: [
                     { kind: "TypeConst", name: "Int" },
                     { kind: "TypeConst", name: "Int" },
                 ],

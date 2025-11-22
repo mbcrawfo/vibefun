@@ -93,6 +93,7 @@ export type Type =
     | { type: "Record"; fields: Map<string, Type> } // Record type
     | { type: "Variant"; name?: string; constructors: Map<string, Type[]> } // Variant type
     | { type: "Union"; types: Type[] } // Union type
+    | { type: "Tuple"; elements: Type[] } // Tuple type
     | { type: "Ref"; inner: Type } // Reference type (for mutable references)
     | { type: "Never" }; // Never type (bottom type, for functions that don't return)
 

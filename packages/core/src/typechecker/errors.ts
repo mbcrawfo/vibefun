@@ -93,6 +93,9 @@ export function typeToString(type: Type): string {
         case "Union":
             return type.types.map(typeToString).join(" | ");
 
+        case "Tuple":
+            return `(${type.elements.map(typeToString).join(", ")})`;
+
         case "Ref":
             return `Ref<${typeToString(type.inner)}>`;
 

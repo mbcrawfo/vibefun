@@ -52,6 +52,10 @@ export function parseTypeExpr(parser: ParserBase): TypeExpr {
 /**
  * Parse function type
  * Syntax: type '->' type  or  (type, type, ...) -> type
+ *
+ * Note: When a TupleType appears before ->, it's flattened into function parameters.
+ * For example: (Int, String) -> Bool has TWO params (Int and String)
+ * But ((Int, String)) -> Bool has ONE param (a TupleType)
  */
 export function parseFunctionType(parser: ParserBase): TypeExpr {
     const left = parsePrimaryType(parser);
@@ -61,7 +65,8 @@ export function parseFunctionType(parser: ParserBase): TypeExpr {
         parser.advance(); // consume ->
 
         // Left side becomes parameter(s)
-        const params: TypeExpr[] = left.kind === "UnionType" ? left.types : [left];
+        // If left is TupleType, flatten its elements to params
+        const params: TypeExpr[] = left.kind === "TupleType" ? left.elements : [left];
         const return_ = parseFunctionType(parser); // Right-associative
 
         return {
@@ -95,9 +100,19 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
         do {
             types.push(parseTypeExpr(parser));
 
+            // Skip newlines after type
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+
             // Check if there's a comma
             if (!parser.match("COMMA")) {
                 break;
+            }
+
+            // Skip newlines after comma
+            while (parser.check("NEWLINE")) {
+                parser.advance();
             }
 
             // Check for trailing comma
@@ -108,7 +123,7 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
 
         parser.expect("RPAREN", "Expected ')' after type");
 
-        // If single type, return it; if multiple, return UnionType (will be converted to params if followed by ->)
+        // If single type, return it (grouping); if multiple, return TupleType
         if (types.length === 1) {
             const type = types[0];
             if (!type) {
@@ -117,9 +132,10 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
             return type;
         }
 
+        // Multiple types in parens = tuple type
         return {
-            kind: "UnionType",
-            types,
+            kind: "TupleType",
+            elements: types,
             loc: startLoc,
         };
     }

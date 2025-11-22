@@ -99,6 +99,16 @@ export function unionType(types: Type[]): Type {
 }
 
 /**
+ * Create a tuple type
+ *
+ * @param elements - Array of element types
+ * @returns A tuple type
+ */
+export function tupleType(elements: Type[]): Type {
+    return { type: "Tuple", elements };
+}
+
+/**
  * Create a reference type (mutable reference)
  *
  * @param elementType - The type of the referenced value
@@ -225,6 +235,9 @@ export function freeTypeVars(t: Type): Set<number> {
             case "Union":
                 type.types.forEach(collect);
                 break;
+            case "Tuple":
+                type.elements.forEach(collect);
+                break;
         }
     }
 
@@ -269,6 +282,9 @@ export function freeTypeVarsAtLevel(t: Type, maxLevel: number): Set<number> {
                 break;
             case "Union":
                 type.types.forEach(collect);
+                break;
+            case "Tuple":
+                type.elements.forEach(collect);
                 break;
         }
     }
@@ -378,6 +394,16 @@ export function typeEquals(t1: Type, t2: Type): boolean {
                 return type2 !== undefined && typeEquals(type1, type2);
             });
         }
+        case "Tuple": {
+            const tu2 = t2 as Type & { type: "Tuple" };
+            if (t1.elements.length !== tu2.elements.length) {
+                return false;
+            }
+            return t1.elements.every((elem1, i) => {
+                const elem2 = tu2.elements[i];
+                return elem2 !== undefined && typeEquals(elem1, elem2);
+            });
+        }
         case "Ref": {
             const r2 = t2 as Type & { type: "Ref" };
             return typeEquals(t1.inner, r2.inner);
@@ -431,6 +457,8 @@ export function typeToString(t: Type): string {
         }
         case "Union":
             return t.types.map(typeToString).join(" | ");
+        case "Tuple":
+            return `(${t.elements.map(typeToString).join(", ")})`;
         case "Ref":
             return `Ref<${typeToString(t.inner)}>`;
         case "Never":

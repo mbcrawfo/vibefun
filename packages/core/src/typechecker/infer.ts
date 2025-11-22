@@ -140,6 +140,12 @@ function substituteTypeVars(type: Type, mapping: Map<number, Type>): Type {
                 types: type.types.map((t) => substituteTypeVars(t, mapping)),
             };
 
+        case "Tuple":
+            return {
+                type: "Tuple",
+                elements: type.elements.map((t) => substituteTypeVars(t, mapping)),
+            };
+
         case "Ref":
             return {
                 type: "Ref",
@@ -1461,6 +1467,15 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
             return {
                 type: "Union",
                 types,
+            };
+        }
+
+        case "CoreTupleType": {
+            // Convert tuple type: (Type1, Type2, Type3)
+            const elements = typeExpr.elements.map(convertTypeExpr);
+            return {
+                type: "Tuple",
+                elements,
             };
         }
     }

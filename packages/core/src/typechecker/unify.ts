@@ -92,6 +92,11 @@ export function applySubst(subst: Substitution, type: Type): Type {
                 type: "Union",
                 types: type.types.map((t) => applySubst(subst, t)),
             };
+        case "Tuple":
+            return {
+                type: "Tuple",
+                elements: type.elements.map((elem) => applySubst(subst, elem)),
+            };
         case "Ref":
             return {
                 type: "Ref",
@@ -154,6 +159,8 @@ export function occursIn(id: number, type: Type): boolean {
             return Array.from(type.constructors.values()).some((paramTypes) => paramTypes.some((t) => occursIn(id, t)));
         case "Union":
             return type.types.some((t) => occursIn(id, t));
+        case "Tuple":
+            return type.elements.some((elem) => occursIn(id, elem));
         case "Ref":
             return occursIn(id, type.inner);
         case "Never":
@@ -275,6 +282,28 @@ export function unify(t1: Type, t2: Type): Substitution {
         return subst;
     }
 
+    // Tuple type unification
+    if (t1.type === "Tuple" && t2.type === "Tuple") {
+        if (t1.elements.length !== t2.elements.length) {
+            throw new Error(
+                `Cannot unify tuples with different number of elements: ${t1.elements.length} vs ${t2.elements.length}`,
+            );
+        }
+
+        let subst = emptySubst();
+        for (let i = 0; i < t1.elements.length; i++) {
+            const elem1 = t1.elements[i];
+            const elem2 = t2.elements[i];
+            if (!elem1 || !elem2) {
+                throw new Error(`Missing element at index ${i}`);
+            }
+            const elemSubst = unify(applySubst(subst, elem1), applySubst(subst, elem2));
+            subst = composeSubst(subst, elemSubst);
+        }
+
+        return subst;
+    }
+
     // No unification rule applies
     throw new Error(`Cannot unify types: ${t1.type} with ${t2.type}`);
 }
@@ -356,6 +385,11 @@ function updateLevels(type: Type, maxLevel: number): Type {
             return {
                 type: "Union",
                 types: type.types.map((t) => updateLevels(t, maxLevel)),
+            };
+        case "Tuple":
+            return {
+                type: "Tuple",
+                elements: type.elements.map((elem) => updateLevels(elem, maxLevel)),
             };
         case "Ref":
             return {

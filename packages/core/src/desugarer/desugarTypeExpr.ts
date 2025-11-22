@@ -71,5 +71,14 @@ export function desugarTypeExpr(
                 ),
                 loc: typeExpr.loc,
             };
+
+        case "TupleType":
+            return {
+                kind: "CoreTupleType",
+                elements: typeExpr.elements.map((element) =>
+                    desugarTypeExpr(element, desugarRecordTypeField, desugarVariantConstructor),
+                ),
+                loc: typeExpr.loc,
+            };
     }
 }

@@ -415,7 +415,8 @@ export type CoreTypeExpr =
     | CoreFunctionType
     | CoreRecordType
     | CoreVariantType
-    | CoreUnionType;
+    | CoreUnionType
+    | CoreTupleType;
 
 /**
  * Type variable
@@ -497,6 +498,15 @@ export type CoreVariantConstructor = {
 export type CoreUnionType = {
     kind: "CoreUnionType";
     types: CoreTypeExpr[];
+    loc: Location;
+};
+
+/**
+ * Tuple type
+ */
+export type CoreTupleType = {
+    kind: "CoreTupleType";
+    elements: CoreTypeExpr[];
     loc: Location;
 };
 

@@ -236,6 +236,10 @@ function formatType(typeExpr: TypeExpr): string {
         case "UnionType": {
             return typeExpr.types.map((t) => formatType(t)).join(" | ");
         }
+        case "TupleType": {
+            const elements = typeExpr.elements.map((e) => formatType(e)).join(", ");
+            return `(${elements})`;
+        }
     }
 }
 
