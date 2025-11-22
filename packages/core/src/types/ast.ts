@@ -259,6 +259,7 @@ export type ExternalBlockItem =
     | {
           kind: "ExternalType";
           name: string;
+          typeParams?: string[];
           typeExpr: TypeExpr;
           loc: Location;
       };

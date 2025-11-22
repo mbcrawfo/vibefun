@@ -251,7 +251,7 @@ describe("Parser - Generic External Declarations", () => {
                 name: "log",
                 jsName: "console.log",
             });
-            // @ts-expect-error - checking that typeParams is undefined for non-generic
+            // Verify that typeParams is undefined for non-generic externals
             expect(decl.items[1]!.typeParams).toBeUndefined();
 
             // Third is generic
