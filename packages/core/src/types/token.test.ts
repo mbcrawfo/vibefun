@@ -23,7 +23,6 @@ describe("isKeyword", () => {
         expect(isKeyword("unsafe")).toBe(true);
         expect(isKeyword("from")).toBe(true);
         expect(isKeyword("as")).toBe(true);
-        expect(isKeyword("ref")).toBe(true);
     });
 
     it("should return false for non-keywords", () => {
