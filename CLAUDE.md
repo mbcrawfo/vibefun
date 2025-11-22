@@ -19,17 +19,18 @@
 These directives guide all development work on the vibefun project:
 
 1. **Coding Standards**: Before writing any code, review `.claude/CODING_STANDARDS.md` to understand the project's coding conventions, naming patterns, and best practices
-2. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
-3. **Follow the Language Specification**:
+2. **Vibefun Language Guide**: Before writing any `.vf` code, review `.claude/VIBEFUN_AI_CODING_GUIDE.md` to understand vibefun's syntax, semantics, common patterns, and gotchas. This guide is specifically designed for AI agents writing vibefun code.
+3. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
+4. **Follow the Language Specification**:
     - `./docs/spec/` contains the authoritative language specification for how Vibefun should function.
     - If you find a conflict between the code behavior and the language spec, always ask for clarification of the correct behavior.
     - When planning a feature where you have been instructed to change the language, always update the language spec to match.
-4. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
+5. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
    - Unit tests for individual functions/components
    - Integration tests for module interactions
    - Edge cases and error conditions
    - Type checking validation
-5. **Quality Checks**: After implementing any changes, always run the following in order:
+6. **Quality Checks**: After implementing any changes, always run the following in order:
    - `npm run check` - Type checking
    - `npm run lint` - Linting
    - `npm test` - Tests
