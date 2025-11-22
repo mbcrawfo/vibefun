@@ -133,6 +133,82 @@ When making spec changes:
 # 5. Commit spec changes and map updates together
 ```
 
+## Maintaining the AI Coding Guide
+
+**CRITICAL**: The `.claude/VIBEFUN_AI_CODING_GUIDE.md` file must stay synchronized with the specification.
+
+The AI Coding Guide is a practical reference designed for AI agents writing vibefun code. It extracts day-to-day coding knowledge from the spec, focusing on:
+- Common syntax patterns and idioms
+- Frequent gotchas and edge cases
+- Quick reference for syntax
+- JavaScript interop essentials
+- Standard library overview
+
+### When to Update the AI Coding Guide
+
+Update `.claude/VIBEFUN_AI_CODING_GUIDE.md` whenever you:
+
+1. **Change language syntax**
+   - Update relevant sections in the guide (Core Syntax Fundamentals, Common Syntax Patterns)
+   - Add new patterns or update existing examples
+   - Update the Quick Reference Checklist if needed
+
+2. **Change type system behavior**
+   - Update Type System Essentials section
+   - Update Common Gotchas if edge cases change
+   - Update examples throughout the guide that demonstrate type inference
+
+3. **Add or change standard library functions**
+   - Update Standard Library Overview section
+   - Update Common Daily Patterns if new patterns emerge
+   - Add examples demonstrating new functionality
+
+4. **Change JavaScript interop semantics**
+   - Update JavaScript Interop section
+   - Update unsafe block examples
+   - Update external declaration patterns
+
+5. **Discover new common mistakes**
+   - Add to Common Gotchas & Edge Cases section
+   - Update Quick Reference Checklist
+   - Add warning examples with ❌/✅ patterns
+
+6. **Change comparison to other languages**
+   - Update Key Differences section
+   - Ensure comparisons remain accurate
+
+### AI Coding Guide Update Checklist
+
+When making spec changes that affect practical coding:
+
+- [ ] Review impact on syntax patterns (update examples)
+- [ ] Check if new edge cases or gotchas emerge (add to guide)
+- [ ] Verify all code examples still compile under new semantics
+- [ ] Update Quick Reference Checklist if fundamental rules change
+- [ ] Ensure guide remains focused on practical, daily usage (not comprehensive spec details)
+- [ ] Test examples against actual compiler behavior if available
+
+### Maintenance Workflow
+
+```bash
+# 1. Make spec changes
+# 2. Identify practical impact on day-to-day coding
+# 3. Update relevant sections in .claude/VIBEFUN_AI_CODING_GUIDE.md
+# 4. Verify examples are accurate and consistent with spec
+# 5. Commit spec and guide updates together
+```
+
+### What NOT to Add to the AI Coding Guide
+
+The guide should remain focused and practical. Do NOT add:
+- Comprehensive coverage of all language features (that's the spec's job)
+- Implementation details of the compiler
+- Theoretical type system discussions
+- Rare edge cases that don't affect daily coding
+- Future features that aren't implemented
+
+The guide should answer: "What does an AI agent need to know to write vibefun code correctly **right now**?"
+
 ## File Organization Principles
 
 ### Numbered Prefixes
