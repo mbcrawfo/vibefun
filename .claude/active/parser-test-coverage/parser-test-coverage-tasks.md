@@ -1,7 +1,15 @@
 # Parser Test Coverage Enhancement - Task Checklist
 
-**Last Updated**: 2025-11-11
-**Status**: Ready to Start
+**Last Updated**: 2025-11-22
+**Status**: New test files complete, enhancements in progress
+
+## Recent Progress (2025-11-22)
+
+- ✅ Completed external-types.test.ts (23 tests)
+- ✅ Verified all 15 new test files exist and pass
+- ✅ Documented missing parser feature (generic external types)
+- ✅ All 2610 tests passing
+- 📊 Current test count: 2610 tests across 97 test files
 
 ## Task Format
 
@@ -520,25 +528,27 @@ type Option<T> =
 
 ## Progress Tracking
 
-### New Test Files: 0/15 completed
+### New Test Files: 15/15 completed ✅
 
-- [ ] pattern-guards.test.ts
-- [ ] pattern-type-annotations.test.ts
-- [ ] nested-or-patterns.test.ts
-- [ ] lambda-annotations.test.ts
-- [ ] lambda-destructuring.test.ts
-- [ ] external-generics.test.ts
-- [ ] external-types.test.ts
-- [ ] import-namespace.test.ts
-- [ ] import-mixed.test.ts
-- [ ] trailing-commas.test.ts
-- [ ] multiple-spreads.test.ts
-- [ ] empty-blocks.test.ts
-- [ ] multiline-syntax.test.ts
-- [ ] escape-sequences.test.ts
-- [ ] float-literals.test.ts
+- [x] pattern-guards.test.ts (previously created)
+- [x] pattern-type-annotations.test.ts (previously created)
+- [x] nested-or-patterns.test.ts (previously created)
+- [x] lambda-annotations.test.ts (previously created)
+- [x] lambda-destructuring.test.ts (previously created)
+- [x] external-generics.test.ts (previously created)
+- [x] external-types.test.ts (created 2025-11-22)
+- [x] import-namespace.test.ts (previously created)
+- [x] mixed-imports.test.ts (covers import-mixed requirement, previously created)
+- [x] trailing-commas.test.ts (previously created)
+- [x] multiple-spreads.test.ts (previously created)
+- [x] empty-blocks.test.ts (previously created)
+- [x] multi-line-variants.test.ts (covers multiline-syntax requirement, previously created)
+- [x] lexer/strings.test.ts (covers escape-sequences requirement, 50+ escape tests)
+- [x] lexer/numbers.test.ts (covers float-literals requirement, 60+ float tests)
 
-### Enhanced Test Files: 0/8 completed
+**Note**: The last two items are in the lexer tests where they belong, since they test lexical features rather than parser features.
+
+### Enhanced Test Files: 0/8 pending
 
 - [ ] expressions.test.ts
 - [ ] patterns.test.ts
@@ -549,7 +559,7 @@ type Option<T> =
 - [ ] while-loops.test.ts
 - [ ] parser-errors.test.ts
 
-### Overall Progress: 0/23 test file tasks completed
+### Overall Progress: 15/23 test file tasks completed (65%)
 
 ---
 
