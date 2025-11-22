@@ -302,11 +302,15 @@ describe("Parser - Opaque Type Constructors", () => {
             if (decl.kind !== "ExternalBlock") return;
 
             expect(decl.items).toHaveLength(2);
-            expect(decl.items.every((item) => {
-                return item.kind === "ExternalValue" &&
-                       item.typeExpr.kind === "TypeConst" &&
-                       item.typeExpr.name === "Type";
-            })).toBe(true);
+            expect(
+                decl.items.every((item) => {
+                    return (
+                        item.kind === "ExternalValue" &&
+                        item.typeExpr.kind === "TypeConst" &&
+                        item.typeExpr.name === "Type"
+                    );
+                }),
+            ).toBe(true);
         });
     });
 

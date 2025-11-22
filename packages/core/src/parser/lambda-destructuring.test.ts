@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { Parser } from "./parser.js";
-import { Lexer } from "../lexer/lexer.js";
 import type { Expr, Pattern } from "../types/index.js";
+
+import { describe, expect, it } from "vitest";
+
+import { Lexer } from "../lexer/lexer.js";
+import { Parser } from "./parser.js";
 
 // Helper to parse an expression
 function parseExpr(source: string): Expr {
@@ -21,10 +23,7 @@ describe("Lambda Parameter Destructuring", () => {
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
             expect(ast.params).toHaveLength(1);
             expect(ast.params[0]?.pattern.kind).toBe("RecordPattern");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields).toHaveLength(1);
             expect(recordPattern.fields[0]).toMatchObject({
                 name: "name",
@@ -34,31 +33,25 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse multi-field record destructuring", () => {
             const source = "({ name, age }) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
             expect(ast.params).toHaveLength(1);
             expect(ast.params[0]?.pattern.kind).toBe("RecordPattern");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields).toHaveLength(2);
         });
 
         it("should parse record destructuring with renamed fields", () => {
             const source = "({ name: userName, age: userAge }) => userName";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields[0]).toMatchObject({
                 name: "name",
                 pattern: { kind: "VarPattern", name: "userName" },
@@ -69,17 +62,14 @@ describe("Lambda Parameter Destructuring", () => {
     describe("tuple destructuring", () => {
         it("should parse tuple destructuring with two elements", () => {
             const source = "((x, y)) => x + y";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
             expect(ast.params).toHaveLength(1);
             expect(ast.params[0]?.pattern.kind).toBe("TuplePattern");
-            const tuplePattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "TuplePattern" }
-            >;
+            const tuplePattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "TuplePattern" }>;
             expect(tuplePattern.elements).toHaveLength(2);
             expect(tuplePattern.elements[0]?.kind).toBe("VarPattern");
             expect(tuplePattern.elements[1]?.kind).toBe("VarPattern");
@@ -87,15 +77,12 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse tuple destructuring with more elements", () => {
             const source = "((a, b, c)) => a + b + c";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const tuplePattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "TuplePattern" }
-            >;
+            const tuplePattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "TuplePattern" }>;
             expect(tuplePattern.elements).toHaveLength(3);
         });
     });
@@ -103,37 +90,31 @@ describe("Lambda Parameter Destructuring", () => {
     describe("list destructuring", () => {
         it("should parse list destructuring with fixed elements", () => {
             const source = "([first, second]) => first";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
             expect(ast.params).toHaveLength(1);
             expect(ast.params[0]?.pattern.kind).toBe("ListPattern");
-            const listPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "ListPattern" }
-            >;
+            const listPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "ListPattern" }>;
             expect(listPattern.elements).toHaveLength(2);
             expect(listPattern.rest).toBeUndefined();
         });
 
         it("should parse list destructuring with rest pattern", () => {
             const source = "([first, ...rest]) => first";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const listPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "ListPattern" }
-            >;
+            const listPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "ListPattern" }>;
             expect(listPattern.elements).toHaveLength(1);
             expect(listPattern.rest).toBeDefined();
             expect(listPattern.rest).toMatchObject({
                 kind: "VarPattern",
-                name: "rest"
+                name: "rest",
             });
         });
 
@@ -144,10 +125,7 @@ describe("Lambda Parameter Destructuring", () => {
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const listPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "ListPattern" }
-            >;
+            const listPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "ListPattern" }>;
             expect(listPattern.rest?.kind).toBe("WildcardPattern");
         });
     });
@@ -155,22 +133,19 @@ describe("Lambda Parameter Destructuring", () => {
     describe("nested destructuring", () => {
         it("should parse nested record destructuring", () => {
             const source = "({ user: { name } }) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields[0]?.name).toBe("user");
             expect(recordPattern.fields[0]?.pattern.kind).toBe("RecordPattern");
         });
 
         it("should parse deeply nested destructuring", () => {
             const source = "({ profile: { user: { name } } }) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -181,30 +156,24 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse record inside tuple", () => {
             const source = "(({ name }, age)) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const tuplePattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "TuplePattern" }
-            >;
+            const tuplePattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "TuplePattern" }>;
             expect(tuplePattern.elements[0]?.kind).toBe("RecordPattern");
             expect(tuplePattern.elements[1]?.kind).toBe("VarPattern");
         });
 
         it("should parse tuple inside record", () => {
             const source = "({ coords: (x, y) }) => x";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields[0]?.name).toBe("coords");
             expect(recordPattern.fields[0]?.pattern.kind).toBe("TuplePattern");
         });
@@ -213,7 +182,7 @@ describe("Lambda Parameter Destructuring", () => {
     describe("mixed parameter types", () => {
         it("should parse mix of simple and destructured parameters", () => {
             const source = "(prefix, { value }) => prefix";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -225,7 +194,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse multiple destructured parameters", () => {
             const source = "({ name }, { age }) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -237,7 +206,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse destructuring with simple params in different positions", () => {
             const source = "({ x }, y, { z }) => x + y + z";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -252,7 +221,7 @@ describe("Lambda Parameter Destructuring", () => {
     describe("destructuring with type annotations", () => {
         it("should parse record destructuring with type annotation", () => {
             const source = "({ name }: { name: String }) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -263,7 +232,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse tuple destructuring with type annotation", () => {
             const source = "((x, y): (Int, Int)) => x + y";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -311,7 +280,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse destructuring with both param and return types", () => {
             const source = "({ name }: { name: String }): String => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -324,31 +293,25 @@ describe("Lambda Parameter Destructuring", () => {
     describe("constructor patterns in parameters", () => {
         it("should parse Some constructor in parameter", () => {
             const source = "(Some(x)) => x";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
             expect(ast.params[0]?.pattern.kind).toBe("ConstructorPattern");
-            const ctorPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "ConstructorPattern" }
-            >;
+            const ctorPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "ConstructorPattern" }>;
             expect(ctorPattern.constructor).toBe("Some");
             expect(ctorPattern.args).toHaveLength(1);
         });
 
         it("should parse Ok constructor with tuple", () => {
             const source = "(Ok((x, y))) => x";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const ctorPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "ConstructorPattern" }
-            >;
+            const ctorPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "ConstructorPattern" }>;
             expect(ctorPattern.constructor).toBe("Ok");
             expect(ctorPattern.args[0]?.kind).toBe("TuplePattern");
         });
@@ -357,30 +320,24 @@ describe("Lambda Parameter Destructuring", () => {
     describe("wildcard patterns", () => {
         it("should parse wildcard in record destructuring", () => {
             const source = "({ name: _, age }) => age";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields[0]?.name).toBe("name");
             expect(recordPattern.fields[0]?.pattern.kind).toBe("WildcardPattern");
         });
 
         it("should parse wildcard in list position", () => {
             const source = "([_, second]) => second";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const listPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "ListPattern" }
-            >;
+            const listPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "ListPattern" }>;
             expect(listPattern.elements[0]?.kind).toBe("WildcardPattern");
         });
     });
@@ -402,22 +359,19 @@ describe("Lambda Parameter Destructuring", () => {
     describe("edge cases", () => {
         it("should parse empty record pattern", () => {
             const source = "({}) => 1";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
             if (ast.kind !== "Lambda") throw new Error("Not a lambda");
-            const recordPattern = ast.params[0]?.pattern as Extract<
-                Pattern,
-                { kind: "RecordPattern" }
-            >;
+            const recordPattern = ast.params[0]?.pattern as Extract<Pattern, { kind: "RecordPattern" }>;
             expect(recordPattern.fields).toHaveLength(0);
         });
 
         it("should parse newlines between parameters", () => {
             const source = `({ name },
                            { age }) => name`;
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -429,7 +383,7 @@ describe("Lambda Parameter Destructuring", () => {
     describe("real-world examples from spec", () => {
         it("should parse getName example", () => {
             const source = "({ name }) => name";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -437,7 +391,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse getCoords example", () => {
             const source = "({ x, y }) => (x, y)";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -445,7 +399,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse getFirst example", () => {
             const source = "([first, ..._]) => first";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -453,7 +407,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse addPair example", () => {
             const source = "([a, b]) => a + b";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -461,7 +415,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse processUser example", () => {
             const source = '({ profile: { name, age } }) => name & " is " & String.fromInt(age)';
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");
@@ -469,7 +423,7 @@ describe("Lambda Parameter Destructuring", () => {
 
         it("should parse combine example", () => {
             const source = "(prefix, { value }) => prefix & String.fromInt(value)";
-            
+
             const ast = parseExpr(source);
 
             expect(ast.kind).toBe("Lambda");

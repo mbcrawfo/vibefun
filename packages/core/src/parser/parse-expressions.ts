@@ -1020,7 +1020,12 @@ function isLikelyLambda(parser: ParserBase): boolean {
                     // Look ahead further for =>
                     offset++;
                     // Skip to find =>
-                    while (parser.peek(offset).type !== "EOF" && parser.peek(offset).type !== "FAT_ARROW" && parser.peek(offset).type !== "SEMICOLON" && parser.peek(offset).type !== "RBRACE") {
+                    while (
+                        parser.peek(offset).type !== "EOF" &&
+                        parser.peek(offset).type !== "FAT_ARROW" &&
+                        parser.peek(offset).type !== "SEMICOLON" &&
+                        parser.peek(offset).type !== "RBRACE"
+                    ) {
                         offset++;
                     }
                     return parser.peek(offset).type === "FAT_ARROW";
@@ -1122,7 +1127,15 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
             // Add return type if present
             if (returnType !== undefined) {
-                (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
+                (
+                    lambda as {
+                        kind: "Lambda";
+                        params: LambdaParam[];
+                        body: Expr;
+                        returnType?: TypeExpr;
+                        loc: Location;
+                    }
+                ).returnType = returnType;
             }
 
             return lambda;
@@ -1210,7 +1223,9 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
         // Add return type if present
         if (returnType !== undefined) {
-            (lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }).returnType = returnType;
+            (
+                lambda as { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }
+            ).returnType = returnType;
         }
 
         return lambda;

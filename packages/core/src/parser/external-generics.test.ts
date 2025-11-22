@@ -65,9 +65,7 @@ describe("Parser - Generic External Declarations", () => {
         });
 
         it("should parse external with three type parameters", () => {
-            const decl = parseDecl(
-                'external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose";',
-            );
+            const decl = parseDecl('external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -80,9 +78,7 @@ describe("Parser - Generic External Declarations", () => {
 
     describe("generic externals with from clause", () => {
         it("should parse generic external with from clause", () => {
-            const decl = parseDecl(
-                'external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils";',
-            );
+            const decl = parseDecl('external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -136,9 +132,7 @@ describe("Parser - Generic External Declarations", () => {
 
     describe("complex generic type signatures", () => {
         it("should parse higher-order generic function", () => {
-            const decl = parseDecl(
-                'external foldLeft: <A, B>(Array<A>, B, (B, A) -> B) -> B = "reduce";',
-            );
+            const decl = parseDecl('external foldLeft: <A, B>(Array<A>, B, (B, A) -> B) -> B = "reduce";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -153,9 +147,7 @@ describe("Parser - Generic External Declarations", () => {
         });
 
         it("should parse generic with nested type constructors", () => {
-            const decl = parseDecl(
-                'external flatMap: <A, B>(Option<A>, (A) -> Option<B>) -> Option<B> = "flatMap";',
-            );
+            const decl = parseDecl('external flatMap: <A, B>(Option<A>, (A) -> Option<B>) -> Option<B> = "flatMap";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -166,9 +158,7 @@ describe("Parser - Generic External Declarations", () => {
         });
 
         it("should parse generic with tuple types", () => {
-            const decl = parseDecl(
-                'external unzip: <A, B>(Array<(A, B)>) -> (Array<A>, Array<B>) = "unzip";',
-            );
+            const decl = parseDecl('external unzip: <A, B>(Array<(A, B)>) -> (Array<A>, Array<B>) = "unzip";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -291,9 +281,7 @@ describe("Parser - Generic External Declarations", () => {
 
     describe("spec examples", () => {
         it("should parse spec example: generic map", () => {
-            const decl = parseDecl(
-                'external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils";',
-            );
+            const decl = parseDecl('external map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map" from "array-utils";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -316,9 +304,7 @@ describe("Parser - Generic External Declarations", () => {
         });
 
         it("should parse spec example: compose with three type params", () => {
-            const decl = parseDecl(
-                'external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose";',
-            );
+            const decl = parseDecl('external compose: <A, B, C>((B) -> C, (A) -> B) -> (A) -> C = "compose";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
@@ -362,9 +348,7 @@ describe("Parser - Generic External Declarations", () => {
         });
 
         it("should parse longer type parameter names", () => {
-            const decl = parseDecl(
-                'external convert: <Input, Output>(Input) -> Output = "convert";',
-            );
+            const decl = parseDecl('external convert: <Input, Output>(Input) -> Output = "convert";');
 
             expect(decl).toMatchObject({
                 kind: "ExternalDecl",
