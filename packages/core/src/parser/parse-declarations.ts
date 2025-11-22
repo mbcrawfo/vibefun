@@ -629,6 +629,9 @@ function parseExternalBlockItem(parser: ParserBase): ExternalBlockItem {
         const nameToken = parser.expect("IDENTIFIER", "Expected type name");
         const name = nameToken.value as string;
 
+        // Parse optional type parameters: <T, U, V>
+        const typeParams = parseTypeParameters(parser);
+
         // Expect =
         parser.expect("OP_EQUALS", "Expected '=' after type name");
 
@@ -638,6 +641,7 @@ function parseExternalBlockItem(parser: ParserBase): ExternalBlockItem {
         return {
             kind: "ExternalType",
             name,
+            ...(typeParams.length > 0 && { typeParams }),
             typeExpr,
             loc: startLoc,
         };

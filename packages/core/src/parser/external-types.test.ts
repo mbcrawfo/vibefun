@@ -445,4 +445,222 @@ describe("Parser - External Type Declarations", () => {
             expect(item.typeExpr.fields).toHaveLength(3);
         });
     });
+
+    describe("generic external type declarations", () => {
+        it("should parse external type with single type parameter", () => {
+            const decl = parseDecl(`external {
+                type Box<T> = { value: T };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(1);
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Box");
+            expect(item.typeParams).toEqual(["T"]);
+            expect(item.typeExpr.kind).toBe("RecordType");
+        });
+
+        it("should parse external type with multiple type parameters", () => {
+            const decl = parseDecl(`external {
+                type Either<L, R> = { left: L, right: R };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Either");
+            expect(item.typeParams).toEqual(["L", "R"]);
+            expect(item.typeExpr.kind).toBe("RecordType");
+        });
+
+        it("should parse generic type with function fields using type parameter", () => {
+            const decl = parseDecl(`external {
+                type Container<T> = { value: T, transform: (T) -> T };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Container");
+            expect(item.typeParams).toEqual(["T"]);
+            expect(item.typeExpr.kind).toBe("RecordType");
+
+            // Verify the record has value and transform fields
+            if (item.typeExpr.kind !== "RecordType") return;
+            expect(item.typeExpr.fields).toHaveLength(2);
+            expect(item.typeExpr.fields[0]?.name).toBe("value");
+            expect(item.typeExpr.fields[1]?.name).toBe("transform");
+        });
+
+        it("should parse external type with three type parameters", () => {
+            const decl = parseDecl(`external {
+                type Triple<A, B, C> = { first: A, second: B, third: C };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Triple");
+            expect(item.typeParams).toEqual(["A", "B", "C"]);
+        });
+
+        it("should parse non-generic external type without typeParams field", () => {
+            const decl = parseDecl(`external {
+                type Response = { ok: Bool };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Response");
+            // Verify that typeParams is undefined for non-generic types
+            expect(item.typeParams).toBeUndefined();
+        });
+
+        it("should parse mixed generic and non-generic types in same block", () => {
+            const decl = parseDecl(`external {
+                type Box<T> = { value: T };
+                type Response = { ok: Bool };
+                type Pair<A, B> = { fst: A, snd: B };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(3);
+
+            // First is generic with one param
+            const item0 = decl.items[0];
+            expect(item0?.kind).toBe("ExternalType");
+            if (item0?.kind === "ExternalType") {
+                expect(item0.name).toBe("Box");
+                expect(item0.typeParams).toEqual(["T"]);
+            }
+
+            // Second is not generic
+            const item1 = decl.items[1];
+            expect(item1?.kind).toBe("ExternalType");
+            if (item1?.kind === "ExternalType") {
+                expect(item1.name).toBe("Response");
+                // Verify that typeParams is undefined for non-generic types
+                expect(item1.typeParams).toBeUndefined();
+            }
+
+            // Third is generic with two params
+            const item2 = decl.items[2];
+            expect(item2?.kind).toBe("ExternalType");
+            if (item2?.kind === "ExternalType") {
+                expect(item2.name).toBe("Pair");
+                expect(item2.typeParams).toEqual(["A", "B"]);
+            }
+        });
+
+        it("should parse generic types mixed with generic values in same block", () => {
+            const decl = parseDecl(`external {
+                type Box<T> = { value: T };
+                map: <A, B>(Array<A>, (A) -> B) -> Array<B> = "map";
+                type Option<T> = { value: T, hasValue: Bool };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.items).toHaveLength(3);
+
+            // First is generic type
+            expect(decl.items[0]?.kind).toBe("ExternalType");
+            if (decl.items[0]?.kind === "ExternalType") {
+                expect(decl.items[0].name).toBe("Box");
+                expect(decl.items[0].typeParams).toEqual(["T"]);
+            }
+
+            // Second is generic value
+            expect(decl.items[1]?.kind).toBe("ExternalValue");
+            if (decl.items[1]?.kind === "ExternalValue") {
+                expect(decl.items[1].name).toBe("map");
+                expect(decl.items[1].typeParams).toEqual(["A", "B"]);
+            }
+
+            // Third is generic type
+            expect(decl.items[2]?.kind).toBe("ExternalType");
+            if (decl.items[2]?.kind === "ExternalType") {
+                expect(decl.items[2].name).toBe("Option");
+                expect(decl.items[2].typeParams).toEqual(["T"]);
+            }
+        });
+
+        it("should parse generic external type with from clause", () => {
+            const decl = parseDecl(`external from "typescript" {
+                type Promise<T> = { then_: (T) -> Unit };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.from).toBe("typescript");
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Promise");
+            expect(item.typeParams).toEqual(["T"]);
+        });
+
+        it("should parse exported generic external type", () => {
+            const decl = parseDecl(`export external {
+                type Box<T> = { value: T };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            expect(decl.exported).toBe(true);
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Box");
+            expect(item.typeParams).toEqual(["T"]);
+        });
+
+        it("should parse generic type with complex type expression", () => {
+            const decl = parseDecl(`external {
+                type Map<K, V> = { get: (K) -> Option<V>, set: (K, V) -> Unit };
+            };`);
+
+            expect(decl.kind).toBe("ExternalBlock");
+            if (decl.kind !== "ExternalBlock") return;
+
+            const item = decl.items[0];
+            expect(item?.kind).toBe("ExternalType");
+            if (item?.kind !== "ExternalType") return;
+
+            expect(item.name).toBe("Map");
+            expect(item.typeParams).toEqual(["K", "V"]);
+            expect(item.typeExpr.kind).toBe("RecordType");
+        });
+    });
 });
