@@ -331,13 +331,13 @@ describe("Parser - Integration", () => {
 
         it("parses Counter module with mutable state", () => {
             const source = `
-                let mut count = 0;
+                let mut count = ref(0);
 
-                export let increment = () => count := count + 1;
+                export let increment = () => count := !count + 1;
 
-                export let decrement = () => count := count - 1;
+                export let decrement = () => count := !count - 1;
 
-                export let getCount = () => count;
+                export let getCount = () => !count;
 
                 export let reset = () => count := 0;
             `;

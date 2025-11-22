@@ -402,7 +402,6 @@ describe("Lexer - Keywords", () => {
         "unsafe",
         "from",
         "as",
-        "ref",
         "try",
         "catch",
     ];
@@ -420,8 +419,8 @@ describe("Lexer - Keywords", () => {
         });
     });
 
-    it("should tokenize all 19 keywords", () => {
-        expect(keywords).toHaveLength(19);
+    it("should tokenize all 18 keywords", () => {
+        expect(keywords).toHaveLength(18);
     });
 
     it("should tokenize keyword in expression", () => {
