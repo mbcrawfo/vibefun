@@ -131,7 +131,7 @@ describe("Lambda Return Type Annotations", () => {
             //   (user): { name: String, age: Int } => user
             // This is a genuine parser bug that needs investigation.
             // Likely related to grammar ambiguity between record types and record literals.
-            // See: parser-feature-gaps-tasks.md Phase 2.4 notes
+            // See: 2025-11-21-parser-feature-gaps-tasks.md Phase 2.4 notes
             const lambda = parseExpr("(user): ({ name: String, age: Int }) => user");
 
             expect(lambda.kind).toBe("Lambda");
