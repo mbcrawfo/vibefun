@@ -1,0 +1,652 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parser Snapshot - Modules > should parse modules.vf 1`] = `
+{
+  "declarations": [
+    {
+      "definition": {
+        "fields": [
+          {
+            "loc": {
+              "column": 15,
+              "file": "modules.vf",
+              "line": 6,
+              "offset": 131,
+            },
+            "name": "id",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 19,
+                "file": "modules.vf",
+                "line": 6,
+                "offset": 135,
+              },
+              "name": "Int",
+            },
+          },
+          {
+            "loc": {
+              "column": 24,
+              "file": "modules.vf",
+              "line": 6,
+              "offset": 140,
+            },
+            "name": "name",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 30,
+                "file": "modules.vf",
+                "line": 6,
+                "offset": 146,
+              },
+              "name": "String",
+            },
+          },
+        ],
+        "kind": "RecordTypeDef",
+        "loc": {
+          "column": 13,
+          "file": "modules.vf",
+          "line": 6,
+          "offset": 129,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "modules.vf",
+        "line": 6,
+        "offset": 117,
+      },
+      "name": "User",
+      "params": [],
+    },
+    {
+      "definition": {
+        "fields": [
+          {
+            "loc": {
+              "column": 28,
+              "file": "modules.vf",
+              "line": 8,
+              "offset": 184,
+            },
+            "name": "id",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 32,
+                "file": "modules.vf",
+                "line": 8,
+                "offset": 188,
+              },
+              "name": "Int",
+            },
+          },
+          {
+            "loc": {
+              "column": 37,
+              "file": "modules.vf",
+              "line": 8,
+              "offset": 193,
+            },
+            "name": "name",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 43,
+                "file": "modules.vf",
+                "line": 8,
+                "offset": 199,
+              },
+              "name": "String",
+            },
+          },
+        ],
+        "kind": "RecordTypeDef",
+        "loc": {
+          "column": 26,
+          "file": "modules.vf",
+          "line": 8,
+          "offset": 182,
+        },
+      },
+      "exported": true,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 8,
+        "file": "modules.vf",
+        "line": 8,
+        "offset": 164,
+      },
+      "name": "PublicUser",
+      "params": [],
+    },
+    {
+      "exported": false,
+      "jsName": "fetch",
+      "kind": "ExternalDecl",
+      "loc": {
+        "column": 1,
+        "file": "modules.vf",
+        "line": 10,
+        "offset": 210,
+      },
+      "name": "fetch",
+      "typeExpr": {
+        "kind": "FunctionType",
+        "loc": {
+          "column": 18,
+          "file": "modules.vf",
+          "line": 10,
+          "offset": 227,
+        },
+        "params": [
+          {
+            "kind": "TypeConst",
+            "loc": {
+              "column": 18,
+              "file": "modules.vf",
+              "line": 10,
+              "offset": 227,
+            },
+            "name": "String",
+          },
+        ],
+        "return_": {
+          "args": [
+            {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 37,
+                "file": "modules.vf",
+                "line": 10,
+                "offset": 246,
+              },
+              "name": "String",
+            },
+          ],
+          "constructor": {
+            "kind": "TypeConst",
+            "loc": {
+              "column": 29,
+              "file": "modules.vf",
+              "line": 10,
+              "offset": 238,
+            },
+            "name": "Promise",
+          },
+          "kind": "TypeApp",
+          "loc": {
+            "column": 29,
+            "file": "modules.vf",
+            "line": 10,
+            "offset": 238,
+          },
+        },
+      },
+    },
+    {
+      "exported": true,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 8,
+        "file": "modules.vf",
+        "line": 12,
+        "offset": 273,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 12,
+          "file": "modules.vf",
+          "line": 12,
+          "offset": 277,
+        },
+        "name": "createUser",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "fields": [
+            {
+              "kind": "Field",
+              "loc": {
+                "column": 37,
+                "file": "modules.vf",
+                "line": 12,
+                "offset": 302,
+              },
+              "name": "id",
+              "value": {
+                "kind": "IntLit",
+                "loc": {
+                  "column": 41,
+                  "file": "modules.vf",
+                  "line": 12,
+                  "offset": 306,
+                },
+                "value": 0,
+              },
+            },
+            {
+              "kind": "Field",
+              "loc": {
+                "column": 44,
+                "file": "modules.vf",
+                "line": 12,
+                "offset": 309,
+              },
+              "name": "name",
+              "value": {
+                "kind": "Var",
+                "loc": {
+                  "column": 50,
+                  "file": "modules.vf",
+                  "line": 12,
+                  "offset": 315,
+                },
+                "name": "name",
+              },
+            },
+          ],
+          "kind": "Record",
+          "loc": {
+            "column": 35,
+            "file": "modules.vf",
+            "line": 12,
+            "offset": 300,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 25,
+          "file": "modules.vf",
+          "line": 12,
+          "offset": 290,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 26,
+              "file": "modules.vf",
+              "line": 12,
+              "offset": 291,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 26,
+                "file": "modules.vf",
+                "line": 12,
+                "offset": 291,
+              },
+              "name": "name",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "exported": true,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 8,
+        "file": "modules.vf",
+        "line": 14,
+        "offset": 331,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 16,
+          "file": "modules.vf",
+          "line": 14,
+          "offset": 339,
+        },
+        "name": "findUser",
+      },
+      "recursive": true,
+      "value": {
+        "body": {
+          "cases": [
+            {
+              "body": {
+                "kind": "Var",
+                "loc": {
+                  "column": 13,
+                  "file": "modules.vf",
+                  "line": 15,
+                  "offset": 391,
+                },
+                "name": "None",
+              },
+              "loc": {
+                "column": 7,
+                "file": "modules.vf",
+                "line": 15,
+                "offset": 385,
+              },
+              "pattern": {
+                "elements": [],
+                "kind": "ListPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "modules.vf",
+                  "line": 15,
+                  "offset": 385,
+                },
+              },
+            },
+            {
+              "body": {
+                "condition": {
+                  "kind": "BinOp",
+                  "left": {
+                    "field": "id",
+                    "kind": "RecordAccess",
+                    "loc": {
+                      "column": 29,
+                      "file": "modules.vf",
+                      "line": 16,
+                      "offset": 424,
+                    },
+                    "record": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 29,
+                        "file": "modules.vf",
+                        "line": 16,
+                        "offset": 424,
+                      },
+                      "name": "user",
+                    },
+                  },
+                  "loc": {
+                    "column": 29,
+                    "file": "modules.vf",
+                    "line": 16,
+                    "offset": 424,
+                  },
+                  "op": "Equal",
+                  "right": {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 40,
+                      "file": "modules.vf",
+                      "line": 16,
+                      "offset": 435,
+                    },
+                    "name": "id",
+                  },
+                },
+                "else_": {
+                  "args": [
+                    {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 73,
+                        "file": "modules.vf",
+                        "line": 16,
+                        "offset": 468,
+                      },
+                      "name": "id",
+                    },
+                    {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 77,
+                        "file": "modules.vf",
+                        "line": 16,
+                        "offset": 472,
+                      },
+                      "name": "rest",
+                    },
+                  ],
+                  "func": {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 64,
+                      "file": "modules.vf",
+                      "line": 16,
+                      "offset": 459,
+                    },
+                    "name": "findUser",
+                  },
+                  "kind": "App",
+                  "loc": {
+                    "column": 64,
+                    "file": "modules.vf",
+                    "line": 16,
+                    "offset": 459,
+                  },
+                },
+                "kind": "If",
+                "loc": {
+                  "column": 26,
+                  "file": "modules.vf",
+                  "line": 16,
+                  "offset": 421,
+                },
+                "then": {
+                  "args": [
+                    {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 53,
+                        "file": "modules.vf",
+                        "line": 16,
+                        "offset": 448,
+                      },
+                      "name": "user",
+                    },
+                  ],
+                  "func": {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 48,
+                      "file": "modules.vf",
+                      "line": 16,
+                      "offset": 443,
+                    },
+                    "name": "Some",
+                  },
+                  "kind": "App",
+                  "loc": {
+                    "column": 48,
+                    "file": "modules.vf",
+                    "line": 16,
+                    "offset": 443,
+                  },
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "modules.vf",
+                "line": 16,
+                "offset": 402,
+              },
+              "pattern": {
+                "elements": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 8,
+                      "file": "modules.vf",
+                      "line": 16,
+                      "offset": 403,
+                    },
+                    "name": "user",
+                  },
+                ],
+                "kind": "ListPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "modules.vf",
+                  "line": 16,
+                  "offset": 402,
+                },
+                "rest": {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 17,
+                    "file": "modules.vf",
+                    "line": 16,
+                    "offset": 412,
+                  },
+                  "name": "rest",
+                },
+              },
+            },
+          ],
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 48,
+              "file": "modules.vf",
+              "line": 14,
+              "offset": 371,
+            },
+            "name": "users",
+          },
+          "kind": "Match",
+          "loc": {
+            "column": 42,
+            "file": "modules.vf",
+            "line": 14,
+            "offset": 365,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 27,
+          "file": "modules.vf",
+          "line": 14,
+          "offset": 350,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 28,
+              "file": "modules.vf",
+              "line": 14,
+              "offset": 351,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 28,
+                "file": "modules.vf",
+                "line": 14,
+                "offset": 351,
+              },
+              "name": "id",
+            },
+          },
+          {
+            "loc": {
+              "column": 32,
+              "file": "modules.vf",
+              "line": 14,
+              "offset": 355,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 32,
+                "file": "modules.vf",
+                "line": 14,
+                "offset": 355,
+              },
+              "name": "users",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "exported": true,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 8,
+        "file": "modules.vf",
+        "line": 19,
+        "offset": 489,
+      },
+      "mutable": false,
+      "pattern": {
+        "args": [],
+        "constructor": "MAX_USERS",
+        "kind": "ConstructorPattern",
+        "loc": {
+          "column": 12,
+          "file": "modules.vf",
+          "line": 19,
+          "offset": 493,
+        },
+      },
+      "recursive": false,
+      "value": {
+        "kind": "IntLit",
+        "loc": {
+          "column": 24,
+          "file": "modules.vf",
+          "line": 19,
+          "offset": 505,
+        },
+        "value": 1000,
+      },
+    },
+  ],
+  "imports": [
+    {
+      "from": "vibefun/std",
+      "items": [
+        {
+          "isType": false,
+          "name": "Option",
+        },
+        {
+          "isType": false,
+          "name": "Some",
+        },
+      ],
+      "kind": "ImportDecl",
+      "loc": {
+        "column": 1,
+        "file": "modules.vf",
+        "line": 3,
+        "offset": 34,
+      },
+    },
+    {
+      "from": "vibefun/list",
+      "items": [
+        {
+          "alias": "List",
+          "isType": false,
+          "name": "*",
+        },
+      ],
+      "kind": "ImportDecl",
+      "loc": {
+        "column": 1,
+        "file": "modules.vf",
+        "line": 4,
+        "offset": 78,
+      },
+    },
+  ],
+  "loc": {
+    "column": 33,
+    "file": "modules.vf",
+    "line": 1,
+    "offset": 32,
+  },
+}
+`;

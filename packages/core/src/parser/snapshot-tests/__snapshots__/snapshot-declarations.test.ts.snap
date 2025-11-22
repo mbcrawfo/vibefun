@@ -1,0 +1,1295 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parser Snapshot - Declarations > should parse declarations.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 4,
+        "offset": 62,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 4,
+          "offset": 66,
+        },
+        "name": "x",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "IntLit",
+        "loc": {
+          "column": 9,
+          "file": "declarations.vf",
+          "line": 4,
+          "offset": 70,
+        },
+        "value": 42,
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 5,
+        "offset": 74,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 5,
+          "offset": 78,
+        },
+        "name": "name",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "StringLit",
+        "loc": {
+          "column": 12,
+          "file": "declarations.vf",
+          "line": 5,
+          "offset": 85,
+        },
+        "value": "Alice",
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 8,
+        "offset": 115,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 8,
+          "offset": 119,
+        },
+        "name": "add",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "kind": "BinOp",
+          "left": {
+            "kind": "Var",
+            "loc": {
+              "column": 21,
+              "file": "declarations.vf",
+              "line": 8,
+              "offset": 135,
+            },
+            "name": "a",
+          },
+          "loc": {
+            "column": 21,
+            "file": "declarations.vf",
+            "line": 8,
+            "offset": 135,
+          },
+          "op": "Add",
+          "right": {
+            "kind": "Var",
+            "loc": {
+              "column": 25,
+              "file": "declarations.vf",
+              "line": 8,
+              "offset": 139,
+            },
+            "name": "b",
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 11,
+          "file": "declarations.vf",
+          "line": 8,
+          "offset": 125,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 12,
+              "file": "declarations.vf",
+              "line": 8,
+              "offset": 126,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 12,
+                "file": "declarations.vf",
+                "line": 8,
+                "offset": 126,
+              },
+              "name": "a",
+            },
+          },
+          {
+            "loc": {
+              "column": 15,
+              "file": "declarations.vf",
+              "line": 8,
+              "offset": 129,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 15,
+                "file": "declarations.vf",
+                "line": 8,
+                "offset": 129,
+              },
+              "name": "b",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 11,
+        "offset": 168,
+      },
+      "mutable": false,
+      "pattern": {
+        "elements": [
+          {
+            "kind": "VarPattern",
+            "loc": {
+              "column": 6,
+              "file": "declarations.vf",
+              "line": 11,
+              "offset": 173,
+            },
+            "name": "first",
+          },
+          {
+            "kind": "VarPattern",
+            "loc": {
+              "column": 13,
+              "file": "declarations.vf",
+              "line": 11,
+              "offset": 180,
+            },
+            "name": "second",
+          },
+        ],
+        "kind": "ListPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 11,
+          "offset": 172,
+        },
+      },
+      "recursive": false,
+      "value": {
+        "elements": [
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 24,
+                "file": "declarations.vf",
+                "line": 11,
+                "offset": 191,
+              },
+              "value": 1,
+            },
+            "kind": "Element",
+          },
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 27,
+                "file": "declarations.vf",
+                "line": 11,
+                "offset": 194,
+              },
+              "value": 2,
+            },
+            "kind": "Element",
+          },
+        ],
+        "kind": "List",
+        "loc": {
+          "column": 23,
+          "file": "declarations.vf",
+          "line": 11,
+          "offset": 190,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 12,
+        "offset": 198,
+      },
+      "mutable": false,
+      "pattern": {
+        "fields": [
+          {
+            "loc": {
+              "column": 7,
+              "file": "declarations.vf",
+              "line": 12,
+              "offset": 204,
+            },
+            "name": "x",
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 7,
+                "file": "declarations.vf",
+                "line": 12,
+                "offset": 204,
+              },
+              "name": "x",
+            },
+          },
+          {
+            "loc": {
+              "column": 10,
+              "file": "declarations.vf",
+              "line": 12,
+              "offset": 207,
+            },
+            "name": "y",
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 10,
+                "file": "declarations.vf",
+                "line": 12,
+                "offset": 207,
+              },
+              "name": "y",
+            },
+          },
+        ],
+        "kind": "RecordPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 12,
+          "offset": 202,
+        },
+      },
+      "recursive": false,
+      "value": {
+        "kind": "Var",
+        "loc": {
+          "column": 16,
+          "file": "declarations.vf",
+          "line": 12,
+          "offset": 213,
+        },
+        "name": "point",
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 15,
+        "offset": 243,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 9,
+          "file": "declarations.vf",
+          "line": 15,
+          "offset": 251,
+        },
+        "name": "factorial",
+      },
+      "recursive": true,
+      "value": {
+        "body": {
+          "condition": {
+            "kind": "BinOp",
+            "left": {
+              "kind": "Var",
+              "loc": {
+                "column": 8,
+                "file": "declarations.vf",
+                "line": 16,
+                "offset": 277,
+              },
+              "name": "n",
+            },
+            "loc": {
+              "column": 8,
+              "file": "declarations.vf",
+              "line": 16,
+              "offset": 277,
+            },
+            "op": "LessEqual",
+            "right": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 13,
+                "file": "declarations.vf",
+                "line": 16,
+                "offset": 282,
+              },
+              "value": 1,
+            },
+          },
+          "else_": {
+            "kind": "BinOp",
+            "left": {
+              "kind": "Var",
+              "loc": {
+                "column": 10,
+                "file": "declarations.vf",
+                "line": 17,
+                "offset": 300,
+              },
+              "name": "n",
+            },
+            "loc": {
+              "column": 10,
+              "file": "declarations.vf",
+              "line": 17,
+              "offset": 300,
+            },
+            "op": "Multiply",
+            "right": {
+              "args": [
+                {
+                  "kind": "BinOp",
+                  "left": {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 24,
+                      "file": "declarations.vf",
+                      "line": 17,
+                      "offset": 314,
+                    },
+                    "name": "n",
+                  },
+                  "loc": {
+                    "column": 24,
+                    "file": "declarations.vf",
+                    "line": 17,
+                    "offset": 314,
+                  },
+                  "op": "Subtract",
+                  "right": {
+                    "kind": "IntLit",
+                    "loc": {
+                      "column": 28,
+                      "file": "declarations.vf",
+                      "line": 17,
+                      "offset": 318,
+                    },
+                    "value": 1,
+                  },
+                },
+              ],
+              "func": {
+                "kind": "Var",
+                "loc": {
+                  "column": 14,
+                  "file": "declarations.vf",
+                  "line": 17,
+                  "offset": 304,
+                },
+                "name": "factorial",
+              },
+              "kind": "App",
+              "loc": {
+                "column": 14,
+                "file": "declarations.vf",
+                "line": 17,
+                "offset": 304,
+              },
+            },
+          },
+          "kind": "If",
+          "loc": {
+            "column": 5,
+            "file": "declarations.vf",
+            "line": 16,
+            "offset": 274,
+          },
+          "then": {
+            "kind": "IntLit",
+            "loc": {
+              "column": 20,
+              "file": "declarations.vf",
+              "line": 16,
+              "offset": 289,
+            },
+            "value": 1,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 21,
+          "file": "declarations.vf",
+          "line": 15,
+          "offset": 263,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 22,
+              "file": "declarations.vf",
+              "line": 15,
+              "offset": 264,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 22,
+                "file": "declarations.vf",
+                "line": 15,
+                "offset": 264,
+              },
+              "name": "n",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "bindings": [
+        {
+          "loc": {
+            "column": 9,
+            "file": "declarations.vf",
+            "line": 20,
+            "offset": 353,
+          },
+          "mutable": false,
+          "pattern": {
+            "kind": "VarPattern",
+            "loc": {
+              "column": 9,
+              "file": "declarations.vf",
+              "line": 20,
+              "offset": 353,
+            },
+            "name": "isEven",
+          },
+          "value": {
+            "body": {
+              "condition": {
+                "kind": "BinOp",
+                "left": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 8,
+                    "file": "declarations.vf",
+                    "line": 21,
+                    "offset": 376,
+                  },
+                  "name": "n",
+                },
+                "loc": {
+                  "column": 8,
+                  "file": "declarations.vf",
+                  "line": 21,
+                  "offset": 376,
+                },
+                "op": "Equal",
+                "right": {
+                  "kind": "IntLit",
+                  "loc": {
+                    "column": 13,
+                    "file": "declarations.vf",
+                    "line": 21,
+                    "offset": 381,
+                  },
+                  "value": 0,
+                },
+              },
+              "else_": {
+                "args": [
+                  {
+                    "kind": "BinOp",
+                    "left": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 36,
+                        "file": "declarations.vf",
+                        "line": 21,
+                        "offset": 404,
+                      },
+                      "name": "n",
+                    },
+                    "loc": {
+                      "column": 36,
+                      "file": "declarations.vf",
+                      "line": 21,
+                      "offset": 404,
+                    },
+                    "op": "Subtract",
+                    "right": {
+                      "kind": "IntLit",
+                      "loc": {
+                        "column": 40,
+                        "file": "declarations.vf",
+                        "line": 21,
+                        "offset": 408,
+                      },
+                      "value": 1,
+                    },
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 30,
+                    "file": "declarations.vf",
+                    "line": 21,
+                    "offset": 398,
+                  },
+                  "name": "isOdd",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 30,
+                  "file": "declarations.vf",
+                  "line": 21,
+                  "offset": 398,
+                },
+              },
+              "kind": "If",
+              "loc": {
+                "column": 5,
+                "file": "declarations.vf",
+                "line": 21,
+                "offset": 373,
+              },
+              "then": {
+                "kind": "BoolLit",
+                "loc": {
+                  "column": 20,
+                  "file": "declarations.vf",
+                  "line": 21,
+                  "offset": 388,
+                },
+                "value": true,
+              },
+            },
+            "kind": "Lambda",
+            "loc": {
+              "column": 18,
+              "file": "declarations.vf",
+              "line": 20,
+              "offset": 362,
+            },
+            "params": [
+              {
+                "loc": {
+                  "column": 19,
+                  "file": "declarations.vf",
+                  "line": 20,
+                  "offset": 363,
+                },
+                "pattern": {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 19,
+                    "file": "declarations.vf",
+                    "line": 20,
+                    "offset": 363,
+                  },
+                  "name": "n",
+                },
+              },
+            ],
+          },
+        },
+        {
+          "loc": {
+            "column": 5,
+            "file": "declarations.vf",
+            "line": 22,
+            "offset": 415,
+          },
+          "mutable": false,
+          "pattern": {
+            "kind": "VarPattern",
+            "loc": {
+              "column": 5,
+              "file": "declarations.vf",
+              "line": 22,
+              "offset": 415,
+            },
+            "name": "isOdd",
+          },
+          "value": {
+            "body": {
+              "condition": {
+                "kind": "BinOp",
+                "left": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 8,
+                    "file": "declarations.vf",
+                    "line": 23,
+                    "offset": 437,
+                  },
+                  "name": "n",
+                },
+                "loc": {
+                  "column": 8,
+                  "file": "declarations.vf",
+                  "line": 23,
+                  "offset": 437,
+                },
+                "op": "Equal",
+                "right": {
+                  "kind": "IntLit",
+                  "loc": {
+                    "column": 13,
+                    "file": "declarations.vf",
+                    "line": 23,
+                    "offset": 442,
+                  },
+                  "value": 0,
+                },
+              },
+              "else_": {
+                "args": [
+                  {
+                    "kind": "BinOp",
+                    "left": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 38,
+                        "file": "declarations.vf",
+                        "line": 23,
+                        "offset": 467,
+                      },
+                      "name": "n",
+                    },
+                    "loc": {
+                      "column": 38,
+                      "file": "declarations.vf",
+                      "line": 23,
+                      "offset": 467,
+                    },
+                    "op": "Subtract",
+                    "right": {
+                      "kind": "IntLit",
+                      "loc": {
+                        "column": 42,
+                        "file": "declarations.vf",
+                        "line": 23,
+                        "offset": 471,
+                      },
+                      "value": 1,
+                    },
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 31,
+                    "file": "declarations.vf",
+                    "line": 23,
+                    "offset": 460,
+                  },
+                  "name": "isEven",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 31,
+                  "file": "declarations.vf",
+                  "line": 23,
+                  "offset": 460,
+                },
+              },
+              "kind": "If",
+              "loc": {
+                "column": 5,
+                "file": "declarations.vf",
+                "line": 23,
+                "offset": 434,
+              },
+              "then": {
+                "kind": "BoolLit",
+                "loc": {
+                  "column": 20,
+                  "file": "declarations.vf",
+                  "line": 23,
+                  "offset": 449,
+                },
+                "value": false,
+              },
+            },
+            "kind": "Lambda",
+            "loc": {
+              "column": 13,
+              "file": "declarations.vf",
+              "line": 22,
+              "offset": 423,
+            },
+            "params": [
+              {
+                "loc": {
+                  "column": 14,
+                  "file": "declarations.vf",
+                  "line": 22,
+                  "offset": 424,
+                },
+                "pattern": {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 14,
+                    "file": "declarations.vf",
+                    "line": 22,
+                    "offset": 424,
+                  },
+                  "name": "n",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      "exported": false,
+      "kind": "LetRecGroup",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 20,
+        "offset": 345,
+      },
+    },
+    {
+      "definition": {
+        "fields": [
+          {
+            "loc": {
+              "column": 16,
+              "file": "declarations.vf",
+              "line": 26,
+              "offset": 512,
+            },
+            "name": "x",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 19,
+                "file": "declarations.vf",
+                "line": 26,
+                "offset": 515,
+              },
+              "name": "Float",
+            },
+          },
+          {
+            "loc": {
+              "column": 26,
+              "file": "declarations.vf",
+              "line": 26,
+              "offset": 522,
+            },
+            "name": "y",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 29,
+                "file": "declarations.vf",
+                "line": 26,
+                "offset": 525,
+              },
+              "name": "Float",
+            },
+          },
+        ],
+        "kind": "RecordTypeDef",
+        "loc": {
+          "column": 14,
+          "file": "declarations.vf",
+          "line": 26,
+          "offset": 510,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 26,
+        "offset": 497,
+      },
+      "name": "Point",
+      "params": [],
+    },
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 23,
+                  "file": "declarations.vf",
+                  "line": 27,
+                  "offset": 556,
+                },
+                "name": "T",
+              },
+            ],
+            "loc": {
+              "column": 18,
+              "file": "declarations.vf",
+              "line": 27,
+              "offset": 551,
+            },
+            "name": "Some",
+          },
+          {
+            "args": [],
+            "loc": {
+              "column": 28,
+              "file": "declarations.vf",
+              "line": 27,
+              "offset": 561,
+            },
+            "name": "None",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 18,
+          "file": "declarations.vf",
+          "line": 27,
+          "offset": 551,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 27,
+        "offset": 534,
+      },
+      "name": "Option",
+      "params": [
+        "T",
+      ],
+    },
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 17,
+                  "file": "declarations.vf",
+                  "line": 30,
+                  "offset": 612,
+                },
+                "name": "Int",
+              },
+            ],
+            "loc": {
+              "column": 13,
+              "file": "declarations.vf",
+              "line": 30,
+              "offset": 608,
+            },
+            "name": "Lit",
+          },
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 28,
+                  "file": "declarations.vf",
+                  "line": 30,
+                  "offset": 623,
+                },
+                "name": "Expr",
+              },
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 34,
+                  "file": "declarations.vf",
+                  "line": 30,
+                  "offset": 629,
+                },
+                "name": "Expr",
+              },
+            ],
+            "loc": {
+              "column": 24,
+              "file": "declarations.vf",
+              "line": 30,
+              "offset": 619,
+            },
+            "name": "Add",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 13,
+          "file": "declarations.vf",
+          "line": 30,
+          "offset": 608,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 30,
+        "offset": 596,
+      },
+      "name": "Expr",
+      "params": [],
+    },
+    {
+      "definition": {
+        "kind": "AliasType",
+        "loc": {
+          "column": 15,
+          "file": "declarations.vf",
+          "line": 31,
+          "offset": 649,
+        },
+        "typeExpr": {
+          "args": [
+            {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 22,
+                "file": "declarations.vf",
+                "line": 31,
+                "offset": 656,
+              },
+              "name": "String",
+            },
+          ],
+          "constructor": {
+            "kind": "TypeConst",
+            "loc": {
+              "column": 15,
+              "file": "declarations.vf",
+              "line": 31,
+              "offset": 649,
+            },
+            "name": "VarPat",
+          },
+          "kind": "TypeApp",
+          "loc": {
+            "column": 15,
+            "file": "declarations.vf",
+            "line": 31,
+            "offset": 649,
+          },
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 31,
+        "offset": 635,
+      },
+      "name": "Pattern",
+      "params": [],
+    },
+    {
+      "exported": false,
+      "jsName": "readFile",
+      "kind": "ExternalDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 34,
+        "offset": 690,
+      },
+      "name": "readFile",
+      "typeExpr": {
+        "kind": "FunctionType",
+        "loc": {
+          "column": 21,
+          "file": "declarations.vf",
+          "line": 34,
+          "offset": 710,
+        },
+        "params": [
+          {
+            "kind": "TypeConst",
+            "loc": {
+              "column": 21,
+              "file": "declarations.vf",
+              "line": 34,
+              "offset": 710,
+            },
+            "name": "String",
+          },
+        ],
+        "return_": {
+          "kind": "TypeConst",
+          "loc": {
+            "column": 32,
+            "file": "declarations.vf",
+            "line": 34,
+            "offset": 721,
+          },
+          "name": "String",
+        },
+      },
+    },
+    {
+      "exported": false,
+      "items": [
+        {
+          "jsName": "fetch",
+          "kind": "ExternalValue",
+          "loc": {
+            "column": 5,
+            "file": "declarations.vf",
+            "line": 37,
+            "offset": 758,
+          },
+          "name": "fetch",
+          "typeExpr": {
+            "kind": "FunctionType",
+            "loc": {
+              "column": 13,
+              "file": "declarations.vf",
+              "line": 37,
+              "offset": 766,
+            },
+            "params": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 13,
+                  "file": "declarations.vf",
+                  "line": 37,
+                  "offset": 766,
+                },
+                "name": "String",
+              },
+            ],
+            "return_": {
+              "args": [
+                {
+                  "kind": "TypeConst",
+                  "loc": {
+                    "column": 32,
+                    "file": "declarations.vf",
+                    "line": 37,
+                    "offset": 785,
+                  },
+                  "name": "String",
+                },
+              ],
+              "constructor": {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 24,
+                  "file": "declarations.vf",
+                  "line": 37,
+                  "offset": 777,
+                },
+                "name": "Promise",
+              },
+              "kind": "TypeApp",
+              "loc": {
+                "column": 24,
+                "file": "declarations.vf",
+                "line": 37,
+                "offset": 777,
+              },
+            },
+          },
+        },
+      ],
+      "kind": "ExternalBlock",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 36,
+        "offset": 743,
+      },
+    },
+    {
+      "exported": true,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 8,
+        "file": "declarations.vf",
+        "line": 41,
+        "offset": 835,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 12,
+          "file": "declarations.vf",
+          "line": 41,
+          "offset": 839,
+        },
+        "name": "publicValue",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "IntLit",
+        "loc": {
+          "column": 26,
+          "file": "declarations.vf",
+          "line": 41,
+          "offset": 853,
+        },
+        "value": 42,
+      },
+    },
+    {
+      "definition": {
+        "fields": [
+          {
+            "loc": {
+              "column": 29,
+              "file": "declarations.vf",
+              "line": 42,
+              "offset": 885,
+            },
+            "name": "x",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 32,
+                "file": "declarations.vf",
+                "line": 42,
+                "offset": 888,
+              },
+              "name": "Int",
+            },
+          },
+          {
+            "loc": {
+              "column": 37,
+              "file": "declarations.vf",
+              "line": 42,
+              "offset": 893,
+            },
+            "name": "y",
+            "typeExpr": {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 40,
+                "file": "declarations.vf",
+                "line": 42,
+                "offset": 896,
+              },
+              "name": "Int",
+            },
+          },
+        ],
+        "kind": "RecordTypeDef",
+        "loc": {
+          "column": 27,
+          "file": "declarations.vf",
+          "line": 42,
+          "offset": 883,
+        },
+      },
+      "exported": true,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 8,
+        "file": "declarations.vf",
+        "line": 42,
+        "offset": 864,
+      },
+      "name": "PublicPoint",
+      "params": [],
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 45,
+        "offset": 927,
+      },
+      "mutable": true,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 9,
+          "file": "declarations.vf",
+          "line": 45,
+          "offset": 935,
+        },
+        "name": "counter",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "IntLit",
+        "loc": {
+          "column": 19,
+          "file": "declarations.vf",
+          "line": 45,
+          "offset": 945,
+        },
+        "value": 0,
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 38,
+    "file": "declarations.vf",
+    "line": 1,
+    "offset": 37,
+  },
+}
+`;
