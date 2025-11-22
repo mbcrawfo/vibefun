@@ -90,6 +90,11 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
     if (parser.check("LPAREN")) {
         parser.advance(); // consume (
 
+        // Skip newlines after opening paren (for multiline types)
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
         if (parser.check("RPAREN")) {
             // Unit type: ()
             parser.advance();
@@ -120,6 +125,11 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
                 break; // Trailing comma allowed
             }
         } while (true); // eslint-disable-line no-constant-condition
+
+        // Skip newlines before closing paren (for multiline types)
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
 
         parser.expect("RPAREN", "Expected ')' after type");
 
