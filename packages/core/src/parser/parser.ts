@@ -124,6 +124,9 @@ export class Parser extends ParserBase {
                     declarations.push(decl);
                 }
 
+                // Skip newlines before semicolon (for multi-line declarations)
+                while (this.match("NEWLINE"));
+
                 // Require explicit semicolon after every declaration
                 if (!this.check("SEMICOLON")) {
                     throw this.error(

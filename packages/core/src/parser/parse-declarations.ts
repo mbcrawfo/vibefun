@@ -384,6 +384,9 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
     // Variant or alias - parse first constructor/type
     const firstType = parseFunctionType(parser);
 
+    // Skip newlines after first type (for multi-line variant types)
+    while (parser.match("NEWLINE"));
+
     // Check if this is a variant type (has | separator)
     if (parser.check("PIPE")) {
         // Variant type: Constructor1(T) | Constructor2(U) | ...
@@ -409,8 +412,16 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
         }
 
         // Parse remaining constructors
-        while (parser.match("PIPE")) {
-            // Skip optional newlines
+        while (true) {
+            // Skip optional newlines before next pipe
+            while (parser.match("NEWLINE"));
+
+            // Check for next variant separator
+            if (!parser.match("PIPE")) {
+                break;
+            }
+
+            // Skip optional newlines after pipe
             while (parser.match("NEWLINE"));
 
             const constrType = parseFunctionType(parser);
