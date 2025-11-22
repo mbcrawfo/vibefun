@@ -155,25 +155,33 @@ export function parseDeclaration(parser: ParserBase): Declaration {
 }
 
 /**
- * Validate that a mutable binding uses ref() syntax
+ * Validate that a mutable binding uses ref() syntax and VarPattern
  *
  * @param parser - The parser instance
  * @param value - The value expression being assigned
  * @param pattern - The pattern being bound
  * @param mutable - Whether this is a mutable binding
- * @throws {ParserError} If mutable binding doesn't use ref() syntax
+ * @throws {ParserError} If mutable binding doesn't use ref() syntax or uses non-VarPattern
  */
 function validateMutableBinding(parser: ParserBase, value: Expr, pattern: Pattern, mutable: boolean): void {
     if (!mutable) {
-        return; // Non-mutable bindings don't need ref()
+        return; // Non-mutable bindings don't need validation
+    }
+
+    // Mutable bindings must use VarPattern (not destructuring)
+    if (pattern.kind !== "VarPattern") {
+        throw parser.error(
+            "Mutable bindings can only use simple variable patterns",
+            pattern.loc,
+            "Destructuring patterns like { x, y } or [a, b] are not allowed with 'mut'. Use: let mut x = ref(value)",
+        );
     }
 
     // Check if value is a ref() call
     const isRefCall = value.kind === "App" && value.func.kind === "Var" && value.func.name === "ref";
 
     if (!isRefCall) {
-        // Extract pattern name for error message (if it's a VarPattern)
-        const patternName = pattern.kind === "VarPattern" ? pattern.name : "x";
+        const patternName = pattern.name;
 
         // Create a simple hint for the suggestion
         let valueHint = "value";
