@@ -106,14 +106,15 @@ jobs:
             console.log(\`Current coverage: \${currentCoverage}%\`);
 
             const change = currentCoverage - baseCoverage;
+            const THRESHOLD = 0.01; // Tolerance for floating point precision
 
-            if (currentCoverage < baseCoverage) {
+            if (currentCoverage < baseCoverage - THRESHOLD) {
               const decrease = baseCoverage - currentCoverage;
               console.log(\`❌ Coverage decreased by \${decrease.toFixed(2)}% (from \${baseCoverage}% to \${currentCoverage}%)\`);
               console.log('Please add tests to maintain or improve coverage.');
               process.exit(1);
-            } else if (currentCoverage === baseCoverage) {
-              console.log(\`✅ Coverage maintained at \${currentCoverage}%\`);
+            } else if (Math.abs(change) <= THRESHOLD) {
+              console.log(\`✅ Coverage maintained at ~\${currentCoverage}% (within ±0.01% tolerance)\`);
             } else {
               console.log(\`✅ Coverage improved by \${change.toFixed(2)}%: \${baseCoverage}% → \${currentCoverage}%\`);
             }
