@@ -64,3 +64,42 @@ jobs:
         with:
           json-summary-path: packages/core/coverage/coverage-summary.json
           json-final-path: packages/core/coverage/coverage-final.json
+          file-coverage-mode: 'changes'
+
+      - name: Download base branch coverage
+        if: github.event_name == 'pull_request'
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: ci.yml
+          branch: ${{ github.base_ref }}
+          name: coverage-reports
+          path: base-coverage/
+
+      - name: Check coverage decrease
+        if: github.event_name == 'pull_request'
+        run: |
+          # Check if base coverage exists
+          if [ -f base-coverage/packages/core/coverage/coverage-summary.json ]; then
+            BASE_COVERAGE=$(node -pe "JSON.parse(require('fs').readFileSync('base-coverage/packages/core/coverage/coverage-summary.json', 'utf8')).total.lines.pct")
+            echo "Base coverage found: $BASE_COVERAGE%"
+          else
+            echo "⚠️  No base coverage found - this might be the first PR or base branch has no coverage data yet"
+            echo "Skipping coverage decrease check"
+            exit 0
+          fi
+
+          # Get current coverage
+          CURRENT_COVERAGE=$(node -pe "JSON.parse(require('fs').readFileSync('packages/core/coverage/coverage-summary.json', 'utf8')).total.lines.pct")
+          echo "Current coverage: $CURRENT_COVERAGE%"
+
+          # Compare and fail if decreased
+          if (( $(echo "$CURRENT_COVERAGE < $BASE_COVERAGE" | bc -l) )); then
+            DECREASE=$(echo "$BASE_COVERAGE - $CURRENT_COVERAGE" | bc -l)
+            echo "❌ Coverage decreased by $DECREASE% (from $BASE_COVERAGE% to $CURRENT_COVERAGE%)"
+            echo "Please add tests to maintain or improve coverage."
+            exit 1
+          else
+            CHANGE=$(echo "$CURRENT_COVERAGE - $BASE_COVERAGE" | bc -l)
+            echo "✅ Coverage maintained or improved by $CHANGE%: $BASE_COVERAGE% → $CURRENT_COVERAGE%"
+          fi
