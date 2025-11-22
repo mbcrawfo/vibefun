@@ -47,7 +47,11 @@ jobs:
             - Security concerns
             - Test coverage
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            Use the repository's CLAUDE.md for guidance on style and conventions:
+            - Be concise and direct with your feedback.
+            - Group your feedback into PROBLEMS that must be addressed and SUGGESTIONS to improve the code.
+            - Do not provide minor nitpick or stylist feedback.
+            - If the changes meet expectations leave only a simple comment such "✅ Good code quality".
 
             Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
 
