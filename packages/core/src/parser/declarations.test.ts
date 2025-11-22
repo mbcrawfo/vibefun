@@ -172,6 +172,84 @@ describe("Parser - Declarations", () => {
         it("should reject mut bindings with direct constructors", () => {
             expect(() => parseDecl("let mut x = None;")).toThrow("Mutable bindings must use ref() syntax");
         });
+
+        it("should accept ref() with type annotations", () => {
+            const decl = parseDecl("let mut x: Ref<Int> = ref(0);");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "VarPattern", name: "x" },
+                mutable: true,
+                value: {
+                    kind: "App",
+                    func: { kind: "Var", name: "ref" },
+                    args: [{ kind: "IntLit", value: 0 }],
+                },
+            });
+        });
+
+        it("should accept nested ref() calls", () => {
+            const decl = parseDecl("let mut x = ref(ref(0));");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                mutable: true,
+                value: {
+                    kind: "App",
+                    func: { kind: "Var", name: "ref" },
+                    args: [
+                        {
+                            kind: "App",
+                            func: { kind: "Var", name: "ref" },
+                            args: [{ kind: "IntLit", value: 0 }],
+                        },
+                    ],
+                },
+            });
+        });
+
+        it("should accept ref() with if-expressions", () => {
+            const decl = parseDecl("let mut x = ref(if c then 1 else 0);");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                mutable: true,
+                value: {
+                    kind: "App",
+                    func: { kind: "Var", name: "ref" },
+                    args: [{ kind: "If" }],
+                },
+            });
+        });
+
+        it("should accept ref() with function calls", () => {
+            const decl = parseDecl("let mut x = ref(compute());");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                mutable: true,
+                value: {
+                    kind: "App",
+                    func: { kind: "Var", name: "ref" },
+                    args: [
+                        {
+                            kind: "App",
+                            func: { kind: "Var", name: "compute" },
+                        },
+                    ],
+                },
+            });
+        });
+
+        it("should accept ref() with match rec bindings", () => {
+            const decl = parseDecl("let mut rec state = ref(initialState());");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "VarPattern", name: "state" },
+                mutable: true,
+                recursive: true,
+                value: {
+                    kind: "App",
+                    func: { kind: "Var", name: "ref" },
+                },
+            });
+        });
     });
 
     describe("type declarations", () => {
