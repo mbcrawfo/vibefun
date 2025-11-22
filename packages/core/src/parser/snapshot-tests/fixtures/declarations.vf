@@ -1,0 +1,8 @@
+// Simple let binding
+let x = 42;
+
+// Function binding
+let add = (a, b) => a + b;
+
+// Type declaration
+type Option<T> = Some(T) | None;

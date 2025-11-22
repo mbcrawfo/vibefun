@@ -1,0 +1,7 @@
+// Placeholder - will be expanded in Phase 2
+type Option<T> = Some(T) | None;
+
+let mapOption = (opt, f) => match opt {
+    | Some(x) => Some(f(x))
+    | None => None
+};
