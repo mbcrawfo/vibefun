@@ -1,6 +1,6 @@
 # Record Field Keywords - Task Checklist
 
-**Last Updated**: 2025-11-22
+**Last Updated**: 2025-11-22 (Comprehensive review - expanded to cover all 5 parser locations, 8 documentation files, integration tests)
 
 ## Phase 1: Parser Implementation
 
@@ -12,12 +12,12 @@
   - [ ] Document function with JSDoc
 
 ### Update Record Expression Parsing
-- [ ] Update normal record field parsing (~line 1590 in parse-expressions.ts)
+- [ ] Update normal record field parsing (~line 1590 in parse-expressions.ts) - LOCATION 1
   - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
   - [ ] Preserve existing behavior for identifiers
   - [ ] Extract keyword string from `KEYWORD` token
 
-- [ ] Update record update field parsing (~line 1530 in parse-expressions.ts)
+- [ ] Update record update field parsing (~line 1530 in parse-expressions.ts) - LOCATION 2
   - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
   - [ ] Handle keyword fields in spread updates
 
@@ -27,18 +27,19 @@
   - [ ] Suggest explicit syntax in error message
 
 ### Update Field Access Parsing
-- [ ] Update field access parsing (~line 567 in parse-expressions.ts)
+- [ ] Update field access parsing (~line 567 in parse-expressions.ts) - LOCATION 3
   - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
   - [ ] Allow `obj.type`, `obj.match`, etc.
+  - [ ] Test chained access: `obj.outer.type`
 
 ### Update Record Pattern Parsing
-- [ ] Update pattern field parsing (~line 260 in parse-patterns.ts)
+- [ ] Update pattern field parsing (~line 260 in parse-patterns.ts) - LOCATION 4
   - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
   - [ ] Handle keyword fields in patterns
   - [ ] Ensure shorthand patterns still work correctly
 
 ### Update Record Type Parsing
-- [ ] Update type field parsing (~line 161 in parse-types.ts)
+- [ ] Update type field parsing (~line 161 in parse-types.ts) - LOCATION 5
   - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
   - [ ] Allow keyword fields in type definitions
 
@@ -61,9 +62,12 @@
 - [ ] Test multiple spreads with keywords
 
 ### Unit Tests - Field Access
-- [ ] Test field access with keywords: `obj.type`
-- [ ] Test chained access: `obj.outer.type`
+- [ ] Test simple field access with keywords: `obj.type`, `obj.match`
+- [ ] Test chained field access: `obj.outer.type`
+- [ ] Test deeply chained access: `obj.a.b.c` with all keywords
 - [ ] Test field access in expressions: `obj.type & " suffix"`
+- [ ] Test field access with all 20 keywords individually
+- [ ] Test field access on nested records
 
 ### Unit Tests - Patterns
 - [ ] Test pattern matching on keyword fields: `{ type: "A" }`
@@ -90,6 +94,26 @@
   - [ ] Type check records with keyword fields
   - [ ] Generate code for records with keyword fields
 
+### Integration Tests - Desugarer
+- [ ] Test desugarer with keyword field names
+  - [ ] Verify record construction desugars correctly
+  - [ ] Verify record updates desugar correctly
+  - [ ] Verify field access desugars correctly
+  - [ ] Check that field names remain as strings in core AST
+
+### Integration Tests - Type Checker
+- [ ] Test type inference with keyword fields
+  - [ ] Verify `{ type: "x" }` infers correct type
+  - [ ] Verify field access type inference: `obj.type`
+  - [ ] Test with generic types: `Box<T> = { type: String, value: T }`
+  - [ ] Test pattern matching type checking with keyword fields
+
+### Integration Tests - Let-Binding Destructuring
+- [ ] Verify let-binding destructuring behavior (if supported)
+  - [ ] Test explicit syntax: `let { type: t } = node`
+  - [ ] Test shorthand errors: `let { type } = node` should error
+  - [ ] Verify error message is consistent with match patterns
+
 ### Example Programs
 - [ ] Create `examples/keyword-fields.vf`
   - [ ] AST node example (type, import, export)
@@ -114,15 +138,41 @@
   - [ ] Document shorthand limitation with keywords
   - [ ] Add examples throughout
 
+- [ ] Update `docs/spec/04-expressions/basic-expressions.md` (CRITICAL)
+  - [ ] Locate field access section (lines 255-296)
+  - [ ] Document that DOT operator accepts keywords as field names
+  - [ ] Add examples: `node.type`, `config.import`, `obj.match`
+  - [ ] Show chained access: `obj.outer.type.value`
+  - [ ] Clarify that this works for all keywords
+
 - [ ] Update `docs/spec/05-pattern-matching/data-patterns.md`
   - [ ] Update record pattern section
   - [ ] Add keyword field pattern examples
   - [ ] Document shorthand behavior
   - [ ] Add mixed examples (keywords + identifiers)
 
-- [ ] Optional: Update `docs/spec/02-lexical-structure/tokens.md`
+- [ ] Update `docs/spec/02-lexical-structure/tokens.md`
   - [ ] Add note about keywords in field positions
   - [ ] Clarify keyword vs identifier usage
+  - [ ] Document that keywords work as field names but not variable names
+
+- [ ] Update `docs/spec/02-lexical-structure/operators.md`
+  - [ ] Find DOT operator description
+  - [ ] Clarify that field access accepts keywords
+  - [ ] Add brief example or note
+
+- [ ] Update `docs/spec/.agent-map.md` (REQUIRED)
+  - [ ] Add to Quick Lookup Table: "Can I use keywords as field names?"
+  - [ ] Point to relevant spec files (record-types, data-literals, basic-expressions)
+  - [ ] Update any related cross-references
+  - [ ] Ensure synchronization with spec changes per maintenance rules
+
+- [ ] Update `.claude/VIBEFUN_AI_CODING_GUIDE.md` (REQUIRED)
+  - [ ] Add to syntax patterns section
+  - [ ] Document keyword fields in "Records and Types" section
+  - [ ] Add to JavaScript interop section (common use case)
+  - [ ] Add to gotchas/common patterns: shorthand limitation
+  - [ ] Include practical examples for AI agents
 
 ### Code Documentation
 - [ ] Add JSDoc comments to `expectFieldName()`
@@ -139,11 +189,15 @@
 - [ ] Run full verification: `npm run verify`
 
 ### Manual Testing
-- [ ] Test with all 20 keywords individually
+- [ ] Test with all 20 keywords individually in all 5 contexts
 - [ ] Test with all 8 reserved keywords
-- [ ] Test complex nested records
+- [ ] Test complex nested records with keywords
+- [ ] Test chained field access with multiple keywords
 - [ ] Verify error messages are clear and helpful
 - [ ] Test edge cases (empty records, trailing commas, etc.)
+- [ ] Verify module vs field access disambiguation
+- [ ] Test generic types with keyword fields
+- [ ] Test all keywords as field names in one record
 
 ### Code Review Checklist
 - [ ] No `any` types introduced
@@ -184,31 +238,54 @@
 
 Quick overview of major milestones:
 
-- [ ] **Parser Implementation Complete**
+- [ ] **Parser Implementation Complete** (Phase 1)
   - Helper function created
-  - All 5 parser locations updated
+  - All 5 parser locations updated:
+    - Location 1: Record construction (normal fields)
+    - Location 2: Record construction (update fields)
+    - Location 3: Field access (DOT operator)
+    - Location 4: Record patterns
+    - Location 5: Record type definitions
   - Shorthand validation added
 
-- [ ] **Tests Complete**
-  - Unit tests for all contexts
-  - Integration tests
+- [ ] **Tests Complete** (Phase 2)
+  - Unit tests for all 5 parser contexts
+  - Field access tests (simple and chained)
+  - Integration tests (end-to-end)
+  - Integration with desugarer
+  - Integration with type checker
+  - Let-binding destructuring verified
   - Error case tests
   - Example programs
 
-- [ ] **Documentation Complete**
-  - All spec files updated
-  - Examples added
+- [ ] **Documentation Complete** (Phase 3)
+  - All 8 documentation files updated:
+    - record-types.md
+    - data-literals.md
+    - basic-expressions.md (CRITICAL)
+    - data-patterns.md
+    - tokens.md
+    - operators.md
+    - .agent-map.md (REQUIRED)
+    - VIBEFUN_AI_CODING_GUIDE.md (REQUIRED)
+  - Examples added to all spec files
   - Code comments updated
+  - AI coding guide updated
 
-- [ ] **Quality Checks Pass**
+- [ ] **Quality Checks Pass** (Phase 4)
   - `npm run verify` passes
+  - All existing tests still pass
   - Manual testing complete
   - No regressions
+  - Module vs field access verified
+  - All edge cases tested
 
 - [ ] **Ready for Review**
   - All tasks complete
+  - All 5 parser locations working
+  - All 8 documentation files updated
   - Code committed
-  - Documentation updated
+  - Task list updated with completion
 
 ## Notes
 

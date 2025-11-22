@@ -1,23 +1,23 @@
 # Record Field Keywords - Context
 
-**Last Updated**: 2025-11-22
+**Last Updated**: 2025-11-22 (Comprehensive review - added missing parser location, documentation files, edge cases)
 
 ## Key Files
 
-### Parser Files (Primary Changes)
+### Parser Files (Primary Changes - 5 Locations)
 
 - **packages/core/src/parser/parse-expressions.ts** (1788 lines)
   - Lines ~1457-1700: `parseRecordExpr()` - handles record construction and updates
-  - Line ~1590: Normal record field parsing
-  - Line ~1530: Record update field parsing
-  - Line ~567: Field access parsing (`obj.field`)
+  - Line ~1590: Normal record field parsing (LOCATION 1)
+  - Line ~1530: Record update field parsing (LOCATION 2)
+  - Line ~567: Field access parsing (`obj.field`) after DOT operator (LOCATION 3)
 
 - **packages/core/src/parser/parse-patterns.ts** (357 lines)
   - Line ~225: Record pattern parsing starts
-  - Line ~260: Field name parsing in patterns
+  - Line ~260: Field name parsing in patterns (LOCATION 4)
 
 - **packages/core/src/parser/parse-types.ts**
-  - Line ~161: Record type field name parsing
+  - Line ~161: Record type field name parsing (LOCATION 5)
 
 ### Token/Lexer Files (Reference Only - No Changes)
 
@@ -37,7 +37,7 @@
 - **packages/core/src/parser/parse-types.test.ts** - type tests
 - Create new: **packages/core/src/parser/keyword-field-names.test.ts**
 
-### Spec Files (To Update)
+### Spec Files (To Update - 8 Files)
 
 - **docs/spec/03-type-system/record-types.md** (277 lines)
   - Section on field names (around line 30-50)
@@ -47,8 +47,26 @@
   - Record construction section (lines 1-275)
   - Field shorthand section (lines 151-196)
 
+- **docs/spec/04-expressions/basic-expressions.md** (CRITICAL)
+  - Lines 255-296: Field access operator documentation
+  - Must document keywords work as field names
+
 - **docs/spec/05-pattern-matching/data-patterns.md** (314 lines)
   - Record pattern section (lines 174-313)
+
+- **docs/spec/02-lexical-structure/tokens.md**
+  - Add note about keywords in field positions
+
+- **docs/spec/02-lexical-structure/operators.md**
+  - Update DOT operator description for field access
+
+- **docs/spec/.agent-map.md** (REQUIRED)
+  - Must add query for keyword field names
+  - Per spec maintenance rules
+
+- **.claude/VIBEFUN_AI_CODING_GUIDE.md** (REQUIRED)
+  - Must update when syntax changes
+  - Add to patterns and gotchas sections
 
 ## Current Parser Behavior
 
@@ -61,7 +79,12 @@ const fieldToken = parser.expect("IDENTIFIER", "Expected field name");
 const fieldName = fieldToken.value as string;
 ```
 
-This pattern appears in 4 locations (expressions, patterns, types).
+This pattern appears in **5 locations**:
+1. Record construction (normal fields)
+2. Record construction (update fields)
+3. Field access (after DOT)
+4. Record patterns
+5. Record type definitions
 
 ### Token Flow
 
@@ -117,6 +140,23 @@ We just need the parser to accept `KEYWORD` tokens in field positions.
 **Confirmed**: `obj.type` should work for field access (already unambiguous after DOT token).
 
 **Implementation**: Update field access parsing (line ~567 in parse-expressions.ts) to accept keywords.
+
+### Decision 5: Module vs Field Access Disambiguation
+
+**Question**: How is `keyword.field` disambiguated between module access and field access?
+
+**Answer**: Keywords cannot be module names (already enforced by language), so any `keyword.field` must be field access on a variable. This is unambiguous.
+
+**Examples**:
+```vibefun
+let type = { name: "User" }
+type.name  // Unambiguous: field access on variable 'type'
+
+// Cannot do:
+module type { ... }  // ERROR: 'type' is a keyword, can't be module name
+```
+
+**Impact**: No ambiguity. Document this in spec for clarity.
 
 ## Technical Details
 
@@ -291,6 +331,16 @@ Vibefun's approach (keywords allowed in explicit syntax) is most similar to Java
 { outer: { type: "inner", match: true } }
 ```
 
+### Chained Field Access
+
+```vibefun
+// Should work: chained access with keywords
+node.type
+node.outer.type
+node.outer.type.value
+config.import.export.type  // All keywords!
+```
+
 ### Spread with Keywords
 
 ```vibefun
@@ -308,18 +358,38 @@ match node {
 }
 ```
 
+### Generic Types with Keyword Fields
+
+```vibefun
+// Should work: generics with keyword fields
+type Box<T> = { type: String, value: T }
+let box: Box<Int> = { type: "int-box", value: 42 }
+```
+
+### Let-Binding Destructuring (if supported)
+
+```vibefun
+// Need to verify behavior:
+let { type: nodeType, value } = node
+// Should work - explicit syntax
+
+let { type } = node
+// ERROR - shorthand with keyword (same as match patterns)
+```
+
 ## Implementation Notes
 
 ### Order of Changes
 
 1. Add `expectFieldName()` helper to parser-base.ts or parse-expressions.ts
-2. Update record expression parsing (2 locations)
-3. Update record pattern parsing (1 location)
-4. Update record type parsing (1 location)
-5. Update field access parsing (1 location)
-6. Add shorthand validation error
-7. Add tests
-8. Update specs
+2. Update record expression parsing - construction (location 1)
+3. Update record expression parsing - updates (location 2)
+4. Update field access parsing (location 3)
+5. Update record pattern parsing (location 4)
+6. Update record type parsing (location 5)
+7. Add shorthand validation error
+8. Add tests (unit, integration, field access, edge cases)
+9. Update specs (8 files total)
 
 ### Testing Strategy
 
@@ -356,9 +426,13 @@ obj.type  // Works - 'type' is valid property name in JS
 
 ## Success Metrics
 
-- All 20 keywords work as field names in all contexts
+- All 20 keywords work as field names in all 5 parser contexts
+- Field access works with keywords (simple and chained)
 - Clear error for shorthand with keyword
+- Module vs field access is unambiguous and documented
 - All existing tests still pass
 - New tests achieve >95% coverage of changed code
+- Desugarer and type checker integration verified
+- All 8 documentation files updated correctly
 - Spec examples are clear and comprehensive
 - Zero regressions in `npm run verify`
