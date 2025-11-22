@@ -1257,8 +1257,8 @@ exports[`Parser Snapshot - Declarations > should parse declarations.vf 1`] = `
       "loc": {
         "column": 1,
         "file": "declarations.vf",
-        "line": 45,
-        "offset": 927,
+        "line": 46,
+        "offset": 1014,
       },
       "mutable": true,
       "pattern": {
@@ -1266,8 +1266,8 @@ exports[`Parser Snapshot - Declarations > should parse declarations.vf 1`] = `
         "loc": {
           "column": 9,
           "file": "declarations.vf",
-          "line": 45,
-          "offset": 935,
+          "line": 46,
+          "offset": 1022,
         },
         "name": "counter",
       },
@@ -1277,8 +1277,8 @@ exports[`Parser Snapshot - Declarations > should parse declarations.vf 1`] = `
         "loc": {
           "column": 19,
           "file": "declarations.vf",
-          "line": 45,
-          "offset": 945,
+          "line": 46,
+          "offset": 1032,
         },
         "value": 0,
       },

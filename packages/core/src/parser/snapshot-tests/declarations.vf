@@ -42,4 +42,5 @@ export let publicValue = 42;
 export type PublicPoint = { x: Int, y: Int };
 
 // Mutable let binding
+// NOTE: Spec says this should be `ref(0)`, but parser currently accepts direct values
 let mut counter = 0;

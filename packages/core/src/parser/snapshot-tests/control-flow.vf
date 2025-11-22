@@ -19,6 +19,7 @@ let result = if condition then {
 
 // While loop (must be in function)
 let runCounter = () => {
+    // NOTE: Spec says this should be `ref(0)`, but parser currently accepts direct values
     let mut counter = 0;
     while counter < 10 {
         counter := counter + 1;
