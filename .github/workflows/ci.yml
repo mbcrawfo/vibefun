@@ -58,18 +58,11 @@ jobs:
           path: packages/*/dist/
           retention-days: 7
 
-      - name: Report coverage to PR
-        if: github.event_name == 'pull_request'
-        uses: davelosert/vitest-coverage-report-action@v2
-        with:
-          json-summary-path: packages/core/coverage/coverage-summary.json
-          json-final-path: packages/core/coverage/coverage-final.json
-          file-coverage-mode: 'changes'
-
       - name: Download base branch coverage
         if: github.event_name == 'pull_request'
         uses: dawidd6/action-download-artifact@v6
         continue-on-error: true
+        id: download-coverage
         with:
           workflow: ci.yml
           branch: ${{ github.base_ref }}
@@ -91,6 +84,8 @@ jobs:
           # Check if base coverage exists
           if [ ! -f base-coverage/packages/core/coverage/coverage-summary.json ]; then
             echo "⚠️  No base coverage found - this might be the first PR or base branch has no coverage data yet"
+            echo "Reason: Either this is the first PR, base branch has no successful runs, or artifact download failed"
+            echo "Artifact download outcome: ${{ steps.download-coverage.outcome }}"
             echo "Skipping coverage decrease check (absolute thresholds still enforced)"
             exit 0
           fi
@@ -123,3 +118,11 @@ jobs:
               console.log(\`✅ Coverage improved by \${change.toFixed(2)}%: \${baseCoverage}% → \${currentCoverage}%\`);
             }
           "
+
+      - name: Report coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          json-summary-path: packages/core/coverage/coverage-summary.json
+          json-final-path: packages/core/coverage/coverage-final.json
+          file-coverage-mode: 'changes'
