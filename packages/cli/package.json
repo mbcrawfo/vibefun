@@ -13,7 +13,7 @@
         "build:watch": "tsc --build --watch",
         "check": "tsc --noEmit",
         "dev": "tsc --watch",
-        "clean": "rm -rf dist"
+        "clean": "rm -rf dist tsconfig.tsbuildinfo"
     },
     "keywords": [
         "vibefun",
