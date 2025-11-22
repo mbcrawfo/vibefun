@@ -14,6 +14,12 @@ export default defineConfig({
                 'packages/*/src/**/*.test.ts',
                 'packages/*/src/**/*.spec.ts',
             ],
+            thresholds: {
+                lines: 75,
+                branches: 75,
+                functions: 90,
+                statements: 75,
+            },
         },
     },
 });
