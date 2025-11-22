@@ -4,10 +4,10 @@
 HOOK_INPUT=$(cat)
 
 # Extract the bash command from the JSON input
-BASH_COMMAND=$(echo "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+CMD=$(echo "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 # Only intercept git commit commands
-if ! [[ "$BASH_COMMAND" =~ git[[:space:]]+commit ]]; then
+if ! [[ "$CMD" =~ git[[:space:]]+commit ]]; then
     exit 0  # Allow non-commit commands to proceed
 fi
 
