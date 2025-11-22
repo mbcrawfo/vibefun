@@ -12,8 +12,8 @@
         }
     },
     "scripts": {
-        "build": "tsc",
-        "build:watch": "tsc --watch",
+        "build": "tsc --build",
+        "build:watch": "tsc --build --watch",
         "check": "tsc --noEmit",
         "test": "vitest run",
         "test:watch": "vitest --watch",

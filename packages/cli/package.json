@@ -9,8 +9,8 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "tsc",
-        "build:watch": "tsc --watch",
+        "build": "tsc --build",
+        "build:watch": "tsc --build --watch",
         "check": "tsc --noEmit",
         "dev": "tsc --watch",
         "clean": "rm -rf dist"
