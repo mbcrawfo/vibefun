@@ -2,17 +2,17 @@
 
 **Created**: 2025-11-22
 **Last Updated**: 2025-11-22
-**Status**: Not started
+**Status**: In Progress
 
 ## Overview
 
 Address 7 skipped tests to achieve 100% parser test pass rate.
 
-**Current Progress**: 0/4 phases complete (0%)
+**Current Progress**: 1/4 phases complete (25%)
 
 ---
 
-## Phase 1: Fix Record Return Type Bug ⏳ Not Started
+## Phase 1: Fix Record Return Type Bug ✅ Complete
 
 **Priority**: High
 **Complexity**: Medium
@@ -20,39 +20,39 @@ Address 7 skipped tests to achieve 100% parser test pass rate.
 
 ### Tasks
 
-- [ ] 1.1 Research grammar ambiguity
-  - [ ] Review current lambda parsing logic in `parse-expressions.ts`
-  - [ ] Identify exact point where record type vs literal decision is made
-  - [ ] Document current behavior and expected behavior
+- [x] 1.1 Research grammar ambiguity
+  - [x] Review current lambda parsing logic in `parse-expressions.ts`
+  - [x] Identify exact point where record type vs literal decision is made
+  - [x] Document current behavior and expected behavior
 
-- [ ] 1.2 Implement lookahead logic
-  - [ ] Add `parseRecordTypeInReturnPosition()` helper function
-  - [ ] Implement pattern detection for record types (`:` between field-value pairs)
-  - [ ] Add lookahead for `=>` after closing `}`
-  - [ ] Update `parseLambdaExpression()` to use new logic
+- [x] 1.2 Implement lookahead logic
+  - [x] Improved depth tracking in `isLikelyLambda()` function
+  - [x] Track nesting for all bracket types (parens, braces, brackets)
+  - [x] Skip entire type expression before checking for `=>`
 
-- [ ] 1.3 Update tests
-  - [ ] Un-skip test in `lambda-return-type.test.ts:128`
-  - [ ] Add edge case: nested record return type
-  - [ ] Add edge case: tuple return type
-  - [ ] Add edge case: union return type
-  - [ ] Add edge case: function type return type
+- [x] 1.3 Update tests
+  - [x] Un-skip test in `lambda-return-type.test.ts:128`
+  - [x] Add edge case: nested record return type
+  - [x] Add edge case: function type return
+  - [x] Add edge case: union return type
+  - [x] Add edge case: complex nested types
 
-- [ ] 1.4 Validation
-  - [ ] Run full test suite: `npm test`
-  - [ ] Verify no regressions in record literal parsing
-  - [ ] Verify no regressions in lambda parsing
-  - [ ] Run quality checks: `npm run verify`
+- [x] 1.4 Validation
+  - [x] Run full test suite: `npm test`
+  - [x] Verify no regressions in record literal parsing
+  - [x] Verify no regressions in lambda parsing
+  - [x] Run quality checks: `npm run verify`
 
-**Files**:
-- `packages/core/src/parser/parse-expressions.ts`
-- `packages/core/src/parser/lambda-return-type.test.ts`
+**Files Modified**:
+- `packages/core/src/parser/parse-expressions.ts` - Fixed `isLikelyLambda()` depth tracking
+- `packages/core/src/parser/lambda-return-type.test.ts` - Un-skipped test, added 4 edge cases
 
 **Completion Criteria**:
 - ✅ Record return types parse correctly
 - ✅ No ambiguity errors
-- ✅ All new tests pass
-- ✅ No test regressions
+- ✅ All new tests pass (25 total, was 21)
+- ✅ No test regressions (2581 tests still passing)
+- ✅ Skipped tests reduced from 7 to 6
 
 ---
 

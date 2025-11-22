@@ -1025,17 +1025,43 @@ function isLikelyLambda(parser: ParserBase): boolean {
                 if (next.type === "COLON") {
                     // Could be return type annotation
                     // Look ahead further for =>
+                    // Need to properly skip the entire type expression which may contain {}, (), []
                     offset++;
-                    // Skip to find =>
-                    while (
-                        parser.peek(offset).type !== "EOF" &&
-                        parser.peek(offset).type !== "FAT_ARROW" &&
-                        parser.peek(offset).type !== "SEMICOLON" &&
-                        parser.peek(offset).type !== "RBRACE"
-                    ) {
+
+                    // Skip newlines after colon
+                    while (parser.peek(offset).type === "NEWLINE") {
                         offset++;
                     }
-                    return parser.peek(offset).type === "FAT_ARROW";
+
+                    // Track depth for nested structures in the type expression
+                    let typeDepth = 0;
+
+                    // Skip the entire type expression to find =>
+                    while (parser.peek(offset).type !== "EOF") {
+                        const token = parser.peek(offset);
+
+                        // Track opening brackets/braces/parens
+                        if (token.type === "LPAREN" || token.type === "LBRACKET" || token.type === "LBRACE") {
+                            typeDepth++;
+                        } else if (token.type === "RPAREN" || token.type === "RBRACKET" || token.type === "RBRACE") {
+                            typeDepth--;
+                        }
+
+                        // Only stop at => when we're at depth 0 (not inside any nested structure)
+                        if (typeDepth === 0) {
+                            if (token.type === "FAT_ARROW") {
+                                return true;
+                            }
+                            // Also stop if we hit statement terminators at depth 0
+                            if (token.type === "SEMICOLON" || token.type === "RBRACE") {
+                                return false;
+                            }
+                        }
+
+                        offset++;
+                    }
+
+                    return false;
                 }
 
                 return false;

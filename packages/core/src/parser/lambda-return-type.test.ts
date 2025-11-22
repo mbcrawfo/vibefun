@@ -125,13 +125,7 @@ describe("Lambda Return Type Annotations", () => {
             // Tuple types are represented as TupleType or similar
         });
 
-        it.skip("should parse lambda with record return type", () => {
-            // KNOWN ISSUE: Record return types in lambdas cause parser errors
-            // Error: "Expected ';' after declaration" when parsing:
-            //   (user): { name: String, age: Int } => user
-            // This is a genuine parser bug that needs investigation.
-            // Likely related to grammar ambiguity between record types and record literals.
-            // See: 2025-11-21-parser-feature-gaps-tasks.md Phase 2.4 notes
+        it("should parse lambda with record return type", () => {
             const lambda = parseExpr("(user): ({ name: String, age: Int }) => user");
 
             expect(lambda.kind).toBe("Lambda");
@@ -140,6 +134,55 @@ describe("Lambda Return Type Annotations", () => {
             expect(lambda.returnType?.kind).toBe("RecordType");
             if (lambda.returnType?.kind !== "RecordType") return;
             expect(lambda.returnType.fields.length).toBeGreaterThan(0);
+        });
+
+        it("should parse lambda with nested record return type", () => {
+            const lambda = parseExpr("(data): ({ user: { name: String, id: Int }, timestamp: Int }) => data");
+
+            expect(lambda.kind).toBe("Lambda");
+            if (lambda.kind !== "Lambda") return;
+
+            expect(lambda.returnType?.kind).toBe("RecordType");
+            if (lambda.returnType?.kind !== "RecordType") return;
+            expect(lambda.returnType.fields.length).toBe(2);
+
+            // Check nested record
+            const userField = lambda.returnType.fields[0];
+            expect(userField?.typeExpr.kind).toBe("RecordType");
+        });
+
+        it("should parse lambda with function type return", () => {
+            const lambda = parseExpr("(x): (Int) -> String => y => String.fromInt(y)");
+
+            expect(lambda.kind).toBe("Lambda");
+            if (lambda.kind !== "Lambda") return;
+
+            expect(lambda.returnType?.kind).toBe("FunctionType");
+        });
+
+        it("should parse lambda with union return type containing records", () => {
+            const lambda = parseExpr("(x): ({ ok: Int } | { error: String }) => x");
+
+            expect(lambda.kind).toBe("Lambda");
+            if (lambda.kind !== "Lambda") return;
+
+            expect(lambda.returnType?.kind).toBe("UnionType");
+            if (lambda.returnType?.kind !== "UnionType") return;
+            expect(lambda.returnType.types.length).toBe(2);
+        });
+
+        it("should parse lambda with complex nested type return", () => {
+            const lambda = parseExpr("(f): (List<{ name: String, tags: List<String> }>) -> Option<Int> => f");
+
+            expect(lambda.kind).toBe("Lambda");
+            if (lambda.kind !== "Lambda") return;
+
+            expect(lambda.returnType?.kind).toBe("FunctionType");
+            if (lambda.returnType?.kind !== "FunctionType") return;
+
+            // First param should be a type application List<...>
+            const firstParam = lambda.returnType.params[0];
+            expect(firstParam?.kind).toBe("TypeApp");
         });
     });
 
