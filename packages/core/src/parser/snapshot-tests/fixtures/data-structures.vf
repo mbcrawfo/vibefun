@@ -1,3 +1,79 @@
-// Placeholder - will be expanded in Phase 2
-let list = [1, 2, 3];
-let record = { x: 1, y: 2 };
+// Parser Snapshot Test: Data Structures
+
+// Simple lists
+let empty = [];
+let numbers = [1, 2, 3, 4, 5];
+let strings = ["hello", "world"];
+
+// Lists with trailing commas
+let trailing = [1, 2, 3,];
+
+// List spread operators
+let combined = [...list1, ...list2];
+let extended = [0, ...middle, 99];
+
+// Simple records
+let point = { x: 10, y: 20 };
+let person = { name: "Alice", age: 30 };
+
+// Records with trailing commas
+let config = { host: "localhost", port: 3000, };
+
+// Record field shorthand
+let user = { name, age };
+
+// Record spread operators
+let userSettings = { ...defaults, theme: "dark" };
+let merged = { ...base, ...overrides };
+
+// Nested record updates
+let updated = {
+    ...baseConfig,
+    server: { ...baseConfig.server, port: 8080 }
+};
+
+// Deeply nested records
+let nested = {
+    level1: {
+        level2: {
+            level3: {
+                value: 42
+            }
+        }
+    }
+};
+
+// Records with computed values
+let dynamic = {
+    x: 10 + 20,
+    y: someFunction(),
+    z: if condition then value1 else value2
+};
+
+// Tuples
+let pair = (1, 2);
+let triple = ("hello", 42, true);
+
+// Lists of records
+let users = [
+    { name: "Alice", age: 30 },
+    { name: "Bob", age: 25 }
+];
+
+// Records with lists
+let data = {
+    ids: [1, 2, 3],
+    names: ["a", "b", "c"]
+};
+
+// Nested lists
+let matrix = [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+// Records with function values
+let api = {
+    get: (url) => fetch(url),
+    post: (url, data) => post(url, data)
+};

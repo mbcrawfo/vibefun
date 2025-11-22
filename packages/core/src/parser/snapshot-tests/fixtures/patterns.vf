@@ -1,5 +1,46 @@
-// Placeholder - will be expanded in Phase 2
-let result = match x {
+// Parser Snapshot Test: Patterns
+
+// Basic patterns
+let result1 = match value {
     | 0 => "zero"
     | _ => "other"
 };
+
+// Constructor patterns
+let result2 = match option {
+    | Some(x) => x
+    | None => 0
+};
+
+// List patterns
+let result3 = match list {
+    | [] => "empty"
+    | [x, ...rest] => "many"
+};
+
+// Tuple patterns
+let result4 = match tuple {
+    | (0, _) => "first is zero"
+    | (x, y) => "both present"
+};
+
+// Record patterns
+let result5 = match person {
+    | { name, age } => name
+};
+
+// Or-patterns
+let result6 = match value {
+    | 0 | 1 | 2 => "small"
+    | _ => "large"
+};
+
+// Patterns with guards
+let result7 = match x {
+    | n when n < 0 => "negative"
+    | _ => "positive or zero"
+};
+
+// Patterns in let
+let [first, second] = [1, 2];
+let { x, y } = point;

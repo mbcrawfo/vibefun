@@ -1,2 +1,31 @@
-// Placeholder - will be expanded in Phase 2
-let id = (x) => x;
+// Parser Snapshot Test: Functions
+
+// Simple functions
+let add = (x, y) => x + y;
+let double = x => x * 2;
+
+// Type-annotated function
+let increment: (Int) -> Int = x => x + 1;
+
+// Recursive function
+let rec factorial = (n) =>
+    if n <= 1 then 1
+    else n * factorial(n - 1);
+
+// Mutually recursive
+let rec isEven = (n) =>
+    if n == 0 then true else isOdd(n - 1)
+and isOdd = (n) =>
+    if n == 0 then false else isEven(n - 1);
+
+// Higher-order function
+let rec map = (f, list) => match list {
+    | [] => []
+    | [head, ...tail] => [f(head), ...map(f, tail)]
+};
+
+// Curried function
+let add3 = (x) => (y) => (z) => x + y + z;
+
+// Lambda with destructuring
+let getFirst = ([head, ..._]) => head;
