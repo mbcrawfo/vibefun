@@ -1,0 +1,1366 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parser Snapshot - Real World > should parse real-world.vf 1`] = `
+{
+  "declarations": [
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 23,
+                  "file": "real-world.vf",
+                  "line": 4,
+                  "offset": 83,
+                },
+                "name": "T",
+              },
+            ],
+            "loc": {
+              "column": 18,
+              "file": "real-world.vf",
+              "line": 4,
+              "offset": 78,
+            },
+            "name": "Some",
+          },
+          {
+            "args": [],
+            "loc": {
+              "column": 28,
+              "file": "real-world.vf",
+              "line": 4,
+              "offset": 88,
+            },
+            "name": "None",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 18,
+          "file": "real-world.vf",
+          "line": 4,
+          "offset": 78,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 4,
+        "offset": 61,
+      },
+      "name": "Option",
+      "params": [
+        "T",
+      ],
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 6,
+        "offset": 95,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "real-world.vf",
+          "line": 6,
+          "offset": 99,
+        },
+        "name": "mapOption",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "cases": [
+            {
+              "body": {
+                "args": [
+                  {
+                    "args": [
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 25,
+                          "file": "real-world.vf",
+                          "line": 7,
+                          "offset": 159,
+                        },
+                        "name": "x",
+                      },
+                    ],
+                    "func": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 23,
+                        "file": "real-world.vf",
+                        "line": 7,
+                        "offset": 157,
+                      },
+                      "name": "f",
+                    },
+                    "kind": "App",
+                    "loc": {
+                      "column": 23,
+                      "file": "real-world.vf",
+                      "line": 7,
+                      "offset": 157,
+                    },
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 18,
+                    "file": "real-world.vf",
+                    "line": 7,
+                    "offset": 152,
+                  },
+                  "name": "Some",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 18,
+                  "file": "real-world.vf",
+                  "line": 7,
+                  "offset": 152,
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 7,
+                "offset": 141,
+              },
+              "pattern": {
+                "args": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 12,
+                      "file": "real-world.vf",
+                      "line": 7,
+                      "offset": 146,
+                    },
+                    "name": "x",
+                  },
+                ],
+                "constructor": "Some",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 7,
+                  "offset": 141,
+                },
+              },
+            },
+            {
+              "body": {
+                "kind": "Var",
+                "loc": {
+                  "column": 15,
+                  "file": "real-world.vf",
+                  "line": 8,
+                  "offset": 177,
+                },
+                "name": "None",
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 8,
+                "offset": 169,
+              },
+              "pattern": {
+                "args": [],
+                "constructor": "None",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 8,
+                  "offset": 169,
+                },
+              },
+            },
+          ],
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 35,
+              "file": "real-world.vf",
+              "line": 6,
+              "offset": 129,
+            },
+            "name": "opt",
+          },
+          "kind": "Match",
+          "loc": {
+            "column": 29,
+            "file": "real-world.vf",
+            "line": 6,
+            "offset": 123,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 17,
+          "file": "real-world.vf",
+          "line": 6,
+          "offset": 111,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 18,
+              "file": "real-world.vf",
+              "line": 6,
+              "offset": 112,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 18,
+                "file": "real-world.vf",
+                "line": 6,
+                "offset": 112,
+              },
+              "name": "opt",
+            },
+          },
+          {
+            "loc": {
+              "column": 23,
+              "file": "real-world.vf",
+              "line": 6,
+              "offset": 117,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 23,
+                "file": "real-world.vf",
+                "line": 6,
+                "offset": 117,
+              },
+              "name": "f",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 24,
+                  "file": "real-world.vf",
+                  "line": 12,
+                  "offset": 224,
+                },
+                "name": "T",
+              },
+            ],
+            "loc": {
+              "column": 21,
+              "file": "real-world.vf",
+              "line": 12,
+              "offset": 221,
+            },
+            "name": "Ok",
+          },
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 33,
+                  "file": "real-world.vf",
+                  "line": 12,
+                  "offset": 233,
+                },
+                "name": "E",
+              },
+            ],
+            "loc": {
+              "column": 29,
+              "file": "real-world.vf",
+              "line": 12,
+              "offset": 229,
+            },
+            "name": "Err",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 21,
+          "file": "real-world.vf",
+          "line": 12,
+          "offset": 221,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 12,
+        "offset": 201,
+      },
+      "name": "Result",
+      "params": [
+        "T",
+        "E",
+      ],
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 14,
+        "offset": 238,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "real-world.vf",
+          "line": 14,
+          "offset": 242,
+        },
+        "name": "mapResult",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "cases": [
+            {
+              "body": {
+                "args": [
+                  {
+                    "args": [
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 21,
+                          "file": "real-world.vf",
+                          "line": 15,
+                          "offset": 304,
+                        },
+                        "name": "x",
+                      },
+                    ],
+                    "func": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 19,
+                        "file": "real-world.vf",
+                        "line": 15,
+                        "offset": 302,
+                      },
+                      "name": "f",
+                    },
+                    "kind": "App",
+                    "loc": {
+                      "column": 19,
+                      "file": "real-world.vf",
+                      "line": 15,
+                      "offset": 302,
+                    },
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 16,
+                    "file": "real-world.vf",
+                    "line": 15,
+                    "offset": 299,
+                  },
+                  "name": "Ok",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 16,
+                  "file": "real-world.vf",
+                  "line": 15,
+                  "offset": 299,
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 15,
+                "offset": 290,
+              },
+              "pattern": {
+                "args": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 10,
+                      "file": "real-world.vf",
+                      "line": 15,
+                      "offset": 293,
+                    },
+                    "name": "x",
+                  },
+                ],
+                "constructor": "Ok",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 15,
+                  "offset": 290,
+                },
+              },
+            },
+            {
+              "body": {
+                "args": [
+                  {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 21,
+                      "file": "real-world.vf",
+                      "line": 16,
+                      "offset": 328,
+                    },
+                    "name": "e",
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 17,
+                    "file": "real-world.vf",
+                    "line": 16,
+                    "offset": 324,
+                  },
+                  "name": "Err",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 17,
+                  "file": "real-world.vf",
+                  "line": 16,
+                  "offset": 324,
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 16,
+                "offset": 314,
+              },
+              "pattern": {
+                "args": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 11,
+                      "file": "real-world.vf",
+                      "line": 16,
+                      "offset": 318,
+                    },
+                    "name": "e",
+                  },
+                ],
+                "constructor": "Err",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 16,
+                  "offset": 314,
+                },
+              },
+            },
+          ],
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 38,
+              "file": "real-world.vf",
+              "line": 14,
+              "offset": 275,
+            },
+            "name": "result",
+          },
+          "kind": "Match",
+          "loc": {
+            "column": 32,
+            "file": "real-world.vf",
+            "line": 14,
+            "offset": 269,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 17,
+          "file": "real-world.vf",
+          "line": 14,
+          "offset": 254,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 18,
+              "file": "real-world.vf",
+              "line": 14,
+              "offset": 255,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 18,
+                "file": "real-world.vf",
+                "line": 14,
+                "offset": 255,
+              },
+              "name": "result",
+            },
+          },
+          {
+            "loc": {
+              "column": 26,
+              "file": "real-world.vf",
+              "line": 14,
+              "offset": 263,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 26,
+                "file": "real-world.vf",
+                "line": 14,
+                "offset": 263,
+              },
+              "name": "f",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 21,
+                  "file": "real-world.vf",
+                  "line": 20,
+                  "offset": 374,
+                },
+                "name": "T",
+              },
+              {
+                "args": [
+                  {
+                    "kind": "TypeConst",
+                    "loc": {
+                      "column": 29,
+                      "file": "real-world.vf",
+                      "line": 20,
+                      "offset": 382,
+                    },
+                    "name": "T",
+                  },
+                ],
+                "constructor": {
+                  "kind": "TypeConst",
+                  "loc": {
+                    "column": 24,
+                    "file": "real-world.vf",
+                    "line": 20,
+                    "offset": 377,
+                  },
+                  "name": "List",
+                },
+                "kind": "TypeApp",
+                "loc": {
+                  "column": 24,
+                  "file": "real-world.vf",
+                  "line": 20,
+                  "offset": 377,
+                },
+              },
+            ],
+            "loc": {
+              "column": 16,
+              "file": "real-world.vf",
+              "line": 20,
+              "offset": 369,
+            },
+            "name": "Cons",
+          },
+          {
+            "args": [],
+            "loc": {
+              "column": 35,
+              "file": "real-world.vf",
+              "line": 20,
+              "offset": 388,
+            },
+            "name": "Nil",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 16,
+          "file": "real-world.vf",
+          "line": 20,
+          "offset": 369,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 20,
+        "offset": 354,
+      },
+      "name": "List",
+      "params": [
+        "T",
+      ],
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 22,
+        "offset": 394,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 9,
+          "file": "real-world.vf",
+          "line": 22,
+          "offset": 402,
+        },
+        "name": "map",
+      },
+      "recursive": true,
+      "value": {
+        "body": {
+          "cases": [
+            {
+              "body": {
+                "kind": "Var",
+                "loc": {
+                  "column": 14,
+                  "file": "real-world.vf",
+                  "line": 23,
+                  "offset": 447,
+                },
+                "name": "Nil",
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 23,
+                "offset": 440,
+              },
+              "pattern": {
+                "args": [],
+                "constructor": "Nil",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 23,
+                  "offset": 440,
+                },
+              },
+            },
+            {
+              "body": {
+                "args": [
+                  {
+                    "args": [
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 34,
+                          "file": "real-world.vf",
+                          "line": 24,
+                          "offset": 484,
+                        },
+                        "name": "head",
+                      },
+                    ],
+                    "func": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 32,
+                        "file": "real-world.vf",
+                        "line": 24,
+                        "offset": 482,
+                      },
+                      "name": "f",
+                    },
+                    "kind": "App",
+                    "loc": {
+                      "column": 32,
+                      "file": "real-world.vf",
+                      "line": 24,
+                      "offset": 482,
+                    },
+                  },
+                  {
+                    "args": [
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 45,
+                          "file": "real-world.vf",
+                          "line": 24,
+                          "offset": 495,
+                        },
+                        "name": "tail",
+                      },
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 51,
+                          "file": "real-world.vf",
+                          "line": 24,
+                          "offset": 501,
+                        },
+                        "name": "f",
+                      },
+                    ],
+                    "func": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 41,
+                        "file": "real-world.vf",
+                        "line": 24,
+                        "offset": 491,
+                      },
+                      "name": "map",
+                    },
+                    "kind": "App",
+                    "loc": {
+                      "column": 41,
+                      "file": "real-world.vf",
+                      "line": 24,
+                      "offset": 491,
+                    },
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 27,
+                    "file": "real-world.vf",
+                    "line": 24,
+                    "offset": 477,
+                  },
+                  "name": "Cons",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 27,
+                  "file": "real-world.vf",
+                  "line": 24,
+                  "offset": 477,
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 24,
+                "offset": 457,
+              },
+              "pattern": {
+                "args": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 12,
+                      "file": "real-world.vf",
+                      "line": 24,
+                      "offset": 462,
+                    },
+                    "name": "head",
+                  },
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 18,
+                      "file": "real-world.vf",
+                      "line": 24,
+                      "offset": 468,
+                    },
+                    "name": "tail",
+                  },
+                ],
+                "constructor": "Cons",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 24,
+                  "offset": 457,
+                },
+              },
+            },
+          ],
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 34,
+              "file": "real-world.vf",
+              "line": 22,
+              "offset": 427,
+            },
+            "name": "list",
+          },
+          "kind": "Match",
+          "loc": {
+            "column": 28,
+            "file": "real-world.vf",
+            "line": 22,
+            "offset": 421,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 15,
+          "file": "real-world.vf",
+          "line": 22,
+          "offset": 408,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 16,
+              "file": "real-world.vf",
+              "line": 22,
+              "offset": 409,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 16,
+                "file": "real-world.vf",
+                "line": 22,
+                "offset": 409,
+              },
+              "name": "list",
+            },
+          },
+          {
+            "loc": {
+              "column": 22,
+              "file": "real-world.vf",
+              "line": 22,
+              "offset": 415,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 22,
+                "file": "real-world.vf",
+                "line": 22,
+                "offset": 415,
+              },
+              "name": "f",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 27,
+        "offset": 509,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 9,
+          "file": "real-world.vf",
+          "line": 27,
+          "offset": 517,
+        },
+        "name": "fold",
+      },
+      "recursive": true,
+      "value": {
+        "body": {
+          "cases": [
+            {
+              "body": {
+                "kind": "Var",
+                "loc": {
+                  "column": 14,
+                  "file": "real-world.vf",
+                  "line": 28,
+                  "offset": 569,
+                },
+                "name": "init",
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 28,
+                "offset": 562,
+              },
+              "pattern": {
+                "args": [],
+                "constructor": "Nil",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 28,
+                  "offset": 562,
+                },
+              },
+            },
+            {
+              "body": {
+                "args": [
+                  {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 32,
+                      "file": "real-world.vf",
+                      "line": 29,
+                      "offset": 605,
+                    },
+                    "name": "tail",
+                  },
+                  {
+                    "args": [
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 40,
+                          "file": "real-world.vf",
+                          "line": 29,
+                          "offset": 613,
+                        },
+                        "name": "init",
+                      },
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 46,
+                          "file": "real-world.vf",
+                          "line": 29,
+                          "offset": 619,
+                        },
+                        "name": "head",
+                      },
+                    ],
+                    "func": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 38,
+                        "file": "real-world.vf",
+                        "line": 29,
+                        "offset": 611,
+                      },
+                      "name": "f",
+                    },
+                    "kind": "App",
+                    "loc": {
+                      "column": 38,
+                      "file": "real-world.vf",
+                      "line": 29,
+                      "offset": 611,
+                    },
+                  },
+                  {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 53,
+                      "file": "real-world.vf",
+                      "line": 29,
+                      "offset": 626,
+                    },
+                    "name": "f",
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 27,
+                    "file": "real-world.vf",
+                    "line": 29,
+                    "offset": 600,
+                  },
+                  "name": "fold",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 27,
+                  "file": "real-world.vf",
+                  "line": 29,
+                  "offset": 600,
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 29,
+                "offset": 580,
+              },
+              "pattern": {
+                "args": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 12,
+                      "file": "real-world.vf",
+                      "line": 29,
+                      "offset": 585,
+                    },
+                    "name": "head",
+                  },
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 18,
+                      "file": "real-world.vf",
+                      "line": 29,
+                      "offset": 591,
+                    },
+                    "name": "tail",
+                  },
+                ],
+                "constructor": "Cons",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 29,
+                  "offset": 580,
+                },
+              },
+            },
+          ],
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 41,
+              "file": "real-world.vf",
+              "line": 27,
+              "offset": 549,
+            },
+            "name": "list",
+          },
+          "kind": "Match",
+          "loc": {
+            "column": 35,
+            "file": "real-world.vf",
+            "line": 27,
+            "offset": 543,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 16,
+          "file": "real-world.vf",
+          "line": 27,
+          "offset": 524,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 17,
+              "file": "real-world.vf",
+              "line": 27,
+              "offset": 525,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 17,
+                "file": "real-world.vf",
+                "line": 27,
+                "offset": 525,
+              },
+              "name": "list",
+            },
+          },
+          {
+            "loc": {
+              "column": 23,
+              "file": "real-world.vf",
+              "line": 27,
+              "offset": 531,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 23,
+                "file": "real-world.vf",
+                "line": 27,
+                "offset": 531,
+              },
+              "name": "init",
+            },
+          },
+          {
+            "loc": {
+              "column": 29,
+              "file": "real-world.vf",
+              "line": 27,
+              "offset": 537,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 29,
+                "file": "real-world.vf",
+                "line": 27,
+                "offset": 537,
+              },
+              "name": "f",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [],
+            "loc": {
+              "column": 24,
+              "file": "real-world.vf",
+              "line": 33,
+              "offset": 678,
+            },
+            "name": "EmptyString",
+          },
+          {
+            "args": [],
+            "loc": {
+              "column": 38,
+              "file": "real-world.vf",
+              "line": 33,
+              "offset": 692,
+            },
+            "name": "InvalidFormat",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 24,
+          "file": "real-world.vf",
+          "line": 33,
+          "offset": 678,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 33,
+        "offset": 655,
+      },
+      "name": "ValidationError",
+      "params": [],
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 35,
+        "offset": 708,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "real-world.vf",
+          "line": 35,
+          "offset": 712,
+        },
+        "name": "validateNotEmpty",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "condition": {
+            "kind": "BinOp",
+            "left": {
+              "kind": "Var",
+              "loc": {
+                "column": 8,
+                "file": "real-world.vf",
+                "line": 36,
+                "offset": 745,
+              },
+              "name": "s",
+            },
+            "loc": {
+              "column": 8,
+              "file": "real-world.vf",
+              "line": 36,
+              "offset": 745,
+            },
+            "op": "Equal",
+            "right": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 13,
+                "file": "real-world.vf",
+                "line": 36,
+                "offset": 750,
+              },
+              "value": "",
+            },
+          },
+          "else_": {
+            "args": [
+              {
+                "kind": "Var",
+                "loc": {
+                  "column": 13,
+                  "file": "real-world.vf",
+                  "line": 37,
+                  "offset": 787,
+                },
+                "name": "s",
+              },
+            ],
+            "func": {
+              "kind": "Var",
+              "loc": {
+                "column": 10,
+                "file": "real-world.vf",
+                "line": 37,
+                "offset": 784,
+              },
+              "name": "Ok",
+            },
+            "kind": "App",
+            "loc": {
+              "column": 10,
+              "file": "real-world.vf",
+              "line": 37,
+              "offset": 784,
+            },
+          },
+          "kind": "If",
+          "loc": {
+            "column": 5,
+            "file": "real-world.vf",
+            "line": 36,
+            "offset": 742,
+          },
+          "then": {
+            "args": [
+              {
+                "kind": "Var",
+                "loc": {
+                  "column": 25,
+                  "file": "real-world.vf",
+                  "line": 36,
+                  "offset": 762,
+                },
+                "name": "EmptyString",
+              },
+            ],
+            "func": {
+              "kind": "Var",
+              "loc": {
+                "column": 21,
+                "file": "real-world.vf",
+                "line": 36,
+                "offset": 758,
+              },
+              "name": "Err",
+            },
+            "kind": "App",
+            "loc": {
+              "column": 21,
+              "file": "real-world.vf",
+              "line": 36,
+              "offset": 758,
+            },
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 24,
+          "file": "real-world.vf",
+          "line": 35,
+          "offset": 731,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 25,
+              "file": "real-world.vf",
+              "line": 35,
+              "offset": 732,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 25,
+                "file": "real-world.vf",
+                "line": 35,
+                "offset": 732,
+              },
+              "name": "s",
+            },
+          },
+        ],
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "real-world.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;

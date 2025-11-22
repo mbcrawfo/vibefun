@@ -1,0 +1,1054 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parser Snapshot - Control Flow > should parse control-flow.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 4,
+        "offset": 62,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 4,
+          "offset": 66,
+        },
+        "name": "simple",
+      },
+      "recursive": false,
+      "value": {
+        "condition": {
+          "kind": "BoolLit",
+          "loc": {
+            "column": 17,
+            "file": "control-flow.vf",
+            "line": 4,
+            "offset": 78,
+          },
+          "value": true,
+        },
+        "else_": {
+          "kind": "IntLit",
+          "loc": {
+            "column": 34,
+            "file": "control-flow.vf",
+            "line": 4,
+            "offset": 95,
+          },
+          "value": 0,
+        },
+        "kind": "If",
+        "loc": {
+          "column": 14,
+          "file": "control-flow.vf",
+          "line": 4,
+          "offset": 75,
+        },
+        "then": {
+          "kind": "IntLit",
+          "loc": {
+            "column": 27,
+            "file": "control-flow.vf",
+            "line": 4,
+            "offset": 88,
+          },
+          "value": 1,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 5,
+        "offset": 98,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 5,
+          "offset": 102,
+        },
+        "name": "abs",
+      },
+      "recursive": false,
+      "value": {
+        "condition": {
+          "kind": "BinOp",
+          "left": {
+            "kind": "Var",
+            "loc": {
+              "column": 14,
+              "file": "control-flow.vf",
+              "line": 5,
+              "offset": 111,
+            },
+            "name": "x",
+          },
+          "loc": {
+            "column": 14,
+            "file": "control-flow.vf",
+            "line": 5,
+            "offset": 111,
+          },
+          "op": "LessThan",
+          "right": {
+            "kind": "IntLit",
+            "loc": {
+              "column": 18,
+              "file": "control-flow.vf",
+              "line": 5,
+              "offset": 115,
+            },
+            "value": 0,
+          },
+        },
+        "else_": {
+          "kind": "Var",
+          "loc": {
+            "column": 33,
+            "file": "control-flow.vf",
+            "line": 5,
+            "offset": 130,
+          },
+          "name": "x",
+        },
+        "kind": "If",
+        "loc": {
+          "column": 11,
+          "file": "control-flow.vf",
+          "line": 5,
+          "offset": 108,
+        },
+        "then": {
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 26,
+              "file": "control-flow.vf",
+              "line": 5,
+              "offset": 123,
+            },
+            "name": "x",
+          },
+          "kind": "UnaryOp",
+          "loc": {
+            "column": 25,
+            "file": "control-flow.vf",
+            "line": 5,
+            "offset": 122,
+          },
+          "op": "Negate",
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 8,
+        "offset": 160,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 8,
+          "offset": 164,
+        },
+        "name": "classify",
+      },
+      "recursive": false,
+      "value": {
+        "condition": {
+          "kind": "BinOp",
+          "left": {
+            "kind": "Var",
+            "loc": {
+              "column": 19,
+              "file": "control-flow.vf",
+              "line": 8,
+              "offset": 178,
+            },
+            "name": "x",
+          },
+          "loc": {
+            "column": 19,
+            "file": "control-flow.vf",
+            "line": 8,
+            "offset": 178,
+          },
+          "op": "LessThan",
+          "right": {
+            "kind": "IntLit",
+            "loc": {
+              "column": 23,
+              "file": "control-flow.vf",
+              "line": 8,
+              "offset": 182,
+            },
+            "value": 0,
+          },
+        },
+        "else_": {
+          "condition": {
+            "kind": "BinOp",
+            "left": {
+              "kind": "Var",
+              "loc": {
+                "column": 13,
+                "file": "control-flow.vf",
+                "line": 9,
+                "offset": 212,
+              },
+              "name": "x",
+            },
+            "loc": {
+              "column": 13,
+              "file": "control-flow.vf",
+              "line": 9,
+              "offset": 212,
+            },
+            "op": "Equal",
+            "right": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 18,
+                "file": "control-flow.vf",
+                "line": 9,
+                "offset": 217,
+              },
+              "value": 0,
+            },
+          },
+          "else_": {
+            "kind": "StringLit",
+            "loc": {
+              "column": 10,
+              "file": "control-flow.vf",
+              "line": 10,
+              "offset": 240,
+            },
+            "value": "positive",
+          },
+          "kind": "If",
+          "loc": {
+            "column": 10,
+            "file": "control-flow.vf",
+            "line": 9,
+            "offset": 209,
+          },
+          "then": {
+            "kind": "StringLit",
+            "loc": {
+              "column": 25,
+              "file": "control-flow.vf",
+              "line": 9,
+              "offset": 224,
+            },
+            "value": "zero",
+          },
+        },
+        "kind": "If",
+        "loc": {
+          "column": 16,
+          "file": "control-flow.vf",
+          "line": 8,
+          "offset": 175,
+        },
+        "then": {
+          "kind": "StringLit",
+          "loc": {
+            "column": 30,
+            "file": "control-flow.vf",
+            "line": 8,
+            "offset": 189,
+          },
+          "value": "negative",
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 13,
+        "offset": 271,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 13,
+          "offset": 275,
+        },
+        "name": "result",
+      },
+      "recursive": false,
+      "value": {
+        "condition": {
+          "kind": "Var",
+          "loc": {
+            "column": 17,
+            "file": "control-flow.vf",
+            "line": 13,
+            "offset": 287,
+          },
+          "name": "condition",
+        },
+        "else_": {
+          "exprs": [
+            {
+              "kind": "IntLit",
+              "loc": {
+                "column": 5,
+                "file": "control-flow.vf",
+                "line": 17,
+                "offset": 355,
+              },
+              "value": 0,
+            },
+          ],
+          "kind": "Block",
+          "loc": {
+            "column": 8,
+            "file": "control-flow.vf",
+            "line": 16,
+            "offset": 349,
+          },
+        },
+        "kind": "If",
+        "loc": {
+          "column": 14,
+          "file": "control-flow.vf",
+          "line": 13,
+          "offset": 284,
+        },
+        "then": {
+          "exprs": [
+            {
+              "body": {
+                "kind": "Var",
+                "loc": {
+                  "column": 5,
+                  "file": "control-flow.vf",
+                  "line": 15,
+                  "offset": 335,
+                },
+                "name": "value",
+              },
+              "kind": "Let",
+              "loc": {
+                "column": 5,
+                "file": "control-flow.vf",
+                "line": 14,
+                "offset": 308,
+              },
+              "mutable": false,
+              "pattern": {
+                "kind": "VarPattern",
+                "loc": {
+                  "column": 9,
+                  "file": "control-flow.vf",
+                  "line": 14,
+                  "offset": 312,
+                },
+                "name": "value",
+              },
+              "recursive": false,
+              "value": {
+                "args": [],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 17,
+                    "file": "control-flow.vf",
+                    "line": 14,
+                    "offset": 320,
+                  },
+                  "name": "compute",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 17,
+                  "file": "control-flow.vf",
+                  "line": 14,
+                  "offset": 320,
+                },
+              },
+            },
+          ],
+          "kind": "Block",
+          "loc": {
+            "column": 32,
+            "file": "control-flow.vf",
+            "line": 13,
+            "offset": 302,
+          },
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 21,
+        "offset": 398,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 21,
+          "offset": 402,
+        },
+        "name": "runCounter",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "exprs": [
+            {
+              "body": {
+                "body": {
+                  "exprs": [
+                    {
+                      "kind": "BinOp",
+                      "left": {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 9,
+                          "file": "control-flow.vf",
+                          "line": 24,
+                          "offset": 481,
+                        },
+                        "name": "counter",
+                      },
+                      "loc": {
+                        "column": 9,
+                        "file": "control-flow.vf",
+                        "line": 24,
+                        "offset": 481,
+                      },
+                      "op": "RefAssign",
+                      "right": {
+                        "kind": "BinOp",
+                        "left": {
+                          "kind": "Var",
+                          "loc": {
+                            "column": 20,
+                            "file": "control-flow.vf",
+                            "line": 24,
+                            "offset": 492,
+                          },
+                          "name": "counter",
+                        },
+                        "loc": {
+                          "column": 20,
+                          "file": "control-flow.vf",
+                          "line": 24,
+                          "offset": 492,
+                        },
+                        "op": "Add",
+                        "right": {
+                          "kind": "IntLit",
+                          "loc": {
+                            "column": 30,
+                            "file": "control-flow.vf",
+                            "line": 24,
+                            "offset": 502,
+                          },
+                          "value": 1,
+                        },
+                      },
+                    },
+                  ],
+                  "kind": "Block",
+                  "loc": {
+                    "column": 24,
+                    "file": "control-flow.vf",
+                    "line": 23,
+                    "offset": 471,
+                  },
+                },
+                "condition": {
+                  "kind": "BinOp",
+                  "left": {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 11,
+                      "file": "control-flow.vf",
+                      "line": 23,
+                      "offset": 458,
+                    },
+                    "name": "counter",
+                  },
+                  "loc": {
+                    "column": 11,
+                    "file": "control-flow.vf",
+                    "line": 23,
+                    "offset": 458,
+                  },
+                  "op": "LessThan",
+                  "right": {
+                    "kind": "IntLit",
+                    "loc": {
+                      "column": 21,
+                      "file": "control-flow.vf",
+                      "line": 23,
+                      "offset": 468,
+                    },
+                    "value": 10,
+                  },
+                },
+                "kind": "While",
+                "loc": {
+                  "column": 5,
+                  "file": "control-flow.vf",
+                  "line": 23,
+                  "offset": 452,
+                },
+              },
+              "kind": "Let",
+              "loc": {
+                "column": 5,
+                "file": "control-flow.vf",
+                "line": 22,
+                "offset": 427,
+              },
+              "mutable": true,
+              "pattern": {
+                "kind": "VarPattern",
+                "loc": {
+                  "column": 13,
+                  "file": "control-flow.vf",
+                  "line": 22,
+                  "offset": 435,
+                },
+                "name": "counter",
+              },
+              "recursive": false,
+              "value": {
+                "kind": "IntLit",
+                "loc": {
+                  "column": 23,
+                  "file": "control-flow.vf",
+                  "line": 22,
+                  "offset": 445,
+                },
+                "value": 0,
+              },
+            },
+            {
+              "kind": "Var",
+              "loc": {
+                "column": 5,
+                "file": "control-flow.vf",
+                "line": 26,
+                "offset": 516,
+              },
+              "name": "counter",
+            },
+          ],
+          "kind": "Block",
+          "loc": {
+            "column": 24,
+            "file": "control-flow.vf",
+            "line": 21,
+            "offset": 421,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 18,
+          "file": "control-flow.vf",
+          "line": 21,
+          "offset": 415,
+        },
+        "params": [],
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 30,
+        "offset": 549,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 30,
+          "offset": 553,
+        },
+        "name": "result2",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "Var",
+              "loc": {
+                "column": 18,
+                "file": "control-flow.vf",
+                "line": 31,
+                "offset": 594,
+              },
+              "name": "x",
+            },
+            "loc": {
+              "column": 7,
+              "file": "control-flow.vf",
+              "line": 31,
+              "offset": 583,
+            },
+            "pattern": {
+              "args": [
+                {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 12,
+                    "file": "control-flow.vf",
+                    "line": 31,
+                    "offset": 588,
+                  },
+                  "name": "x",
+                },
+              ],
+              "constructor": "Some",
+              "kind": "ConstructorPattern",
+              "loc": {
+                "column": 7,
+                "file": "control-flow.vf",
+                "line": 31,
+                "offset": 583,
+              },
+            },
+          },
+          {
+            "body": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 15,
+                "file": "control-flow.vf",
+                "line": 32,
+                "offset": 610,
+              },
+              "value": 0,
+            },
+            "loc": {
+              "column": 7,
+              "file": "control-flow.vf",
+              "line": 32,
+              "offset": 602,
+            },
+            "pattern": {
+              "args": [],
+              "constructor": "None",
+              "kind": "ConstructorPattern",
+              "loc": {
+                "column": 7,
+                "file": "control-flow.vf",
+                "line": 32,
+                "offset": 602,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "control-flow.vf",
+            "line": 30,
+            "offset": 569,
+          },
+          "name": "value",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "control-flow.vf",
+          "line": 30,
+          "offset": 563,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 36,
+        "offset": 632,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 36,
+          "offset": 636,
+        },
+        "name": "result3",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "cases": [
+                {
+                  "body": {
+                    "kind": "Var",
+                    "loc": {
+                      "column": 24,
+                      "file": "control-flow.vf",
+                      "line": 38,
+                      "offset": 718,
+                    },
+                    "name": "value",
+                  },
+                  "loc": {
+                    "column": 11,
+                    "file": "control-flow.vf",
+                    "line": 38,
+                    "offset": 705,
+                  },
+                  "pattern": {
+                    "args": [
+                      {
+                        "kind": "VarPattern",
+                        "loc": {
+                          "column": 14,
+                          "file": "control-flow.vf",
+                          "line": 38,
+                          "offset": 708,
+                        },
+                        "name": "value",
+                      },
+                    ],
+                    "constructor": "Ok",
+                    "kind": "ConstructorPattern",
+                    "loc": {
+                      "column": 11,
+                      "file": "control-flow.vf",
+                      "line": 38,
+                      "offset": 705,
+                    },
+                  },
+                },
+                {
+                  "body": {
+                    "kind": "IntLit",
+                    "loc": {
+                      "column": 21,
+                      "file": "control-flow.vf",
+                      "line": 39,
+                      "offset": 744,
+                    },
+                    "value": 0,
+                  },
+                  "loc": {
+                    "column": 11,
+                    "file": "control-flow.vf",
+                    "line": 39,
+                    "offset": 734,
+                  },
+                  "pattern": {
+                    "args": [
+                      {
+                        "kind": "WildcardPattern",
+                        "loc": {
+                          "column": 15,
+                          "file": "control-flow.vf",
+                          "line": 39,
+                          "offset": 738,
+                        },
+                      },
+                    ],
+                    "constructor": "Err",
+                    "kind": "ConstructorPattern",
+                    "loc": {
+                      "column": 11,
+                      "file": "control-flow.vf",
+                      "line": 39,
+                      "offset": 734,
+                    },
+                  },
+                },
+              ],
+              "expr": {
+                "kind": "Var",
+                "loc": {
+                  "column": 28,
+                  "file": "control-flow.vf",
+                  "line": 37,
+                  "offset": 687,
+                },
+                "name": "inner",
+              },
+              "kind": "Match",
+              "loc": {
+                "column": 22,
+                "file": "control-flow.vf",
+                "line": 37,
+                "offset": 681,
+              },
+            },
+            "loc": {
+              "column": 7,
+              "file": "control-flow.vf",
+              "line": 37,
+              "offset": 666,
+            },
+            "pattern": {
+              "args": [
+                {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 12,
+                    "file": "control-flow.vf",
+                    "line": 37,
+                    "offset": 671,
+                  },
+                  "name": "inner",
+                },
+              ],
+              "constructor": "Some",
+              "kind": "ConstructorPattern",
+              "loc": {
+                "column": 7,
+                "file": "control-flow.vf",
+                "line": 37,
+                "offset": 666,
+              },
+            },
+          },
+          {
+            "body": {
+              "expr": {
+                "kind": "IntLit",
+                "loc": {
+                  "column": 16,
+                  "file": "control-flow.vf",
+                  "line": 41,
+                  "offset": 767,
+                },
+                "value": 1,
+              },
+              "kind": "UnaryOp",
+              "loc": {
+                "column": 15,
+                "file": "control-flow.vf",
+                "line": 41,
+                "offset": 766,
+              },
+              "op": "Negate",
+            },
+            "loc": {
+              "column": 7,
+              "file": "control-flow.vf",
+              "line": 41,
+              "offset": 758,
+            },
+            "pattern": {
+              "args": [],
+              "constructor": "None",
+              "kind": "ConstructorPattern",
+              "loc": {
+                "column": 7,
+                "file": "control-flow.vf",
+                "line": 41,
+                "offset": 758,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "control-flow.vf",
+            "line": 36,
+            "offset": 652,
+          },
+          "name": "outer",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "control-flow.vf",
+          "line": 36,
+          "offset": 646,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 45,
+        "offset": 800,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 45,
+          "offset": 804,
+        },
+        "name": "computed",
+      },
+      "recursive": false,
+      "value": {
+        "exprs": [
+          {
+            "body": {
+              "body": {
+                "kind": "BinOp",
+                "left": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 5,
+                    "file": "control-flow.vf",
+                    "line": 48,
+                    "offset": 853,
+                  },
+                  "name": "a",
+                },
+                "loc": {
+                  "column": 5,
+                  "file": "control-flow.vf",
+                  "line": 48,
+                  "offset": 853,
+                },
+                "op": "Add",
+                "right": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 9,
+                    "file": "control-flow.vf",
+                    "line": 48,
+                    "offset": 857,
+                  },
+                  "name": "b",
+                },
+              },
+              "kind": "Let",
+              "loc": {
+                "column": 5,
+                "file": "control-flow.vf",
+                "line": 47,
+                "offset": 837,
+              },
+              "mutable": false,
+              "pattern": {
+                "kind": "VarPattern",
+                "loc": {
+                  "column": 9,
+                  "file": "control-flow.vf",
+                  "line": 47,
+                  "offset": 841,
+                },
+                "name": "b",
+              },
+              "recursive": false,
+              "value": {
+                "kind": "IntLit",
+                "loc": {
+                  "column": 13,
+                  "file": "control-flow.vf",
+                  "line": 47,
+                  "offset": 845,
+                },
+                "value": 20,
+              },
+            },
+            "kind": "Let",
+            "loc": {
+              "column": 5,
+              "file": "control-flow.vf",
+              "line": 46,
+              "offset": 821,
+            },
+            "mutable": false,
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 9,
+                "file": "control-flow.vf",
+                "line": 46,
+                "offset": 825,
+              },
+              "name": "a",
+            },
+            "recursive": false,
+            "value": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 13,
+                "file": "control-flow.vf",
+                "line": 46,
+                "offset": 829,
+              },
+              "value": 10,
+            },
+          },
+        ],
+        "kind": "Block",
+        "loc": {
+          "column": 16,
+          "file": "control-flow.vf",
+          "line": 45,
+          "offset": 815,
+        },
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 38,
+    "file": "control-flow.vf",
+    "line": 1,
+    "offset": 37,
+  },
+}
+`;

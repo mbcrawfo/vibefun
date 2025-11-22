@@ -1,0 +1,1003 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parser Snapshot - Patterns > should parse patterns.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 4,
+        "offset": 53,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 4,
+          "offset": 57,
+        },
+        "name": "result1",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 12,
+                "file": "patterns.vf",
+                "line": 5,
+                "offset": 92,
+              },
+              "value": "zero",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 5,
+              "offset": 87,
+            },
+            "pattern": {
+              "kind": "LiteralPattern",
+              "literal": 0,
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 5,
+                "offset": 87,
+              },
+            },
+          },
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 12,
+                "file": "patterns.vf",
+                "line": 6,
+                "offset": 110,
+              },
+              "value": "other",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 6,
+              "offset": 105,
+            },
+            "pattern": {
+              "kind": "WildcardPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 6,
+                "offset": 105,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 4,
+            "offset": 73,
+          },
+          "name": "value",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 4,
+          "offset": 67,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 10,
+        "offset": 146,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 10,
+          "offset": 150,
+        },
+        "name": "result2",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "Var",
+              "loc": {
+                "column": 18,
+                "file": "patterns.vf",
+                "line": 11,
+                "offset": 192,
+              },
+              "name": "x",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 11,
+              "offset": 181,
+            },
+            "pattern": {
+              "args": [
+                {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 12,
+                    "file": "patterns.vf",
+                    "line": 11,
+                    "offset": 186,
+                  },
+                  "name": "x",
+                },
+              ],
+              "constructor": "Some",
+              "kind": "ConstructorPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 11,
+                "offset": 181,
+              },
+            },
+          },
+          {
+            "body": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 15,
+                "file": "patterns.vf",
+                "line": 12,
+                "offset": 208,
+              },
+              "value": 0,
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 12,
+              "offset": 200,
+            },
+            "pattern": {
+              "args": [],
+              "constructor": "None",
+              "kind": "ConstructorPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 12,
+                "offset": 200,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 10,
+            "offset": 166,
+          },
+          "name": "option",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 10,
+          "offset": 160,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 16,
+        "offset": 231,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 16,
+          "offset": 235,
+        },
+        "name": "result3",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 13,
+                "file": "patterns.vf",
+                "line": 17,
+                "offset": 270,
+              },
+              "value": "empty",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 17,
+              "offset": 264,
+            },
+            "pattern": {
+              "elements": [],
+              "kind": "ListPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 17,
+                "offset": 264,
+              },
+            },
+          },
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 23,
+                "file": "patterns.vf",
+                "line": 18,
+                "offset": 300,
+              },
+              "value": "many",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 18,
+              "offset": 284,
+            },
+            "pattern": {
+              "elements": [
+                {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 8,
+                    "file": "patterns.vf",
+                    "line": 18,
+                    "offset": 285,
+                  },
+                  "name": "x",
+                },
+              ],
+              "kind": "ListPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 18,
+                "offset": 284,
+              },
+              "rest": {
+                "kind": "VarPattern",
+                "loc": {
+                  "column": 14,
+                  "file": "patterns.vf",
+                  "line": 18,
+                  "offset": 291,
+                },
+                "name": "rest",
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 16,
+            "offset": 251,
+          },
+          "name": "list",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 16,
+          "offset": 245,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 22,
+        "offset": 329,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 22,
+          "offset": 333,
+        },
+        "name": "result4",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 17,
+                "file": "patterns.vf",
+                "line": 23,
+                "offset": 373,
+              },
+              "value": "first is zero",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 23,
+              "offset": 363,
+            },
+            "pattern": {
+              "elements": [
+                {
+                  "kind": "LiteralPattern",
+                  "literal": 0,
+                  "loc": {
+                    "column": 8,
+                    "file": "patterns.vf",
+                    "line": 23,
+                    "offset": 364,
+                  },
+                },
+                {
+                  "kind": "WildcardPattern",
+                  "loc": {
+                    "column": 11,
+                    "file": "patterns.vf",
+                    "line": 23,
+                    "offset": 367,
+                  },
+                },
+              ],
+              "kind": "TuplePattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 23,
+                "offset": 363,
+              },
+            },
+          },
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 17,
+                "file": "patterns.vf",
+                "line": 24,
+                "offset": 405,
+              },
+              "value": "both present",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 24,
+              "offset": 395,
+            },
+            "pattern": {
+              "elements": [
+                {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 8,
+                    "file": "patterns.vf",
+                    "line": 24,
+                    "offset": 396,
+                  },
+                  "name": "x",
+                },
+                {
+                  "kind": "VarPattern",
+                  "loc": {
+                    "column": 11,
+                    "file": "patterns.vf",
+                    "line": 24,
+                    "offset": 399,
+                  },
+                  "name": "y",
+                },
+              ],
+              "kind": "TuplePattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 24,
+                "offset": 395,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 22,
+            "offset": 349,
+          },
+          "name": "tuple",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 22,
+          "offset": 343,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 28,
+        "offset": 443,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 28,
+          "offset": 447,
+        },
+        "name": "result5",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "Var",
+              "loc": {
+                "column": 24,
+                "file": "patterns.vf",
+                "line": 29,
+                "offset": 495,
+              },
+              "name": "name",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 29,
+              "offset": 478,
+            },
+            "pattern": {
+              "fields": [
+                {
+                  "loc": {
+                    "column": 9,
+                    "file": "patterns.vf",
+                    "line": 29,
+                    "offset": 480,
+                  },
+                  "name": "name",
+                  "pattern": {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 9,
+                      "file": "patterns.vf",
+                      "line": 29,
+                      "offset": 480,
+                    },
+                    "name": "name",
+                  },
+                },
+                {
+                  "loc": {
+                    "column": 15,
+                    "file": "patterns.vf",
+                    "line": 29,
+                    "offset": 486,
+                  },
+                  "name": "age",
+                  "pattern": {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 15,
+                      "file": "patterns.vf",
+                      "line": 29,
+                      "offset": 486,
+                    },
+                    "name": "age",
+                  },
+                },
+              ],
+              "kind": "RecordPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 29,
+                "offset": 478,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 28,
+            "offset": 463,
+          },
+          "name": "person",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 28,
+          "offset": 457,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 33,
+        "offset": 519,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 33,
+          "offset": 523,
+        },
+        "name": "result6",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 20,
+                "file": "patterns.vf",
+                "line": 34,
+                "offset": 566,
+              },
+              "value": "small",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 34,
+              "offset": 553,
+            },
+            "pattern": {
+              "kind": "OrPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 34,
+                "offset": 553,
+              },
+              "patterns": [
+                {
+                  "kind": "LiteralPattern",
+                  "literal": 0,
+                  "loc": {
+                    "column": 7,
+                    "file": "patterns.vf",
+                    "line": 34,
+                    "offset": 553,
+                  },
+                },
+                {
+                  "kind": "LiteralPattern",
+                  "literal": 1,
+                  "loc": {
+                    "column": 11,
+                    "file": "patterns.vf",
+                    "line": 34,
+                    "offset": 557,
+                  },
+                },
+                {
+                  "kind": "LiteralPattern",
+                  "literal": 2,
+                  "loc": {
+                    "column": 15,
+                    "file": "patterns.vf",
+                    "line": 34,
+                    "offset": 561,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 12,
+                "file": "patterns.vf",
+                "line": 35,
+                "offset": 585,
+              },
+              "value": "large",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 35,
+              "offset": 580,
+            },
+            "pattern": {
+              "kind": "WildcardPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 35,
+                "offset": 580,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 33,
+            "offset": 539,
+          },
+          "name": "value",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 33,
+          "offset": 533,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 39,
+        "offset": 621,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 39,
+          "offset": 625,
+        },
+        "name": "result7",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 23,
+                "file": "patterns.vf",
+                "line": 40,
+                "offset": 667,
+              },
+              "value": "negative",
+            },
+            "guard": {
+              "kind": "BinOp",
+              "left": {
+                "kind": "Var",
+                "loc": {
+                  "column": 14,
+                  "file": "patterns.vf",
+                  "line": 40,
+                  "offset": 658,
+                },
+                "name": "n",
+              },
+              "loc": {
+                "column": 14,
+                "file": "patterns.vf",
+                "line": 40,
+                "offset": 658,
+              },
+              "op": "LessThan",
+              "right": {
+                "kind": "IntLit",
+                "loc": {
+                  "column": 18,
+                  "file": "patterns.vf",
+                  "line": 40,
+                  "offset": 662,
+                },
+                "value": 0,
+              },
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 40,
+              "offset": 651,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 40,
+                "offset": 651,
+              },
+              "name": "n",
+            },
+          },
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 12,
+                "file": "patterns.vf",
+                "line": 41,
+                "offset": 689,
+              },
+              "value": "positive or zero",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 41,
+              "offset": 684,
+            },
+            "pattern": {
+              "kind": "WildcardPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 41,
+                "offset": 684,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 21,
+            "file": "patterns.vf",
+            "line": 39,
+            "offset": 641,
+          },
+          "name": "x",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 15,
+          "file": "patterns.vf",
+          "line": 39,
+          "offset": 635,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 45,
+        "offset": 731,
+      },
+      "mutable": false,
+      "pattern": {
+        "elements": [
+          {
+            "kind": "VarPattern",
+            "loc": {
+              "column": 6,
+              "file": "patterns.vf",
+              "line": 45,
+              "offset": 736,
+            },
+            "name": "first",
+          },
+          {
+            "kind": "VarPattern",
+            "loc": {
+              "column": 13,
+              "file": "patterns.vf",
+              "line": 45,
+              "offset": 743,
+            },
+            "name": "second",
+          },
+        ],
+        "kind": "ListPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 45,
+          "offset": 735,
+        },
+      },
+      "recursive": false,
+      "value": {
+        "elements": [
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 24,
+                "file": "patterns.vf",
+                "line": 45,
+                "offset": 754,
+              },
+              "value": 1,
+            },
+            "kind": "Element",
+          },
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 27,
+                "file": "patterns.vf",
+                "line": 45,
+                "offset": 757,
+              },
+              "value": 2,
+            },
+            "kind": "Element",
+          },
+        ],
+        "kind": "List",
+        "loc": {
+          "column": 23,
+          "file": "patterns.vf",
+          "line": 45,
+          "offset": 753,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 46,
+        "offset": 761,
+      },
+      "mutable": false,
+      "pattern": {
+        "fields": [
+          {
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 46,
+              "offset": 767,
+            },
+            "name": "x",
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 46,
+                "offset": 767,
+              },
+              "name": "x",
+            },
+          },
+          {
+            "loc": {
+              "column": 10,
+              "file": "patterns.vf",
+              "line": 46,
+              "offset": 770,
+            },
+            "name": "y",
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 10,
+                "file": "patterns.vf",
+                "line": 46,
+                "offset": 770,
+              },
+              "name": "y",
+            },
+          },
+        ],
+        "kind": "RecordPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 46,
+          "offset": 765,
+        },
+      },
+      "recursive": false,
+      "value": {
+        "kind": "Var",
+        "loc": {
+          "column": 16,
+          "file": "patterns.vf",
+          "line": 46,
+          "offset": 776,
+        },
+        "name": "point",
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 34,
+    "file": "patterns.vf",
+    "line": 1,
+    "offset": 33,
+  },
+}
+`;

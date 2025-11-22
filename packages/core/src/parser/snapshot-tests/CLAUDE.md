@@ -4,20 +4,32 @@ This directory contains snapshot tests for the vibefun parser. These tests compl
 
 ## Structure
 
+Each category of parser features has its own test file and fixture file, making it easy to examine snapshot data for specific features:
+
 ```
 snapshot-tests/
-├── fixtures/                 # .vf source files
-│   ├── declarations.vf       # Declaration forms
-│   ├── expressions.vf        # Expression forms
-│   ├── patterns.vf           # Pattern matching
-│   ├── functions.vf          # Function definitions
-│   ├── data-structures.vf    # Lists, records, tuples
-│   ├── control-flow.vf       # If, match, while, blocks
-│   ├── modules.vf            # Imports, exports, externals
-│   └── real-world.vf         # Idiomatic functional patterns
-├── __snapshots__/            # Generated snapshots (git-tracked)
-└── snapshot-tests.test.ts    # Test runner
+├── declarations.vf                # Declaration forms fixture
+├── snapshot-declarations.test.ts  # Declarations test & snapshots
+├── expressions.vf                 # Expression forms fixture
+├── snapshot-expressions.test.ts   # Expressions test & snapshots
+├── patterns.vf                    # Pattern matching fixture
+├── snapshot-patterns.test.ts      # Patterns test & snapshots
+├── functions.vf                   # Function definitions fixture
+├── snapshot-functions.test.ts     # Functions test & snapshots
+├── data-structures.vf             # Lists, records, tuples fixture
+├── snapshot-data-structures.test.ts  # Data structures test & snapshots
+├── control-flow.vf                # Control flow fixture
+├── snapshot-control-flow.test.ts  # Control flow test & snapshots
+├── modules.vf                     # Imports, exports, externals fixture
+├── snapshot-modules.test.ts       # Modules test & snapshots
+├── real-world.vf                  # Idiomatic functional patterns fixture
+└── snapshot-real-world.test.ts    # Real world test & snapshots
 ```
+
+**Note**: Each test file creates its own `__snapshots__/` subdirectory containing the snapshot for that specific test. This organization makes it easier to:
+- Locate the snapshot for a failing test
+- Review changes to specific parser features
+- Add new test categories independently
 
 ## What Snapshots Test
 
@@ -31,11 +43,17 @@ Snapshot tests capture the complete AST output for realistic vibefun code sample
 ## Running Tests
 
 ```bash
-# Run snapshot tests
+# Run all snapshot tests
 npm test -- snapshot-tests
 
-# Update snapshots after intentional parser changes
+# Run a specific snapshot test
+npm test -- snapshot-declarations
+
+# Update all snapshots after intentional parser changes
 npm test -- snapshot-tests -u
+
+# Update a specific snapshot
+npm test -- snapshot-declarations -u
 ```
 
 ## ⚠️ CRITICAL: Updating Snapshots
@@ -83,20 +101,46 @@ git checkout packages/core/src/parser/snapshot-tests/__snapshots__/
 
 ## Adding New Tests
 
-To add new snapshot tests:
+To add a new snapshot test category:
 
-1. **Create a new .vf file** in `fixtures/` (or add to existing)
+1. **Create a new .vf file** in `snapshot-tests/` (e.g., `new-feature.vf`)
 2. **Write realistic vibefun code** that exercises the feature
-3. **Add a test case** in `snapshot-tests.test.ts`:
+3. **Create a test file** `snapshot-new-feature.test.ts`:
    ```typescript
-   it("should parse new-feature.vf", () => {
-       const ast = parseSnapshot("new-feature.vf");
-       expect(ast).toMatchSnapshot();
+   import type { Module } from "../../types/ast.js";
+
+   import { readFileSync } from "fs";
+   import { dirname, join } from "path";
+   import { fileURLToPath } from "url";
+   import { describe, expect, it } from "vitest";
+
+   import { Lexer } from "../../lexer/index.js";
+   import { Parser } from "../parser.js";
+
+   const __filename = fileURLToPath(import.meta.url);
+   const __dirname = dirname(__filename);
+
+   function parseFixture(filename: string): Module {
+       const fixturePath = join(__dirname, filename);
+       const source = readFileSync(fixturePath, "utf-8");
+       const lexer = new Lexer(source, filename);
+       const tokens = lexer.tokenize();
+       const parser = new Parser(tokens, filename);
+       return parser.parse();
+   }
+
+   describe("Parser Snapshot - New Feature", () => {
+       it("should parse new-feature.vf", () => {
+           const ast = parseFixture("new-feature.vf");
+           expect(ast).toMatchSnapshot();
+       });
    });
    ```
 4. **Run tests with `-u`** to generate the initial snapshot
 5. **Review the snapshot** to ensure correctness
-6. **Commit both** the fixture and the snapshot
+6. **Commit** the fixture, test file, and generated snapshot
+
+To add to an existing test category, simply edit the corresponding `.vf` file and re-run tests with `-u` to update the snapshot.
 
 ## Fixture Guidelines
 
