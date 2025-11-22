@@ -129,8 +129,7 @@ npm test                 # Run tests (all packages)
 npm run format           # Format code (all packages)
 
 # All checks at once
-npm run verify           # Run all checks + format
-npm run verify:ci        # CI version (doesn't modify files)
+npm run verify           # Run all checks (read-only)
 
 # Testing
 npm test                 # Run all tests

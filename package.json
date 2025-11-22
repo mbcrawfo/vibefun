@@ -16,8 +16,7 @@
         "lint:fix": "eslint packages/*/src/**/*.ts --fix",
         "format": "prettier --write \"packages/*/src/**/*.ts\"",
         "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
-        "verify": "npm run check && npm run lint && npm run test && npm run format",
-        "verify:ci": "npm run check && npm run lint && npm run test && npm run format:check",
+        "verify": "npm run check && npm run lint && npm run test && npm run format:check",
         "clean": "npm run clean --workspaces --if-present"
     },
     "keywords": [

@@ -30,8 +30,14 @@ jobs:
       - name: Build packages
         run: npm run build
 
-      - name: Run quality checks
-        run: npm run verify:ci
+      - name: Type check
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
 
       - name: Run tests with coverage
         run: npm run test:coverage
