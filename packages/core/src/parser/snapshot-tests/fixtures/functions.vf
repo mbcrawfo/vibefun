@@ -1,0 +1,2 @@
+// Placeholder - will be expanded in Phase 2
+let id = (x) => x;

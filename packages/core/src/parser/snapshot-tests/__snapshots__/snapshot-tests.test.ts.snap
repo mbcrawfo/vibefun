@@ -1,0 +1,1006 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parser Snapshots - Control Flow > should parse control-flow.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "control-flow.vf",
+        "line": 2,
+        "offset": 45,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "control-flow.vf",
+          "line": 2,
+          "offset": 49,
+        },
+        "name": "result",
+      },
+      "recursive": false,
+      "value": {
+        "condition": {
+          "kind": "BoolLit",
+          "loc": {
+            "column": 17,
+            "file": "control-flow.vf",
+            "line": 2,
+            "offset": 61,
+          },
+          "value": true,
+        },
+        "else_": {
+          "kind": "IntLit",
+          "loc": {
+            "column": 34,
+            "file": "control-flow.vf",
+            "line": 2,
+            "offset": 78,
+          },
+          "value": 0,
+        },
+        "kind": "If",
+        "loc": {
+          "column": 14,
+          "file": "control-flow.vf",
+          "line": 2,
+          "offset": 58,
+        },
+        "then": {
+          "kind": "IntLit",
+          "loc": {
+            "column": 27,
+            "file": "control-flow.vf",
+            "line": 2,
+            "offset": 71,
+          },
+          "value": 1,
+        },
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "control-flow.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Data Structures > should parse data-structures.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "data-structures.vf",
+        "line": 2,
+        "offset": 45,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "data-structures.vf",
+          "line": 2,
+          "offset": 49,
+        },
+        "name": "list",
+      },
+      "recursive": false,
+      "value": {
+        "elements": [
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 13,
+                "file": "data-structures.vf",
+                "line": 2,
+                "offset": 57,
+              },
+              "value": 1,
+            },
+            "kind": "Element",
+          },
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 16,
+                "file": "data-structures.vf",
+                "line": 2,
+                "offset": 60,
+              },
+              "value": 2,
+            },
+            "kind": "Element",
+          },
+          {
+            "expr": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 19,
+                "file": "data-structures.vf",
+                "line": 2,
+                "offset": 63,
+              },
+              "value": 3,
+            },
+            "kind": "Element",
+          },
+        ],
+        "kind": "List",
+        "loc": {
+          "column": 12,
+          "file": "data-structures.vf",
+          "line": 2,
+          "offset": 56,
+        },
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "data-structures.vf",
+        "line": 3,
+        "offset": 67,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "data-structures.vf",
+          "line": 3,
+          "offset": 71,
+        },
+        "name": "record",
+      },
+      "recursive": false,
+      "value": {
+        "fields": [
+          {
+            "kind": "Field",
+            "loc": {
+              "column": 16,
+              "file": "data-structures.vf",
+              "line": 3,
+              "offset": 82,
+            },
+            "name": "x",
+            "value": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 19,
+                "file": "data-structures.vf",
+                "line": 3,
+                "offset": 85,
+              },
+              "value": 1,
+            },
+          },
+          {
+            "kind": "Field",
+            "loc": {
+              "column": 22,
+              "file": "data-structures.vf",
+              "line": 3,
+              "offset": 88,
+            },
+            "name": "y",
+            "value": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 25,
+                "file": "data-structures.vf",
+                "line": 3,
+                "offset": 91,
+              },
+              "value": 2,
+            },
+          },
+        ],
+        "kind": "Record",
+        "loc": {
+          "column": 14,
+          "file": "data-structures.vf",
+          "line": 3,
+          "offset": 80,
+        },
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "data-structures.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Declarations > should parse declarations.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 2,
+        "offset": 22,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 2,
+          "offset": 26,
+        },
+        "name": "x",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "IntLit",
+        "loc": {
+          "column": 9,
+          "file": "declarations.vf",
+          "line": 2,
+          "offset": 30,
+        },
+        "value": 42,
+      },
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 5,
+        "offset": 55,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "declarations.vf",
+          "line": 5,
+          "offset": 59,
+        },
+        "name": "add",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "kind": "BinOp",
+          "left": {
+            "kind": "Var",
+            "loc": {
+              "column": 21,
+              "file": "declarations.vf",
+              "line": 5,
+              "offset": 75,
+            },
+            "name": "a",
+          },
+          "loc": {
+            "column": 21,
+            "file": "declarations.vf",
+            "line": 5,
+            "offset": 75,
+          },
+          "op": "Add",
+          "right": {
+            "kind": "Var",
+            "loc": {
+              "column": 25,
+              "file": "declarations.vf",
+              "line": 5,
+              "offset": 79,
+            },
+            "name": "b",
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 11,
+          "file": "declarations.vf",
+          "line": 5,
+          "offset": 65,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 12,
+              "file": "declarations.vf",
+              "line": 5,
+              "offset": 66,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 12,
+                "file": "declarations.vf",
+                "line": 5,
+                "offset": 66,
+              },
+              "name": "a",
+            },
+          },
+          {
+            "loc": {
+              "column": 15,
+              "file": "declarations.vf",
+              "line": 5,
+              "offset": 69,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 15,
+                "file": "declarations.vf",
+                "line": 5,
+                "offset": 69,
+              },
+              "name": "b",
+            },
+          },
+        ],
+      },
+    },
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 23,
+                  "file": "declarations.vf",
+                  "line": 8,
+                  "offset": 125,
+                },
+                "name": "T",
+              },
+            ],
+            "loc": {
+              "column": 18,
+              "file": "declarations.vf",
+              "line": 8,
+              "offset": 120,
+            },
+            "name": "Some",
+          },
+          {
+            "args": [],
+            "loc": {
+              "column": 28,
+              "file": "declarations.vf",
+              "line": 8,
+              "offset": 130,
+            },
+            "name": "None",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 18,
+          "file": "declarations.vf",
+          "line": 8,
+          "offset": 120,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "declarations.vf",
+        "line": 8,
+        "offset": 103,
+      },
+      "name": "Option",
+      "params": [
+        "T",
+      ],
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 22,
+    "file": "declarations.vf",
+    "line": 1,
+    "offset": 21,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Expressions > should parse expressions.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "expressions.vf",
+        "line": 2,
+        "offset": 45,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "expressions.vf",
+          "line": 2,
+          "offset": 49,
+        },
+        "name": "x",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "BinOp",
+        "left": {
+          "kind": "IntLit",
+          "loc": {
+            "column": 9,
+            "file": "expressions.vf",
+            "line": 2,
+            "offset": 53,
+          },
+          "value": 1,
+        },
+        "loc": {
+          "column": 9,
+          "file": "expressions.vf",
+          "line": 2,
+          "offset": 53,
+        },
+        "op": "Add",
+        "right": {
+          "kind": "IntLit",
+          "loc": {
+            "column": 13,
+            "file": "expressions.vf",
+            "line": 2,
+            "offset": 57,
+          },
+          "value": 2,
+        },
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "expressions.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Functions > should parse functions.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "functions.vf",
+        "line": 2,
+        "offset": 45,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "functions.vf",
+          "line": 2,
+          "offset": 49,
+        },
+        "name": "id",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "kind": "Var",
+          "loc": {
+            "column": 17,
+            "file": "functions.vf",
+            "line": 2,
+            "offset": 61,
+          },
+          "name": "x",
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 10,
+          "file": "functions.vf",
+          "line": 2,
+          "offset": 54,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 11,
+              "file": "functions.vf",
+              "line": 2,
+              "offset": 55,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 11,
+                "file": "functions.vf",
+                "line": 2,
+                "offset": 55,
+              },
+              "name": "x",
+            },
+          },
+        ],
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "functions.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Modules > should parse modules.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": true,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 8,
+        "file": "modules.vf",
+        "line": 2,
+        "offset": 52,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 12,
+          "file": "modules.vf",
+          "line": 2,
+          "offset": 56,
+        },
+        "name": "x",
+      },
+      "recursive": false,
+      "value": {
+        "kind": "IntLit",
+        "loc": {
+          "column": 16,
+          "file": "modules.vf",
+          "line": 2,
+          "offset": 60,
+        },
+        "value": 42,
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "modules.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Patterns > should parse patterns.vf 1`] = `
+{
+  "declarations": [
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "patterns.vf",
+        "line": 2,
+        "offset": 45,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "patterns.vf",
+          "line": 2,
+          "offset": 49,
+        },
+        "name": "result",
+      },
+      "recursive": false,
+      "value": {
+        "cases": [
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 12,
+                "file": "patterns.vf",
+                "line": 3,
+                "offset": 79,
+              },
+              "value": "zero",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 3,
+              "offset": 74,
+            },
+            "pattern": {
+              "kind": "LiteralPattern",
+              "literal": 0,
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 3,
+                "offset": 74,
+              },
+            },
+          },
+          {
+            "body": {
+              "kind": "StringLit",
+              "loc": {
+                "column": 12,
+                "file": "patterns.vf",
+                "line": 4,
+                "offset": 97,
+              },
+              "value": "other",
+            },
+            "loc": {
+              "column": 7,
+              "file": "patterns.vf",
+              "line": 4,
+              "offset": 92,
+            },
+            "pattern": {
+              "kind": "WildcardPattern",
+              "loc": {
+                "column": 7,
+                "file": "patterns.vf",
+                "line": 4,
+                "offset": 92,
+              },
+            },
+          },
+        ],
+        "expr": {
+          "kind": "Var",
+          "loc": {
+            "column": 20,
+            "file": "patterns.vf",
+            "line": 2,
+            "offset": 64,
+          },
+          "name": "x",
+        },
+        "kind": "Match",
+        "loc": {
+          "column": 14,
+          "file": "patterns.vf",
+          "line": 2,
+          "offset": 58,
+        },
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "patterns.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
+
+exports[`Parser Snapshots - Real World > should parse real-world.vf 1`] = `
+{
+  "declarations": [
+    {
+      "definition": {
+        "constructors": [
+          {
+            "args": [
+              {
+                "kind": "TypeConst",
+                "loc": {
+                  "column": 23,
+                  "file": "real-world.vf",
+                  "line": 2,
+                  "offset": 67,
+                },
+                "name": "T",
+              },
+            ],
+            "loc": {
+              "column": 18,
+              "file": "real-world.vf",
+              "line": 2,
+              "offset": 62,
+            },
+            "name": "Some",
+          },
+          {
+            "args": [],
+            "loc": {
+              "column": 28,
+              "file": "real-world.vf",
+              "line": 2,
+              "offset": 72,
+            },
+            "name": "None",
+          },
+        ],
+        "kind": "VariantTypeDef",
+        "loc": {
+          "column": 18,
+          "file": "real-world.vf",
+          "line": 2,
+          "offset": 62,
+        },
+      },
+      "exported": false,
+      "kind": "TypeDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 2,
+        "offset": 45,
+      },
+      "name": "Option",
+      "params": [
+        "T",
+      ],
+    },
+    {
+      "exported": false,
+      "kind": "LetDecl",
+      "loc": {
+        "column": 1,
+        "file": "real-world.vf",
+        "line": 4,
+        "offset": 79,
+      },
+      "mutable": false,
+      "pattern": {
+        "kind": "VarPattern",
+        "loc": {
+          "column": 5,
+          "file": "real-world.vf",
+          "line": 4,
+          "offset": 83,
+        },
+        "name": "mapOption",
+      },
+      "recursive": false,
+      "value": {
+        "body": {
+          "cases": [
+            {
+              "body": {
+                "args": [
+                  {
+                    "args": [
+                      {
+                        "kind": "Var",
+                        "loc": {
+                          "column": 25,
+                          "file": "real-world.vf",
+                          "line": 5,
+                          "offset": 143,
+                        },
+                        "name": "x",
+                      },
+                    ],
+                    "func": {
+                      "kind": "Var",
+                      "loc": {
+                        "column": 23,
+                        "file": "real-world.vf",
+                        "line": 5,
+                        "offset": 141,
+                      },
+                      "name": "f",
+                    },
+                    "kind": "App",
+                    "loc": {
+                      "column": 23,
+                      "file": "real-world.vf",
+                      "line": 5,
+                      "offset": 141,
+                    },
+                  },
+                ],
+                "func": {
+                  "kind": "Var",
+                  "loc": {
+                    "column": 18,
+                    "file": "real-world.vf",
+                    "line": 5,
+                    "offset": 136,
+                  },
+                  "name": "Some",
+                },
+                "kind": "App",
+                "loc": {
+                  "column": 18,
+                  "file": "real-world.vf",
+                  "line": 5,
+                  "offset": 136,
+                },
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 5,
+                "offset": 125,
+              },
+              "pattern": {
+                "args": [
+                  {
+                    "kind": "VarPattern",
+                    "loc": {
+                      "column": 12,
+                      "file": "real-world.vf",
+                      "line": 5,
+                      "offset": 130,
+                    },
+                    "name": "x",
+                  },
+                ],
+                "constructor": "Some",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 5,
+                  "offset": 125,
+                },
+              },
+            },
+            {
+              "body": {
+                "kind": "Var",
+                "loc": {
+                  "column": 15,
+                  "file": "real-world.vf",
+                  "line": 6,
+                  "offset": 161,
+                },
+                "name": "None",
+              },
+              "loc": {
+                "column": 7,
+                "file": "real-world.vf",
+                "line": 6,
+                "offset": 153,
+              },
+              "pattern": {
+                "args": [],
+                "constructor": "None",
+                "kind": "ConstructorPattern",
+                "loc": {
+                  "column": 7,
+                  "file": "real-world.vf",
+                  "line": 6,
+                  "offset": 153,
+                },
+              },
+            },
+          ],
+          "expr": {
+            "kind": "Var",
+            "loc": {
+              "column": 35,
+              "file": "real-world.vf",
+              "line": 4,
+              "offset": 113,
+            },
+            "name": "opt",
+          },
+          "kind": "Match",
+          "loc": {
+            "column": 29,
+            "file": "real-world.vf",
+            "line": 4,
+            "offset": 107,
+          },
+        },
+        "kind": "Lambda",
+        "loc": {
+          "column": 17,
+          "file": "real-world.vf",
+          "line": 4,
+          "offset": 95,
+        },
+        "params": [
+          {
+            "loc": {
+              "column": 18,
+              "file": "real-world.vf",
+              "line": 4,
+              "offset": 96,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 18,
+                "file": "real-world.vf",
+                "line": 4,
+                "offset": 96,
+              },
+              "name": "opt",
+            },
+          },
+          {
+            "loc": {
+              "column": 23,
+              "file": "real-world.vf",
+              "line": 4,
+              "offset": 101,
+            },
+            "pattern": {
+              "kind": "VarPattern",
+              "loc": {
+                "column": 23,
+                "file": "real-world.vf",
+                "line": 4,
+                "offset": 101,
+              },
+              "name": "f",
+            },
+          },
+        ],
+      },
+    },
+  ],
+  "imports": [],
+  "loc": {
+    "column": 45,
+    "file": "real-world.vf",
+    "line": 1,
+    "offset": 44,
+  },
+}
+`;
