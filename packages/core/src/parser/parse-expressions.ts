@@ -535,16 +535,22 @@ function parseCall(parser: ParserBase): Expr {
                     while (parser.check("NEWLINE")) {
                         parser.advance();
                     }
-                } while (
-                    parser.match("COMMA") &&
-                    (() => {
-                        // Skip newlines after comma (supports: f(a,\n b))
-                        while (parser.check("NEWLINE")) {
-                            parser.advance();
-                        }
-                        return true;
-                    })()
-                );
+
+                    // Check if there's a comma
+                    if (!parser.match("COMMA")) {
+                        break;
+                    }
+
+                    // Skip newlines after comma (supports: f(a,\n b))
+                    while (parser.check("NEWLINE")) {
+                        parser.advance();
+                    }
+
+                    // Check for trailing comma
+                    if (parser.check("RPAREN")) {
+                        break; // Trailing comma allowed
+                    }
+                } while (true); // eslint-disable-line no-constant-condition
             }
 
             parser.expect("RPAREN", "Expected closing parenthesis after function arguments");
@@ -1177,7 +1183,22 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
                 while (parser.check("NEWLINE")) {
                     parser.advance();
                 }
-            } while (parser.match("COMMA"));
+
+                // Check if there's a comma
+                if (!parser.match("COMMA")) {
+                    break;
+                }
+
+                // Skip newlines after comma
+                while (parser.check("NEWLINE")) {
+                    parser.advance();
+                }
+
+                // Check for trailing comma
+                if (parser.check("RPAREN")) {
+                    break; // Trailing comma allowed
+                }
+            } while (true); // eslint-disable-line no-constant-condition
         }
 
         parser.expect("RPAREN", "Expected closing parenthesis after lambda parameters");
@@ -1239,6 +1260,11 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
     try {
         exprs.push(parseExpression(parser));
 
+        // Skip newlines after expression
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
         // Check for operator section: (expr op)
         if (isOperatorToken(parser)) {
             throw parser.error(
@@ -1250,7 +1276,22 @@ function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr {
 
         // Check for comma (potential tuple or multi-param lambda)
         while (parser.match("COMMA")) {
+            // Skip newlines after comma
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+
+            // Check for trailing comma
+            if (parser.check("RPAREN")) {
+                break; // Trailing comma allowed
+            }
+
             exprs.push(parseExpression(parser));
+
+            // Skip newlines after expression
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
         }
     } catch (error) {
         // If we got "Unexpected token" and the token is RPAREN,

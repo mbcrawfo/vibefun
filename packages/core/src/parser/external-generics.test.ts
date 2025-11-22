@@ -375,8 +375,11 @@ describe("Parser - Generic External Declarations", () => {
             expect(() => parseDecl('external map: <A B>(A) -> B = "map";')).toThrow();
         });
 
-        it("should throw on trailing comma in type params", () => {
-            expect(() => parseDecl('external map: <A, B,>(A) -> B = "map";')).toThrow();
+        it("should allow trailing comma in type params", () => {
+            const decl = parseDecl('external map: <A, B,>(A) -> B = "map";');
+            expect(decl.kind).toBe("ExternalDecl");
+            if (decl.kind !== "ExternalDecl") return;
+            expect(decl.typeParams).toHaveLength(2);
         });
     });
 });

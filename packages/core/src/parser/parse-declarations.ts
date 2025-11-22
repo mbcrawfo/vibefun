@@ -70,7 +70,27 @@ function parseTypeParameters(parser: ParserBase): string[] {
     do {
         const paramToken = parser.expect("IDENTIFIER", "Expected type parameter");
         params.push(paramToken.value as string);
-    } while (parser.match("COMMA"));
+
+        // Skip newlines after parameter
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        // Check if there's a comma
+        if (!parser.match("COMMA")) {
+            break;
+        }
+
+        // Skip newlines after comma
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        // Check for trailing comma
+        if (parser.check("OP_GT") || parser.check("OP_GT_GT")) {
+            break; // Trailing comma allowed
+        }
+    } while (true); // eslint-disable-line no-constant-condition
 
     // Handle >> as two > tokens for nested generics
     // Access tokens via type assertion

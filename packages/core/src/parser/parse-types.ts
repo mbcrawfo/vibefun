@@ -94,7 +94,17 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
         const types: TypeExpr[] = [];
         do {
             types.push(parseTypeExpr(parser));
-        } while (parser.match("COMMA"));
+
+            // Check if there's a comma
+            if (!parser.match("COMMA")) {
+                break;
+            }
+
+            // Check for trailing comma
+            if (parser.check("RPAREN")) {
+                break; // Trailing comma allowed
+            }
+        } while (true); // eslint-disable-line no-constant-condition
 
         parser.expect("RPAREN", "Expected ')' after type");
 
@@ -134,7 +144,27 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
                     typeExpr,
                     loc: fieldNameToken.loc,
                 });
-            } while (parser.match("COMMA"));
+
+                // Skip newlines after field
+                while (parser.check("NEWLINE")) {
+                    parser.advance();
+                }
+
+                // Check if there's a comma
+                if (!parser.match("COMMA")) {
+                    break;
+                }
+
+                // Skip newlines after comma
+                while (parser.check("NEWLINE")) {
+                    parser.advance();
+                }
+
+                // Check for trailing comma
+                if (parser.check("RBRACE")) {
+                    break; // Trailing comma allowed
+                }
+            } while (true); // eslint-disable-line no-constant-condition
         }
 
         parser.expect("RBRACE", "Expected '}' after record type");
@@ -154,7 +184,17 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
             const args: TypeExpr[] = [];
             do {
                 args.push(parseTypeExpr(parser));
-            } while (parser.match("COMMA"));
+
+                // Check if there's a comma
+                if (!parser.match("COMMA")) {
+                    break;
+                }
+
+                // Check for trailing comma
+                if (parser.check("OP_GT") || parser.check("OP_GT_GT")) {
+                    break; // Trailing comma allowed
+                }
+            } while (true); // eslint-disable-line no-constant-condition
 
             // Handle >> as two > tokens for nested generics
             // Access tokens via type assertion
@@ -200,7 +240,17 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
             if (!parser.check("RPAREN")) {
                 do {
                     args.push(parseTypeExpr(parser));
-                } while (parser.match("COMMA"));
+
+                    // Check if there's a comma
+                    if (!parser.match("COMMA")) {
+                        break;
+                    }
+
+                    // Check for trailing comma
+                    if (parser.check("RPAREN")) {
+                        break; // Trailing comma allowed
+                    }
+                } while (true); // eslint-disable-line no-constant-condition
             }
 
             parser.expect("RPAREN", "Expected ')' after constructor arguments");

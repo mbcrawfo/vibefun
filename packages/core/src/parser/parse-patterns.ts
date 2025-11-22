@@ -127,7 +127,17 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
             if (!parser.check("RPAREN")) {
                 do {
                     args.push(parsePattern(parser));
-                } while (parser.match("COMMA"));
+
+                    // Check if there's a comma
+                    if (!parser.match("COMMA")) {
+                        break;
+                    }
+
+                    // Check for trailing comma
+                    if (parser.check("RPAREN")) {
+                        break; // Trailing comma allowed
+                    }
+                } while (true); // eslint-disable-line no-constant-condition
             }
 
             parser.expect("RPAREN", "Expected ')' after constructor pattern arguments");
@@ -188,6 +198,11 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
         }
 
         while (parser.match("COMMA")) {
+            // Check for trailing comma
+            if (parser.check("RPAREN")) {
+                break; // Trailing comma allowed
+            }
+
             patterns.push(parsePattern(parser));
         }
 
@@ -262,7 +277,17 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
                         });
                     }
                 }
-            } while (parser.match("COMMA"));
+
+                // Check if there's a comma
+                if (!parser.match("COMMA")) {
+                    break;
+                }
+
+                // Check for trailing comma
+                if (parser.check("RBRACE")) {
+                    break; // Trailing comma allowed
+                }
+            } while (true); // eslint-disable-line no-constant-condition
         }
 
         parser.expect("RBRACE", "Expected '}' after record pattern");
@@ -294,6 +319,11 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
 
                 if (!parser.match("COMMA")) {
                     break;
+                }
+
+                // Check for trailing comma
+                if (parser.check("RBRACKET")) {
+                    break; // Trailing comma allowed
                 }
             }
         }
