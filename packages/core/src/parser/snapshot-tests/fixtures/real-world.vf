@@ -1,7 +1,37 @@
-// Placeholder - will be expanded in Phase 2
+// Parser Snapshot Test: Real World Patterns
+
+// Option type
 type Option<T> = Some(T) | None;
 
 let mapOption = (opt, f) => match opt {
     | Some(x) => Some(f(x))
     | None => None
 };
+
+// Result type
+type Result<T, E> = Ok(T) | Err(E);
+
+let mapResult = (result, f) => match result {
+    | Ok(x) => Ok(f(x))
+    | Err(e) => Err(e)
+};
+
+// List operations
+type List<T> = Cons(T, List<T>) | Nil;
+
+let rec map = (list, f) => match list {
+    | Nil => Nil
+    | Cons(head, tail) => Cons(f(head), map(tail, f))
+};
+
+let rec fold = (list, init, f) => match list {
+    | Nil => init
+    | Cons(head, tail) => fold(tail, f(init, head), f)
+};
+
+// Validation example
+type ValidationError = EmptyString | InvalidFormat;
+
+let validateNotEmpty = (s) =>
+    if s == "" then Err(EmptyString)
+    else Ok(s);

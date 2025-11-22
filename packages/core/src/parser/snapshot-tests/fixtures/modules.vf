@@ -1,2 +1,19 @@
-// Placeholder - will be expanded in Phase 2
-export let x = 42;
+// Parser Snapshot Test: Modules
+
+import { Option, Some } from "vibefun/std";
+import * as List from "vibefun/list";
+
+type User = { id: Int, name: String };
+
+export type PublicUser = { id: Int, name: String };
+
+external fetch: (String) -> Promise<String> = "fetch";
+
+export let createUser = (name) => { id: 0, name: name };
+
+export let rec findUser = (id, users) => match users {
+    | [] => None
+    | [user, ...rest] => if user.id == id then Some(user) else findUser(id, rest)
+};
+
+export let MAX_USERS = 1000;

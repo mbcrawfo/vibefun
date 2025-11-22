@@ -1,2 +1,49 @@
-// Placeholder - will be expanded in Phase 2
-let result = if true then 1 else 0;
+// Parser Snapshot Test: Control Flow
+
+// Simple if-then-else
+let simple = if true then 1 else 0;
+let abs = if x < 0 then -x else x;
+
+// Multi-way conditionals
+let classify = if x < 0 then "negative"
+    else if x == 0 then "zero"
+    else "positive";
+
+// If with blocks
+let result = if condition then {
+    let value = compute();
+    value;
+} else {
+    0;
+};
+
+// While loop (must be in function)
+let runCounter = () => {
+    let mut counter = 0;
+    while counter < 10 {
+        counter := counter + 1;
+    };
+    counter;
+};
+
+// Match expression
+let result2 = match value {
+    | Some(x) => x
+    | None => 0
+};
+
+// Nested match
+let result3 = match outer {
+    | Some(inner) => match inner {
+        | Ok(value) => value
+        | Err(_) => 0
+    }
+    | None => -1
+};
+
+// Block with let bindings
+let computed = {
+    let a = 10;
+    let b = 20;
+    a + b;
+};

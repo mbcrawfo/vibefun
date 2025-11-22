@@ -1,2 +1,47 @@
-// Placeholder - will be expanded in Phase 2
-let x = 1 + 2;
+// Parser Snapshot Test: Expressions
+
+// Arithmetic
+let expr1 = 1 + 2 * 3;
+let expr2 = (1 + 2) * 3;
+
+// Comparison and logical
+let expr3 = x > 0 && y < 10;
+let expr4 = !(a == b);
+
+// String concatenation
+let greeting = "Hello, " & name;
+
+// Pipeline
+let result = [1, 2, 3] |> map(double);
+
+// Lambda
+let mapper = (f) => (list) => map(f, list);
+
+// Record
+let point = { x: 10, y: 20 };
+let updated = { ...point, y: 30 };
+
+// List
+let list1 = [1, 2, 3];
+let list2 = [head, ...tail];
+
+// Tuple
+let tuple = (1, 2, 3);
+
+// Match
+let classify = match value {
+    | 0 => "zero"
+    | _ => "other"
+};
+
+// If-then-else
+let abs = if x < 0 then -x else x;
+
+// Block
+let computed = {
+    let a = 10;
+    a + 20;
+};
+
+// Mutable binding
+let mut counter = 0;

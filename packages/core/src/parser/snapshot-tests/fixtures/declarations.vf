@@ -1,8 +1,45 @@
-// Simple let binding
+// Parser Snapshot Test: Declarations
+
+// Simple let bindings
 let x = 42;
+let name = "Alice";
 
 // Function binding
 let add = (a, b) => a + b;
 
-// Type declaration
+// Pattern destructuring
+let [first, second] = [1, 2];
+let { x, y } = point;
+
+// Recursive function
+let rec factorial = (n) =>
+    if n <= 1 then 1
+    else n * factorial(n - 1);
+
+// Mutually recursive
+let rec isEven = (n) =>
+    if n == 0 then true else isOdd(n - 1)
+and isOdd = (n) =>
+    if n == 0 then false else isEven(n - 1);
+
+// Type declarations
+type Point = { x: Float, y: Float };
 type Option<T> = Some(T) | None;
+
+// Mutually recursive types
+type Expr = Lit(Int) | Add(Expr, Expr)
+and Pattern = VarPat(String);
+
+// External declaration
+external readFile: (String) -> String = "readFile";
+
+external {
+    fetch: (String) -> Promise<String> = "fetch";
+};
+
+// Export modifiers
+export let publicValue = 42;
+export type PublicPoint = { x: Int, y: Int };
+
+// Mutable let binding
+let mut counter = 0;
