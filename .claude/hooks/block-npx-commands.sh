@@ -7,7 +7,7 @@ HOOK_INPUT=$(cat)
 CMD=$(echo "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 # Only intercept npx commands
-if ! [[ "$CMD" =~ ^npx ]]; then
+if ! [[ "$CMD" =~ npx ]]; then
     exit 0  # Allow non-npx commands to proceed
 fi
 
