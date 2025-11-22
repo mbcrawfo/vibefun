@@ -254,9 +254,7 @@ describe("Parser - Mixed Type/Value Imports (Phase 4.2)", () => {
             });
         });
 
-        // Edge case: multi-line imports with newlines after opening brace
-        // Currently not supported - would require special newline handling
-        it.skip("parses mixed imports on multiple lines", () => {
+        it("parses mixed imports on multiple lines", () => {
             const source = `import {
                 type User,
                 getUser,
@@ -278,9 +276,7 @@ describe("Parser - Mixed Type/Value Imports (Phase 4.2)", () => {
             });
         });
 
-        // Edge case: multi-line imports with newlines after opening brace
-        // Currently not supported - would require special newline handling
-        it.skip("parses import type on multiple lines", () => {
+        it("parses import type on multiple lines", () => {
             const source = `import type {
                 User,
                 Post,

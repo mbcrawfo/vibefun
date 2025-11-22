@@ -274,9 +274,7 @@ describe("Parser - Import Namespace (Phase 4.1)", () => {
             });
         });
 
-        // Edge case: multi-line imports with newlines between tokens
-        // Currently not supported - would require special newline handling
-        it.skip("parses namespace import on multiple lines", () => {
+        it("parses namespace import on multiple lines", () => {
             const source = `import *
                 as List
                 from "./list";`;

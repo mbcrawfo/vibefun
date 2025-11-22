@@ -675,6 +675,11 @@ function parseImportDecl(parser: ParserBase): Declaration {
 
     // import * as Name or import type * as Name
     if (parser.match("OP_STAR")) {
+        // Skip newlines after *
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
         // Check for 'as' keyword (could be KEYWORD or IDENTIFIER depending on lexer)
         const asToken = parser.peek();
         if (
@@ -687,6 +692,11 @@ function parseImportDecl(parser: ParserBase): Declaration {
         }
         parser.advance(); // consume 'as'
 
+        // Skip newlines after 'as'
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
         const aliasToken = parser.expect("IDENTIFIER", "Expected alias name");
         const alias = aliasToken.value as string;
 
@@ -698,6 +708,11 @@ function parseImportDecl(parser: ParserBase): Declaration {
     }
     // import { ... } or import type { ... }
     else if (parser.match("LBRACE")) {
+        // Skip newlines after opening brace
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
         do {
             // Check for per-item type import (only if not already import type)
             let isType = importIsType;
@@ -718,11 +733,30 @@ function parseImportDecl(parser: ParserBase): Declaration {
             }
 
             items.push({ name, ...(alias !== undefined && { alias }), isType });
-        } while (parser.match("COMMA"));
+
+            // Skip newlines after item
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+        } while (
+            parser.match("COMMA") &&
+            (() => {
+                // Skip newlines after comma
+                while (parser.check("NEWLINE")) {
+                    parser.advance();
+                }
+                return true;
+            })()
+        );
 
         parser.expect("RBRACE", "Expected '}' after import items");
     } else {
         throw parser.error("Expected '{' or '*' after 'import'", parser.peek().loc);
+    }
+
+    // Skip newlines before 'from'
+    while (parser.check("NEWLINE")) {
+        parser.advance();
     }
 
     // Expect from
