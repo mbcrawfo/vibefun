@@ -155,6 +155,45 @@ export function parseDeclaration(parser: ParserBase): Declaration {
 }
 
 /**
+ * Validate that a mutable binding uses ref() syntax
+ *
+ * @param parser - The parser instance
+ * @param value - The value expression being assigned
+ * @param pattern - The pattern being bound
+ * @param mutable - Whether this is a mutable binding
+ * @throws {ParserError} If mutable binding doesn't use ref() syntax
+ */
+function validateMutableBinding(parser: ParserBase, value: Expr, pattern: Pattern, mutable: boolean): void {
+    if (!mutable) {
+        return; // Non-mutable bindings don't need ref()
+    }
+
+    // Check if value is a ref() call
+    const isRefCall = value.kind === "App" && value.func.kind === "Var" && value.func.name === "ref";
+
+    if (!isRefCall) {
+        // Extract pattern name for error message (if it's a VarPattern)
+        const patternName = pattern.kind === "VarPattern" ? pattern.name : "x";
+
+        // Create a simple hint for the suggestion
+        let valueHint = "value";
+        if (value.kind === "IntLit" || value.kind === "FloatLit") {
+            valueHint = String(value.value);
+        } else if (value.kind === "StringLit") {
+            valueHint = `"${value.value}"`;
+        } else if (value.kind === "BoolLit") {
+            valueHint = String(value.value);
+        }
+
+        throw parser.error(
+            "Mutable bindings must use ref() syntax",
+            value.loc,
+            `Use: let mut ${patternName} = ref(${valueHint})`,
+        );
+    }
+}
+
+/**
  * Parse let declaration
  * Syntax: let [mut] [rec] pattern [: type] = expr [and pattern = expr]*
  */
@@ -193,6 +232,9 @@ function parseLetDecl(parser: ParserBase, exported: boolean): Declaration {
 
     // Parse value expression
     const firstValue = parseExpression(parser);
+
+    // Validate mutable bindings use ref() syntax
+    validateMutableBinding(parser, firstValue, firstPattern, mutable);
 
     // Check for 'and' keyword for mutually recursive bindings
     const nextToken = parser.peek();
@@ -247,6 +289,9 @@ function parseLetDecl(parser: ParserBase, exported: boolean): Declaration {
             parser.expect("OP_EQUALS", "Expected '=' after pattern in 'and' binding");
 
             const bindingValue = parseExpression(parser);
+
+            // Validate mutable bindings use ref() syntax
+            validateMutableBinding(parser, bindingValue, bindingPattern, bindingMutable);
 
             bindings.push({
                 pattern: bindingPattern,

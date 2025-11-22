@@ -25,7 +25,6 @@ export type Keyword =
     | "while"
     | "from"
     | "as"
-    | "ref"
     | "try"
     | "catch";
 
@@ -122,7 +121,6 @@ export const KEYWORDS: ReadonlySet<Keyword> = new Set([
     "while",
     "from",
     "as",
-    "ref",
     "try",
     "catch",
 ]);
