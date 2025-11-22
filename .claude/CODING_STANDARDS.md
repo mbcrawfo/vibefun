@@ -245,12 +245,8 @@ npm run verify
 npm run check      # Type checking
 npm run lint       # Linting
 npm run test       # Tests
-npm run format     # Format code
-```
-
-For CI/CD (doesn't modify files):
-```bash
-npm run verify:ci  # Uses format:check instead of format
+npm run format:check # Check formatting (read-only)
+npm run format     # Format code (modifies files)
 ```
 
 ## File Structure
