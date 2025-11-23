@@ -1,24 +1,24 @@
 # Desugarer Completion - Task List
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Post-audit revision - corrected scope and test counts)
+**Last Updated:** 2025-11-23 16:02 (Phases 0 and 1 completed)
 
 ## Overall Progress
 
-**Phases Completed:** 0/7 (0%)
+**Phases Completed:** 2/7 (29%)
 
-**Current Phase:** Not started
+**Current Phase:** Phase 2 - Document Parser Behavior
 
 **Total Tasks:** 105+ (expanded after comprehensive audit - Phase 0 significantly larger)
-**Completed:** 0
+**Completed:** 22
 **In Progress:** 0
-**Not Started:** 105+
+**Not Started:** 83+
 
 ---
 
 ## Phase 0: Remove CoreWhile Dead Code
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
 **Description:** Clean up dead code that misleads developers about while loop compilation.
 
@@ -28,62 +28,62 @@
 
 ### Tasks
 
-- [ ] **0.1** Remove CoreWhile from core-ast.ts (CoreExpr union)
+- [x] **0.1** Remove CoreWhile from core-ast.ts (CoreExpr union)
   - File: `packages/core/src/types/core-ast.ts`
   - Location: Line 58
   - Remove: `| CoreWhile;` from CoreExpr union type
 
-- [ ] **0.2** Remove CoreWhile type definition from core-ast.ts
+- [x] **0.2** Remove CoreWhile type definition from core-ast.ts
   - File: `packages/core/src/types/core-ast.ts`
   - Location: Lines 312-319
   - Remove: Entire CoreWhile type definition and JSDoc comment
 
-- [ ] **0.3** Remove CoreWhile case from type checker isConstant function
+- [x] **0.3** Remove CoreWhile case from type checker isConstant function
   - File: `packages/core/src/typechecker/types.ts`
   - Location: Line 565
   - Remove: `case "CoreWhile": return false;`
 
-- [ ] **0.4** Remove CoreWhile placeholder from type checker infer function
+- [x] **0.4** Remove CoreWhile placeholder from type checker infer function
   - File: `packages/core/src/typechecker/infer.ts`
   - Location: Lines 243-245
   - Remove: CoreWhile case that throws "not yet implemented" error
 
-- [ ] **0.5** Remove CoreWhile from ast-analysis utility
+- [x] **0.5** Remove CoreWhile from ast-analysis utility
   - File: `packages/core/src/utils/ast-analysis.ts`
   - Location: Line 143
   - Remove: CoreWhile case
 
-- [ ] **0.6** Remove CoreWhile from substitution utility
+- [x] **0.6** Remove CoreWhile from substitution utility
   - File: `packages/core/src/utils/substitution.ts`
   - Location: Line 391
   - Remove: CoreWhile case
 
-- [ ] **0.7** Remove CoreWhile from expr-equality utility (2 cases)
+- [x] **0.7** Remove CoreWhile from expr-equality utility (2 cases)
   - File: `packages/core/src/utils/expr-equality.ts`
   - Location: Lines 178-179
   - Remove: Both CoreWhile cases
 
-- [ ] **0.8** Remove CoreWhile from ast-transform utility
+- [x] **0.8** Remove CoreWhile from ast-transform utility
   - File: `packages/core/src/utils/ast-transform.ts`
   - Location: Line 192
   - Remove: CoreWhile case
 
-- [ ] **0.9** Remove CoreWhile from eta-reduction optimizer pass
+- [x] **0.9** Remove CoreWhile from eta-reduction optimizer pass
   - File: `packages/core/src/optimizer/passes/eta-reduction.ts`
   - Location: Line 245
   - Remove: CoreWhile case
 
-- [ ] **0.10** Remove CoreWhile from pattern-match-opt optimizer pass
+- [x] **0.10** Remove CoreWhile from pattern-match-opt optimizer pass
   - File: `packages/core/src/optimizer/passes/pattern-match-opt.ts`
   - Location: Line 175
   - Remove: CoreWhile case
 
-- [ ] **0.11** Run tests to verify no breakage
+- [x] **0.11** Run tests to verify no breakage
   - Command: `npm test`
   - Verify all existing 232 tests still pass
   - No tests should reference CoreWhile
 
-- [ ] **0.12** Document the removal
+- [x] **0.12** Document the removal
   - Update `desugarer-completion-context.md`
   - Add note that CoreWhile dead code was removed from 11+ locations
   - Confirm while loops desugar to CoreLetRecExpr
@@ -92,56 +92,56 @@
 
 ## Phase 1: Fix Critical Bug - TypeAnnotatedPattern
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
 **Description:** Fix the missing handler for TypeAnnotatedPattern in the desugarPattern function.
 
 ### Tasks
 
-- [ ] **1.1** Add TypeAnnotatedPattern case to desugarPattern function
+- [x] **1.1** Add TypeAnnotatedPattern case to desugarPattern function
   - File: `packages/core/src/desugarer/desugarer.ts`
   - Location: ~line 490 (in desugarPattern switch)
   - Implementation: Strip type annotation, recursively desugar inner pattern
   - Preserve location information
 
-- [ ] **1.2** Create comprehensive test file for type-annotated patterns
+- [x] **1.2** Create comprehensive test file for type-annotated patterns
   - New file: `packages/core/src/desugarer/type-annotated-patterns.test.ts`
   - Test type annotations in all pattern contexts
 
-- [ ] **1.3** Test TypeAnnotatedPattern in match expressions
+- [x] **1.3** Test TypeAnnotatedPattern in match expressions
   - Pattern: `match x { | (n: Int) => n + 1 }`
   - Pattern: `match x { | Some((v: String)) => v }`
   - Pattern: `match tuple { | ((x: Int), (y: Int)) => x + y }`
 
-- [ ] **1.4** Test TypeAnnotatedPattern in let bindings
+- [x] **1.4** Test TypeAnnotatedPattern in let bindings
   - Pattern: `let (x: Int) = 42 in x`
   - Pattern: `let (Some(v: String)) = opt in v`
   - Pattern: `let ((a: Int), (b: String)) = tuple in a`
 
-- [ ] **1.5** Test TypeAnnotatedPattern in lambda parameters
+- [x] **1.5** Test TypeAnnotatedPattern in lambda parameters
   - Pattern: `(x: Int) => x + 1`
   - Pattern: `((x: Int), (y: String)) => x`
   - Note: May need to check if parser produces TypeAnnotatedPattern for this
 
-- [ ] **1.6** Test nested TypeAnnotatedPattern cases
+- [x] **1.6** Test nested TypeAnnotatedPattern cases
   - Pattern: `match x { | Some((Left(v: Int))) => v }`
   - Pattern: `((x: List<Int>), (y: Option<String>))`
   - Multiple levels of nesting
 
-- [ ] **1.7** Test TypeAnnotatedPattern with or-patterns
+- [x] **1.7** Test TypeAnnotatedPattern with or-patterns
   - Pattern: `Some((x: Int)) | Ok((x: Int))`
   - Verify both alternatives have consistent bindings
 
-- [ ] **1.8** Verify parser produces TypeAnnotatedPattern nodes
+- [x] **1.8** Verify parser produces TypeAnnotatedPattern nodes
   - Check parser test files
   - Manually test parsing patterns with type annotations
   - Confirm AST structure matches expectations
 
-- [ ] **1.9** Run tests and verify fix works
+- [x] **1.9** Run tests and verify fix works
   - `npm test -- type-annotated-patterns.test.ts`
   - Verify all new tests pass
 
-- [ ] **1.10** Update desugarer-requirements.md
+- [x] **1.10** Update desugarer-requirements.md
   - Mark TypeAnnotatedPattern as ✅ Done
   - Document the transformation approach
 
