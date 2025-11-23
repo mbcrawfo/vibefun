@@ -74,6 +74,9 @@ if condition then 42;  // ❌ Error: then branch is Int, but if without else mus
 - The entire expression has type `Unit`
 - Used for conditional side effects
 
+**Implementation Note:**
+The parser automatically inserts a Unit literal (`()`) as the else branch when omitted. This means the AST always includes an `else_` field - it's never undefined or null. This simplifies the desugarer and type checker, which always receive a complete if-expression with both branches present. See [Desugaring](../../12-compilation/desugaring.md#if-without-else) for details.
+
 ```vibefun
 // ✅ OK: then branch returns Unit
 if condition then print("message");

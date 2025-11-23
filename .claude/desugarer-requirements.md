@@ -320,9 +320,9 @@ f << g << h      // Backward composition
 
 ---
 
-#### 1.7 String Concatenation → String.concat
+#### 1.7 String Concatenation → Core Operation (Pass-Through)
 
-**Purpose:** Desugar string concatenation operator to standard library call.
+**Purpose:** String concatenation is passed through as a core operation for code generator.
 
 **Surface Syntax:**
 ```vibefun
@@ -331,13 +331,15 @@ f << g << h      // Backward composition
 
 **Core Representation:**
 ```vibefun
-String.concat(String.concat("Hello", " "), "World")
+CoreBinOp("Concat", CoreBinOp("Concat", "Hello", " "), "World")
 ```
 
-**Implementation:** `desugarBinOp.ts`
+**Implementation:** `desugarBinOp.ts` - Passes through as `CoreBinOp` "Concat"
+
+**Design Decision:** String concatenation is kept as a core binary operator rather than desugaring to `String.concat()` calls. This allows the code generator to optimize string concatenation and keeps the core AST simpler.
 
 **Edge Cases:**
-- Single concatenation: `s1 & s2` → `String.concat(s1, s2)`
+- Single concatenation: `s1 & s2` → `CoreBinOp("Concat", s1, s2)`
 - Chained concatenations: Left-associative
 - Mixed with other operators: Precedence rules apply
 
@@ -504,13 +506,13 @@ match x {
 
 ---
 
-### Category 2: Needs Implementation ❌
+### Category 2: Core Operations (Pass-Through) ✅
 
-These transformations are specified but not yet implemented.
+These transformations were initially considered for desugaring but are now kept as core operations passed through to the code generator.
 
-#### 2.1 Mutable Reference Dereference → Core Operation
+#### 2.1 Mutable Reference Dereference → Core Operation (Pass-Through)
 
-**Purpose:** Desugar dereference operator to explicit operation.
+**Purpose:** Mutable reference dereference is passed through as a core operation for code generator.
 
 **Surface Syntax:**
 ```vibefun
@@ -518,36 +520,29 @@ let x = ref(10)
 let y = !x
 ```
 
-**Core Representation (Option A - Function Call):**
+**Core Representation:**
 ```vibefun
 let x = ref(10) in
-let y = Ref.get(x)
+let y = CoreUnaryOp("Deref", x)
 ```
 
-**Core Representation (Option B - Core Node):**
-```vibefun
-let x = ref(10) in
-let y = CoreDeref(x)
-```
+**Current Status:** ✅ Done - Parser produces `UnaryOp` "Deref", desugarer passes through as `CoreUnaryOp`
 
-**Current Status:** Parser produces `UnaryOp` "Deref" - not desugared
+**Implementation:** `desugarer.ts` - Passes through as `CoreUnaryOp` "Deref"
 
-**Implementation Needed:**
-- Add desugaring in `desugarBinOp.ts` or create `desugarUnaryOp.ts`
-- Decision needed: Function call vs dedicated core node
-- Standard library `Ref.get` function must exist (or built-in)
+**Design Decision:** Mutable reference dereference is kept as a core unary operator rather than desugaring to `Ref.get()` calls. This is simpler and consistent with other operators, allowing the code generator to handle the runtime semantics directly.
 
 **Edge Cases:**
-- Nested dereferences: `!!x` → `Ref.get(Ref.get(x))`
+- Nested dereferences: `!!x` → `CoreUnaryOp("Deref", CoreUnaryOp("Deref", x))`
 - Dereference in patterns: Not allowed (compile error)
 
 **Semantic Invariant:** Dereference returns current value of mutable reference.
 
 ---
 
-#### 2.2 Mutable Reference Assignment → Core Operation
+#### 2.2 Mutable Reference Assignment → Core Operation (Pass-Through)
 
-**Purpose:** Desugar reference assignment operator to explicit operation.
+**Purpose:** Mutable reference assignment is passed through as a core operation for code generator.
 
 **Surface Syntax:**
 ```vibefun
@@ -555,28 +550,20 @@ let x = ref(10)
 x := 20
 ```
 
-**Core Representation (Option A - Function Call):**
+**Core Representation:**
 ```vibefun
 let x = ref(10) in
-Ref.set(x, 20)
+CoreBinOp("RefAssign", x, 20)
 ```
 
-**Core Representation (Option B - Core Node):**
-```vibefun
-let x = ref(10) in
-CoreRefAssign(x, 20)
-```
+**Current Status:** ✅ Done - Parser produces `BinOp` "RefAssign", desugarer passes through as `CoreBinOp`
 
-**Current Status:** Parser produces `BinOp` "RefAssign" - not desugared
+**Implementation:** `desugarBinOp.ts` - Passes through as `CoreBinOp` "RefAssign"
 
-**Implementation Needed:**
-- Add desugaring in `desugarBinOp.ts`
-- Decision needed: Function call vs dedicated core node
-- Standard library `Ref.set` function must exist (or built-in)
-- Returns unit
+**Design Decision:** Mutable reference assignment is kept as a core binary operator rather than desugaring to `Ref.set()` calls. This is simpler and consistent with other operators, allowing the code generator to handle the runtime semantics directly.
 
 **Edge Cases:**
-- Chained assignment: `x := y := 5` → `Ref.set(x, Ref.set(y, 5))` (returns unit)
+- Chained assignment: `x := y := 5` → `CoreBinOp("RefAssign", x, CoreBinOp("RefAssign", y, 5))` (returns unit)
 - Assignment in expression context: Result is unit
 
 **Semantic Invariant:** Updates reference value, returns unit.
@@ -592,22 +579,16 @@ CoreRefAssign(x, 20)
 let xs = 1 :: 2 :: []
 ```
 
-**Core Representation (Option A - Variant):**
+**Core Representation:**
 ```vibefun
-let xs = Cons(1, Cons(2, Nil))
+let xs = CoreVariant("Cons", [1, CoreVariant("Cons", [2, CoreVariant("Nil", [])])])
 ```
 
-**Core Representation (Option B - Function Call):**
-```vibefun
-let xs = List.cons(1, List.cons(2, Nil))
-```
+**Current Status:** ✅ Done - Parser produces `BinOp` "Cons", desugarer transforms to variant construction
 
-**Current Status:** Parser produces `BinOp` "Cons" - needs verification if desugared
+**Implementation:** `desugarBinOp.ts` - Converts to `CoreVariant` "Cons" construction
 
-**Implementation Needed:**
-- Verify if currently handled in `desugarBinOp.ts`
-- If not, add desugaring to variant construction
-- Preference: Variant construction (more direct)
+**Design Decision:** List cons operator is desugared to variant construction rather than function calls. This is more direct and consistent with how list literals are desugared.
 
 **Edge Cases:**
 - Right-associative: `1 :: 2 :: 3 :: []` parses as `1 :: (2 :: (3 :: []))`
@@ -618,11 +599,11 @@ let xs = List.cons(1, List.cons(2, Nil))
 
 ---
 
-### Category 3: Needs Verification ⚠️
+### Category 3: Parser-Level Transformations ✅
 
-These transformations may be implemented in parser or need verification.
+These transformations are handled by the parser, not the desugarer. The parser produces a complete AST that the desugarer consumes.
 
-#### 3.1 If-Without-Else → Explicit Else Unit
+#### 3.1 If-Without-Else → Parser Handles This
 
 **Purpose:** Make implicit else branch explicit.
 
@@ -631,21 +612,29 @@ These transformations may be implemented in parser or need verification.
 if condition then action()
 ```
 
-**Core Representation:**
+**AST Representation:**
 ```vibefun
-if condition then action() else ()
+If {
+  condition: condition,
+  then: action(),
+  else_: UnitLit
+}
 ```
 
-**Current Status:** Unclear - parser may produce `elseBranch: null` or handle it
+**Current Status:** ✅ Done - Parser handles this transformation, not desugarer
 
-**Verification Needed:**
-- Check if parser produces `elseBranch: Expr | null`
-- If null allowed, desugarer must add `() else` branch
-- All `CoreIf` nodes must have non-null else branches
+**Implementation:** Parser (`parse-expressions.ts:678-682`) inserts `{ kind: "UnitLit" }` when else is omitted
+
+**Design Decision:** The parser handles if-without-else by automatically inserting a Unit literal when the else branch is omitted. This means the desugarer always receives a complete if-expression with both branches present. The AST type `else_: Expr` (not optional) enforces this contract.
+
+**Verification:** Parser tests in `expressions.test.ts:1828-1904` confirm:
+- Parser inserts UnitLit when else is omitted
+- `else_` field is never undefined
+- UnitLit has proper location information
 
 **Edge Cases:**
-- Nested ifs: Inner ifs also get explicit else
-- If in expression context: Type must be unit if no else
+- Nested ifs: Inner ifs also get UnitLit else branches from parser
+- If in expression context: Type must be unit if no explicit else
 
 **Semantic Invariant:** If without else returns unit when condition is false.
 
@@ -692,9 +681,9 @@ CoreRecordUpdate {
 
 ---
 
-#### 3.3 Type Annotations in Patterns
+#### 3.3 Type Annotations in Patterns → Strip Annotations
 
-**Purpose:** Determine if type annotations in patterns should be stripped.
+**Purpose:** Strip type annotations from patterns during desugaring.
 
 **Surface Syntax:**
 ```vibefun
@@ -705,32 +694,39 @@ match value {
 let (x: Int, y: String) = pair
 ```
 
-**Core Representation (Option A - Strip):**
+**Core Representation:**
 ```vibefun
 match value {
   | x => x + 1  // Type annotation removed
 }
+
+let (x, y) = pair  // Type annotations removed
 ```
 
-**Core Representation (Option B - Preserve):**
-```vibefun
-match value {
-  | CoreTypeAnnotatedPattern(x, Int) => x + 1
-}
-```
+**Current Status:** ✅ Done - Desugarer strips type annotations from patterns
 
-**Current Status:** Parser produces `TypeAnnotatedPattern`, no `CoreTypeAnnotatedPattern`
+**Implementation:** `desugarer.ts:desugarPattern()` case "TypeAnnotatedPattern" recursively desugars inner pattern, stripping the annotation
 
-**Verification Needed:**
-- Confirm type annotations are stripped during desugaring
-- Type checker may still need them for constraint generation
-- Location information must be preserved
+**Design Decision:** Type annotations in patterns are stripped during desugaring because:
+1. The type checker uses Hindley-Milner inference and doesn't need pattern annotations
+2. Type information flows from context (expected types) rather than annotations
+3. Annotations are **optional** for documentation/disambiguation only
+4. Core AST is simpler without `CoreTypeAnnotatedPattern`
+5. Location information is preserved on the inner pattern
 
-**Decision:** Spec says "mostly optional" - likely strip them, but verify with type checker needs.
+**Verification:**
+- Parser tests in `pattern-type-annotations.test.ts` (730 lines) confirm parser creates TypeAnnotatedPattern
+- Desugarer tests in `type-annotated-patterns.test.ts` (15 tests) confirm annotations are stripped
+- Type checker exists and works without pattern annotations
+
+**Edge Cases:**
+- Nested annotations: `((x: Int): Option<Int>)` - both levels stripped
+- In various contexts: match, let, lambda parameters - all stripped
+- Complex patterns: `Some((x: Int))` - annotation on inner pattern stripped
 
 ---
 
-#### 3.4 Record Field Shorthand
+#### 3.4 Record Field Shorthand → Parser Handles This
 
 **Purpose:** Expand shorthand field syntax to explicit field: value pairs.
 
@@ -741,23 +737,33 @@ let age = 30
 { name, age }
 ```
 
-**Core Representation:**
+**AST Representation:**
 ```vibefun
-{ name: name, age: age }
+Record {
+  fields: [
+    Field { name: "name", value: Var("name") },
+    Field { name: "age", value: Var("age") }
+  ]
+}
 ```
 
-**Current Status:** Likely handled during parsing, not desugaring
+**Current Status:** ✅ Done - Parser handles this transformation, not desugarer
 
-**Verification Needed:**
-- Check if parser already expands shorthands to full field syntax
-- If not, desugarer needs to expand them
-- Probably parser's responsibility
+**Implementation:** Parser expands record field shorthand before AST creation
+
+**Design Decision:** The parser handles record field shorthand expansion. The AST type `RecordField` always has an explicit `value: Expr`, not an optional field. This means the desugarer always receives fully expanded record literals.
+
+**Verification:** Parser tests in `record-shorthand.test.ts` (399 lines) comprehensively test:
+- Single and multiple shorthand fields
+- Mixed shorthand and regular fields
+- Shorthand with spreads in record updates
+- Shorthand in record patterns
+- Nested shorthand and all edge cases
 
 **Edge Cases:**
 - Mixed: `{ name, age: age + 1 }` → `{ name: name, age: age + 1 }`
-- In patterns: `match person { | { name, age } => ... }`
-
-**Decision:** Verify - likely parser handles this, not desugarer.
+- In patterns: `match person { | { name, age } => ... }` - parser expands to full patterns
+- With spreads: `{ ...person, name }` → `{ ...person, name: name }`
 
 ---
 
