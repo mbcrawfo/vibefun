@@ -139,29 +139,10 @@ desugarer/
 ```
 
 **Orchestrator:**
-```typescript
-export function desugar(expr: SurfaceExpr): CoreExpr {
-  let result = expr;
-  result = desugarPipe(result);
-  result = desugarComposition(result);
-  result = curryLambda(result);
-  result = desugarListLiteral(result);
-  return result;
-}
-```
+The desugarer orchestrates transformations by applying each transformation function in sequence to progressively transform the Surface AST into the Core AST.
 
 **Individual transformation:**
-```typescript
-// desugarPipe.ts
-export function desugarPipe(expr: SurfaceExpr): CoreExpr {
-  if (expr.type === 'Pipe') {
-    // Transform x |> f to f(x)
-    return /* transformation logic */;
-  }
-  // Recursively transform children
-  return /* recurse into sub-expressions */;
-}
-```
+Each transformation function examines the AST, applies its specific transformation when applicable, and recursively transforms child nodes. For example, the pipe desugarer identifies pipe expressions and converts them to function applications.
 
 ### Benefits
 
@@ -238,33 +219,10 @@ interface OptimizationPass {
 ### Example
 
 **Pass implementation:**
-```typescript
-// constant-folding.ts
-export const constantFoldingPass: OptimizationPass = {
-  name: 'constant-folding',
-  transform(expr: CoreExpr): CoreExpr {
-    if (expr.type === 'BinaryOp' && isLiteral(expr.left) && isLiteral(expr.right)) {
-      return evaluateAtCompileTime(expr);
-    }
-    return expr;
-  }
-};
-```
+Each optimization pass implements the interface, providing a name and a transform function. The transform function examines the AST and applies its specific optimization.
 
 **Optimizer usage:**
-```typescript
-const optimizer = new Optimizer([
-  constantFoldingPass,
-  deadCodeEliminationPass,
-  betaReductionPass,
-  etaReductionPass,
-  csePass,
-  inlinePass,
-  patternMatchOptPass,
-], { level: 'O2', maxIterations: 10 });
-
-const optimized = optimizer.optimize(ast);
-```
+The optimizer is configured with a list of passes and an optimization level. It applies the passes according to the level (single pass for O1, fixed-point iteration for O2).
 
 ### Benefits
 
@@ -352,32 +310,7 @@ interface Location {
 
 ### Example
 
-**Token with location:**
-```typescript
-const token: Token = {
-  type: 'IDENTIFIER',
-  value: 'foo',
-  loc: { file: 'example.vf', line: 5, column: 10, offset: 87 }
-};
-```
-
-**AST node with location:**
-```typescript
-const expr: Expr = {
-  type: 'Variable',
-  name: 'foo',
-  loc: { file: 'example.vf', line: 5, column: 10, offset: 87 }
-};
-```
-
-**Error with location:**
-```typescript
-throw new TypeError(
-  'Undefined variable: foo',
-  { file: 'example.vf', line: 5, column: 10, offset: 87 },
-  'Did you mean to import this variable?'
-);
-```
+Tokens, AST nodes, and errors all carry location information (filename, line, column, offset). This allows the compiler to provide precise error messages that point to the exact source location where an issue occurred.
 
 ### Benefits
 
@@ -427,38 +360,14 @@ Phase-Specific Error Classes:
 ### Participants
 
 **Base Error Class:**
-```typescript
-class VibefunError extends Error {
-  constructor(
-    message: string,
-    public loc: Location,
-    public hint?: string
-  ) {
-    super(formatErrorMessage(message, loc, hint));
-  }
-}
-```
+A base `VibefunError` class extends the standard Error class and accepts a message, location, and optional hint.
 
 **Phase-Specific Errors:**
-```typescript
-class LexerError extends VibefunError {}
-class ParserError extends VibefunError {}
-class TypeError extends VibefunError {}
-class CodeGenError extends VibefunError {}
-```
+Each compilation phase has its own error class (LexerError, ParserError, TypeError, CodeGenError) that extends VibefunError.
 
 ### Example
 
-**Throwing an error:**
-```typescript
-if (currentToken.type !== 'IDENTIFIER') {
-  throw new ParserError(
-    `Expected identifier, got ${currentToken.type}`,
-    currentToken.loc,
-    'Variable names must be valid identifiers'
-  );
-}
-```
+When errors are thrown with location and optional hint information, they are formatted for display:
 
 **Error message output:**
 ```
@@ -489,19 +398,7 @@ Hint: Variable names must be valid identifiers
 - Provide location (handled automatically)
 - Offer suggestion or hint when possible
 
-**Example - Good:**
-```typescript
-throw new TypeError(
-  `Type mismatch: expected ${expected}, got ${actual}`,
-  expr.loc,
-  'Consider adding a type annotation'
-);
-```
-
-**Example - Bad:**
-```typescript
-throw new Error('type error');  // No location, vague message, no hint
-```
+Good errors include specific details (like "expected X, got Y"), location information, and helpful hints. Poor errors use vague messages without location or context.
 
 ### Fail-Fast Philosophy
 
@@ -599,25 +496,7 @@ module/
 
 ### Example
 
-**Implementation file (parser.ts):**
-```typescript
-export class Parser { /* ... */ }
-export function parseModule(tokens: Token[]): Module { /* ... */ }
-function parseExpr(): Expr { /* private helper */ }
-```
-
-**Index file (index.ts):**
-```typescript
-// Only export public API
-export { Parser, parseModule } from './parser.js';
-export type { ParseOptions } from './parser.js';
-// Note: parseExpr is not exported (internal helper)
-```
-
-**Consumer imports from index:**
-```typescript
-import { Parser, parseModule } from './parser/index.js';
-```
+Implementation files export their classes and functions. The index file re-exports only the public API, hiding internal helpers. Consumers import from the index file, creating a clear separation between public interface and implementation details.
 
 ### Benefits
 
@@ -660,86 +539,34 @@ import { Parser, parseModule } from './parser/index.js';
 ### Anti-Pattern 1: Shared Mutable State
 
 **Problem:**
-```typescript
-let globalTypeEnv: Map<string, Type> = new Map();  // ❌
-
-function inferType(expr: Expr): Type {
-  // Mutates global state
-  globalTypeEnv.set(expr.name, type);
-}
-```
+Using global mutable state that functions modify directly makes code harder to test and reason about.
 
 **Solution:**
-```typescript
-function inferType(expr: Expr, env: TypeEnv): [Type, TypeEnv] {
-  const newEnv = env.set(expr.name, type);
-  return [type, newEnv];  // Return new state
-}
-```
+Pass state as parameters and return new state rather than mutating global variables. This functional approach improves testability and makes data flow explicit.
 
 ### Anti-Pattern 2: God Class
 
 **Problem:**
-```typescript
-class Compiler {
-  tokenize() { /* ... */ }
-  parse() { /* ... */ }
-  typeCheck() { /* ... */ }
-  optimize() { /* ... */ }
-  generate() { /* ... */ }
-  // One class doing everything ❌
-}
-```
+Putting all compilation phases into a single class creates a monolithic, hard-to-maintain component.
 
 **Solution:**
-```typescript
-class Lexer { tokenize() { /* ... */ } }
-class Parser { parse() { /* ... */ } }
-class TypeChecker { check() { /* ... */ } }
-// Separate classes for each phase ✓
-```
+Separate each compilation phase into its own focused class (Lexer, Parser, TypeChecker, etc.), each with a single responsibility.
 
 ### Anti-Pattern 3: Missing Location Information
 
 **Problem:**
-```typescript
-interface Expr {
-  type: string;
-  // No location ❌
-}
-
-throw new Error('Parse error');  // No location ❌
-```
+AST nodes and errors without location information make debugging extremely difficult.
 
 **Solution:**
-```typescript
-interface Expr {
-  type: string;
-  loc: Location;  // Always include location ✓
-}
-
-throw new ParserError('Unexpected token', token.loc);  // ✓
-```
+Always include location fields in AST nodes and pass location information when throwing errors.
 
 ### Anti-Pattern 4: Mutation During Transformation
 
 **Problem:**
-```typescript
-function desugar(expr: Expr): Expr {
-  expr.type = 'Desugared';  // Mutates input ❌
-  return expr;
-}
-```
+Mutating input AST nodes during transformations creates side effects and makes transformations harder to reason about.
 
 **Solution:**
-```typescript
-function desugar(expr: Expr): Expr {
-  return {
-    type: 'Desugared',
-    ...expr  // Create new object ✓
-  };
-}
-```
+Create and return new objects instead of mutating inputs, preserving the original AST and making transformations pure functions.
 
 ## Next Steps
 
