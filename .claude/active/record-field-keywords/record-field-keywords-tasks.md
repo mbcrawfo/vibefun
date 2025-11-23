@@ -1,47 +1,53 @@
 # Record Field Keywords - Task Checklist
 
-**Last Updated**: 2025-11-22 (Comprehensive review - expanded to cover all 5 parser locations, 8 documentation files, integration tests)
+**Last Updated**: 2025-11-22 (Phase 1 COMPLETE - parser implementation done, tests and docs pending)
 
-## Phase 1: Parser Implementation
+## Phase 1: Parser Implementation ✅ COMPLETE
 
-### Helper Function
-- [ ] Create `expectFieldName()` helper function
-  - [ ] Accept both `IDENTIFIER` and `KEYWORD` tokens
-  - [ ] Return `{ name: string; loc: Location }`
-  - [ ] Provide clear error message if neither token type found
-  - [ ] Document function with JSDoc
+### Helper Function ✅
+- [x] Create `expectFieldName()` helper function
+  - [x] Accept both `IDENTIFIER` and `KEYWORD` tokens
+  - [x] Return `{ name: string; loc: Location }`
+  - [x] Provide clear error message if neither token type found
+  - [x] Document function with JSDoc
+  - **Location**: `packages/core/src/parser/parser-base.ts:140-154`
 
-### Update Record Expression Parsing
-- [ ] Update normal record field parsing (~line 1590 in parse-expressions.ts) - LOCATION 1
-  - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
-  - [ ] Preserve existing behavior for identifiers
-  - [ ] Extract keyword string from `KEYWORD` token
+### Update Record Expression Parsing ✅
+- [x] Update normal record field parsing (line 1602 in parse-expressions.ts) - LOCATION 1
+  - [x] Replace `expect("IDENTIFIER")` with `expectFieldName()`
+  - [x] Preserve existing behavior for identifiers
+  - [x] Extract keyword string from `KEYWORD` token
 
-- [ ] Update record update field parsing (~line 1530 in parse-expressions.ts) - LOCATION 2
-  - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
-  - [ ] Handle keyword fields in spread updates
+- [x] Update record update field parsing (line 1533 in parse-expressions.ts) - LOCATION 2
+  - [x] Replace `expect("IDENTIFIER")` with `expectFieldName()`
+  - [x] Handle keyword fields in spread updates
 
-- [ ] Add shorthand validation
-  - [ ] Check if field token is `KEYWORD` in shorthand context
-  - [ ] Throw clear error with helpful message
-  - [ ] Suggest explicit syntax in error message
+- [x] Add shorthand validation
+  - [x] Check if field token is `KEYWORD` in shorthand context (lines 1614-1622, 1545-1553)
+  - [x] Throw clear error with helpful message
+  - [x] Suggest explicit syntax in error message
 
-### Update Field Access Parsing
-- [ ] Update field access parsing (~line 567 in parse-expressions.ts) - LOCATION 3
-  - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
-  - [ ] Allow `obj.type`, `obj.match`, etc.
-  - [ ] Test chained access: `obj.outer.type`
+### Update Field Access Parsing ✅
+- [x] Update field access parsing (line 567 in parse-expressions.ts) - LOCATION 3
+  - [x] Replace `expect("IDENTIFIER")` with `expectFieldName()`
+  - [x] Allow `obj.type`, `obj.match`, etc.
+  - [x] Support chained access: `obj.outer.type`
 
-### Update Record Pattern Parsing
-- [ ] Update pattern field parsing (~line 260 in parse-patterns.ts) - LOCATION 4
-  - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
-  - [ ] Handle keyword fields in patterns
-  - [ ] Ensure shorthand patterns still work correctly
+### Update Record Pattern Parsing ✅
+- [x] Update pattern field parsing (line 260 in parse-patterns.ts) - LOCATION 4
+  - [x] Replace `expect("IDENTIFIER")` with `expectFieldName()`
+  - [x] Handle keyword fields in patterns
+  - [x] Ensure shorthand patterns still work correctly
 
-### Update Record Type Parsing
-- [ ] Update type field parsing (~line 161 in parse-types.ts) - LOCATION 5
-  - [ ] Replace `expect("IDENTIFIER")` with `expectFieldName()`
-  - [ ] Allow keyword fields in type definitions
+### Update Record Type Parsing ✅
+- [x] Update type field parsing in parse-types.ts (line 161) - LOCATION 5
+  - [x] Replace `expect("IDENTIFIER")` with `expectFieldName()`
+  - [x] Allow keyword fields in type definitions
+
+- [x] Update type field parsing in parse-declarations.ts (line 419) - LOCATION 6
+  - [x] Replace `expect("IDENTIFIER")` with `expectFieldName()`
+  - [x] Allow keyword fields in type definitions
+  - **Note**: Plan originally mentioned 5 locations, but 6 were correctly identified during implementation
 
 ## Phase 2: Testing
 
@@ -238,15 +244,19 @@
 
 Quick overview of major milestones:
 
-- [ ] **Parser Implementation Complete** (Phase 1)
-  - Helper function created
-  - All 5 parser locations updated:
-    - Location 1: Record construction (normal fields)
-    - Location 2: Record construction (update fields)
-    - Location 3: Field access (DOT operator)
-    - Location 4: Record patterns
-    - Location 5: Record type definitions
-  - Shorthand validation added
+- [x] **Parser Implementation Complete** (Phase 1) ✅ DONE
+  - Helper function created at `parser-base.ts:140-154`
+  - All 6 parser locations updated:
+    - Location 1: Record construction (normal fields) - `parse-expressions.ts:1602`
+    - Location 2: Record construction (update fields) - `parse-expressions.ts:1533`
+    - Location 3: Field access (DOT operator) - `parse-expressions.ts:567`
+    - Location 4: Record patterns - `parse-patterns.ts:260`
+    - Location 5: Record type definitions - `parse-types.ts:161`
+    - Location 6: Record type definitions - `parse-declarations.ts:419` (discovered during implementation)
+  - Shorthand validation added with clear error messages
+  - Quality checks pass: type checking, linting, formatting
+  - All 2,641 existing tests pass (no regressions)
+  - Committed: f9fa24f
 
 - [ ] **Tests Complete** (Phase 2)
   - Unit tests for all 5 parser contexts
