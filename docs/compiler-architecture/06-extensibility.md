@@ -412,7 +412,6 @@ it('should compile my new feature end-to-end', () => {
 
 - Update language spec in `docs/spec/`
 - Add examples to `examples/`
-- Update CLAUDE.md if architectural impact
 - Update this extensibility guide if pattern is reusable
 
 ## Extending AST Utilities
@@ -669,7 +668,6 @@ describe('MyFeature integration', () => {
 - [ ] Update documentation
 - [ ] Add examples to `examples/`
 - [ ] Run all quality checks (`npm run verify`)
-- [ ] Update CLAUDE.md if architectural impact
 
 ## Examples of Extensions
 
@@ -714,15 +712,13 @@ do {
 
 Continue reading:
 
-- **[07-implementation-guide.md](./07-implementation-guide.md)** - Coding patterns and best practices
 - **[03-design-patterns.md](./03-design-patterns.md)** - Review architectural patterns
 - **[02-compilation-pipeline.md](./02-compilation-pipeline.md)** - Understand how phases connect
 
 **To contribute:**
-1. Read `.claude/CODING_STANDARDS.md` for coding conventions
-2. Review existing code in the phase you're extending
-3. Follow patterns established in the codebase
-4. Ask questions if uncertain
+1. Review existing code in the phase you're extending
+2. Follow patterns established in the codebase
+3. Ask questions if uncertain
 
 ---
 
