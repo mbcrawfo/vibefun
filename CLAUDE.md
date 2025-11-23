@@ -190,7 +190,6 @@ vibefun run src/main.vf            # Compile and run
 - **[Language Specification](./docs/spec/)** - Complete language specification organized by topic (syntax, types, semantics, standard library)
 
 ### Design Documents
-- **[.claude/design/language-design.md](.claude/design/language-design.md)** - Original language design exploration
 - **[.claude/design/type-system.md](.claude/design/type-system.md)** - Detailed type system design and algorithms
 
 ### Additional Instructions
