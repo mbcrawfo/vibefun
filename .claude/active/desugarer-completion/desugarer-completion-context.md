@@ -252,35 +252,36 @@ checkPattern(pattern: CorePattern, expectedType: Type): Map<string, Type>
 **Purpose:** Document what parser handles vs what desugarer handles
 
 **Parser Responsibilities:**
-1. **If-without-else** - Parser inserts `else ()`
+1. **If-without-else** - Parser inserts `{ kind: "UnitLit" }` when else omitted
+   - **Confirmed:** `parse-expressions.ts:678-682` explicitly inserts Unit literal
    - AST evidence: `ast.ts` line 66 shows `else_: Expr` (not optional)
    - Parser always provides complete if-else to desugarer
+   - Language spec is WRONG (claims desugarer handles this) - will be fixed in Phase 3
 
-2. **Record field shorthand** - Parser expands `{name, age}`
-   - AST evidence: `RecordField` always has `value: Expr`
-   - No shorthand representation in AST
-   - Parser expands to `{name: name, age: age}` before desugarer sees it
+2. **Record field shorthand** - Parser expands `{name, age}` to `{name: name, age: age}`
+   - **Confirmed:** Parser handles expansion before AST creation
+   - AST evidence: `RecordField` always has `value: Expr` (no shorthand representation)
+   - Desugarer receives fully expanded record literals
 
 **Desugarer Responsibilities:**
 1. **TypeAnnotatedPattern** - Strip type annotations from patterns
-2. **While loops** - Transform to recursive functions
+2. **While loops** - Transform to recursive functions (CoreLetRecExpr)
 3. **Or-patterns** - Expand to multiple match cases
 4. **List literals** - Transform to Cons/Nil chains
 5. **Pipe/composition** - Transform to function applications
 6. **Block expressions** - Transform to nested let bindings
 7. **Lambda currying** - Transform multi-param to single-param
 8. **List patterns** - Transform to variant patterns
-9. **If-expressions** - Transform complete if-else to match expressions
+9. **If-expressions** - Transform complete if-else to match expressions (parser guarantees else_ exists)
 
-**Critical Ambiguity Discovered During Audit:**
-The language spec (desugaring.md:318-329) states that desugarer handles if-without-else, but the AST type definition (`ast.ts:66`) shows `else_: Expr` is NOT optional, suggesting the parser handles it. This contradiction will be resolved in Phase 2 verification.
+**Resolution: Parser-Desugarer Boundary Confirmed**
+Investigation resolved the spec ambiguity. The parser handles both if-without-else and record field shorthand. The implementation is correct; the language spec documentation is incorrect and will be updated in Phase 3.
 
-**Contract Tests Needed:**
-- Verify parser always provides complete if-else (resolve spec ambiguity)
-- Verify parser expands record shorthand
-- Verify AST structure assumptions hold
-- Document explicit parser-desugarer boundary
-- Test that desugarer receives expected AST structure
+**Contract Tests (Phase 2):**
+- Add parser tests for if-without-else (verify Unit insertion)
+- Add parser tests for record field shorthand (verify expansion)
+- Validate AST structure assumptions
+- Document confirmed parser-desugarer boundary
 
 ## Transformation Summary
 
