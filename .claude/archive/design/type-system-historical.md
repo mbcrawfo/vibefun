@@ -1,5 +1,18 @@
 # Vibefun Type System Design
 
+> **⚠️ ARCHIVED DOCUMENT**
+>
+> **Status:** This document is archived for historical reference only.
+>
+> **Why Archived:** This design document uses outdated syntax (e.g., `'a` for type variables instead of `<T>`), contains implementation details that belong in compiler documentation, and is superseded by the comprehensive language specification.
+>
+> **Current Documentation:** For authoritative type system documentation, see:
+> - **[Type System Specification](../../docs/spec/03-type-system/)** - Complete specification with current syntax
+> - **[Type Inference](../../docs/spec/03-type-system/type-inference.md)** - Type inference rules and Algorithm W
+> - **[Generic Types](../../docs/spec/03-type-system/generic-types.md)** - Generics and polymorphism
+>
+> **Historical Value:** This document preserves the original formal type theory approach and unification algorithm implementation that informed the type system design.
+
 ## Overview
 
 Vibefun uses a combination of Hindley-Milner type inference with modern extensions including generics and union types. The type system is designed to be:

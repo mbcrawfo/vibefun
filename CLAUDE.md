@@ -188,9 +188,7 @@ vibefun run src/main.vf            # Compile and run
 
 ### Language Documentation
 - **[Language Specification](./docs/spec/)** - Complete language specification organized by topic (syntax, types, semantics, standard library)
-
-### Design Documents
-- **[.claude/design/type-system.md](.claude/design/type-system.md)** - Detailed type system design and algorithms
+  - **[Type System](./docs/spec/03-type-system/)** - Type system specification including inference, generics, and type checking algorithms
 
 ### Additional Instructions
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md

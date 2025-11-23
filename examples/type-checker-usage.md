@@ -357,6 +357,6 @@ describe('Type Checker', () => {
 
 ## See Also
 
-- [Vibefun Language Specification](../vibefun-spec.md)
-- [Type System Design](./.claude/design/type-system.md)
-- [Type Checker Implementation Plan](./.claude/active/type-checker/type-checker-plan.md)
+- [Vibefun Language Specification](../docs/spec/README.md)
+- [Type System Specification](../docs/spec/03-type-system/)
+- [Type Inference Details](../docs/spec/03-type-system/type-inference.md)
