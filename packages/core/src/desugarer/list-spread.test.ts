@@ -276,6 +276,149 @@ describe("List Spread - Multiple Spreads", () => {
     });
 });
 
+describe("List Spread - Multiple Spreads", () => {
+    it("should desugar [...xs, ...ys, ...zs] with three spreads", () => {
+        const list: Expr = {
+            kind: "List",
+            elements: [
+                spread({ kind: "Var", name: "xs", loc: testLoc }),
+                spread({ kind: "Var", name: "ys", loc: testLoc }),
+                spread({ kind: "Var", name: "zs", loc: testLoc }),
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(list);
+
+        // Should be: concat(xs, concat(ys, zs))
+        expect(result.kind).toBe("CoreApp");
+        const app = result as CoreApp;
+        expect((app.func as CoreVar).name).toBe("concat");
+        expect((app.args[0] as CoreVar).name).toBe("xs");
+
+        const innerConcat = app.args[1]! as CoreApp;
+        expect(innerConcat.kind).toBe("CoreApp");
+        expect((innerConcat.func as CoreVar).name).toBe("concat");
+        expect((innerConcat.args[0] as CoreVar).name).toBe("ys");
+        expect((innerConcat.args[1] as CoreVar).name).toBe("zs");
+    });
+
+    it("should desugar [1, ...xs, 2, ...ys, 3, ...zs, 4] with three spreads", () => {
+        const list: Expr = {
+            kind: "List",
+            elements: [
+                elem({ kind: "IntLit", value: 1, loc: testLoc }),
+                spread({ kind: "Var", name: "xs", loc: testLoc }),
+                elem({ kind: "IntLit", value: 2, loc: testLoc }),
+                spread({ kind: "Var", name: "ys", loc: testLoc }),
+                elem({ kind: "IntLit", value: 3, loc: testLoc }),
+                spread({ kind: "Var", name: "zs", loc: testLoc }),
+                elem({ kind: "IntLit", value: 4, loc: testLoc }),
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(list);
+
+        // Complex nested concats
+        expect(result.kind).toBe("CoreApp");
+        const app = result as CoreApp;
+        expect((app.func as CoreVar).name).toBe("concat");
+    });
+});
+
+describe("List Spread - Nested Lists", () => {
+    it("should desugar nested lists with spreads", () => {
+        // [[...xs], [...ys]]
+        const list: Expr = {
+            kind: "List",
+            elements: [
+                elem({
+                    kind: "List",
+                    elements: [spread({ kind: "Var", name: "xs", loc: testLoc })],
+                    loc: testLoc,
+                }),
+                elem({
+                    kind: "List",
+                    elements: [spread({ kind: "Var", name: "ys", loc: testLoc })],
+                    loc: testLoc,
+                }),
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(list);
+
+        // Should be: Cons(xs, Cons(ys, Nil))
+        // Inner spreads should be desugared to just the variables
+        expect(result.kind).toBe("CoreVariant");
+        const cons1 = result as CoreVariant;
+        expect(cons1.constructor).toBe("Cons");
+        expect((cons1.args[0] as CoreVar).name).toBe("xs");
+
+        const cons2 = cons1.args[1]! as CoreVariant;
+        expect(cons2.kind).toBe("CoreVariant");
+        expect(cons2.constructor).toBe("Cons");
+        expect((cons2.args[0] as CoreVar).name).toBe("ys");
+    });
+
+    it("should desugar deeply nested lists with spreads", () => {
+        // [[[...xs]]]
+        const list: Expr = {
+            kind: "List",
+            elements: [
+                elem({
+                    kind: "List",
+                    elements: [
+                        elem({
+                            kind: "List",
+                            elements: [spread({ kind: "Var", name: "xs", loc: testLoc })],
+                            loc: testLoc,
+                        }),
+                    ],
+                    loc: testLoc,
+                }),
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(list);
+
+        // Should be: Cons(Cons(xs, Nil), Nil)
+        expect(result.kind).toBe("CoreVariant");
+        const outer = result as CoreVariant;
+        expect(outer.constructor).toBe("Cons");
+
+        const middle = outer.args[0]! as CoreVariant;
+        expect(middle.kind).toBe("CoreVariant");
+        expect(middle.constructor).toBe("Cons");
+
+        expect((middle.args[0] as CoreVar).name).toBe("xs");
+    });
+});
+
+describe("List Spread - Empty List Spread", () => {
+    it("should desugar [...[]] to empty list", () => {
+        const list: Expr = {
+            kind: "List",
+            elements: [
+                spread({
+                    kind: "List",
+                    elements: [],
+                    loc: testLoc,
+                }),
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(list);
+
+        // Should desugar to Nil
+        expect(result.kind).toBe("CoreVariant");
+        expect((result as CoreVariant).constructor).toBe("Nil");
+    });
+});
+
 describe("List Spread - Source Locations", () => {
     it("should preserve source locations", () => {
         const listLoc: Location = {

@@ -428,6 +428,324 @@ describe("Or-Pattern - Complex Bodies", () => {
     });
 });
 
+describe("Or-Pattern - Deeply Nested", () => {
+    it("should expand or-pattern with deeply nested constructor patterns", () => {
+        // match x { | Some(Left(1)) | Some(Right(1)) => "nested" }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "x", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "Some",
+                                args: [
+                                    {
+                                        kind: "ConstructorPattern",
+                                        constructor: "Left",
+                                        args: [{ kind: "LiteralPattern", literal: 1, loc: testLoc }],
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "Some",
+                                args: [
+                                    {
+                                        kind: "ConstructorPattern",
+                                        constructor: "Right",
+                                        args: [{ kind: "LiteralPattern", literal: 1, loc: testLoc }],
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "StringLit", value: "nested", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.kind).toBe("CoreMatch");
+        expect(result.cases).toHaveLength(2);
+
+        // First case: Some(Left(1))
+        const pattern0 = result.cases[0]!.pattern as CoreVariantPattern;
+        expect(pattern0.kind).toBe("CoreVariantPattern");
+        expect(pattern0.constructor).toBe("Some");
+        const inner0 = pattern0.args[0] as CoreVariantPattern;
+        expect(inner0.kind).toBe("CoreVariantPattern");
+        expect(inner0.constructor).toBe("Left");
+
+        // Second case: Some(Right(1))
+        const pattern1 = result.cases[1]!.pattern as CoreVariantPattern;
+        expect(pattern1.kind).toBe("CoreVariantPattern");
+        expect(pattern1.constructor).toBe("Some");
+        const inner1 = pattern1.args[0] as CoreVariantPattern;
+        expect(inner1.kind).toBe("CoreVariantPattern");
+        expect(inner1.constructor).toBe("Right");
+    });
+
+    it("should expand or-pattern with four levels of nesting", () => {
+        // match x { | A(B(C(1))) | A(B(D(1))) => "deep" }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "x", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "A",
+                                args: [
+                                    {
+                                        kind: "ConstructorPattern",
+                                        constructor: "B",
+                                        args: [
+                                            {
+                                                kind: "ConstructorPattern",
+                                                constructor: "C",
+                                                args: [{ kind: "LiteralPattern", literal: 1, loc: testLoc }],
+                                                loc: testLoc,
+                                            },
+                                        ],
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "A",
+                                args: [
+                                    {
+                                        kind: "ConstructorPattern",
+                                        constructor: "B",
+                                        args: [
+                                            {
+                                                kind: "ConstructorPattern",
+                                                constructor: "D",
+                                                args: [{ kind: "LiteralPattern", literal: 1, loc: testLoc }],
+                                                loc: testLoc,
+                                            },
+                                        ],
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "StringLit", value: "deep", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.kind).toBe("CoreMatch");
+        expect(result.cases).toHaveLength(2);
+
+        // Verify both cases have correct nesting
+        const pattern0 = result.cases[0]!.pattern as CoreVariantPattern;
+        expect(pattern0.constructor).toBe("A");
+        const inner0_1 = pattern0.args[0] as CoreVariantPattern;
+        expect(inner0_1.constructor).toBe("B");
+        const inner0_2 = inner0_1.args[0] as CoreVariantPattern;
+        expect(inner0_2.constructor).toBe("C");
+
+        const pattern1 = result.cases[1]!.pattern as CoreVariantPattern;
+        expect(pattern1.constructor).toBe("A");
+        const inner1_1 = pattern1.args[0] as CoreVariantPattern;
+        expect(inner1_1.constructor).toBe("B");
+        const inner1_2 = inner1_1.args[0] as CoreVariantPattern;
+        expect(inner1_2.constructor).toBe("D");
+    });
+});
+
+describe("Or-Pattern - With List Patterns", () => {
+    it("should expand or-pattern with list patterns", () => {
+        // match xs { | [x] | [x, _] | [x, _, _] => x }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "xs", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "ListPattern",
+                                elements: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "ListPattern",
+                                elements: [
+                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "ListPattern",
+                                elements: [
+                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "Var", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.kind).toBe("CoreMatch");
+        expect(result.cases).toHaveLength(3);
+
+        // All cases should be desugared from list patterns to variant patterns (Cons/Nil)
+        expect(result.cases[0]!.pattern.kind).toBe("CoreVariantPattern");
+        expect(result.cases[1]!.pattern.kind).toBe("CoreVariantPattern");
+        expect(result.cases[2]!.pattern.kind).toBe("CoreVariantPattern");
+    });
+});
+
+describe("Or-Pattern - With Record Patterns", () => {
+    it("should expand or-pattern with record patterns", () => {
+        // match r { | {x, y: 0} | {x, y: 1} => x }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "r", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "RecordPattern",
+                                fields: [
+                                    {
+                                        name: "x",
+                                        pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                    {
+                                        name: "y",
+                                        pattern: { kind: "LiteralPattern", literal: 0, loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "RecordPattern",
+                                fields: [
+                                    {
+                                        name: "x",
+                                        pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                    {
+                                        name: "y",
+                                        pattern: { kind: "LiteralPattern", literal: 1, loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "Var", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.kind).toBe("CoreMatch");
+        expect(result.cases).toHaveLength(2);
+
+        // Both cases should have record patterns
+        expect(result.cases[0]!.pattern.kind).toBe("CoreRecordPattern");
+        expect(result.cases[1]!.pattern.kind).toBe("CoreRecordPattern");
+    });
+});
+
+describe("Or-Pattern - With Tuple Patterns", () => {
+    it("should expand or-pattern with tuple patterns", () => {
+        // match t { | (x, 0) | (x, 1) => x }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "t", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "TuplePattern",
+                                elements: [
+                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "LiteralPattern", literal: 0, loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "TuplePattern",
+                                elements: [
+                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "LiteralPattern", literal: 1, loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "Var", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.kind).toBe("CoreMatch");
+        expect(result.cases).toHaveLength(2);
+
+        // Both cases should have tuple patterns
+        expect(result.cases[0]!.pattern.kind).toBe("CoreTuplePattern");
+        expect(result.cases[1]!.pattern.kind).toBe("CoreTuplePattern");
+    });
+});
+
 describe("Or-Pattern - Source Locations", () => {
     it("should preserve source locations", () => {
         const matchLoc: Location = {
