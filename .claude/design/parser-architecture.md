@@ -605,7 +605,7 @@ updates: RecordField[]  // Array of Field | Spread
 
 ### Design Documents
 - **docs/spec/** - Language specification (see 01-introduction.md for design philosophy)
-- **.claude/design/type-system.md** - Type system design
+- **docs/spec/03-type-system/** - Type system specification (inference, generics, type checking)
 - **.claude/active/parser-completion/** - Parser completion plan and context
 
 ### Test Files
