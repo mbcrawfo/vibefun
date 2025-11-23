@@ -257,8 +257,9 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
                         loc: pattern.loc,
                     });
                 } else {
-                    const fieldNameToken = parser.expect("IDENTIFIER", "Expected field name in record pattern");
-                    const fieldName = fieldNameToken.value as string;
+                    const fieldNameResult = parser.expectFieldName("record pattern");
+                    const fieldName = fieldNameResult.name;
+                    const fieldLoc = fieldNameResult.loc;
 
                     // Check for field rename: { field: pattern }
                     if (parser.match("COLON")) {
@@ -266,14 +267,24 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
                         fields.push({
                             name: fieldName,
                             pattern,
-                            loc: fieldNameToken.loc,
+                            loc: fieldLoc,
                         });
                     } else {
                         // Field binding: { field } is shorthand for { field: field }
+                        // Check if field is a keyword - can't use shorthand with keywords
+                        const token = parser.peek(-1); // Get the field name token we just consumed
+                        if (token.type === "KEYWORD") {
+                            throw parser.error(
+                                `Cannot use keyword '${fieldName}' in field shorthand`,
+                                fieldLoc,
+                                `Use explicit syntax: { ${fieldName}: pattern }`,
+                            );
+                        }
+
                         fields.push({
                             name: fieldName,
-                            pattern: { kind: "VarPattern", name: fieldName, loc: fieldNameToken.loc },
-                            loc: fieldNameToken.loc,
+                            pattern: { kind: "VarPattern", name: fieldName, loc: fieldLoc },
+                            loc: fieldLoc,
                         });
                     }
                 }

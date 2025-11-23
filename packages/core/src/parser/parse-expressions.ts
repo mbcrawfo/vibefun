@@ -564,8 +564,8 @@ function parseCall(parser: ParserBase): Expr {
         }
         // Record field access: record.field
         else if (parser.match("DOT")) {
-            const fieldToken = parser.expect("IDENTIFIER", "Expected field name after '.'");
-            const field = fieldToken.value as string;
+            const fieldNameResult = parser.expectFieldName("field access");
+            const field = fieldNameResult.name;
 
             expr = {
                 kind: "RecordAccess",
@@ -843,13 +843,13 @@ function parsePrimary(parser: ParserBase): Expr {
             return parseRecordExpr(parser, startLoc);
         }
 
-        // Check for record update: { id | ... }
-        if (parser.check("IDENTIFIER") && parser.peek(1).type === "PIPE") {
+        // Check for record update: { id | ... } or { keyword | ... }
+        if ((parser.check("IDENTIFIER") || parser.check("KEYWORD")) && parser.peek(1).type === "PIPE") {
             return parseRecordExpr(parser, startLoc);
         }
 
-        // Check for record construction: { id : ... }
-        if (parser.check("IDENTIFIER") && parser.peek(1).type === "COLON") {
+        // Check for record construction: { id : ... } or { keyword : ... }
+        if ((parser.check("IDENTIFIER") || parser.check("KEYWORD")) && parser.peek(1).type === "COLON") {
             return parseRecordExpr(parser, startLoc);
         }
 
@@ -857,7 +857,8 @@ function parsePrimary(parser: ParserBase): Expr {
         // Lookahead past newlines to check for COMMA or RBRACE
         // Note: Single-field records like { name } are still valid (detected by RBRACE)
         // Multiple fields now require commas between them for consistency
-        if (parser.check("IDENTIFIER")) {
+        // Note: Keywords cannot use shorthand, but we still need to detect them to give a clear error
+        if (parser.check("IDENTIFIER") || parser.check("KEYWORD")) {
             let offset = 1;
             while (parser.peek(offset).type === "NEWLINE") {
                 offset++;
@@ -1527,10 +1528,11 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                     while (parser.check("NEWLINE")) {
                         parser.advance();
                     }
-                } else if (parser.check("IDENTIFIER")) {
+                } else if (parser.check("IDENTIFIER") || parser.check("KEYWORD")) {
                     // Regular field or shorthand
-                    const fieldToken = parser.advance();
-                    const fieldName = fieldToken.value as string;
+                    const fieldNameResult = parser.expectFieldName("record update");
+                    const fieldName = fieldNameResult.name;
+                    const fieldLoc = fieldNameResult.loc;
 
                     // Skip newlines before checking for shorthand/colon
                     while (parser.check("NEWLINE")) {
@@ -1540,6 +1542,16 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                     // Check for shorthand: { ...base, name } or { ...base, name, ... }
                     // Note: Commas now required between fields for consistency
                     if (parser.check("COMMA") || parser.check("RBRACE")) {
+                        // Check if field is a keyword - can't use shorthand with keywords
+                        const token = parser.peek(-1); // Get the field name token we just consumed
+                        if (token.type === "KEYWORD") {
+                            throw parser.error(
+                                `Cannot use keyword '${fieldName}' in field shorthand`,
+                                fieldLoc,
+                                `Use explicit syntax: { ...base, ${fieldName}: value }`,
+                            );
+                        }
+
                         // Shorthand in update: { ...base, name }
                         updates.push({
                             kind: "Field",
@@ -1547,9 +1559,9 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                             value: {
                                 kind: "Var",
                                 name: fieldName,
-                                loc: fieldToken.loc,
+                                loc: fieldLoc,
                             },
-                            loc: fieldToken.loc,
+                            loc: fieldLoc,
                         });
                     } else {
                         // Full syntax: { ...base, name: value }
@@ -1559,7 +1571,7 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                             kind: "Field",
                             name: fieldName,
                             value,
-                            loc: fieldToken.loc,
+                            loc: fieldLoc,
                         });
                     }
 
@@ -1587,8 +1599,9 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
         const fields: RecordField[] = [];
 
         do {
-            const fieldToken = parser.expect("IDENTIFIER", "Expected field name");
-            const fieldName = fieldToken.value as string;
+            const fieldNameResult = parser.expectFieldName("record expression");
+            const fieldName = fieldNameResult.name;
+            const fieldLoc = fieldNameResult.loc;
 
             // Skip newlines before checking for shorthand/colon
             while (parser.check("NEWLINE")) {
@@ -1598,6 +1611,16 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
             // Check for shorthand: { name } or { name, ... }
             // Note: Commas now required between fields for consistency
             if (parser.check("COMMA") || parser.check("RBRACE")) {
+                // Check if field is a keyword - can't use shorthand with keywords
+                const token = parser.peek(-1); // Get the field name token we just consumed
+                if (token.type === "KEYWORD") {
+                    throw parser.error(
+                        `Cannot use keyword '${fieldName}' in field shorthand`,
+                        fieldLoc,
+                        `Use explicit syntax: { ${fieldName}: value }`,
+                    );
+                }
+
                 // Shorthand: { name } → { name: Var(name) }
                 fields.push({
                     kind: "Field",
@@ -1605,9 +1628,9 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                     value: {
                         kind: "Var",
                         name: fieldName,
-                        loc: fieldToken.loc,
+                        loc: fieldLoc,
                     },
-                    loc: fieldToken.loc,
+                    loc: fieldLoc,
                 });
             } else {
                 // Full syntax: { name: value }
@@ -1618,7 +1641,7 @@ function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                     kind: "Field",
                     name: fieldName,
                     value,
-                    loc: fieldToken.loc,
+                    loc: fieldLoc,
                 });
             }
 
