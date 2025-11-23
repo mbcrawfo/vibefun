@@ -489,6 +489,12 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
                 loc: pattern.loc,
             };
 
+        case "TypeAnnotatedPattern":
+            // Strip the type annotation and recursively desugar the inner pattern
+            // Type annotations are optional in the surface syntax and are validated
+            // by the type checker separately if present
+            return desugarPattern(pattern.pattern, gen);
+
         default:
             throw new DesugarError(
                 `Unknown pattern kind: ${(pattern as Pattern).kind}`,
