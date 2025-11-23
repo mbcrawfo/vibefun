@@ -127,6 +127,32 @@ export class ParserBase {
         throw this.error(errorMessage, this.peek().loc);
     }
 
+    /**
+     * Expect a field name (either an IDENTIFIER or a KEYWORD)
+     *
+     * This allows keywords to be used as field names in records, patterns, and types,
+     * which is essential for JavaScript interop (e.g., { type: "value" }).
+     *
+     * @param context - Context description for error messages (e.g., "record type", "pattern")
+     * @returns Object with field name string and location
+     * @throws ParserError if neither IDENTIFIER nor KEYWORD found
+     */
+    public expectFieldName(context: string): { name: string; loc: Location } {
+        const token = this.peek();
+
+        if (token.type === "IDENTIFIER") {
+            this.advance();
+            return { name: token.value as string, loc: token.loc };
+        }
+
+        if (token.type === "KEYWORD") {
+            this.advance();
+            return { name: token.keyword, loc: token.loc };
+        }
+
+        throw this.error(`Expected field name in ${context}`, token.loc, `Found ${token.type} instead`);
+    }
+
     // =========================================================================
     // Error Handling
     // =========================================================================

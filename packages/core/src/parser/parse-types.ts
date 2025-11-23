@@ -158,8 +158,9 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
 
         if (!parser.check("RBRACE")) {
             do {
-                const fieldNameToken = parser.expect("IDENTIFIER", "Expected field name in record type");
-                const fieldName = fieldNameToken.value as string;
+                const fieldNameResult = parser.expectFieldName("record type");
+                const fieldName = fieldNameResult.name;
+                const fieldLoc = fieldNameResult.loc;
 
                 parser.expect("COLON", "Expected ':' after field name in record type");
 
@@ -168,7 +169,7 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
                 fields.push({
                     name: fieldName,
                     typeExpr,
-                    loc: fieldNameToken.loc,
+                    loc: fieldLoc,
                 });
 
                 // Skip newlines after field

@@ -416,8 +416,9 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
 
         if (!parser.check("RBRACE")) {
             do {
-                const fieldNameToken = parser.expect("IDENTIFIER", "Expected field name");
-                const fieldName = fieldNameToken.value as string;
+                const fieldNameResult = parser.expectFieldName("record type");
+                const fieldName = fieldNameResult.name;
+                const fieldLoc = fieldNameResult.loc;
 
                 parser.expect("COLON", "Expected ':' after field name");
 
@@ -426,7 +427,7 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
                 fields.push({
                     name: fieldName,
                     typeExpr,
-                    loc: fieldNameToken.loc,
+                    loc: fieldLoc,
                 });
             } while (parser.match("COMMA"));
         }
