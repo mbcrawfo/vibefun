@@ -1,7 +1,7 @@
 # Desugarer Completion Plan
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Revised after comprehensive audit)
+**Last Updated:** 2025-11-23 (Full revision with audit recommendations)
 
 ## Overview
 
@@ -95,6 +95,8 @@ Based on user preferences:
 
 **Goal:** Align requirements document AND language spec with implementation
 
+**⚠️ CRITICAL:** This phase fixes multiple errors in the language specification that could mislead developers. Comprehensive audit revealed 3+ spec sections incorrectly describing desugarer behavior.
+
 **Tasks:**
 
 **A. Update Requirements Document** (`.claude/desugarer-requirements.md`):
@@ -132,10 +134,12 @@ Based on user preferences:
 **Test Categories:**
 
 1. **TypeAnnotatedPattern edge cases** (new file: `type-annotated-patterns.test.ts`)
-   - Nested type annotations: `(x: List<Int>)`
+   - Basic type annotations: `(x: List<Int>)`
    - In different contexts: match, let, lambda
-   - Multiple annotations: `((x: Int), (y: String))`
-   - With or-patterns: `(Some(x: Int) | Ok(x: Int))`
+   - Multiple separate annotations: `((x: Int), (y: String))`
+   - **With or-patterns:** `match x { | (Some(n: Int)) | (Ok(n: Int)) => n }`
+   - **Nested TypeAnnotatedPattern:** `((Some(x: Int)): Option<Int>)` - two annotation levels
+   - Annotations on complex inner patterns
 
 2. **Or-pattern edge cases** (enhance `or-patterns.test.ts`)
    - 3+ alternatives
@@ -185,6 +189,7 @@ Based on user preferences:
    - Real-world code patterns
    - Complex nested scenarios
    - Error cases that span multiple transformations
+   - **Deep recursion stress test:** 100+ levels of nesting to verify no stack overflow
 
 10. **NEW: Exhaustiveness checking interaction** (new file: `exhaustiveness.test.ts`)
     - Verify or-pattern expansion doesn't break exhaustiveness checking
@@ -197,23 +202,39 @@ Based on user preferences:
     - Test nested transformations generate unique names
     - Test that `$loop_0`, `$loop_1` increment correctly
 
-12. **NEW: Transformation order dependencies** (new file: `transformation-order.test.ts`)
-    - Test or-patterns expanded before pattern desugaring
-    - Test pipe desugared before currying in same expression
-    - Test block desugaring before expression desugaring
-    - Verify order-dependent transformations work correctly
-
-13. **NEW: Location preservation comprehensive** (enhance all test files)
-    - Verify ALL desugared nodes preserve original locations
-    - Test error messages point to surface syntax
-    - Test location info for generated code (fresh variables)
-    - Add location assertions to each transformation test
-
-14. **NEW: Type annotations on complex patterns** (add to `type-annotated-patterns.test.ts`)
+12. **NEW: Type annotations on complex patterns** (add to `type-annotated-patterns.test.ts`)
     - Annotations on non-variable patterns: `([x, y]: List<Int>)`
     - Annotations on tuple patterns: `((x, y): (Int, String))`
     - Annotations on variant patterns: `(Some(x): Option<Int>)`
     - Multiple levels: `((Some(x)): Option<Int>)`
+
+13. **NEW: Transformation order dependencies** (new file: `transformation-order.test.ts`)
+    - Test or-patterns expanded before pattern desugaring
+    - Test pipe desugared before currying in same expression
+    - Test block desugaring before expression desugaring
+    - Verify order-dependent transformations work correctly
+    - **Run after all transformations are stable**
+
+14. **NEW: Location preservation comprehensive** (enhance all test files)
+    - Verify ALL desugared nodes preserve original locations
+    - Test error messages point to surface syntax
+    - Test location info for generated code (fresh variables)
+    - Add location assertions to each transformation test
+    - **Run after TypeAnnotatedPattern fix to ensure complete coverage**
+
+15. **NEW: Parser contract tests** (new file: `parser-contract.test.ts`)
+    - Verify parser always provides complete if-else (else_ field never undefined)
+    - Verify parser expands record field shorthand before desugarer
+    - Test AST structure assumptions from Phase 2 investigations
+    - Verify parser produces expected node types for all syntax forms
+    - Document parser-desugarer boundary explicitly
+
+16. **NEW: Error message quality** (add to `desugarer.test.ts` or new file)
+    - Test DesugarError messages are user-friendly and actionable
+    - Verify error locations point to correct source positions
+    - Test hint messages provide helpful guidance
+    - Verify error formatting is consistent across all transformations
+    - Test error messages for invalid syntax caught by desugarer
 
 ### Phase 5: Verification & Quality Checks
 
@@ -228,8 +249,8 @@ Based on user preferences:
    - Linting: `npm run lint`
    - Tests: `npm test`
    - Formatting: `npm run format`
-2. Verify all existing ~211 tests still pass (corrected baseline)
-3. Confirm new tests bring total to 350+ tests (accounting for expanded edge cases)
+2. Verify all existing ~211 tests still pass (desugarer module baseline)
+3. Confirm new tests bring total to ~365+ tests (expanded edge cases + parser contracts + error quality)
 4. Review test output for warnings or issues
 5. Check test coverage report (target: 90%+)
 6. Fix any issues that arise
@@ -256,9 +277,9 @@ Based on user preferences:
 - ✅ Zero critical bugs (TypeAnnotatedPattern fixed)
 - ✅ CoreWhile dead code removed from codebase
 - ✅ Complete documentation alignment with implementation (requirements doc AND language spec)
-- ✅ 350+ comprehensive tests covering all edge cases
+- ✅ ~365+ comprehensive tests covering all edge cases, parser contracts, and error quality
 - ✅ All quality checks passing (`npm run verify` succeeds)
-- ✅ Parser-desugarer boundary clearly documented
+- ✅ Parser-desugarer boundary explicitly tested and documented
 - ✅ Type checker compatibility verified (annotations not needed)
 - ✅ Desugarer ready for continued type checker development
 
