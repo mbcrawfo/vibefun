@@ -604,7 +604,7 @@ updates: RecordField[]  // Array of Field | Spread
 - **packages/core/src/lexer/lexer.ts** - Tokenization
 
 ### Design Documents
-- **.claude/design/language-design.md** - Language design philosophy
+- **docs/spec/** - Language specification (see 01-introduction.md for design philosophy)
 - **.claude/design/type-system.md** - Type system design
 - **.claude/active/parser-completion/** - Parser completion plan and context
 
