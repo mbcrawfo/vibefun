@@ -53,9 +53,7 @@ export type CoreExpr =
     | CoreTypeAnnotation
     | CoreUnsafe
     // Tuples
-    | CoreTuple
-    // Loops
-    | CoreWhile;
+    | CoreTuple;
 
 /**
  * Integer literal
@@ -305,16 +303,6 @@ export type CoreUnsafe = {
 export type CoreTuple = {
     kind: "CoreTuple";
     elements: CoreExpr[];
-    loc: Location;
-};
-
-/**
- * While loop
- */
-export type CoreWhile = {
-    kind: "CoreWhile";
-    condition: CoreExpr;
-    body: CoreExpr;
     loc: Location;
 };
 

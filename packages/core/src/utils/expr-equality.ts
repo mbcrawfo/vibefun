@@ -174,9 +174,6 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
                 const elem2 = e2.elements[i];
                 return elem2 !== undefined && exprEquals(elem1, elem2);
             });
-
-        case "CoreWhile":
-            return e2.kind === "CoreWhile" && exprEquals(e1.condition, e2.condition) && exprEquals(e1.body, e2.body);
     }
 }
 

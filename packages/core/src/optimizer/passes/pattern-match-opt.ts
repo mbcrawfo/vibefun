@@ -170,14 +170,6 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
                     ...expr,
                     elements: expr.elements.map((e) => this.optimizeMatch(e)),
                 };
-
-            // While loop
-            case "CoreWhile":
-                return {
-                    ...expr,
-                    condition: this.optimizeMatch(expr.condition),
-                    body: this.optimizeMatch(expr.body),
-                };
         }
     }
 
