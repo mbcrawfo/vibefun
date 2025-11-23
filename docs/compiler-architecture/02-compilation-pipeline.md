@@ -32,27 +32,9 @@ Phases communicate **only through data**:
 
 ## Phase 1: Lexer
 
-**File:** `packages/core/src/lexer/lexer.ts` (1,036 lines)
-
 ### Responsibility
 
 Transform UTF-8 source text into a stream of tokens for parsing.
-
-### Architecture
-
-**Stateful class-based design:**
-
-```typescript
-class Lexer {
-  private position: number;    // Current character offset
-  private line: number;        // Current line number
-  private column: number;      // Current column number
-
-  tokenize(): Token[]
-}
-```
-
-The lexer maintains position state and advances through the source character by character.
 
 ### Input
 
@@ -115,19 +97,14 @@ The lexer maintains position state and advances through the source character by 
 - Descriptive message
 - Context (what was expected)
 
-### Design Decisions
+### Design Rationale
 
-**Why a class?**
-- State management (position, line, column) is essential
-- Sequential scanning requires mutable position
-- Readable implementation with helper methods
-
-**Why fail-fast?**
+**Fail-fast error handling:**
 - Invalid source code should be rejected immediately
 - No error recovery needed at lexical level
 - Clear, focused error messages
 
-**Why remove comments?**
+**Comment removal:**
 - Simplifies parser (no comment nodes in AST)
 - Comments are irrelevant for compilation
 - Documentation comments could be handled separately (future)
@@ -144,29 +121,9 @@ The lexer maintains position state and advances through the source character by 
 
 ## Phase 2: Parser
 
-**File:** `packages/core/src/parser/parser.ts` (188 lines core)
-
 ### Responsibility
 
 Build a Surface AST from the token stream using recursive descent parsing.
-
-### Architecture
-
-**Stateful class-based design:**
-
-```typescript
-class Parser {
-  private tokens: Token[];
-  private position: number;
-
-  parseModule(): Module
-  parseExpr(): Expr
-  parsePattern(): Pattern
-  // ... other parse methods
-}
-```
-
-The parser maintains position in token stream and recursively builds AST nodes.
 
 ### Input
 
@@ -277,8 +234,6 @@ Lowest to highest precedence:
 
 ## Phase 3: Desugarer
 
-**File:** `packages/core/src/desugarer/desugarer.ts` (675 lines main + helpers)
-
 ### Responsibility
 
 Transform Surface AST into Core AST by removing syntactic sugar and simplifying to a minimal core language.
@@ -287,22 +242,7 @@ Transform Surface AST into Core AST by removing syntactic sugar and simplifying 
 
 **Modular transformation design:**
 
-The desugarer orchestrates multiple independent transformation functions:
-
-```typescript
-function desugar(expr: SurfaceExpr): CoreExpr {
-  // Apply transformations in order
-  let result = expr;
-  result = desugarPipe(result);
-  result = desugarComposition(result);
-  result = curryLambda(result);
-  result = desugarListLiteral(result);
-  // ... more transformations
-  return result;
-}
-```
-
-Each transformation is a **pure function** in its own file.
+The desugarer orchestrates multiple independent transformation functions, each implementing a specific syntactic transformation as a pure function.
 
 ### Input
 
@@ -318,53 +258,42 @@ Each transformation is a **pure function** in its own file.
 
 **1. Multi-Param Lambdas → Curried Lambdas**
 - `(x, y) => x + y` becomes `x => y => x + y`
-- File: `curryLambda.ts`
 
 **2. Pipe Operator → Function Application**
 - `x |> f` becomes `f(x)`
 - `x |> f |> g` becomes `g(f(x))`
-- File: `desugarPipe.ts`
 
 **3. Composition Operators → Lambda Wrappers**
 - `f >> g` becomes `x => g(f(x))`
 - `f << g` becomes `x => f(g(x))`
-- File: `desugarComposition.ts`
 
 **4. List Literals → Cons/Nil Chains**
 - `[1, 2, 3]` becomes `Cons(1, Cons(2, Cons(3, Nil)))`
-- File: `desugarListLiteral.ts`, `buildConsChain.ts`
 
 **5. List Cons Operator → Variant Constructor**
 - `x :: xs` becomes `Cons(x, xs)`
-- File: Part of desugarer main logic
 
 **6. Block Expressions → Nested Let Bindings**
 - Blocks with multiple statements become nested `let` expressions
-- File: `desugarBlock.ts`
 
 **7. Record Updates → Explicit Field Copying**
 - `{ ...record, field: newValue }` becomes explicit field-by-field copy
-- File: Part of desugarer main logic
 
 **8. If-Then-Else → Match on Boolean**
 - `if cond then a else b` becomes `match cond { true => a, false => b }`
-- File: Part of desugarer main logic
 
 **9. Or-Patterns → Multiple Match Cases**
 - `Red | Blue => "color"` becomes two separate cases
-- File: Part of desugarer main logic
 
 **10. External Blocks → Multiple Declarations**
 - External FFI blocks expanded to individual declarations
-- File: Part of desugarer main logic
 
 ### Key Features
 
 **1. Fresh Variable Generation**
-- `FreshVarGen` class generates unique variable names
+- Generates unique variable names during transformations
 - Prevents name capture during transformations
 - Naming pattern: `$pipe0`, `$comp1`, `$block2`, etc.
-- File: `FreshVarGen.ts`
 
 **2. Pure Transformations**
 - All transformation functions are pure (no side effects)
@@ -406,8 +335,6 @@ Each transformation is a **pure function** in its own file.
 - Fresh variable generation
 
 ## Phase 4: Type Checker
-
-**Files:** `packages/core/src/typechecker/` (in progress)
 
 ### Responsibility
 
@@ -494,8 +421,6 @@ Infer types for all expressions using Algorithm W (Hindley-Milner type inference
 
 ## Phase 5: Optimizer
 
-**Files:** `packages/core/src/optimizer/` (optimizer.ts + passes/)
-
 ### Responsibility
 
 Apply optimization passes to improve generated code quality while preserving semantics.
@@ -504,21 +429,7 @@ Apply optimization passes to improve generated code quality while preserving sem
 
 **Pluggable pass-based design:**
 
-```typescript
-interface OptimizationPass {
-  name: string;
-  transform(expr: CoreExpr): CoreExpr;
-}
-
-class Optimizer {
-  constructor(
-    private passes: OptimizationPass[],
-    private options: OptimizerOptions
-  ) {}
-
-  optimize(expr: CoreExpr): CoreExpr
-}
-```
+Each optimization implements a common interface allowing passes to be enabled, disabled, or configured independently.
 
 ### Input
 
@@ -638,24 +549,13 @@ class Optimizer {
 
 ## Phase 6: Code Generator
 
-**Files:** `packages/core/src/codegen/` (not yet implemented)
-
 ### Responsibility
 
 Generate readable JavaScript code and source maps from optimized Core AST.
 
 ### Architecture (Planned)
 
-**Class-based with output buffer:**
-
-```typescript
-class CodeGenerator {
-  private output: string[];
-  private sourceMap: SourceMapGenerator;
-
-  generate(module: CoreModule): CodeGenResult
-}
-```
+Maintains an output buffer and source map state while traversing the AST to emit JavaScript code.
 
 ### Input
 

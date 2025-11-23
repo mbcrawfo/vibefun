@@ -317,8 +317,7 @@ Utilities extract common patterns:
 
 Authoritative definitions:
 - Language spec (`docs/spec/`): what language does
-- AST types (`types/ast.ts`, `types/core-ast.ts`): syntax structure
-- Coding standards (`.claude/CODING_STANDARDS.md`): implementation patterns
+- AST types: syntax structure definitions
 - This architecture doc: how components connect
 
 ## Technology Stack
@@ -348,9 +347,6 @@ vibefun/
 ├── docs/
 │   ├── spec/          # Language specification
 │   └── compiler-architecture/  # This documentation
-├── .claude/
-│   ├── design/        # Detailed design docs
-│   └── active/        # Active task tracking
 └── examples/          # Example Vibefun programs
 ```
 
@@ -423,14 +419,10 @@ After understanding this overview, continue with:
 3. **[04-data-structures.md](./04-data-structures.md)** - AST and type structures
 4. **[05-cross-cutting.md](./05-cross-cutting.md)** - Shared utilities and patterns
 5. **[06-extensibility.md](./06-extensibility.md)** - How to extend the compiler
-6. **[07-implementation-guide.md](./07-implementation-guide.md)** - Coding patterns
 
 ## Related Documentation
 
 - **Language Spec:** `docs/spec/` - What the language does
-- **Compiler Implementation Guide:** `.claude/design/compiler-implementation-guide.md` - Detailed algorithms
-- **Parser Architecture:** `.claude/design/parser-architecture.md` - Parser-specific design
-- **Coding Standards:** `.claude/CODING_STANDARDS.md` - Implementation conventions
 
 ---
 

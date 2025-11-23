@@ -37,16 +37,13 @@ Focus on:
 
 - **06-extensibility.md** - How to add new features
 - **03-design-patterns.md** - Patterns to follow
-- **07-implementation-guide.md** - Coding standards and practices
 
 ### For Deep Implementation Details
 
-This architecture documentation references but does not replace:
+This architecture documentation is complemented by:
 
 - **Language Specification** (`docs/spec/`) - What the language does
-- **Design Documents** (`.claude/design/`) - Detailed algorithms and specifications
-- **Coding Standards** (`.claude/CODING_STANDARDS.md`) - Implementation patterns
-- **Source Code** (`packages/core/src/`) - Actual implementation
+- **Source Code** - The actual compiler implementation
 
 ## Table of Contents
 
@@ -119,38 +116,12 @@ How to extend the compiler with new features.
 - Testing new transformations
 - Integration points
 
-### [07. Implementation Guide](./07-implementation-guide.md)
-Practical guidance for implementing compiler features.
-
-**Topics:**
-- When to use classes vs functions
-- Module organization patterns
-- TypeScript patterns and conventions
-- Testing strategies by phase
-- Helper function composition
-- Performance considerations
-
 ## Related Documentation
 
 ### Language Specification
 - **Location:** `docs/spec/`
 - **Purpose:** Defines what the language does (semantics, syntax, type system)
 - **Start here:** `docs/spec/.agent-map.md` for quick navigation
-
-### Design Documents
-- **Compiler Implementation Guide:** `.claude/design/compiler-implementation-guide.md`
-  - Detailed algorithms (Algorithm W, pattern exhaustiveness)
-  - Compilation strategies for JavaScript target
-  - Technical specifications
-- **Parser Architecture:** `.claude/design/parser-architecture.md`
-  - Disambiguation strategies
-  - Precedence and associativity
-  - Parser-specific design decisions
-
-### Project Documentation
-- **CLAUDE.md** - Project overview, structure, and development workflow
-- **CODING_STANDARDS.md** - TypeScript conventions and quality standards
-- **VIBEFUN_AI_CODING_GUIDE.md** - Writing Vibefun code (for AI agents)
 
 ## Navigation Tips
 
@@ -160,15 +131,10 @@ Practical guidance for implementing compiler features.
 - **"Why did we choose Y?"** → See [03-design-patterns.md](./03-design-patterns.md)
 - **"What is structure Z?"** → See [04-data-structures.md](./04-data-structures.md)
 - **"How do I add feature W?"** → See [06-extensibility.md](./06-extensibility.md)
-- **"What pattern should I use?"** → See [07-implementation-guide.md](./07-implementation-guide.md)
 
 ### Cross-References
 
 Documents reference each other with relative links. Follow links to dive deeper into specific topics.
-
-### Finding Implementation
-
-Each architecture document references the corresponding implementation files in `packages/core/src/`. Use these references to connect concepts to code.
 
 ## Document Maintenance
 
@@ -185,19 +151,18 @@ Update this documentation when:
 
 Do not include in architecture docs:
 
-- Implementation details (put in code comments or design docs)
-- Status/progress tracking (put in `.claude/active/` or progress docs)
+- Implementation details (put in code comments)
+- Status/progress tracking (use separate progress tracking documents)
 - API documentation (put in JSDoc comments)
-- Detailed algorithms (put in design docs like compiler-implementation-guide.md)
+- Detailed algorithms (use separate design documents)
 
 ### Keeping Docs Synchronized
 
 When making architectural changes:
 
 1. Update the relevant architecture document
-2. Update related design documents if needed
-3. Update code comments for implementation details
-4. Consider updating examples if patterns change
+2. Update code comments for implementation details
+3. Consider updating examples if patterns change
 
 ## Getting Started
 
@@ -205,22 +170,19 @@ When making architectural changes:
 
 1. Read [01-overview.md](./01-overview.md) - Understand the big picture
 2. Read [02-compilation-pipeline.md](./02-compilation-pipeline.md) - See how data flows
-3. Browse the codebase in `packages/core/src/` - Connect concepts to code
-4. Read [07-implementation-guide.md](./07-implementation-guide.md) - Learn implementation patterns
+3. Read [03-design-patterns.md](./03-design-patterns.md) - Learn key architectural patterns
 
 **Adding a feature?** Start here:
 
 1. Read [06-extensibility.md](./06-extensibility.md) - Find the right extension point
 2. Read [03-design-patterns.md](./03-design-patterns.md) - Follow established patterns
-3. Read [07-implementation-guide.md](./07-implementation-guide.md) - Use correct coding patterns
-4. Reference `.claude/CODING_STANDARDS.md` - Follow project standards
+3. Review the relevant sections in [02-compilation-pipeline.md](./02-compilation-pipeline.md)
 
 **Understanding a specific phase?** Start here:
 
 1. Read the relevant section in [02-compilation-pipeline.md](./02-compilation-pipeline.md)
-2. Read the corresponding design doc (if it exists)
-3. Look at the implementation in `packages/core/src/`
-4. Look at tests in `packages/core/src/*/**.test.ts`
+2. Review related data structures in [04-data-structures.md](./04-data-structures.md)
+3. Explore the compiler source code and tests
 
 ---
 

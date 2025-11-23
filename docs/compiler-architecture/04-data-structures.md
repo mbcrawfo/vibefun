@@ -16,8 +16,6 @@ All data structures are **immutable** - transformations create new structures ra
 
 ## Token Representation
 
-**File:** `packages/core/src/types/token.ts`
-
 ### Token Structure
 
 ```typescript
@@ -90,8 +88,6 @@ let x = 42
 ```
 
 ## Surface AST
-
-**File:** `packages/core/src/types/ast.ts`
 
 ### Purpose
 
@@ -195,8 +191,6 @@ Represents the **full syntax** of the Vibefun language as parsed, including all 
 - **Immutable** - Never modified after creation
 
 ## Core AST
-
-**File:** `packages/core/src/types/core-ast.ts`
 
 ### Purpose
 
@@ -344,8 +338,6 @@ Represents the **minimal core language** after desugaring, with all syntactic su
 
 ## Type Representation
 
-**File:** `packages/core/src/types/type.ts`
-
 ### Type Structure
 
 ```typescript
@@ -475,8 +467,6 @@ type TypeEnv = Map<string, TypeScheme>;
 
 ## Location Information
 
-**File:** `packages/core/src/types/location.ts`
-
 ### Location Structure
 
 ```typescript
@@ -515,8 +505,6 @@ const expr: Expr = {
 
 ## Error Structures
 
-**File:** `packages/core/src/utils/error.ts`
-
 ### Error Hierarchy
 
 ```typescript
@@ -552,8 +540,6 @@ throw new TypeError(
 ```
 
 ## Optimization Metrics
-
-**File:** `packages/core/src/optimizer/optimizer.ts`
 
 ### Metrics Structure
 

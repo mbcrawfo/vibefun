@@ -391,38 +391,6 @@ throw new TypeError(
 - **Memory overhead:** 4 fields per AST node (~32 bytes)
 - **Transformation complexity:** Must preserve locations when creating new nodes
 
-### Implementation Guidelines
-
-**Preserving locations during transformation:**
-```typescript
-// Use location from original node
-function desugar(expr: SurfaceExpr): CoreExpr {
-  if (expr.type === 'Pipe') {
-    return {
-      type: 'App',
-      func: expr.right,
-      arg: expr.left,
-      loc: expr.loc  // Preserve original location
-    };
-  }
-  // ...
-}
-```
-
-**Merging locations:**
-```typescript
-// For nodes spanning multiple source nodes
-function mergeLocations(loc1: Location, loc2: Location): Location {
-  return {
-    file: loc1.file,
-    line: loc1.line,
-    column: loc1.column,
-    offset: loc1.offset
-    // Could track end position too
-  };
-}
-```
-
 ### When to Use
 
 Always use location tracking in compilers - it's essential for:
@@ -582,43 +550,10 @@ Use appropriate abstraction for each component: classes for state management, fu
 ### Structure
 
 **Class-based (stateful):**
-```typescript
-class Lexer {
-  private position: number = 0;
-  private line: number = 1;
-  private column: number = 1;
-
-  constructor(private source: string, private filename: string) {}
-
-  tokenize(): Token[] {
-    const tokens: Token[] = [];
-    while (!this.isAtEnd()) {
-      tokens.push(this.nextToken());
-    }
-    return tokens;
-  }
-
-  private advance(): void {
-    this.position++;
-    this.column++;
-  }
-}
-```
+Used for components that maintain internal state (position tracking, output buffers, etc.). Examples: Lexer, Parser, Code Generator.
 
 **Function-based (pure):**
-```typescript
-export function desugarPipe(expr: SurfaceExpr): CoreExpr {
-  if (expr.type === 'Pipe') {
-    return {
-      type: 'App',
-      func: expr.right,
-      arg: expr.left,
-      loc: expr.loc
-    };
-  }
-  return expr;  // No state mutation
-}
-```
+Used for stateless transformations and utilities. Examples: Desugaring transformations, type substitution, AST analysis.
 
 ### Benefits
 

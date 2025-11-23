@@ -14,11 +14,7 @@ Cross-cutting concerns are aspects of the compiler that affect multiple phases:
 - **Expression Equality** - Deep comparison of AST nodes
 - **Immutability Patterns** - Creating modified copies of structures
 
-These utilities are located in `packages/core/src/utils/`.
-
 ## Error Handling
-
-**File:** `packages/core/src/utils/error.ts`
 
 ### Error Class Hierarchy
 
@@ -138,8 +134,6 @@ throw new Error('type error');
 
 ## Location Tracking
 
-**File:** `packages/core/src/types/location.ts`
-
 ### Location Structure
 
 ```typescript
@@ -221,8 +215,6 @@ function mergeLocations(start: Location, end: Location): Location {
 
 ## AST Analysis Utilities
 
-**File:** `packages/core/src/utils/ast-analysis.ts`
-
 ### AST Size Calculation
 
 ```typescript
@@ -280,8 +272,6 @@ function traverseExpr<T>(
 
 ## AST Transformation Utilities
 
-**File:** `packages/core/src/utils/ast-transform.ts`
-
 ### Generic Transformation
 
 ```typescript
@@ -322,8 +312,6 @@ function mapChildren(
 - Efficient for single-level changes
 
 ## Substitution
-
-**File:** `packages/core/src/utils/substitution.ts`
 
 ### Variable Substitution
 
@@ -370,9 +358,7 @@ substitute(
 
 ## Fresh Variable Generation
 
-**File:** `packages/core/src/desugarer/FreshVarGen.ts`
-
-### FreshVarGen Class
+### Fresh Variable Generation
 
 ```typescript
 class FreshVarGen {
@@ -427,8 +413,6 @@ return {
 ```
 
 ## Expression Equality
-
-**File:** `packages/core/src/utils/expr-equality.ts`
 
 ### Deep Equality Check
 
