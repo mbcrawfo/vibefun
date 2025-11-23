@@ -254,6 +254,47 @@ See [Operators - String Operators](../02-lexical-structure/operators.md#string-o
 
 ### Other Operators
 
+#### Field Access Operator (`.`)
+
+Accesses fields of record values using dot notation.
+
+```vibefun
+let person = { name: "Alice", age: 30 };
+person.name;  // "Alice"
+person.age;  // 30
+
+// Chained field access
+let config = { server: { host: "localhost" } };
+config.server.host;  // "localhost"
+```
+
+**Keywords as field names:**
+
+Field access accepts **language keywords** as field names, enabling JavaScript interoperability:
+
+```vibefun
+let node = { type: "BinaryOp", import: "./module" };
+node.type;  // "BinaryOp"
+node.import;  // "./module"
+
+// Chained access with keywords
+let ast = { outer: { type: "Program" } };
+ast.outer.type;  // "Program"
+```
+
+All 20 Vibefun keywords can be used as field names: `type`, `match`, `import`, `export`, etc.
+
+**Precedence:**
+
+Field access has the **highest precedence** (16), binding tighter than all other operators:
+
+```vibefun
+person.name & " Smith"  // Parses as: (person.name) & " Smith"
+record.value + 10       // Parses as: (record.value) + 10
+```
+
+See [Data Literals - Field Access](./data-literals.md#field-access) and [Data Literals - Keywords as Field Names](./data-literals.md#keywords-as-field-names) for complete details.
+
 #### Pipe Operator (`|>`)
 
 Applies a value to a function (left-to-right).

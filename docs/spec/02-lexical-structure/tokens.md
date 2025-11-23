@@ -14,6 +14,8 @@ ref       try       catch     while
 
 **Note:** `try` and `catch` are used in unsafe blocks for JavaScript exception handling interop.
 
+**Keywords as Field Names:** Keywords **can** be used as record field names (e.g., `{ type: "value" }`, `node.type`, `{ type: t }` in patterns). They **cannot** be used as variable names or with field shorthand syntax (e.g., `{ type }` is invalid). See [Record Types](../03-type-system/record-types.md#keywords-as-field-names) for details.
+
 Additional reserved for future use:
 ```
 async     await     trait     impl
