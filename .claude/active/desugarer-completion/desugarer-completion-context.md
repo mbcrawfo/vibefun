@@ -1,7 +1,7 @@
 # Desugarer Completion - Context & Key Information
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Full revision with audit recommendations)
+**Last Updated:** 2025-11-23 (Post-audit revision - corrected scope and test counts)
 
 ## Key Files
 
@@ -36,7 +36,7 @@
 - `packages/core/src/desugarer/desugarTypeParam.ts`
 - `packages/core/src/desugarer/desugarConstructorDef.ts`
 
-### Test Files (28 files, ~211 desugarer tests - module baseline only)
+### Test Files (28 files, 232 desugarer tests - verified module baseline)
 
 **Main Test Suites:**
 - `packages/core/src/desugarer/desugarer.test.ts` (43 tests) - Comprehensive unit tests
@@ -82,7 +82,8 @@
   - Simplified AST for type checker
   - No `CoreTypeAnnotatedPattern` (type annotations stripped)
   - Fewer node types than surface AST
-  - **CONTAINS CoreWhile (dead code)** - while loops actually desugar to CoreLetRecExpr
+  - **CONTAINS CoreWhile (dead code in 11+ locations)** - while loops actually desugar to CoreLetRecExpr
+  - CoreWhile appears in: core-ast.ts, typechecker (2 files), utilities (4 files), optimizer (2 files)
 
 ### Documentation Files
 
@@ -101,9 +102,11 @@
 
 ## Critical Code Locations
 
-### Bug: Missing TypeAnnotatedPattern Handler
+### Bug: Missing TypeAnnotatedPattern Handler (CONFIRMED CRITICAL)
 
 **Location:** `packages/core/src/desugarer/desugarer.ts:433-499`
+
+**⚠️ AUDIT CONFIRMATION:** Comprehensive code audit verified this is a real bug that WILL throw error at runtime.
 
 **Current Code Structure:**
 ```typescript
@@ -188,7 +191,7 @@ case "TypeAnnotatedPattern": {
 - Better to catch issues now than during type checking
 - Sets high quality bar for project
 
-**Target:** ~365+ total desugarer tests (currently ~211 baseline, adding ~155+ new tests for edge cases, parser contracts, and error quality)
+**Target:** ~386+ total desugarer tests (currently 232 baseline, adding ~154+ new tests for edge cases, parser contracts, and error quality)
 
 ### 4. No Developer Tooling (For Now)
 
@@ -203,23 +206,32 @@ case "TypeAnnotatedPattern": {
 
 ### 5. CoreWhile Dead Code Removal
 
-**Decision:** Remove CoreWhile type from core-ast.ts and type checker
+**Decision:** Remove CoreWhile type from core-ast.ts, type checker, utilities, and optimizer
 
 **Background:**
 - CoreWhile was added as a placeholder (Nov 10, commit fd44caf)
 - When while desugaring was implemented (commit eac42ee), it created CoreLetRecExpr instead
 - CoreWhile was never used but never removed from AST
 
+**⚠️ AUDIT UPDATE:** Initial plan identified 3 removal locations. Comprehensive audit found **11+ locations**.
+
 **Evidence:**
 - `desugarer.ts:349-414` - Creates CoreLetRecExpr (recursive functions)
 - `core-ast.ts:58, 312-319` - CoreWhile defined but never constructed
 - `typechecker/infer.ts:243-245` - Placeholder throws error (unreachable code)
 - `typechecker/types.ts:565` - CoreWhile case in isConstant (unreachable)
+- `utils/ast-analysis.ts:143` - CoreWhile case (unreachable)
+- `utils/substitution.ts:391` - CoreWhile case (unreachable)
+- `utils/expr-equality.ts:178-179` - CoreWhile cases x2 (unreachable)
+- `utils/ast-transform.ts:192` - CoreWhile case (unreachable)
+- `optimizer/passes/eta-reduction.ts:245` - CoreWhile case (unreachable)
+- `optimizer/passes/pattern-match-opt.ts:175` - CoreWhile case (unreachable)
 
 **Impact:**
-- Remove 3 locations of dead code
+- Remove 11+ locations of dead code across codebase
 - Clarifies that while loops are always desugared
-- Prevents developer confusion
+- Prevents developer confusion and code propagation
+- Cleans up utilities and optimizer passes
 
 ### 6. Type Checker Compatibility
 
@@ -508,7 +520,7 @@ return {
 ## Quality Checklist
 
 Before marking complete:
-- [ ] All tests pass (~365+ total: ~211 baseline + ~155 new tests)
+- [ ] All tests pass (~386+ total: 232 baseline + ~154 new tests)
 - [ ] Type checking passes (`npm run check`)
 - [ ] Linting passes (`npm run lint`)
 - [ ] Code formatted (`npm run format`)
@@ -520,3 +532,4 @@ Before marking complete:
 - [ ] Functional style maintained
 - [ ] Parser-desugarer boundary explicitly tested and documented
 - [ ] Error messages are user-friendly and accurate
+- [ ] CoreWhile removed from all 11+ locations (core, typechecker, utilities, optimizer)

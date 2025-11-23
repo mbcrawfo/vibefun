@@ -1,7 +1,7 @@
 # Desugarer Completion Plan
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Full revision with audit recommendations)
+**Last Updated:** 2025-11-23 (Post-audit revision - corrected scope and test counts)
 
 ## Overview
 
@@ -10,7 +10,7 @@ Complete the vibefun desugarer implementation by fixing critical bugs, verifying
 ## Current State
 
 The desugarer is **95% complete** with excellent architecture and test coverage:
-- **~211 tests passing** across 28 test files (corrected baseline from audit)
+- **232 tests passing** across 28 test files (verified baseline)
 - **All major transformations implemented**: lambdas, pipes, composition, lists, blocks, or-patterns, while loops
 - **Modular architecture**: Separate files for each transformation type
 - **Good error handling**: Custom DesugarError with location information
@@ -44,6 +44,8 @@ Based on user preferences:
 
 **Background:** CoreWhile was added as a placeholder (Nov 10, commit fd44caf) but when while loop desugaring was implemented (commit eac42ee), it created CoreLetRecExpr instead. CoreWhile was never removed from the AST.
 
+**⚠️ AUDIT UPDATE:** Initial plan identified 3 locations. Comprehensive audit found **11+ locations** across core-ast, typechecker, utilities, and optimizer.
+
 **Tasks:**
 1. Remove CoreWhile from `packages/core/src/types/core-ast.ts`:
    - Line 58: Remove `| CoreWhile;` from CoreExpr union
@@ -52,11 +54,23 @@ Based on user preferences:
    - Line 565: Remove `case "CoreWhile":` from isConstant function
 3. Remove CoreWhile from `packages/core/src/typechecker/infer.ts`:
    - Lines 243-245: Remove CoreWhile placeholder case (unreachable code)
-4. Run tests to verify no breakage:
-   - `npm test` - All tests should still pass
-5. Document the removal in context.md
+4. Remove CoreWhile from `packages/core/src/utils/ast-analysis.ts`:
+   - Line 143: Remove CoreWhile case
+5. Remove CoreWhile from `packages/core/src/utils/substitution.ts`:
+   - Line 391: Remove CoreWhile case
+6. Remove CoreWhile from `packages/core/src/utils/expr-equality.ts`:
+   - Lines 178-179: Remove CoreWhile cases (2 locations)
+7. Remove CoreWhile from `packages/core/src/utils/ast-transform.ts`:
+   - Line 192: Remove CoreWhile case
+8. Remove CoreWhile from `packages/core/src/optimizer/passes/eta-reduction.ts`:
+   - Line 245: Remove CoreWhile case
+9. Remove CoreWhile from `packages/core/src/optimizer/passes/pattern-match-opt.ts`:
+   - Line 175: Remove CoreWhile case
+10. Run tests to verify no breakage:
+    - `npm test` - All tests should still pass
+11. Document the removal in context.md
 
-**Rationale:** CoreWhile is dead code that serves no purpose and misleads developers about whether while loops are desugared or passed through to code generator.
+**Rationale:** CoreWhile is dead code that serves no purpose and misleads developers about whether while loops are desugared or passed through to code generator. Removing it from utilities and optimizer prevents propagation of unreachable code.
 
 ### Phase 1: Fix Critical Bug - TypeAnnotatedPattern
 
@@ -89,12 +103,18 @@ Based on user preferences:
 1. Add parser tests for if-without-else:
    - Test: `if x then action()` produces AST with `else_: { kind: "UnitLit" }`
    - Verify parser inserts Unit literal, not undefined
+   - Verify UnitLit location matches else branch source position
    - File: `packages/core/src/parser/expressions.test.ts`
 2. Add parser tests for record field shorthand:
    - Test: `{name, age}` parses to explicit `{name: name, age: age}`
    - Verify parser expansion before AST creation
+   - Test with mixed fields and spreads: `{...person, name, age: 31}`
    - File: `packages/core/src/parser/expressions.test.ts`
-3. Document findings in context.md:
+3. Add parser tests for TypeAnnotatedPattern creation:
+   - Verify parser creates TypeAnnotatedPattern for `(x: Int)` syntax
+   - Test nested type annotations: `(Some((x: Int)))`
+   - Test in various contexts: match, let, record patterns
+4. Document findings in context.md:
    - Update parser-desugarer boundary section
    - Remove "Critical Ambiguity" note (now resolved)
    - Add confirmed parser behavior with code references
@@ -139,6 +159,7 @@ Based on user preferences:
    - Correct: Passes through as `CoreBinOp "RefAssign"`
 5. Add clarification that these are core operations handled by code generator
 6. Document TypeAnnotatedPattern desugaring (strip annotations)
+7. **Full spec review:** Audit entire desugaring.md for additional inconsistencies beyond identified sections
 
 **C. Update Language Specification** (`docs/spec/04-expressions/control-flow.md`):
 1. **Add implementation note about if-without-else (after line 76):**
@@ -159,6 +180,7 @@ Based on user preferences:
    - **With or-patterns:** `match x { | (Some(n: Int)) | (Ok(n: Int)) => n }`
    - **Nested TypeAnnotatedPattern:** `((Some(x: Int)): Option<Int>)` - two annotation levels
    - Annotations on complex inner patterns
+   - **Annotations on list patterns:** `([x, y]: List<Int>)` in match context
 
 2. **Or-pattern edge cases** (enhance `or-patterns.test.ts`)
    - 3+ alternatives
@@ -294,9 +316,9 @@ Based on user preferences:
 ## Success Criteria
 
 - ✅ Zero critical bugs (TypeAnnotatedPattern fixed)
-- ✅ CoreWhile dead code removed from codebase
+- ✅ CoreWhile dead code removed from entire codebase (core-ast, typechecker, utilities, optimizer)
 - ✅ Complete documentation alignment with implementation (requirements doc AND language spec)
-- ✅ ~365+ comprehensive tests covering all edge cases, parser contracts, and error quality
+- ✅ ~386+ comprehensive tests covering all edge cases, parser contracts, and error quality
 - ✅ All quality checks passing (`npm run verify` succeeds)
 - ✅ Parser-desugarer boundary explicitly tested and documented
 - ✅ Type checker compatibility verified (annotations not needed)
