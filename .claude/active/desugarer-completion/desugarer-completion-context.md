@@ -1,7 +1,7 @@
 # Desugarer Completion - Context & Key Information
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Revised after comprehensive audit)
+**Last Updated:** 2025-11-23 (Full revision with audit recommendations)
 
 ## Key Files
 
@@ -36,7 +36,7 @@
 - `packages/core/src/desugarer/desugarTypeParam.ts`
 - `packages/core/src/desugarer/desugarConstructorDef.ts`
 
-### Test Files (28 files, ~211 tests - corrected baseline)
+### Test Files (28 files, ~211 desugarer tests - module baseline only)
 
 **Main Test Suites:**
 - `packages/core/src/desugarer/desugarer.test.ts` (43 tests) - Comprehensive unit tests
@@ -54,9 +54,11 @@
 - `packages/core/src/desugarer/integration.test.ts` (9 tests) - Integration tests
 
 **Test Files to Create:**
-- `type-annotated-patterns.test.ts` - TypeAnnotatedPattern edge cases (complex patterns, guards)
+- `type-annotated-patterns.test.ts` - TypeAnnotatedPattern edge cases (complex patterns, or-patterns, nested)
 - `exhaustiveness.test.ts` - Exhaustiveness checking after desugaring
 - `transformation-order.test.ts` - Verify transformation dependencies
+- `parser-contract.test.ts` - Parser-desugarer boundary verification
+- Optional: `error-messages.test.ts` - Error quality tests (or add to desugarer.test.ts)
 
 **Test Files to Enhance:**
 - `or-patterns.test.ts` - Add guards, deeply nested cases
@@ -186,7 +188,7 @@ case "TypeAnnotatedPattern": {
 - Better to catch issues now than during type checking
 - Sets high quality bar for project
 
-**Target:** 350+ total tests (currently ~211, accounting for expanded edge cases)
+**Target:** ~365+ total desugarer tests (currently ~211 baseline, adding ~155+ new tests for edge cases, parser contracts, and error quality)
 
 ### 4. No Developer Tooling (For Now)
 
@@ -270,10 +272,15 @@ checkPattern(pattern: CorePattern, expectedType: Type): Map<string, Type>
 8. **List patterns** - Transform to variant patterns
 9. **If-expressions** - Transform complete if-else to match expressions
 
+**Critical Ambiguity Discovered During Audit:**
+The language spec (desugaring.md:318-329) states that desugarer handles if-without-else, but the AST type definition (`ast.ts:66`) shows `else_: Expr` is NOT optional, suggesting the parser handles it. This contradiction will be resolved in Phase 2 verification.
+
 **Contract Tests Needed:**
-- Verify parser always provides complete if-else
+- Verify parser always provides complete if-else (resolve spec ambiguity)
 - Verify parser expands record shorthand
-- Verify AST structure assumptions
+- Verify AST structure assumptions hold
+- Document explicit parser-desugarer boundary
+- Test that desugarer receives expected AST structure
 
 ## Transformation Summary
 
@@ -318,10 +325,12 @@ The `FreshVarGen` class generates unique variable names with prefixes:
 **Example:**
 ```typescript
 const gen = new FreshVarGen();
-gen.freshVar("loop");  // "$loop_0"
-gen.freshVar("loop");  // "$loop_1"
-gen.freshVar("tmp");   // "$tmp_0"
+gen.fresh("loop");  // "$loop_0"
+gen.fresh("loop");  // "$loop_1"
+gen.fresh("tmp");   // "$tmp_0"
 ```
+
+**Note:** The method is `gen.fresh(prefix)`, not `gen.freshVar()`. See `FreshVarGen.ts` for implementation.
 
 ## Edge Cases to Test
 
@@ -473,7 +482,7 @@ case "SomeNode": {
 When introducing new bindings:
 
 ```typescript
-const tmpVar = gen.freshVar("tmp");
+const tmpVar = gen.fresh("tmp");
 return {
   kind: "CoreLet",
   pattern: { kind: "CoreVarPattern", name: tmpVar, loc },
@@ -498,13 +507,15 @@ return {
 ## Quality Checklist
 
 Before marking complete:
-- [ ] All tests pass (232+ existing, 70+ new)
+- [ ] All tests pass (~365+ total: ~211 baseline + ~155 new tests)
 - [ ] Type checking passes (`npm run check`)
 - [ ] Linting passes (`npm run lint`)
 - [ ] Code formatted (`npm run format`)
 - [ ] No `any` types used
 - [ ] All error paths tested
-- [ ] Documentation updated
+- [ ] Documentation updated (requirements doc AND language spec)
 - [ ] Location info preserved in all transformations
 - [ ] Fresh variable generation used where needed
 - [ ] Functional style maintained
+- [ ] Parser-desugarer boundary explicitly tested and documented
+- [ ] Error messages are user-friendly and accurate

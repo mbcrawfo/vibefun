@@ -1,7 +1,7 @@
 # Desugarer Completion - Task List
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Revised after comprehensive audit)
+**Last Updated:** 2025-11-23 (Full revision with audit recommendations)
 
 ## Overall Progress
 
@@ -9,10 +9,10 @@
 
 **Current Phase:** Not started
 
-**Total Tasks:** 85+ (expanded from original 59 after audit)
+**Total Tasks:** 95+ (expanded from original 59 after comprehensive audit)
 **Completed:** 0
 **In Progress:** 0
-**Not Started:** 85+
+**Not Started:** 95+
 
 ---
 
@@ -454,6 +454,11 @@
   - Verify helpful error messages
   - Test location information in errors
 
+- [ ] **4.8.7** NEW: Test deep recursion (100+ levels)
+  - Very deeply nested expressions (100+ levels of nesting)
+  - Verify no stack overflow in desugarer
+  - Test pathological cases
+
 ### 4.9 Additional Edge Cases
 
 - [ ] **4.9.1** Test very large lists (100+ elements)
@@ -560,9 +565,68 @@
   - Pattern: `(Some(x): Option<Int>)`
   - Verify annotation stripped, variant pattern works
 
-- [ ] **4.14.4** Test multiple levels of annotations
-  - Pattern: `((Some(x): Option<Int>)): Option<Int>`
-  - Verify all annotations stripped correctly
+- [ ] **4.14.4** Test nested TypeAnnotatedPattern (two annotation levels)
+  - Pattern: `((Some(x: Int)): Option<Int>)` - annotation on inner pattern AND outer pattern
+  - Verify all annotations stripped correctly via recursive desugaring
+  - Different from multiple separate annotations like `((x: Int), (y: String))`
+
+- [ ] **4.14.5** NEW: Test TypeAnnotatedPattern inside Or-Patterns
+  - Pattern: `match x { | (Some(n: Int)) | (Ok(n: Int)) => n }`
+  - Verify or-pattern expansion happens before TypeAnnotatedPattern desugaring
+  - Verify both alternatives work correctly with annotations
+
+### 4.15 NEW: Parser Contract Tests
+
+- [ ] **4.15.1** Create new test file for parser contracts
+  - New file: `packages/core/src/desugarer/parser-contract.test.ts`
+  - Test parser-desugarer boundary assumptions
+
+- [ ] **4.15.2** Test parser provides complete if-else
+  - Verify else_ field is never undefined
+  - Test: Parse `if true then 42` and check AST structure
+  - Confirm parser inserts else branch, not desugarer
+
+- [ ] **4.15.3** Test parser expands record field shorthand
+  - Parse `{name, age}` and verify AST has full field values
+  - Confirm parser handles shorthand, not desugarer
+  - Test with spreads: `{...person, name}`
+
+- [ ] **4.15.4** Test AST structure assumptions
+  - Verify assumptions from Phase 2 investigations
+  - Test expected node types for all syntax forms
+  - Document any surprising findings
+
+- [ ] **4.15.5** Document parser-desugarer boundary
+  - Add documentation about what parser handles vs desugarer
+  - Update context.md with boundary clarifications
+  - Add code comments if helpful
+
+### 4.16 NEW: Error Message Quality
+
+- [ ] **4.16.1** Test DesugarError messages are user-friendly
+  - Test errors for invalid syntax caught by desugarer
+  - Verify messages are actionable (not just "error")
+  - File: add to `desugarer.test.ts` or create `error-messages.test.ts`
+
+- [ ] **4.16.2** Test error locations are accurate
+  - Verify error.loc points to correct source position
+  - Test with nested transformations
+  - Ensure locations refer to surface syntax, not desugared code
+
+- [ ] **4.16.3** Test hint messages are helpful
+  - If errors provide hints, verify they're useful
+  - Test: Missing pattern cases, invalid constructs
+  - Check hint formatting is consistent
+
+- [ ] **4.16.4** Test error formatting consistency
+  - All DesugarError instances use consistent format
+  - Message, location, and hint all present where appropriate
+  - Test across different transformation types
+
+- [ ] **4.16.5** Manual review of error messages
+  - Review all error messages in desugarer code
+  - Identify any unclear or unhelpful messages
+  - Update messages to be more user-friendly
 
 ---
 
@@ -604,9 +668,9 @@
   - Identify any gaps
 
 - [ ] **5.7** Count total tests
-  - Verify 350+ tests total (expanded from original 300+ target)
+  - Verify ~365+ tests total (expanded from original 300+ target)
   - Document test count breakdown by file
-  - Baseline was ~211, added ~140+ new tests
+  - Baseline was ~211, added ~155+ new tests (edge cases + parser contracts + error quality)
 
 - [ ] **5.8** Review test output
   - Check for warnings
