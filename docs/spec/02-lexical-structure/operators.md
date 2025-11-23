@@ -240,6 +240,8 @@ true & "value"                    // ❌ Type error: Bool is not String
 ::    List cons
 ...   Spread operator (records, lists)
 .     Record field access / module access
+      Accepts keywords as field names (e.g., record.type, record.import)
+      See: Basic Expressions - Field Access Operator
 ```
 
 #### Reference Operators

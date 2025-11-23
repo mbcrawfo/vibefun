@@ -274,3 +274,86 @@ let p = makePerson("Bob", 25, "bob@example.com");
 // Type: { name: String, age: Int, email: String }
 ```
 
+#### Keywords as Field Names
+
+Vibefun allows **language keywords** (e.g., `type`, `match`, `import`, `export`) to be used as record field names in **explicit syntax**. This improves JavaScript interoperability when working with JavaScript objects that use reserved words as property names.
+
+**Supported contexts:**
+
+```vibefun
+// ✅ Type definitions with keyword fields
+type ASTNode = {
+    type: String,
+    import: String,
+    export: List<String>
+}
+
+// ✅ Record construction with keywords
+let node = {
+    type: "ImportDeclaration",
+    import: "./module.js",
+    export: ["default", "named"]
+}
+
+// ✅ Field access with keywords
+let nodeType = node.type;  // "ImportDeclaration"
+let modulePath = node.import;  // "./module.js"
+
+// ✅ Chained field access
+let config = { outer: { type: "nested" } };
+let t = config.outer.type;  // "nested"
+
+// ✅ Pattern matching on keyword fields
+match node {
+    | { type: "ImportDeclaration", import: path } =>
+        "Importing from: " & path
+    | { type: t, _ } =>
+        "Other node: " & t
+}
+
+// ✅ Record updates with keywords
+let updated = { ...node, type: "ExportDeclaration" };
+```
+
+**Shorthand limitation:**
+
+Keyword field names **cannot** be used with shorthand syntax because keywords cannot be variable names:
+
+```vibefun
+// ❌ Shorthand with keyword - ERROR
+let type = "User";  // Error: 'type' is a keyword, can't be variable name
+let record = { type };  // Error: no variable 'type' exists
+
+// ✅ Solution: use explicit syntax
+let typeValue = "User";
+let record = { type: typeValue };  // OK
+
+// ❌ Pattern shorthand with keyword - ERROR
+match node {
+    | { type } => type  // Error: 'type' is a keyword
+}
+
+// ✅ Solution: use explicit binding
+match node {
+    | { type: t } => t  // OK: binds field 'type' to variable 't'
+}
+```
+
+**Rationale:**
+
+JavaScript frequently uses reserved words as object properties:
+
+```javascript
+// Common in JavaScript/TypeScript
+const node = { type: "BinaryOp", value: "+" };
+const config = { import: "./file.js", export: ["default"] };
+```
+
+Allowing keywords as field names enables seamless JavaScript interop while maintaining Vibefun's rule that keywords cannot be variable names. This is consistent with JavaScript, TypeScript, and other languages that distinguish between property names (unrestricted) and variable names (restricted).
+
+**All keywords work as field names:**
+
+All 20 Vibefun keywords can be used as field names: `type`, `match`, `let`, `rec`, `if`, `else`, `while`, `for`, `import`, `export`, `from`, `module`, `opaque`, `external`, `unsafe`, `async`, `await`, `trait`, `impl`, `where`.
+
+Additionally, reserved keywords for future features (like `async`, `await`, `trait`) work as field names, providing forward compatibility.
+

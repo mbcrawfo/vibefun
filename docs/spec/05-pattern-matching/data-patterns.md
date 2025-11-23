@@ -289,6 +289,93 @@ match config {
 }
 ```
 
+#### Keywords as Field Names in Patterns
+
+Vibefun allows **language keywords** as field names in record patterns, enabling pattern matching on JavaScript interop objects:
+
+```vibefun
+// Pattern matching on keyword fields
+match node {
+    | { type: "ImportDeclaration", import: path } =>
+        "Importing from: " & path
+    | { type: "ExportDeclaration", export: names } =>
+        "Exporting: " & String.join(names, ", ")
+    | { type, _ } =>
+        "Other node: " & type
+}
+
+// Extract keyword fields
+match config {
+    | { import: path, export: target } => (path, target)
+    | { import: path } => (path, "default")
+}
+
+// Nested patterns with keywords
+match ast {
+    | { outer: { type: "Program", import: main } } =>
+        "Main program from: " & main
+}
+```
+
+**All keywords work as field names in patterns:**
+
+All 20 Vibefun keywords can be used: `type`, `match`, `import`, `export`, `let`, `module`, etc.
+
+**Shorthand limitation:**
+
+Keywords **cannot** be used with pattern field shorthand because keywords cannot be variable names:
+
+```vibefun
+// ❌ Shorthand with keyword - ERROR
+match node {
+    | { type } => type  // Error: 'type' is a keyword
+}
+
+// ✅ Solution: use explicit binding
+match node {
+    | { type: t } => t  // OK: binds field 'type' to variable 't'
+}
+
+// ❌ Mixed shorthand and keyword - ERROR
+match node {
+    | { name, type } => (name, type)  // Error: 'type' shorthand fails
+}
+
+// ✅ Solution: explicit binding for keyword field
+match node {
+    | { name, type: t } => (name, t)  // OK
+}
+```
+
+**Why shorthand fails:**
+
+Pattern field shorthand `{ type }` desugars to `{ type: type }`, where `type` on the right is a binding variable. Since keywords cannot be variable names, this creates an invalid pattern.
+
+**JavaScript interop example:**
+
+```vibefun
+type ASTNode = {
+    type: String,
+    import: String,
+    export: List<String>
+}
+
+external parseJS: (String) -> ASTNode from "./parser.js";
+
+let analyzeNode = (code) => {
+    let node = parseJS(code);
+    match node {
+        | { type: "ImportDeclaration", import: path, export: names } =>
+            "Import " & String.join(names, ", ") & " from " & path
+        | { type: "ExportDeclaration", export: names } =>
+            "Export " & String.join(names, ", ")
+        | _ => "Other node type"
+    }
+}
+```
+
+This feature enables natural pattern matching on JavaScript objects that use reserved words as property names.
+
 #### Record Pattern Exhaustiveness
 
 Record patterns with width subtyping affect exhaustiveness:

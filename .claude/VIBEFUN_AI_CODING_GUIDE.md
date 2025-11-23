@@ -126,6 +126,19 @@ type MyOption<T> = MySome(T) | MyNone;
 let a: Option<Int> = Some(42);
 let b: MyOption<Int> = MySome(42);
 // a and b are INCOMPATIBLE!
+
+// Keywords as field names (JavaScript interop)
+let node = { type: "BinaryOp", import: "./module" };
+node.type;  // ✅ OK - keywords work as field names
+node.import;  // ✅ OK
+
+// ❌ ERROR: Keywords can't use shorthand
+let type = "User";  // Error: 'type' is a keyword
+let obj = { type };  // Error: no variable 'type'
+
+// ✅ CORRECT: Use explicit syntax
+let typeValue = "User";
+let obj = { type: typeValue };  // OK
 ```
 
 ### Functions & Mutable References
@@ -379,7 +392,7 @@ let value = !counter;      // Dereference with !
 counter := !counter + 1;   // Update with :=
 ```
 
-### #6: Record Syntax
+### #6: Record Syntax & Keyword Fields
 
 ```vibefun
 // ❌ ERROR: Missing commas
@@ -388,13 +401,29 @@ let person = { name: "Alice" age: 30 };
 // ✅ CORRECT: Commas required
 let person = { name: "Alice", age: 30 };
 
-// ❌ ERROR: Trailing comma not allowed
+// ✅ Trailing comma allowed (improves diffs)
 let person = { name: "Alice", age: 30, };
 
 // ✅ Field shorthand works
 let name = "Bob";
 let age = 25;
 let bob = { name, age };
+
+// ✅ Keywords work as field names (JavaScript interop)
+let node = { type: "ImportDeclaration", import: "./path" };
+node.type;  // OK
+match node {
+    | { type: "ImportDeclaration", import: path } => path
+    | { type: t } => t  // Explicit binding required
+}
+
+// ❌ ERROR: Keywords can't use shorthand
+let type = "User";  // Error: 'type' is a keyword
+let obj = { type };  // Error: no variable named 'type'
+
+// ✅ CORRECT: Use explicit syntax for keyword fields
+let typeValue = "User";
+let obj = { type: typeValue };  // OK
 ```
 
 ### #7: String Concatenation
@@ -492,6 +521,43 @@ let parseNumber = (str) => unsafe {
 match parseNumber("42") {
     | Ok(n) => n
     | Err(msg) => 0
+}
+```
+
+### Keywords as Field Names (JS Interop)
+
+JavaScript frequently uses reserved words as object properties. Vibefun allows keywords as field names for seamless interop:
+
+```vibefun
+// Modeling JavaScript AST nodes
+type ASTNode = {
+    type: String,
+    import: String,
+    export: List<String>
+};
+
+external parseJS: (String) -> ASTNode from "./parser.js";
+
+// ✅ Access keyword fields naturally
+let analyzeImport = (code) => unsafe {
+    let node = parseJS(code);
+    match node {
+        | { type: "ImportDeclaration", import: path, export: names } =>
+            "Import " & String.join(", ", names) & " from " & path
+        | { type: "ExportDeclaration", export: names } =>
+            "Export " & String.join(", ", names)
+        | { type: t, _ } =>
+            "Other node: " & t
+    }
+};
+
+// ✅ All keywords work as field names
+// type, match, import, export, let, module, from, etc.
+
+// ❌ Shorthand limitation in patterns
+match node {
+    | { type } => type  // Error: 'type' is a keyword
+    | { type: t } => t  // OK: explicit binding
 }
 ```
 

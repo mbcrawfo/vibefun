@@ -194,6 +194,91 @@ let person = { name, age };  // Type: { name: String, age: Int }
 **Lexer behavior:**
 Field shorthand requires no special lexer logic. The lexer tokenizes identifiers and commas normally; the parser recognizes the shorthand pattern when a field name appears without `: value`.
 
+#### Keywords as Field Names
+
+Vibefun allows **language keywords** to be used as record field names in **explicit syntax**. This enables seamless JavaScript interoperability when working with objects that use reserved words as property names.
+
+**Basic usage:**
+
+```vibefun
+// ✅ Record construction with keyword fields
+let node = {
+    type: "ImportDeclaration",
+    import: "./module.js",
+    export: ["default", "named"]
+}
+
+// ✅ Field access with keywords
+let nodeType = node.type;  // "ImportDeclaration"
+let path = node.import;  // "./module.js"
+
+// ✅ Record updates with keywords
+let updated = { ...node, type: "ExportDeclaration" };
+
+// ✅ Nested records with keywords
+let ast = {
+    outer: { type: "Program", import: "main" },
+    config: { export: true }
+}
+
+// ✅ Chained field access
+let t = ast.outer.type;  // "Program"
+```
+
+**All keywords supported:**
+
+All 20 Vibefun keywords work as field names: `type`, `match`, `let`, `rec`, `if`, `else`, `while`, `for`, `import`, `export`, `from`, `module`, `opaque`, `external`, `unsafe`, `async`, `await`, `trait`, `impl`, `where`.
+
+**Shorthand limitation:**
+
+Keywords **cannot** be used with field shorthand syntax because keywords cannot be variable names in Vibefun:
+
+```vibefun
+// ❌ Shorthand with keyword - ERROR
+let type = "User";  // Error: 'type' is a keyword
+let record = { type };  // Error: no variable 'type' exists
+
+// ✅ Solution: use explicit syntax
+let typeValue = "User";
+let record = { type: typeValue };  // OK
+
+// ❌ Cannot mix keyword shorthand with regular fields
+let name = "Alice";
+let type = "Person";  // Error: 'type' is a keyword
+let person = { name, type };  // Error: no variable 'type'
+
+// ✅ Solution: explicit syntax for keyword field
+let person = { name, type: "Person" };  // OK
+```
+
+**Why shorthand fails with keywords:**
+
+Field shorthand `{ type }` desugars to `{ type: type }`, where the second `type` references a variable named `type`. Since keywords cannot be variable names, this variable doesn't exist, causing an error.
+
+**JavaScript interop example:**
+
+```vibefun
+// Modeling JavaScript AST nodes
+type ASTNode = {
+    type: String,
+    import: String,
+    export: List<String>
+}
+
+external parseJS: (String) -> ASTNode from "./parser.js";
+
+let node = parseJS("import x from 'y'");
+
+// Access keyword fields naturally
+match node {
+    | { type: "ImportDeclaration", import: path } =>
+        "Importing from: " & path
+    | _ => "Other node"
+}
+```
+
+This feature makes Vibefun records compatible with common JavaScript patterns where reserved words are used as object keys.
+
 #### Record Type Inference
 
 The type checker infers record types from their structure:
