@@ -49,18 +49,20 @@
   - [x] Allow keyword fields in type definitions
   - **Note**: Plan originally mentioned 5 locations, but 6 were correctly identified during implementation
 
-## Phase 2: Testing
+## Phase 2: Testing ⏳ IN PROGRESS (2025-11-22)
 
-### Unit Tests - Record Expressions
-- [ ] Create `keyword-field-names.test.ts` or add to existing tests
-  - [ ] Test single keyword field: `{ type: "value" }`
-  - [ ] Test multiple keyword fields: `{ type: "A", match: true, import: "x" }`
-  - [ ] Test mixed keywords and identifiers: `{ type: "A", name: "B" }`
-  - [ ] Test all 20 keywords as field names
+**Status**: Tests created - 23 of 34 passing. Type errors need fixes.
+
+### Unit Tests - Record Expressions ⏳ MOSTLY DONE
+- [x] Create `keyword-field-names.test.ts` or add to existing tests
+  - [x] Test single keyword field: `{ type: "value" }` - PASSING ✅
+  - [x] Test multiple keyword fields: `{ type: "A", match: true, import: "x" }` - PASSING ✅
+  - [x] Test mixed keywords and identifiers: `{ type: "A", name: "B" }` - PASSING ✅
+  - [ ] Test all 20 keywords as field names - FAILING (true/false are literals)
   - [ ] Test reserved keywords (async, await, etc.)
-  - [ ] Test nested records: `{ outer: { type: "inner" } }`
-  - [ ] Test empty record: `{}`
-  - [ ] Test trailing commas: `{ type: "A", }`
+  - [x] Test nested records: `{ outer: { type: "inner" } }` - PASSING ✅
+  - [ ] Test empty record: `{}` - FAILING (parsed as Block)
+  - [x] Test trailing commas: `{ type: "A", }` - PASSING ✅
 
 ### Unit Tests - Record Updates
 - [ ] Test keyword field in update: `{ ...base, type: "new" }`
