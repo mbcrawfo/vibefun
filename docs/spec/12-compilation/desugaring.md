@@ -142,17 +142,19 @@ let pipeline = (x) => h(g(f(x)));
 
 #### String Concatenation
 
-The `&` operator for strings is desugared to `String.concat`:
+The `&` operator for strings is **not desugared** - it is passed through as a core binary operator:
 
 ```vibefun
 // Surface syntax
 "hello" & " " & "world";
 
-// Desugared to
-String.concat(String.concat("hello", " "), "world");
+// Core representation
+CoreBinOp("Concat", CoreBinOp("Concat", "hello", " "), "world")
 ```
 
-**Note:** Type checker ensures operands are strings before desugaring.
+**Rationale:** String concatenation is kept as a core operation to allow the code generator to optimize string concatenation and keep the core AST simpler. The code generator handles the runtime semantics directly rather than requiring `String.concat()` function calls.
+
+**Note:** Type checker ensures operands are strings.
 
 #### Pattern Matching
 
@@ -316,21 +318,27 @@ match result {
 
 #### If-Without-Else
 
-If expressions without an else clause are desugared to include a Unit-returning else:
+If expressions without an else clause are **handled by the parser**, not the desugarer. The parser automatically inserts a Unit literal when the else branch is omitted:
 
 ```vibefun
-// Surface syntax
+// Source syntax
 if condition then action();
 
-// Desugared to
-if condition then action() else ();
+// Parser produces AST
+If {
+  condition: condition,
+  then: action(),
+  else_: UnitLit  // Inserted by parser
+}
 ```
 
-**Type checking ensures action() returns Unit.**
+**Rationale:** The parser handles this transformation to ensure the AST always has a complete if-expression. The AST type `else_: Expr` (not optional) enforces this contract, simplifying the desugarer and type checker.
+
+**Note:** Type checking ensures `action()` returns Unit to make the branches compatible.
 
 #### Mutable References
 
-Reference operations are desugared to function calls:
+Reference operations are **not desugared** - they are passed through as core operations:
 
 ```vibefun
 // Surface syntax
@@ -338,13 +346,15 @@ let mut counter = ref(0);
 let value = !counter;
 counter := 5;
 
-// Desugared to (conceptual)
-let counter = ref(0);
-let value = deref(counter);
-refAssign(counter, 5);
+// Core representation
+let counter = ref(0) in
+let value = CoreUnaryOp("Deref", counter) in
+CoreBinOp("RefAssign", counter, 5)
 ```
 
-**Note:** The actual representation of refs is implementation-specific (likely `{ value: T }` objects).
+**Rationale:** Mutable reference operations (`!` for dereference and `:=` for assignment) are kept as core operations rather than desugaring to `Ref.get()` and `Ref.set()` function calls. This is simpler and consistent with other operators, allowing the code generator to handle the runtime semantics directly.
+
+**Note:** The actual representation of refs is implementation-specific (likely `{ value: T }` objects in JavaScript).
 
 #### Let-Rec Mutual Recursion
 
@@ -386,19 +396,26 @@ Block expressions with multiple statements return the last expression:
 
 **Note:** The desugaring ensures the last expression's value is the block's result.
 
-#### Summary of Desugarings
+#### Summary of Transformations
 
-| Surface Syntax | Desugared To |
-|----------------|--------------|
-| `[a, b, c]` | `a :: b :: c :: []` |
-| `(x, y) => e` | `(x) => (y) => e` |
-| `f(a, b)` | `((f(a))(b))` |
-| `{...r, f: v}` | `{f1: r.f1, f: v}` |
-| `x \|> f` | `f(x)` |
-| `f >> g` | `(x) => g(f(x))` |
-| `s1 & s2` | `String.concat(s1, s2)` |
-| `!ref` | `deref(ref)` |
-| `ref := v` | `refAssign(ref, v)` |
-| `if c then e` | `if c then e else ()` |
-| Pattern matching | Nested if/destructuring |
+| Surface Syntax | Transform | Handler |
+|----------------|-----------|---------|
+| `[a, b, c]` | `a :: b :: c :: []` | Desugarer |
+| `(x, y) => e` | `(x) => (y) => e` | Desugarer |
+| `f(a, b)` | `((f(a))(b))` | Desugarer |
+| `{...r, f: v}` | `{f1: r.f1, f: v}` | Desugarer |
+| `x \|> f` | `f(x)` | Desugarer |
+| `f >> g` | `(x) => g(f(x))` | Desugarer |
+| `s1 & s2` | `CoreBinOp("Concat", s1, s2)` | Pass-through |
+| `!ref` | `CoreUnaryOp("Deref", ref)` | Pass-through |
+| `ref := v` | `CoreBinOp("RefAssign", ref, v)` | Pass-through |
+| `if c then e` | AST with `else_: UnitLit` | Parser |
+| `{name, age}` | `{name: name, age: age}` | Parser |
+| `(x: Int)` | Strip annotation → `x` | Desugarer |
+| Pattern matching | Nested if/destructuring | Desugarer |
+
+**Key:**
+- **Desugarer**: Surface syntax transformed to simpler core AST
+- **Pass-through**: Kept as core operation for code generator
+- **Parser**: Handled before desugarer sees it
 
