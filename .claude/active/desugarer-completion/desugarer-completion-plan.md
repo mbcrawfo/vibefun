@@ -74,22 +74,30 @@ Based on user preferences:
    - Nested patterns: `match x { | Some((n: Int)) => ... }`
 3. Verify parser produces `TypeAnnotatedPattern` nodes correctly
 
-### Phase 2: Verify Parser Behavior
+### Phase 2: Document Parser Behavior and Add Tests
 
-**Goal:** Confirm where transformations happen (parser vs desugarer)
+**Goal:** Document confirmed parser behavior and add validation tests
 
-**Note:** Audit findings suggest both features are handled by parser (not critical bugs), but verification is still valuable for documentation.
+**Background:** Investigation confirmed that parser handles both if-without-else and record field shorthand. The language spec incorrectly claims desugarer handles these. This phase adds tests and documentation.
+
+**Confirmed Findings:**
+- **If-without-else:** Parser inserts `{ kind: "UnitLit" }` when else is omitted (`parse-expressions.ts:678-682`)
+- **Record field shorthand:** Parser expands `{name}` to `{name: name}` before AST creation
+- Both transformations happen at parse time, NOT desugaring time
 
 **Tasks:**
-1. Check if-expression handling:
-   - Examine parser AST for if-expressions (`ast.ts` line 66: `else_: Expr` is not optional)
-   - Expected finding: Parser always requires else branch, inserts `()` if omitted
-   - Document that parser handles if-without-else, not desugarer
-2. Check record field shorthand:
-   - Examine AST structure (`ast.ts` lines 99-101: RecordField always has value)
-   - Expected finding: Parser expands `{name, age}` to `{name: name, age: age}`
-   - Document that parser handles shorthand expansion, not desugarer
-3. Document all findings in context.md
+1. Add parser tests for if-without-else:
+   - Test: `if x then action()` produces AST with `else_: { kind: "UnitLit" }`
+   - Verify parser inserts Unit literal, not undefined
+   - File: `packages/core/src/parser/expressions.test.ts`
+2. Add parser tests for record field shorthand:
+   - Test: `{name, age}` parses to explicit `{name: name, age: age}`
+   - Verify parser expansion before AST creation
+   - File: `packages/core/src/parser/expressions.test.ts`
+3. Document findings in context.md:
+   - Update parser-desugarer boundary section
+   - Remove "Critical Ambiguity" note (now resolved)
+   - Add confirmed parser behavior with code references
 
 ### Phase 3: Update Documentation
 
@@ -115,17 +123,28 @@ Based on user preferences:
 9. Document that type annotations are stripped (type checker doesn't need them)
 
 **B. Update Language Specification** (`docs/spec/12-compilation/desugaring.md`):
-1. Fix string concatenation section:
+1. **Fix if-without-else section (lines 317-329):**
+   - Current (WRONG): Says desugarer handles if-without-else
+   - Correct: Remove this section entirely (parser handles it)
+   - Add new "Parser-Level Transformations" section documenting what parser does
+   - Clarify that parser inserts Unit literal when else omitted
+2. Fix string concatenation section:
    - Current (WRONG): Says desugars to `String.concat(s1, s2)`
    - Correct: Passes through as `CoreBinOp "Concat"`
-2. Fix mutable reference deref section:
+3. Fix mutable reference deref section:
    - Current (WRONG): Says desugars to `Ref.get(ref)`
    - Correct: Passes through as `CoreUnaryOp "Deref"`
-3. Fix mutable reference assignment section:
+4. Fix mutable reference assignment section:
    - Current (WRONG): Says desugars to `Ref.set(ref, val)`
    - Correct: Passes through as `CoreBinOp "RefAssign"`
-4. Add clarification that these are core operations handled by code generator
-5. Document TypeAnnotatedPattern desugaring (strip annotations)
+5. Add clarification that these are core operations handled by code generator
+6. Document TypeAnnotatedPattern desugaring (strip annotations)
+
+**C. Update Language Specification** (`docs/spec/04-expressions/control-flow.md`):
+1. **Add implementation note about if-without-else (after line 76):**
+   - Document that parser automatically inserts Unit literal
+   - Clarify AST always includes else branch, but source syntax allows omitting it
+   - Reference parser implementation for developers
 
 ### Phase 4: Comprehensive Edge Case Testing
 

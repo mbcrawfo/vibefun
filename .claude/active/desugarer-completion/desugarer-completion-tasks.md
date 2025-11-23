@@ -115,55 +115,54 @@
 
 ---
 
-## Phase 2: Verify Parser Behavior
+## Phase 2: Document Parser Behavior and Add Tests
 
 **Status:** 🔜 Not Started
 
-**Description:** Confirm where certain transformations happen (parser vs desugarer).
+**Description:** Document confirmed parser behavior and add validation tests.
 
-**Note:** Audit findings suggest both are handled by parser. These tasks verify and document that finding.
+**Background:** Investigation confirmed that parser handles both if-without-else and record field shorthand. This phase adds tests and documentation to validate the confirmed behavior.
+
+**Confirmed Findings:**
+- If-without-else: Parser inserts Unit literal at `parse-expressions.ts:678-682`
+- Record field shorthand: Parser expands before AST creation
+- Language spec incorrectly claims desugarer handles these
 
 ### Tasks
 
-- [ ] **2.1** Investigate if-without-else handling
-  - Check parser code for if-expression AST generation
-  - Look for `else_` field and whether it's nullable
-  - File: `packages/core/src/parser/parser.ts` (or similar)
+- [ ] **2.1** Add parser test for if-without-else
+  - File: `packages/core/src/parser/expressions.test.ts`
+  - Test: Parse `if x then action()`
+  - Verify AST has `else_: { kind: "UnitLit" }`
+  - Confirm parser inserts Unit, not undefined
 
-- [ ] **2.2** Test parser with if-without-else
-  - Parse: `if true then 42`
-  - Check if parser allows it or requires else
-  - Examine resulting AST structure
+- [ ] **2.2** Add parser test for if-without-else with complex condition
+  - Test: `if x > 0 then action()`
+  - Verify Unit insertion works with all condition types
 
-- [ ] **2.3** Check desugarer if-expression handling
-  - File: `packages/core/src/desugarer/desugarer.ts:167-192`
-  - Verify current implementation assumptions
-  - Determine if else_ can ever be undefined
+- [ ] **2.3** Add parser test for record field shorthand
+  - File: `packages/core/src/parser/expressions.test.ts`
+  - Test: Parse `{name, age}`
+  - Verify AST expands to `{name: name, age: age}`
 
-- [ ] **2.4** Document if-without-else decision
-  - Update desugarer-requirements.md
-  - Specify whether parser or desugarer handles default else
-  - Add code comments if needed
+- [ ] **2.4** Add parser test for record shorthand with spreads
+  - Test: `{...person, name}`
+  - Verify shorthand expansion works with spreads
 
-- [ ] **2.5** Investigate record field shorthand handling
-  - Check parser code for record literal parsing
-  - Test: Parse `{name, age}` vs `{name: name, age: age}`
-  - Examine resulting AST
+- [ ] **2.5** Document if-without-else in context.md
+  - Update parser-desugarer boundary section
+  - Remove "Critical Ambiguity" note (now resolved)
+  - Add confirmed parser behavior with code reference (parse-expressions.ts:678-682)
 
-- [ ] **2.6** Verify where record shorthand expands
-  - If parser expands: Document this
-  - If desugarer needs to: Add implementation
-  - Check existing record tests for clues
+- [ ] **2.6** Document record shorthand in context.md
+  - Confirm parser handles expansion
+  - Add AST structure evidence
+  - Update parser responsibilities list
 
-- [ ] **2.7** Add tests if desugarer handles shorthand
-  - Only if desugarer needs to handle expansion
-  - Test: `{name, age}` → `{name: name, age: age}`
-  - Test with spreads: `{...person, name}`
-
-- [ ] **2.8** Document record shorthand decision
-  - Update desugarer-requirements.md
-  - Add section on where this transformation happens
-  - Document in context.md if needed
+- [ ] **2.7** Run parser tests to verify
+  - Command: `npm test -- packages/core/src/parser/expressions.test.ts`
+  - Verify all new tests pass
+  - Confirm parser behavior is validated
 
 ---
 
@@ -225,31 +224,44 @@
   - Add any new insights from verification work
   - Update design decisions section
 
-- [ ] **3.11** Update language spec - string concatenation
+- [ ] **3.11** Fix if-without-else in desugaring spec (CRITICAL)
+  - File: `docs/spec/12-compilation/desugaring.md` lines 317-329
+  - Remove incorrect section claiming desugarer handles if-without-else
+  - Add new "Parser-Level Transformations" section
+  - Document that parser inserts Unit literal when else omitted
+  - Clarify parser vs desugarer boundary
+
+- [ ] **3.12** Add if-without-else implementation note to control-flow spec
+  - File: `docs/spec/04-expressions/control-flow.md` after line 76
+  - Add implementation note about parser behavior
+  - Document that parser inserts Unit literal automatically
+  - Clarify AST always has else branch, source syntax allows omitting it
+
+- [ ] **3.13** Update language spec - string concatenation
   - File: `docs/spec/12-compilation/desugaring.md`
   - Current (WRONG): Says desugars to `String.concat(s1, s2)`
   - Correct to: Passes through as `CoreBinOp "Concat"`
   - Add note that code generator handles this
 
-- [ ] **3.12** Update language spec - mutable reference deref
+- [ ] **3.14** Update language spec - mutable reference deref
   - File: `docs/spec/12-compilation/desugaring.md`
   - Current (WRONG): Says desugars to `Ref.get(ref)`
   - Correct to: Passes through as `CoreUnaryOp "Deref"`
   - Add note that code generator handles this
 
-- [ ] **3.13** Update language spec - mutable reference assignment
+- [ ] **3.15** Update language spec - mutable reference assignment
   - File: `docs/spec/12-compilation/desugaring.md`
   - Current (WRONG): Says desugars to `Ref.set(ref, val)`
   - Correct to: Passes through as `CoreBinOp "RefAssign"`
   - Add note that code generator handles this
 
-- [ ] **3.14** Add TypeAnnotatedPattern to language spec
+- [ ] **3.16** Add TypeAnnotatedPattern to language spec
   - File: `docs/spec/12-compilation/desugaring.md`
   - Document that type annotations are stripped from patterns
   - Explain why (type checker doesn't need them)
   - Note that type checker validates annotations separately
 
-- [ ] **3.15** Document CoreWhile removal in requirements
+- [ ] **3.17** Document CoreWhile removal in requirements
   - File: `.claude/desugarer-requirements.md`
   - Add note that CoreWhile dead code was removed
   - Confirm while loops desugar to recursive functions
