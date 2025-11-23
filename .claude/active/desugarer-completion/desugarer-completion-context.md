@@ -1,7 +1,7 @@
 # Desugarer Completion - Context & Key Information
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Post-audit revision - corrected scope and test counts)
+**Last Updated:** 2025-11-23 16:08 (Phase 2 - added parser contract tests)
 
 ## Key Files
 
@@ -289,11 +289,16 @@ checkPattern(pattern: CorePattern, expectedType: Type): Map<string, Type>
 **Resolution: Parser-Desugarer Boundary Confirmed**
 Investigation resolved the spec ambiguity. The parser handles both if-without-else and record field shorthand. The implementation is correct; the language spec documentation is incorrect and will be updated in Phase 3.
 
-**Contract Tests (Phase 2):**
-- Add parser tests for if-without-else (verify Unit insertion)
-- Add parser tests for record field shorthand (verify expansion)
-- Validate AST structure assumptions
-- Document confirmed parser-desugarer boundary
+**Contract Tests (Phase 2) - ✅ COMPLETED:**
+- ✅ Added parser tests for if-without-else (verify Unit insertion) - `packages/core/src/parser/expressions.test.ts:1828-1904`
+  - Verified parser inserts `{ kind: "UnitLit" }` when else is omitted
+  - Confirmed else_ field is never undefined (always has UnitLit)
+  - Tested with complex conditions and in block contexts
+  - Verified UnitLit has proper location information
+- ✅ Parser tests for record field shorthand already exist - `packages/core/src/parser/record-shorthand.test.ts` (399 lines, comprehensive coverage)
+- ✅ Parser tests for TypeAnnotatedPattern already exist - `packages/core/src/parser/pattern-type-annotations.test.ts` (730 lines, comprehensive coverage)
+- ✅ AST structure assumptions validated through tests
+- ✅ Confirmed parser-desugarer boundary documented below
 
 ## Transformation Summary
 

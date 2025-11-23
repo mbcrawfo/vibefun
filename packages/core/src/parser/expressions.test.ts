@@ -1825,6 +1825,84 @@ describe("Parser - Expressions", () => {
             });
         });
 
+        describe("if-without-else (parser inserts Unit literal)", () => {
+            it("should parse if-without-else and insert Unit literal", () => {
+                const expr = parseExpression("if x then action()");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    condition: { kind: "Var", name: "x" },
+                    then: {
+                        kind: "App",
+                        func: { kind: "Var", name: "action" },
+                        args: [],
+                    },
+                    else_: { kind: "UnitLit" },
+                });
+            });
+
+            it("should parse if-without-else with complex condition", () => {
+                const expr = parseExpression("if x > 0 then step()");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    condition: {
+                        kind: "BinOp",
+                        op: "GreaterThan",
+                        left: { kind: "Var", name: "x" },
+                        right: { kind: "IntLit", value: 0 },
+                    },
+                    then: {
+                        kind: "App",
+                        func: { kind: "Var", name: "step" },
+                        args: [],
+                    },
+                    else_: { kind: "UnitLit" },
+                });
+            });
+
+            it("should verify else_ field is never undefined", () => {
+                const expr = parseExpression("if cond then 1");
+
+                expect(expr).toMatchObject({
+                    kind: "If",
+                    else_: { kind: "UnitLit" },
+                });
+                // Explicitly verify else_ is defined
+                if (expr.kind === "If") {
+                    expect(expr.else_).toBeDefined();
+                    expect(expr.else_).not.toBeNull();
+                    expect(expr.else_).not.toBeUndefined();
+                }
+            });
+
+            it("should parse if-without-else in block context", () => {
+                const expr = parseExpression("{ if flag then update(); result; }");
+
+                expect(expr.kind).toBe("Block");
+                if (expr.kind !== "Block") return;
+
+                const ifExpr = expr.exprs[0];
+                expect(ifExpr).toMatchObject({
+                    kind: "If",
+                    else_: { kind: "UnitLit" },
+                });
+            });
+
+            it("should verify UnitLit has location information", () => {
+                const expr = parseExpression("if x then y");
+
+                if (expr.kind !== "If") {
+                    throw new Error("Expected If expression");
+                }
+
+                // Verify else_ is UnitLit with location
+                expect(expr.else_.kind).toBe("UnitLit");
+                expect(expr.else_.loc).toBeDefined();
+                expect(expr.else_.loc.file).toBe("test.vf");
+            });
+        });
+
         describe("match expressions", () => {
             it("should parse match with single case", () => {
                 const expr = parseExpression("match x { | y => y + 1 }");
