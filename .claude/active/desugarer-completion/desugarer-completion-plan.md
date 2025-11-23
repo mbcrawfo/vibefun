@@ -1,7 +1,7 @@
 # Desugarer Completion Plan
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-23 (Revised after comprehensive audit)
 
 ## Overview
 
@@ -10,17 +10,23 @@ Complete the vibefun desugarer implementation by fixing critical bugs, verifying
 ## Current State
 
 The desugarer is **95% complete** with excellent architecture and test coverage:
-- **232 tests passing** across 28 test files
+- **~211 tests passing** across 28 test files (corrected baseline from audit)
 - **All major transformations implemented**: lambdas, pipes, composition, lists, blocks, or-patterns, while loops
 - **Modular architecture**: Separate files for each transformation type
 - **Good error handling**: Custom DesugarError with location information
 
+**Audit Findings:**
+- While loops correctly desugar to recursive functions (CoreLetRecExpr)
+- CoreWhile exists in core-ast.ts but is **dead code** (never constructed by desugarer)
+- Type checker is functional and does NOT need type annotations from patterns
+- Parser handles if-without-else and record field shorthand (not desugarer)
+
 ## Critical Issues Identified
 
-1. **Missing TypeAnnotatedPattern handler** - Will throw error if parser produces type-annotated patterns
-2. **Documentation inconsistencies** - Requirements doc doesn't match implementation decisions
-3. **Verification gaps** - Need to confirm parser behavior for if-without-else and record field shorthand
-4. **Edge case test coverage** - Need comprehensive tests for complex scenarios
+1. **Missing TypeAnnotatedPattern handler** - Will throw error if parser produces type-annotated patterns (CONFIRMED BUG)
+2. **CoreWhile dead code** - CoreWhile exists in core-ast.ts but is never used (needs removal)
+3. **Documentation inconsistencies** - Requirements doc and language spec don't match implementation
+4. **Edge case test coverage** - Need comprehensive tests for complex scenarios, including guards, exhaustiveness, etc.
 
 ## Implementation Decisions
 
@@ -31,6 +37,26 @@ Based on user preferences:
 - **Tooling**: Focus on core functionality only (no --show-desugared flag for now)
 
 ## Implementation Phases
+
+### Phase 0: Remove CoreWhile Dead Code
+
+**Goal:** Clean up dead code that misleads developers about compilation pipeline
+
+**Background:** CoreWhile was added as a placeholder (Nov 10, commit fd44caf) but when while loop desugaring was implemented (commit eac42ee), it created CoreLetRecExpr instead. CoreWhile was never removed from the AST.
+
+**Tasks:**
+1. Remove CoreWhile from `packages/core/src/types/core-ast.ts`:
+   - Line 58: Remove `| CoreWhile;` from CoreExpr union
+   - Lines 312-319: Remove CoreWhile type definition
+2. Remove CoreWhile from `packages/core/src/typechecker/types.ts`:
+   - Line 565: Remove `case "CoreWhile":` from isConstant function
+3. Remove CoreWhile from `packages/core/src/typechecker/infer.ts`:
+   - Lines 243-245: Remove CoreWhile placeholder case (unreachable code)
+4. Run tests to verify no breakage:
+   - `npm test` - All tests should still pass
+5. Document the removal in context.md
+
+**Rationale:** CoreWhile is dead code that serves no purpose and misleads developers about whether while loops are desugared or passed through to code generator.
 
 ### Phase 1: Fix Critical Bug - TypeAnnotatedPattern
 
@@ -52,35 +78,52 @@ Based on user preferences:
 
 **Goal:** Confirm where transformations happen (parser vs desugarer)
 
+**Note:** Audit findings suggest both features are handled by parser (not critical bugs), but verification is still valuable for documentation.
+
 **Tasks:**
 1. Check if-expression handling:
-   - Examine parser AST for if-expressions
-   - Determine if `else_` field can be null
-   - Test if parser requires else branches: `if cond then e1`
-   - Document whether parser or desugarer handles default else
+   - Examine parser AST for if-expressions (`ast.ts` line 66: `else_: Expr` is not optional)
+   - Expected finding: Parser always requires else branch, inserts `()` if omitted
+   - Document that parser handles if-without-else, not desugarer
 2. Check record field shorthand:
-   - Test if parser expands `{name, age}` to `{name: name, age: age}`
-   - Document where this expansion happens
-   - Add tests if desugarer needs to handle it
-3. Document all findings
+   - Examine AST structure (`ast.ts` lines 99-101: RecordField always has value)
+   - Expected finding: Parser expands `{name, age}` to `{name: name, age: age}`
+   - Document that parser handles shorthand expansion, not desugarer
+3. Document all findings in context.md
 
 ### Phase 3: Update Documentation
 
-**Goal:** Align requirements document with implementation
+**Goal:** Align requirements document AND language spec with implementation
 
 **Tasks:**
-1. Update `.claude/desugarer-requirements.md`:
-   - Mark mutable references as ✅ Done (kept as core ops)
-   - Mark string concatenation as ✅ Done (kept as CoreBinOp)
-   - Mark list cons operator as ✅ Done (change from ⚠️ Verify)
-   - Update if-without-else section based on Phase 2 findings
-   - Update record field shorthand section based on Phase 2 findings
-2. Add "Implementation Decisions" section documenting:
-   - Why mutable refs kept as core ops
-   - Why string concat kept as core op
+
+**A. Update Requirements Document** (`.claude/desugarer-requirements.md`):
+1. Mark mutable references as ✅ Done (kept as core ops)
+2. Mark string concatenation as ✅ Done (kept as CoreBinOp)
+3. Mark list cons operator as ✅ Done (change from ⚠️ Verify)
+4. Update if-without-else section based on Phase 2 findings (parser handles it)
+5. Update record field shorthand section based on Phase 2 findings (parser handles it)
+6. Add "Implementation Decisions" section documenting:
+   - Why mutable refs kept as core ops (vs function calls)
+   - Why string concat kept as core op (vs String.concat)
+   - Why CoreWhile was removed (never used, dead code)
    - Rationale for each decision
-3. Update transformation status table
-4. Mark TypeAnnotatedPattern as ✅ Done after Phase 1
+7. Update transformation status table
+8. Mark TypeAnnotatedPattern as ✅ Done after Phase 1
+9. Document that type annotations are stripped (type checker doesn't need them)
+
+**B. Update Language Specification** (`docs/spec/12-compilation/desugaring.md`):
+1. Fix string concatenation section:
+   - Current (WRONG): Says desugars to `String.concat(s1, s2)`
+   - Correct: Passes through as `CoreBinOp "Concat"`
+2. Fix mutable reference deref section:
+   - Current (WRONG): Says desugars to `Ref.get(ref)`
+   - Correct: Passes through as `CoreUnaryOp "Deref"`
+3. Fix mutable reference assignment section:
+   - Current (WRONG): Says desugars to `Ref.set(ref, val)`
+   - Correct: Passes through as `CoreBinOp "RefAssign"`
+4. Add clarification that these are core operations handled by code generator
+5. Document TypeAnnotatedPattern desugaring (strip annotations)
 
 ### Phase 4: Comprehensive Edge Case Testing
 
@@ -99,6 +142,8 @@ Based on user preferences:
    - Deeply nested patterns
    - Combined with list patterns
    - Combined with record patterns
+   - **NEW: Or-patterns with guards** - `Some(x) when x > 0 | None => "default"`
+   - Verify guard duplication to each expanded case
 
 3. **List spread edge cases** (enhance `list-spread.test.ts`)
    - Multiple spreads: `[...xs, ...ys, ...zs]`
@@ -141,6 +186,35 @@ Based on user preferences:
    - Complex nested scenarios
    - Error cases that span multiple transformations
 
+10. **NEW: Exhaustiveness checking interaction** (new file: `exhaustiveness.test.ts`)
+    - Verify or-pattern expansion doesn't break exhaustiveness checking
+    - Test: `Some(1) | Some(2) => "small"` still non-exhaustive
+    - Test nested variant exhaustiveness after desugaring
+    - Test list pattern exhaustiveness
+
+11. **NEW: Fresh variable collision avoidance** (add to `desugarer.test.ts`)
+    - Verify `$` prefix prevents user variable collisions
+    - Test nested transformations generate unique names
+    - Test that `$loop_0`, `$loop_1` increment correctly
+
+12. **NEW: Transformation order dependencies** (new file: `transformation-order.test.ts`)
+    - Test or-patterns expanded before pattern desugaring
+    - Test pipe desugared before currying in same expression
+    - Test block desugaring before expression desugaring
+    - Verify order-dependent transformations work correctly
+
+13. **NEW: Location preservation comprehensive** (enhance all test files)
+    - Verify ALL desugared nodes preserve original locations
+    - Test error messages point to surface syntax
+    - Test location info for generated code (fresh variables)
+    - Add location assertions to each transformation test
+
+14. **NEW: Type annotations on complex patterns** (add to `type-annotated-patterns.test.ts`)
+    - Annotations on non-variable patterns: `([x, y]: List<Int>)`
+    - Annotations on tuple patterns: `((x, y): (Int, String))`
+    - Annotations on variant patterns: `(Some(x): Option<Int>)`
+    - Multiple levels: `((Some(x)): Option<Int>)`
+
 ### Phase 5: Verification & Quality Checks
 
 **Goal:** Ensure all tests pass and code meets standards
@@ -154,10 +228,10 @@ Based on user preferences:
    - Linting: `npm run lint`
    - Tests: `npm test`
    - Formatting: `npm run format`
-2. Verify all existing 232 tests still pass
-3. Confirm new tests bring total to 300+ tests
+2. Verify all existing ~211 tests still pass (corrected baseline)
+3. Confirm new tests bring total to 350+ tests (accounting for expanded edge cases)
 4. Review test output for warnings or issues
-5. Check test coverage report
+5. Check test coverage report (target: 90%+)
 6. Fix any issues that arise
 
 ### Phase 6: Update Progress Tracking
@@ -180,10 +254,13 @@ Based on user preferences:
 ## Success Criteria
 
 - ✅ Zero critical bugs (TypeAnnotatedPattern fixed)
-- ✅ Complete documentation alignment with implementation
-- ✅ 300+ comprehensive tests covering all edge cases
+- ✅ CoreWhile dead code removed from codebase
+- ✅ Complete documentation alignment with implementation (requirements doc AND language spec)
+- ✅ 350+ comprehensive tests covering all edge cases
 - ✅ All quality checks passing (`npm run verify` succeeds)
-- ✅ Desugarer ready for type checker phase
+- ✅ Parser-desugarer boundary clearly documented
+- ✅ Type checker compatibility verified (annotations not needed)
+- ✅ Desugarer ready for continued type checker development
 
 ## Non-Goals
 

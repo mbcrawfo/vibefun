@@ -1,7 +1,7 @@
 # Desugarer Completion - Context & Key Information
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-23 (Revised after comprehensive audit)
 
 ## Key Files
 
@@ -36,7 +36,7 @@
 - `packages/core/src/desugarer/desugarTypeParam.ts`
 - `packages/core/src/desugarer/desugarConstructorDef.ts`
 
-### Test Files (28 files, 232 tests)
+### Test Files (28 files, ~211 tests - corrected baseline)
 
 **Main Test Suites:**
 - `packages/core/src/desugarer/desugarer.test.ts` (43 tests) - Comprehensive unit tests
@@ -54,15 +54,19 @@
 - `packages/core/src/desugarer/integration.test.ts` (9 tests) - Integration tests
 
 **Test Files to Create:**
-- `type-annotated-patterns.test.ts` - New file for TypeAnnotatedPattern edge cases
+- `type-annotated-patterns.test.ts` - TypeAnnotatedPattern edge cases (complex patterns, guards)
+- `exhaustiveness.test.ts` - Exhaustiveness checking after desugaring
+- `transformation-order.test.ts` - Verify transformation dependencies
 
 **Test Files to Enhance:**
-- `or-patterns.test.ts` - Add deeply nested cases
+- `or-patterns.test.ts` - Add guards, deeply nested cases
 - `list-spread.test.ts` - Add multiple spread cases
 - `records.test.ts` - Add record spread edge cases
 - `blocks.test.ts` - Add empty/deeply nested blocks
 - `lambdas.test.ts` - Add single param and many param cases
 - `integration.test.ts` - Add complex multi-transformation tests
+- `desugarer.test.ts` - Add fresh variable collision tests
+- ALL test files - Add comprehensive location preservation tests
 
 ### AST Type Definitions
 
@@ -76,6 +80,7 @@
   - Simplified AST for type checker
   - No `CoreTypeAnnotatedPattern` (type annotations stripped)
   - Fewer node types than surface AST
+  - **CONTAINS CoreWhile (dead code)** - while loops actually desugar to CoreLetRecExpr
 
 ### Documentation Files
 
@@ -181,7 +186,7 @@ case "TypeAnnotatedPattern": {
 - Better to catch issues now than during type checking
 - Sets high quality bar for project
 
-**Target:** 300+ total tests (currently 232)
+**Target:** 350+ total tests (currently ~211, accounting for expanded edge cases)
 
 ### 4. No Developer Tooling (For Now)
 
@@ -193,6 +198,82 @@ case "TypeAnnotatedPattern": {
 - Keep scope focused and achievable
 
 **Future Work:** Add tooling in separate task
+
+### 5. CoreWhile Dead Code Removal
+
+**Decision:** Remove CoreWhile type from core-ast.ts and type checker
+
+**Background:**
+- CoreWhile was added as a placeholder (Nov 10, commit fd44caf)
+- When while desugaring was implemented (commit eac42ee), it created CoreLetRecExpr instead
+- CoreWhile was never used but never removed from AST
+
+**Evidence:**
+- `desugarer.ts:349-414` - Creates CoreLetRecExpr (recursive functions)
+- `core-ast.ts:58, 312-319` - CoreWhile defined but never constructed
+- `typechecker/infer.ts:243-245` - Placeholder throws error (unreachable code)
+- `typechecker/types.ts:565` - CoreWhile case in isConstant (unreachable)
+
+**Impact:**
+- Remove 3 locations of dead code
+- Clarifies that while loops are always desugared
+- Prevents developer confusion
+
+### 6. Type Checker Compatibility
+
+**Finding:** Type checker exists and does NOT need type annotations from patterns
+
+**Type Checker Status:**
+- **Fully implemented** at `packages/core/src/typechecker/`
+- Uses **Hindley-Milner Algorithm W** with level-based generalization
+- Pattern checking in `typechecker/patterns.ts`
+
+**How Pattern Type Checking Works:**
+```typescript
+checkPattern(pattern: CorePattern, expectedType: Type): Map<string, Type>
+```
+- Takes `expectedType` as input (inferred from context)
+- Checks pattern structure against expected type
+- Uses unification to resolve constraints
+- Returns variable bindings
+
+**Why Annotations Aren't Needed:**
+- Type checker infers from context, not annotations
+- Pattern structure drives inference
+- Annotations are **optional** (for documentation/disambiguation)
+- Standard ML/OCaml approach: annotations checked but don't drive inference
+
+**Conclusion:** Stripping type annotations in desugarer is **correct**. Type checker can validate annotations separately if needed (future enhancement).
+
+### 7. Parser-Desugarer Boundary
+
+**Purpose:** Document what parser handles vs what desugarer handles
+
+**Parser Responsibilities:**
+1. **If-without-else** - Parser inserts `else ()`
+   - AST evidence: `ast.ts` line 66 shows `else_: Expr` (not optional)
+   - Parser always provides complete if-else to desugarer
+
+2. **Record field shorthand** - Parser expands `{name, age}`
+   - AST evidence: `RecordField` always has `value: Expr`
+   - No shorthand representation in AST
+   - Parser expands to `{name: name, age: age}` before desugarer sees it
+
+**Desugarer Responsibilities:**
+1. **TypeAnnotatedPattern** - Strip type annotations from patterns
+2. **While loops** - Transform to recursive functions
+3. **Or-patterns** - Expand to multiple match cases
+4. **List literals** - Transform to Cons/Nil chains
+5. **Pipe/composition** - Transform to function applications
+6. **Block expressions** - Transform to nested let bindings
+7. **Lambda currying** - Transform multi-param to single-param
+8. **List patterns** - Transform to variant patterns
+9. **If-expressions** - Transform complete if-else to match expressions
+
+**Contract Tests Needed:**
+- Verify parser always provides complete if-else
+- Verify parser expands record shorthand
+- Verify AST structure assumptions
 
 ## Transformation Summary
 
@@ -218,11 +299,12 @@ case "TypeAnnotatedPattern": {
 ### Transformations Needing Fix 🔧
 
 1. **TypeAnnotatedPattern** - Missing handler (critical bug)
+2. **CoreWhile dead code** - Remove from core-ast.ts and type checker
 
-### Transformations Needing Verification 🔍
+### Parser-Handled (Not Desugarer) ✅
 
-1. **If-without-else** - Check if parser requires else branch
-2. **Record field shorthand** - Check if parser expands `{name, age}`
+1. **If-without-else** - Parser inserts `else ()` automatically
+2. **Record field shorthand** - Parser expands `{name, age}` to `{name: name, age: age}`
 
 ## Fresh Variable Naming Conventions
 

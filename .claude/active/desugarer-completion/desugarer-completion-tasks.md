@@ -1,18 +1,60 @@
 # Desugarer Completion - Task List
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-23 (Revised after comprehensive audit)
 
 ## Overall Progress
 
-**Phases Completed:** 0/6 (0%)
+**Phases Completed:** 0/7 (0%)
 
 **Current Phase:** Not started
 
-**Total Tasks:** 59
+**Total Tasks:** 85+ (expanded from original 59 after audit)
 **Completed:** 0
 **In Progress:** 0
-**Not Started:** 59
+**Not Started:** 85+
+
+---
+
+## Phase 0: Remove CoreWhile Dead Code
+
+**Status:** 🔜 Not Started
+
+**Description:** Clean up dead code that misleads developers about while loop compilation.
+
+**Background:** CoreWhile was added as a placeholder but never used when while loop desugaring was implemented. It creates CoreLetRecExpr (recursive functions) instead.
+
+### Tasks
+
+- [ ] **0.1** Remove CoreWhile from core-ast.ts (CoreExpr union)
+  - File: `packages/core/src/types/core-ast.ts`
+  - Location: Line 58
+  - Remove: `| CoreWhile;` from CoreExpr union type
+
+- [ ] **0.2** Remove CoreWhile type definition from core-ast.ts
+  - File: `packages/core/src/types/core-ast.ts`
+  - Location: Lines 312-319
+  - Remove: Entire CoreWhile type definition and JSDoc comment
+
+- [ ] **0.3** Remove CoreWhile case from type checker isConstant function
+  - File: `packages/core/src/typechecker/types.ts`
+  - Location: Line 565
+  - Remove: `case "CoreWhile": return false;`
+
+- [ ] **0.4** Remove CoreWhile placeholder from type checker infer function
+  - File: `packages/core/src/typechecker/infer.ts`
+  - Location: Lines 243-245
+  - Remove: CoreWhile case that throws "not yet implemented" error
+
+- [ ] **0.5** Run tests to verify no breakage
+  - Command: `npm test`
+  - Verify all existing ~211 tests still pass
+  - No tests should reference CoreWhile
+
+- [ ] **0.6** Document the removal
+  - Update `desugarer-completion-context.md`
+  - Add note that CoreWhile dead code was removed
+  - Confirm while loops desugar to CoreLetRecExpr
 
 ---
 
@@ -78,6 +120,8 @@
 **Status:** 🔜 Not Started
 
 **Description:** Confirm where certain transformations happen (parser vs desugarer).
+
+**Note:** Audit findings suggest both are handled by parser. These tasks verify and document that finding.
 
 ### Tasks
 
@@ -181,6 +225,36 @@
   - Add any new insights from verification work
   - Update design decisions section
 
+- [ ] **3.11** Update language spec - string concatenation
+  - File: `docs/spec/12-compilation/desugaring.md`
+  - Current (WRONG): Says desugars to `String.concat(s1, s2)`
+  - Correct to: Passes through as `CoreBinOp "Concat"`
+  - Add note that code generator handles this
+
+- [ ] **3.12** Update language spec - mutable reference deref
+  - File: `docs/spec/12-compilation/desugaring.md`
+  - Current (WRONG): Says desugars to `Ref.get(ref)`
+  - Correct to: Passes through as `CoreUnaryOp "Deref"`
+  - Add note that code generator handles this
+
+- [ ] **3.13** Update language spec - mutable reference assignment
+  - File: `docs/spec/12-compilation/desugaring.md`
+  - Current (WRONG): Says desugars to `Ref.set(ref, val)`
+  - Correct to: Passes through as `CoreBinOp "RefAssign"`
+  - Add note that code generator handles this
+
+- [ ] **3.14** Add TypeAnnotatedPattern to language spec
+  - File: `docs/spec/12-compilation/desugaring.md`
+  - Document that type annotations are stripped from patterns
+  - Explain why (type checker doesn't need them)
+  - Note that type checker validates annotations separately
+
+- [ ] **3.15** Document CoreWhile removal in requirements
+  - File: `.claude/desugarer-requirements.md`
+  - Add note that CoreWhile dead code was removed
+  - Confirm while loops desugar to recursive functions
+  - Reference Phase 0 completion
+
 ---
 
 ## Phase 4: Comprehensive Edge Case Testing
@@ -212,6 +286,11 @@
 - [ ] **4.1.5** Test or-patterns with tuple patterns
   - Pattern: `(x, 0) | (x, 1) => x`
   - Verify tuple preservation + or-pattern expansion
+
+- [ ] **4.1.6** NEW: Test or-patterns with guards
+  - Pattern: `Some(x) when x > 0 | None => "default"`
+  - Verify guard is duplicated to each expanded case
+  - Test multiple or-alternatives with same guard
 
 ### 4.2 List Spread Edge Cases
 
@@ -393,6 +472,98 @@
   - Take examples from examples/ directory
   - Desugar and verify output
 
+### 4.10 NEW: Exhaustiveness Checking Interaction
+
+- [ ] **4.10.1** Create new test file for exhaustiveness
+  - New file: `packages/core/src/desugarer/exhaustiveness.test.ts`
+  - Test exhaustiveness checking after desugaring
+
+- [ ] **4.10.2** Test or-pattern expansion doesn't break exhaustiveness
+  - Pattern: `Some(1) | Some(2) => "small"` still non-exhaustive
+  - Missing `Some(n)` for other n and missing `None`
+
+- [ ] **4.10.3** Test nested variant exhaustiveness
+  - After desugaring, check exhaustiveness still works
+  - Test with complex nested patterns
+
+- [ ] **4.10.4** Test list pattern exhaustiveness
+  - Verify list patterns desugar correctly for exhaustiveness
+  - Test `[] | [_] | [_, _]` patterns
+
+### 4.11 NEW: Fresh Variable Collision Avoidance
+
+- [ ] **4.11.1** Test $ prefix prevents collisions
+  - Verify user can't create variables with $ prefix
+  - Test that fresh vars like `$loop_0` don't collide
+  - File: `packages/core/src/desugarer/desugarer.test.ts`
+
+- [ ] **4.11.2** Test nested transformations generate unique names
+  - Multiple while loops generate `$loop_0`, `$loop_1`, etc.
+  - Verify counter increments correctly
+
+- [ ] **4.11.3** Test fresh var generation across different prefixes
+  - `$loop_N`, `$composed_N`, `$piped_N`, `$tmp_N`
+  - Verify different prefixes don't interfere
+
+### 4.12 NEW: Transformation Order Dependencies
+
+- [ ] **4.12.1** Create new test file for transformation order
+  - New file: `packages/core/src/desugarer/transformation-order.test.ts`
+  - Test order-dependent transformations
+
+- [ ] **4.12.2** Test or-patterns expanded before pattern desugaring
+  - Verify or-pattern in list pattern works correctly
+  - Pattern: `[x] | [x, _] => x`
+
+- [ ] **4.12.3** Test pipe desugared before currying
+  - Pattern: `x |> (a, b) => a + b`
+  - Verify both pipe and currying work together
+
+- [ ] **4.12.4** Test block desugaring before expression desugaring
+  - Nested blocks with complex expressions
+  - Verify order doesn't cause issues
+
+### 4.13 NEW: Location Preservation Comprehensive
+
+- [ ] **4.13.1** Add location assertions to lambda tests
+  - File: `packages/core/src/desugarer/lambdas.test.ts`
+  - Verify curried lambdas preserve original locations
+
+- [ ] **4.13.2** Add location assertions to or-pattern tests
+  - File: `packages/core/src/desugarer/or-patterns.test.ts`
+  - Verify expanded cases have correct locations
+
+- [ ] **4.13.3** Add location assertions to while loop tests
+  - Verify recursive function has original while loop location
+
+- [ ] **4.13.4** Add location assertions to pipe tests
+  - Verify desugared applications preserve pipe locations
+
+- [ ] **4.13.5** Add location assertions to block tests
+  - Verify nested lets preserve block locations
+
+- [ ] **4.13.6** Test error messages point to surface syntax
+  - Verify errors don't reference desugared code
+  - Check error locations are user-friendly
+
+### 4.14 NEW: Type Annotations on Complex Patterns
+
+- [ ] **4.14.1** Test annotations on list patterns
+  - Pattern: `([x, y]: List<Int>)`
+  - Verify annotation stripped, list pattern desugared
+
+- [ ] **4.14.2** Test annotations on tuple patterns
+  - Pattern: `((x, y): (Int, String))`
+  - Verify annotation stripped, tuple preserved
+
+- [ ] **4.14.3** Test annotations on variant patterns
+  - Pattern: `(Some(x): Option<Int>)`
+  - Verify annotation stripped, variant pattern works
+
+- [ ] **4.14.4** Test multiple levels of annotations
+  - Pattern: `((Some(x): Option<Int>)): Option<Int>`
+  - Verify all annotations stripped correctly
+
 ---
 
 ## Phase 5: Verification & Quality Checks
@@ -415,7 +586,7 @@
 
 - [ ] **5.3** Run all tests
   - Command: `npm test`
-  - Verify all 232+ existing tests still pass
+  - Verify all ~211 existing tests still pass (corrected baseline)
   - Verify all new tests pass
 
 - [ ] **5.4** Run code formatting
@@ -433,8 +604,9 @@
   - Identify any gaps
 
 - [ ] **5.7** Count total tests
-  - Verify 300+ tests total
+  - Verify 350+ tests total (expanded from original 300+ target)
   - Document test count breakdown by file
+  - Baseline was ~211, added ~140+ new tests
 
 - [ ] **5.8** Review test output
   - Check for warnings
@@ -522,11 +694,14 @@
 
 ## Task Dependencies
 
+- Phase 0 (CoreWhile removal) should complete first - clean start
 - Phase 1 must complete before updating docs in Phase 3
 - Phase 2 verification informs Phase 3 documentation
 - Phase 4 (testing) can run in parallel with Phases 2-3
 - Phase 5 must wait for all implementation work to complete
 - Phase 6 is final cleanup and archival
+
+Note: Phase 0 is independent and can be done first without blocking other work
 
 ## Time Tracking
 
