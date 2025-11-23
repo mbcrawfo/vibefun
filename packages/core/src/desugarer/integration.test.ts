@@ -600,3 +600,145 @@ describe("Integration - Module with All Features", () => {
         expect(lambdaBodyLet.body.kind).toBe("CoreMatch");
     });
 });
+
+describe("Integration - Deep Recursion Stress Test", () => {
+    it("should handle 100+ levels of nested lambdas without stack overflow", () => {
+        // Create deeply nested lambda: (x) => (y) => (z) => ... => x
+        let body: Expr = { kind: "Var", name: "x", loc: testLoc };
+
+        // Create 100 levels of nesting
+        for (let i = 0; i < 100; i++) {
+            body = {
+                kind: "Lambda",
+                params: [{ pattern: { kind: "VarPattern", name: `p${i}`, loc: testLoc }, loc: testLoc }],
+                body: body,
+                loc: testLoc,
+            };
+        }
+
+        const expr: Expr = body;
+
+        // Should not stack overflow
+        const result = desugar(expr);
+
+        // Verify it's a lambda
+        expect(result.kind).toBe("CoreLambda");
+    });
+
+    it("should handle 100+ levels of nested lists without stack overflow", () => {
+        // Create deeply nested list: [[[...]]]
+        let inner: Expr = { kind: "IntLit", value: 42, loc: testLoc };
+
+        // Create 100 levels of nesting
+        for (let i = 0; i < 100; i++) {
+            inner = {
+                kind: "List",
+                elements: [elem(inner)],
+                loc: testLoc,
+            };
+        }
+
+        const expr: Expr = inner;
+
+        // Should not stack overflow
+        const result = desugar(expr);
+
+        // Verify it's a Cons chain
+        expect(result.kind).toBe("CoreVariant");
+    });
+
+    it("should handle 100+ levels of nested if-expressions without stack overflow", () => {
+        // Create deeply nested if: if x then (if y then ...) else ...
+        let body: Expr = { kind: "IntLit", value: 42, loc: testLoc };
+
+        // Create 100 levels of nesting
+        for (let i = 0; i < 100; i++) {
+            body = {
+                kind: "If",
+                condition: { kind: "Var", name: `cond${i}`, loc: testLoc },
+                then: body,
+                else_: { kind: "IntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+        }
+
+        const expr: Expr = body;
+
+        // Should not stack overflow
+        const result = desugar(expr);
+
+        // Verify it's a match
+        expect(result.kind).toBe("CoreMatch");
+    });
+
+    it("should handle 100+ levels of nested blocks without stack overflow", () => {
+        // Create deeply nested blocks: { { { ... } } }
+        let body: Expr = { kind: "IntLit", value: 42, loc: testLoc };
+
+        // Create 100 levels of nesting
+        for (let i = 0; i < 100; i++) {
+            body = {
+                kind: "Block",
+                exprs: [body],
+                loc: testLoc,
+            };
+        }
+
+        const expr: Expr = body;
+
+        // Should not stack overflow
+        const result = desugar(expr);
+
+        // Blocks with single expression just return the expression
+        expect(result.kind).toBe("CoreIntLit");
+    });
+
+    it("should handle complex deeply nested expression combination", () => {
+        // Create a complex nested structure combining multiple transformations
+        let body: Expr = { kind: "IntLit", value: 1, loc: testLoc };
+
+        // Create 50 levels of alternating transformations
+        for (let i = 0; i < 50; i++) {
+            if (i % 4 === 0) {
+                // Lambda
+                body = {
+                    kind: "Lambda",
+                    params: [{ pattern: { kind: "VarPattern", name: `x${i}`, loc: testLoc }, loc: testLoc }],
+                    body: body,
+                    loc: testLoc,
+                };
+            } else if (i % 4 === 1) {
+                // List
+                body = {
+                    kind: "List",
+                    elements: [elem(body)],
+                    loc: testLoc,
+                };
+            } else if (i % 4 === 2) {
+                // Block
+                body = {
+                    kind: "Block",
+                    exprs: [body],
+                    loc: testLoc,
+                };
+            } else {
+                // If
+                body = {
+                    kind: "If",
+                    condition: { kind: "Var", name: `c${i}`, loc: testLoc },
+                    then: body,
+                    else_: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                };
+            }
+        }
+
+        const expr: Expr = body;
+
+        // Should not stack overflow
+        const result = desugar(expr);
+
+        // Should successfully desugar
+        expect(result).toBeDefined();
+    });
+});
