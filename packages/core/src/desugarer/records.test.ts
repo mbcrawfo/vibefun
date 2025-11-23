@@ -480,6 +480,205 @@ describe("Record Update - Base Record Expressions", () => {
     });
 });
 
+describe("Record Spread - Multiple Spreads", () => {
+    it("should desugar record with multiple spreads", () => {
+        // {...r1, ...r2, x: 1}
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                { kind: "Spread", expr: { kind: "Var", name: "r1", loc: testLoc }, loc: testLoc },
+                { kind: "Spread", expr: { kind: "Var", name: "r2", loc: testLoc }, loc: testLoc },
+                { kind: "Field", name: "x", value: { kind: "IntLit", value: 1, loc: testLoc }, loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        expect(result.fields).toHaveLength(3);
+        expect(result.fields[0]!.kind).toBe("Spread");
+        expect(result.fields[1]!.kind).toBe("Spread");
+        expect(result.fields[2]!.kind).toBe("Field");
+    });
+
+    it("should desugar record with three spreads", () => {
+        // {...r1, ...r2, ...r3}
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                { kind: "Spread", expr: { kind: "Var", name: "r1", loc: testLoc }, loc: testLoc },
+                { kind: "Spread", expr: { kind: "Var", name: "r2", loc: testLoc }, loc: testLoc },
+                { kind: "Spread", expr: { kind: "Var", name: "r3", loc: testLoc }, loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        expect(result.fields).toHaveLength(3);
+        expect(result.fields[0]!.kind).toBe("Spread");
+        expect(result.fields[1]!.kind).toBe("Spread");
+        expect(result.fields[2]!.kind).toBe("Spread");
+    });
+});
+
+describe("Record Spread - Nested Records", () => {
+    it("should desugar nested record with spread", () => {
+        // {user: {...person, age: 31}}
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                {
+                    kind: "Field",
+                    name: "user",
+                    value: {
+                        kind: "Record",
+                        fields: [
+                            { kind: "Spread", expr: { kind: "Var", name: "person", loc: testLoc }, loc: testLoc },
+                            {
+                                kind: "Field",
+                                name: "age",
+                                value: { kind: "IntLit", value: 31, loc: testLoc },
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        expect(result.fields).toHaveLength(1);
+        const userField = result.fields[0]! as { value: CoreRecord };
+        expect(userField.value.kind).toBe("CoreRecord");
+        expect(userField.value.fields).toHaveLength(2);
+    });
+
+    it("should desugar deeply nested records with spreads", () => {
+        // {a: {b: {...c}}}
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                {
+                    kind: "Field",
+                    name: "a",
+                    value: {
+                        kind: "Record",
+                        fields: [
+                            {
+                                kind: "Field",
+                                name: "b",
+                                value: {
+                                    kind: "Record",
+                                    fields: [
+                                        {
+                                            kind: "Spread",
+                                            expr: { kind: "Var", name: "c", loc: testLoc },
+                                            loc: testLoc,
+                                        },
+                                    ],
+                                    loc: testLoc,
+                                },
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        // Navigate to deeply nested spread
+        const aField = result.fields[0]! as { value: CoreRecord };
+        const bField = aField.value.fields[0]! as { value: CoreRecord };
+        expect(bField.value.fields[0]!.kind).toBe("Spread");
+    });
+});
+
+describe("Record Spread - Empty Spread", () => {
+    it("should desugar empty record spread", () => {
+        // {...{}}
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                {
+                    kind: "Spread",
+                    expr: { kind: "Record", fields: [], loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        expect(result.fields).toHaveLength(1);
+        expect(result.fields[0]!.kind).toBe("Spread");
+    });
+});
+
+describe("Record Spread - Field Shadowing", () => {
+    it("should preserve field shadowing order", () => {
+        // {...r, x: 1, ...s, x: 2}
+        // Code generator handles shadowing semantics
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                { kind: "Spread", expr: { kind: "Var", name: "r", loc: testLoc }, loc: testLoc },
+                { kind: "Field", name: "x", value: { kind: "IntLit", value: 1, loc: testLoc }, loc: testLoc },
+                { kind: "Spread", expr: { kind: "Var", name: "s", loc: testLoc }, loc: testLoc },
+                { kind: "Field", name: "x", value: { kind: "IntLit", value: 2, loc: testLoc }, loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        expect(result.fields).toHaveLength(4);
+        // Order preserved for code generator
+        expect(result.fields[0]!.kind).toBe("Spread");
+        expect((result.fields[1]! as { name: string }).name).toBe("x");
+        expect(result.fields[2]!.kind).toBe("Spread");
+        expect((result.fields[3]! as { name: string }).name).toBe("x");
+    });
+
+    it("should handle spread between same-named fields", () => {
+        // {x: 1, ...middle, x: 2}
+        const record: Expr = {
+            kind: "Record",
+            fields: [
+                { kind: "Field", name: "x", value: { kind: "IntLit", value: 1, loc: testLoc }, loc: testLoc },
+                { kind: "Spread", expr: { kind: "Var", name: "middle", loc: testLoc }, loc: testLoc },
+                { kind: "Field", name: "x", value: { kind: "IntLit", value: 2, loc: testLoc }, loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(record) as CoreRecord;
+
+        expect(result.kind).toBe("CoreRecord");
+        expect(result.fields).toHaveLength(3);
+        // All fields preserved in order
+        expect((result.fields[0]! as { name: string }).name).toBe("x");
+        expect(result.fields[1]!.kind).toBe("Spread");
+        expect((result.fields[2]! as { name: string }).name).toBe("x");
+    });
+});
+
 describe("Record Update - Source Locations", () => {
     it("should preserve source locations", () => {
         const updateLoc: Location = {
