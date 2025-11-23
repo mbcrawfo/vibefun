@@ -139,11 +139,6 @@ export function freeVars(expr: CoreExpr): Set<string> {
             case "CoreTuple":
                 e.elements.forEach((elem) => analyzeExpr(elem, currentBound));
                 return;
-
-            case "CoreWhile":
-                analyzeExpr(e.condition, currentBound);
-                analyzeExpr(e.body, currentBound);
-                return;
         }
     }
 

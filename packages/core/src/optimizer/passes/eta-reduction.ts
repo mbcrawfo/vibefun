@@ -240,14 +240,6 @@ export class EtaReductionPass extends OptimizationPass {
                     ...expr,
                     elements: expr.elements.map((e) => this.reduceEta(e)),
                 };
-
-            // While loop
-            case "CoreWhile":
-                return {
-                    ...expr,
-                    condition: this.reduceEta(expr.condition),
-                    body: this.reduceEta(expr.body),
-                };
         }
     }
 }

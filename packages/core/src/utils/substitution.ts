@@ -387,13 +387,6 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
                     ...e,
                     elements: e.elements.map(substExpr),
                 };
-
-            case "CoreWhile":
-                return {
-                    ...e,
-                    condition: substExpr(e.condition),
-                    body: substExpr(e.body),
-                };
         }
     }
 

@@ -239,10 +239,6 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         // Tuple expressions (placeholder)
         case "CoreTuple":
             throw new TypeError("Tuple type inference not yet implemented", expr.loc);
-
-        // While loops (placeholder)
-        case "CoreWhile":
-            throw new TypeError("While loop type inference not yet implemented", expr.loc);
     }
 }
 
