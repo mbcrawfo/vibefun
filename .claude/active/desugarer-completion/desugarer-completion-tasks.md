@@ -1,7 +1,7 @@
 # Desugarer Completion - Task List
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 (Full revision with audit recommendations)
+**Last Updated:** 2025-11-23 (Post-audit revision - corrected scope and test counts)
 
 ## Overall Progress
 
@@ -9,10 +9,10 @@
 
 **Current Phase:** Not started
 
-**Total Tasks:** 95+ (expanded from original 59 after comprehensive audit)
+**Total Tasks:** 105+ (expanded after comprehensive audit - Phase 0 significantly larger)
 **Completed:** 0
 **In Progress:** 0
-**Not Started:** 95+
+**Not Started:** 105+
 
 ---
 
@@ -23,6 +23,8 @@
 **Description:** Clean up dead code that misleads developers about while loop compilation.
 
 **Background:** CoreWhile was added as a placeholder but never used when while loop desugaring was implemented. It creates CoreLetRecExpr (recursive functions) instead.
+
+**⚠️ AUDIT UPDATE:** Initial plan identified 3 locations. Comprehensive audit found **11+ locations** across core-ast, typechecker, utilities, and optimizer.
 
 ### Tasks
 
@@ -46,14 +48,44 @@
   - Location: Lines 243-245
   - Remove: CoreWhile case that throws "not yet implemented" error
 
-- [ ] **0.5** Run tests to verify no breakage
+- [ ] **0.5** Remove CoreWhile from ast-analysis utility
+  - File: `packages/core/src/utils/ast-analysis.ts`
+  - Location: Line 143
+  - Remove: CoreWhile case
+
+- [ ] **0.6** Remove CoreWhile from substitution utility
+  - File: `packages/core/src/utils/substitution.ts`
+  - Location: Line 391
+  - Remove: CoreWhile case
+
+- [ ] **0.7** Remove CoreWhile from expr-equality utility (2 cases)
+  - File: `packages/core/src/utils/expr-equality.ts`
+  - Location: Lines 178-179
+  - Remove: Both CoreWhile cases
+
+- [ ] **0.8** Remove CoreWhile from ast-transform utility
+  - File: `packages/core/src/utils/ast-transform.ts`
+  - Location: Line 192
+  - Remove: CoreWhile case
+
+- [ ] **0.9** Remove CoreWhile from eta-reduction optimizer pass
+  - File: `packages/core/src/optimizer/passes/eta-reduction.ts`
+  - Location: Line 245
+  - Remove: CoreWhile case
+
+- [ ] **0.10** Remove CoreWhile from pattern-match-opt optimizer pass
+  - File: `packages/core/src/optimizer/passes/pattern-match-opt.ts`
+  - Location: Line 175
+  - Remove: CoreWhile case
+
+- [ ] **0.11** Run tests to verify no breakage
   - Command: `npm test`
-  - Verify all existing ~211 tests still pass
+  - Verify all existing 232 tests still pass
   - No tests should reference CoreWhile
 
-- [ ] **0.6** Document the removal
+- [ ] **0.12** Document the removal
   - Update `desugarer-completion-context.md`
-  - Add note that CoreWhile dead code was removed
+  - Add note that CoreWhile dead code was removed from 11+ locations
   - Confirm while loops desugar to CoreLetRecExpr
 
 ---
@@ -140,26 +172,41 @@
   - Test: `if x > 0 then action()`
   - Verify Unit insertion works with all condition types
 
-- [ ] **2.3** Add parser test for record field shorthand
+- [ ] **2.3** Verify UnitLit location for if-without-else
+  - Test: Verify UnitLit location matches else branch source position
+  - Ensure error messages point to correct location
+
+- [ ] **2.4** Add parser test for record field shorthand
   - File: `packages/core/src/parser/expressions.test.ts`
   - Test: Parse `{name, age}`
   - Verify AST expands to `{name: name, age: age}`
 
-- [ ] **2.4** Add parser test for record shorthand with spreads
+- [ ] **2.5** Add parser test for record shorthand with spreads
   - Test: `{...person, name}`
   - Verify shorthand expansion works with spreads
+  - Test: `{...person, name, age: 31}` - mixed
 
-- [ ] **2.5** Document if-without-else in context.md
+- [ ] **2.6** Add parser tests for TypeAnnotatedPattern creation
+  - Test: Parse `(x: Int)` creates TypeAnnotatedPattern
+  - Test: Nested `(Some((x: Int)))` creates nested TypeAnnotatedPattern
+  - Test: In various contexts (match, let, record patterns)
+
+- [ ] **2.7** Document if-without-else in context.md
   - Update parser-desugarer boundary section
   - Remove "Critical Ambiguity" note (now resolved)
   - Add confirmed parser behavior with code reference (parse-expressions.ts:678-682)
 
-- [ ] **2.6** Document record shorthand in context.md
+- [ ] **2.8** Document record shorthand in context.md
   - Confirm parser handles expansion
   - Add AST structure evidence
   - Update parser responsibilities list
 
-- [ ] **2.7** Run parser tests to verify
+- [ ] **2.9** Document TypeAnnotatedPattern parser behavior
+  - Add note about parser creating TypeAnnotatedPattern nodes
+  - Document contexts where it occurs
+  - Add to parser responsibilities list
+
+- [ ] **2.10** Run parser tests to verify
   - Command: `npm test -- packages/core/src/parser/expressions.test.ts`
   - Verify all new tests pass
   - Confirm parser behavior is validated
@@ -218,6 +265,12 @@
   - Check all transformation descriptions match implementation
   - Fix any other inconsistencies found
   - Ensure examples are accurate
+
+- [ ] **3.9b** Full desugaring spec review
+  - File: `docs/spec/12-compilation/desugaring.md`
+  - Audit entire file for consistency, not just identified sections
+  - Check for additional issues beyond string concat, mutable refs, if-without-else
+  - Document any additional spec corrections needed
 
 - [ ] **3.10** Update context.md with final decisions
   - File: `.claude/active/desugarer-completion/desugarer-completion-context.md`
@@ -587,6 +640,11 @@
   - Verify or-pattern expansion happens before TypeAnnotatedPattern desugaring
   - Verify both alternatives work correctly with annotations
 
+- [ ] **4.14.6** NEW: Test annotations on list patterns
+  - Pattern: `([x, y]: List<Int>)` in match context
+  - Verify annotation stripped, list pattern desugared
+  - Test: `match xs { | ([x]: List<Int>) => x }`
+
 ### 4.15 NEW: Parser Contract Tests
 
 - [ ] **4.15.1** Create new test file for parser contracts
@@ -662,7 +720,7 @@
 
 - [ ] **5.3** Run all tests
   - Command: `npm test`
-  - Verify all ~211 existing tests still pass (corrected baseline)
+  - Verify all 232 existing tests still pass (verified baseline)
   - Verify all new tests pass
 
 - [ ] **5.4** Run code formatting
@@ -680,9 +738,9 @@
   - Identify any gaps
 
 - [ ] **5.7** Count total tests
-  - Verify ~365+ tests total (expanded from original 300+ target)
+  - Verify ~386+ tests total (updated target based on corrected baseline)
   - Document test count breakdown by file
-  - Baseline was ~211, added ~155+ new tests (edge cases + parser contracts + error quality)
+  - Baseline was 232, added ~154+ new tests (edge cases + parser contracts + error quality)
 
 - [ ] **5.8** Review test output
   - Check for warnings
