@@ -1280,6 +1280,8 @@ Full pipeline tests in `packages/core/src/desugarer/desugarer.test.ts`:
 
 ## Appendix: Transformation Reference Table
 
+**Note:** See Categories 1-3 above for authoritative status. This table is a quick reference.
+
 | Surface Syntax | Core Representation | Status | Implementation File |
 |---|---|---|---|
 | `[1, 2, 3]` | `Cons(1, Cons(2, Cons(3, Nil)))` | ✅ Done | `desugarListLiteral.ts` |
@@ -1288,18 +1290,18 @@ Full pipeline tests in `packages/core/src/desugarer/desugarer.test.ts`:
 | `f(x, y)` | `f(x)(y)` | ✅ Done | `desugarer.ts` |
 | `x \|> f` | `f(x)` | ✅ Done | `desugarPipe.ts` |
 | `f >> g` | `(x) => g(f(x))` | ✅ Done | `desugarComposition.ts` |
-| `s1 & s2` | `String.concat(s1, s2)` | ✅ Done | `desugarBinOp.ts` |
+| `s1 & s2` | `CoreBinOp("Concat", s1, s2)` | ✅ Done | `desugarBinOp.ts` (pass-through) |
 | `while c { e }` | `let rec loop = () => match c ...` | ✅ Done | `desugarer.ts` |
 | `{ e1; e2 }` | `let _ = e1 in e2` | ✅ Done | `desugarBlock.ts` |
 | `[x, ...xs]` pattern | `Cons(x, xs)` pattern | ✅ Done | `desugarListPattern.ts` |
 | `p1 \| p2` | Multiple cases | ✅ Done | `desugarer.ts` |
-| `!ref` | `Ref.get(ref)` or `CoreDeref(ref)` | ❌ TODO | Need to implement |
-| `ref := val` | `Ref.set(ref, val)` or `CoreRefAssign` | ❌ TODO | Need to implement |
-| `x :: xs` | `Cons(x, xs)` or `List.cons(x, xs)` | ⚠️ Verify | Check `desugarBinOp.ts` |
-| `if c then e` | `if c then e else ()` | ⚠️ Verify | Check parser/desugarer |
-| `{ ...r }` | Expand or preserve? | ⚠️ Verify | Check current impl |
-| `(x: T)` pattern | Strip annotation? | ⚠️ Verify | Check desugarer |
-| `{ name, age }` | `{ name: name, age: age }` | ⚠️ Verify | Likely in parser |
+| `!ref` | `CoreUnaryOp("Deref", ref)` | ✅ Done | `desugarBinOp.ts` (pass-through) |
+| `ref := val` | `CoreBinOp("RefAssign", ref, val)` | ✅ Done | `desugarBinOp.ts` (pass-through) |
+| `x :: xs` | `CoreVariant("Cons", [x, xs])` | ✅ Done | `desugarBinOp.ts` |
+| `if c then e` | Parser inserts `else ()` | ✅ Done | Parser (not desugarer) |
+| `{ ...r }` | `CoreRecordLit` (preserved) | ✅ Done | `desugarer.ts` (pass-through) |
+| `(x: T)` pattern | Strips annotation, desugars inner | ✅ Done | `desugarer.ts` |
+| `{ name, age }` | `{ name: name, age: age }` | ✅ Done | Parser (not desugarer) |
 
 ---
 
