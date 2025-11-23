@@ -14,6 +14,9 @@ export default defineConfig({
                 "packages/*/src/**/*.test.ts",
                 "packages/*/src/**/*.spec.ts",
             ],
+            // Coverage thresholds set at 80% to maintain high code quality while allowing
+            // for reasonable fluctuations. These act as a safety net - the CI also fails
+            // if coverage decreases from the base branch, providing more granular protection.
             thresholds: {
                 lines: 80,
                 branches: 80,
