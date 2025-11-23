@@ -71,21 +71,7 @@ Tokens are categorized into:
 
 ### Example Token Stream
 
-**Source:**
-```vibefun
-let x = 42
-```
-
-**Tokens:**
-```typescript
-[
-  { type: 'LET', loc: { file: 'ex.vf', line: 1, column: 1, offset: 0 } },
-  { type: 'IDENTIFIER', value: 'x', loc: { file: 'ex.vf', line: 1, column: 5, offset: 4 } },
-  { type: 'EQUALS', loc: { file: 'ex.vf', line: 1, column: 7, offset: 6 } },
-  { type: 'INT_LITERAL', value: 42, loc: { file: 'ex.vf', line: 1, column: 9, offset: 8 } },
-  { type: 'EOF', loc: { file: 'ex.vf', line: 1, column: 11, offset: 10 } }
-]
-```
+For the source `let x = 42`, the lexer produces a sequence of tokens: LET keyword, IDENTIFIER (x), EQUALS, INT_LITERAL (42), and EOF. Each token carries its type, optional value, and location information.
 
 ## Surface AST
 
@@ -139,49 +125,7 @@ Represents the **full syntax** of the Vibefun language as parsed, including all 
 
 ### Example Nodes
 
-**Lambda Expression (multi-param):**
-```typescript
-{
-  type: 'Lambda',
-  params: ['x', 'y'],
-  body: {
-    type: 'BinaryOp',
-    op: '+',
-    left: { type: 'Variable', name: 'x', loc },
-    right: { type: 'Variable', name: 'y', loc },
-    loc
-  },
-  loc
-}
-```
-
-**Pipe Expression:**
-```typescript
-{
-  type: 'Pipe',
-  left: { type: 'Variable', name: 'x', loc },
-  right: [
-    { type: 'Variable', name: 'f', loc },
-    { type: 'Variable', name: 'g', loc }
-  ],
-  loc
-}
-// Represents: x |> f |> g
-```
-
-**List Literal:**
-```typescript
-{
-  type: 'ListLiteral',
-  elements: [
-    { type: 'IntLiteral', value: 1, loc },
-    { type: 'IntLiteral', value: 2, loc },
-    { type: 'IntLiteral', value: 3, loc }
-  ],
-  loc
-}
-// Represents: [1, 2, 3]
-```
+Surface AST nodes follow a common pattern: each node has a `type` field identifying the node kind, relevant data fields (like `params` for Lambda, `elements` for ListLiteral), child nodes, and a `loc` field for source location. For example, a lambda expression stores its parameters and body, a pipe expression stores its left side and sequence of functions to apply, and a list literal stores its element expressions.
 
 ### Characteristics
 
@@ -224,109 +168,11 @@ Represents the **minimal core language** after desugaring, with all syntactic su
 
 ### Example Transformations
 
-**Multi-param lambda → Curried:**
-```typescript
-// Surface: (x, y) => x + y
-{
-  type: 'Lambda',
-  params: ['x', 'y'],
-  body: /* x + y */,
-  loc
-}
+The desugarer transforms Surface AST to Core AST:
 
-// Core: x => y => x + y
-{
-  type: 'CoreLambda',
-  param: 'x',
-  body: {
-    type: 'CoreLambda',
-    param: 'y',
-    body: /* x + y */,
-    loc
-  },
-  loc
-}
-```
-
-**Pipe → Application:**
-```typescript
-// Surface: x |> f |> g
-{
-  type: 'Pipe',
-  left: { type: 'Variable', name: 'x', loc },
-  right: [
-    { type: 'Variable', name: 'f', loc },
-    { type: 'Variable', name: 'g', loc }
-  ],
-  loc
-}
-
-// Core: g(f(x))
-{
-  type: 'CoreApp',
-  func: { type: 'CoreVar', name: 'g', loc },
-  arg: {
-    type: 'CoreApp',
-    func: { type: 'CoreVar', name: 'f', loc },
-    arg: { type: 'CoreVar', name: 'x', loc },
-    loc
-  },
-  loc
-}
-```
-
-**List literal → Cons chain:**
-```typescript
-// Surface: [1, 2, 3]
-{
-  type: 'ListLiteral',
-  elements: [
-    { type: 'IntLiteral', value: 1, loc },
-    { type: 'IntLiteral', value: 2, loc },
-    { type: 'IntLiteral', value: 3, loc }
-  ],
-  loc
-}
-
-// Core: Cons(1, Cons(2, Cons(3, Nil)))
-{
-  type: 'CoreVariant',
-  tag: 'Cons',
-  value: {
-    type: 'CoreTuple',
-    elements: [
-      { type: 'CoreInt', value: 1, loc },
-      {
-        type: 'CoreVariant',
-        tag: 'Cons',
-        value: {
-          type: 'CoreTuple',
-          elements: [
-            { type: 'CoreInt', value: 2, loc },
-            {
-              type: 'CoreVariant',
-              tag: 'Cons',
-              value: {
-                type: 'CoreTuple',
-                elements: [
-                  { type: 'CoreInt', value: 3, loc },
-                  { type: 'CoreVariant', tag: 'Nil', value: null, loc }
-                ],
-                loc
-              },
-              loc
-            }
-          ],
-          loc
-        },
-        loc
-      }
-    ],
-    loc
-  },
-  loc
-}
-```
+- **Multi-param lambdas** become curried single-parameter lambdas (e.g., `(x, y) => body` becomes `x => y => body`)
+- **Pipe expressions** become nested function applications (e.g., `x |> f |> g` becomes `g(f(x))`)
+- **List literals** become chains of Cons variant constructors (e.g., `[1, 2, 3]` becomes `Cons(1, Cons(2, Cons(3, Nil)))`)
 
 ### Characteristics
 
@@ -442,17 +288,7 @@ interface TypeScheme {
 ```
 
 **Example:**
-```typescript
-// id: forall a. a -> a
-{
-  typeVars: ['a'],
-  type: {
-    kind: 'FunctionType',
-    from: { kind: 'TypeVar', name: 'a', id: 0 },
-    to: { kind: 'TypeVar', name: 'a', id: 0 }
-  }
-}
-```
+The identity function `id: forall a. a -> a` is represented as a TypeScheme with one type variable 'a' and a function type from 'a' to 'a'.
 
 ### Type Environment
 
@@ -487,40 +323,13 @@ interface Location {
 
 ### Usage
 
-Every AST node and token includes a `loc: Location` field.
-
-**Example:**
-```typescript
-const expr: Expr = {
-  type: 'Variable',
-  name: 'foo',
-  loc: {
-    file: 'example.vf',
-    line: 5,
-    column: 10,
-    offset: 87
-  }
-};
-```
+Every AST node and token includes a `loc: Location` field containing the filename, line, column, and offset information.
 
 ## Error Structures
 
 ### Error Hierarchy
 
-```typescript
-class VibefunError extends Error {
-  constructor(
-    message: string,
-    public loc: Location,
-    public hint?: string
-  )
-}
-
-class LexerError extends VibefunError {}
-class ParserError extends VibefunError {}
-class TypeError extends VibefunError {}
-class CodeGenError extends VibefunError {}
-```
+A base `VibefunError` class extends the standard Error, accepting a message, location, and optional hint. Phase-specific errors (LexerError, ParserError, TypeError, CodeGenError) extend this base class.
 
 ### Error Fields
 
@@ -531,13 +340,7 @@ class CodeGenError extends VibefunError {}
 
 ### Example
 
-```typescript
-throw new TypeError(
-  'Type mismatch: expected Int, got String',
-  expr.loc,
-  'Consider converting the string to an integer'
-);
-```
+Errors are thrown with a descriptive message, the location where the error occurred, and an optional hint to help the user fix the issue.
 
 ## Optimization Metrics
 
@@ -590,23 +393,7 @@ right: Expr
 
 ### Example Complete Node
 
-```typescript
-const binaryOp: Expr = {
-  type: 'BinaryOp',
-  op: '+',
-  left: {
-    type: 'Variable',
-    name: 'x',
-    loc: { file: 'ex.vf', line: 1, column: 5, offset: 4 }
-  },
-  right: {
-    type: 'IntLiteral',
-    value: 42,
-    loc: { file: 'ex.vf', line: 1, column: 9, offset: 8 }
-  },
-  loc: { file: 'ex.vf', line: 1, column: 5, offset: 4 }
-};
-```
+A binary operation node contains a type discriminator ('BinaryOp'), the operator, left and right child expressions, and location information. Child nodes also follow the same structure recursively.
 
 ## Data Structure Design Principles
 

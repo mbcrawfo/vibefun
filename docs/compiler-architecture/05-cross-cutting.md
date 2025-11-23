@@ -30,17 +30,7 @@ Error (built-in)
 
 ### Base Error Class
 
-```typescript
-class VibefunError extends Error {
-  constructor(
-    message: string,
-    public loc: Location,
-    public hint?: string
-  ) {
-    super(formatErrorMessage(message, loc, hint));
-  }
-}
-```
+The `VibefunError` base class extends JavaScript's Error, adding location information and an optional hint field. All compiler errors inherit from this base class, providing consistent error reporting across all phases.
 
 **Features:**
 - Extends JavaScript `Error` for stack traces
@@ -50,32 +40,7 @@ class VibefunError extends Error {
 
 ### Phase-Specific Errors
 
-**LexerError:**
-```typescript
-throw new LexerError(
-  'Unterminated string literal',
-  currentLoc,
-  'Add a closing quote'
-);
-```
-
-**ParserError:**
-```typescript
-throw new ParserError(
-  `Expected identifier, got ${token.type}`,
-  token.loc,
-  'Variable names must start with a letter or underscore'
-);
-```
-
-**TypeError:**
-```typescript
-throw new TypeError(
-  `Type mismatch: expected ${expected}, got ${actual}`,
-  expr.loc,
-  'Consider adding a type annotation'
-);
-```
+Each compilation phase has its own error class (LexerError, ParserError, TypeError, CodeGenError) that extends VibefunError. Errors are thrown with descriptive messages, source locations, and optional hints to help users understand and fix issues.
 
 ### Error Message Formatting
 
@@ -174,52 +139,20 @@ Code Generator → Source Maps (location → JS position)
 ### Preserving Locations
 
 **During AST transformation:**
-```typescript
-function desugarPipe(expr: SurfaceExpr): CoreExpr {
-  if (expr.type === 'Pipe') {
-    return {
-      type: 'CoreApp',
-      func: expr.right,
-      arg: expr.left,
-      loc: expr.loc  // Preserve original location
-    };
-  }
-  return expr;
-}
-```
+When transforming AST nodes, the location from the original node should be preserved in the transformed node. This maintains the connection to the source code.
 
 **When creating synthetic nodes:**
-```typescript
-// Use location from nearest real node
-const syntheticVar: CoreExpr = {
-  type: 'CoreVar',
-  name: '$temp0',
-  loc: originalExpr.loc  // Borrow location
-};
-```
+Synthetic nodes (created by the compiler, not from source) borrow location information from the nearest real node to provide approximate source context.
 
 ### Location Utilities
 
-**Merging locations (for nodes spanning multiple source nodes):**
-```typescript
-function mergeLocations(start: Location, end: Location): Location {
-  return {
-    file: start.file,
-    line: start.line,
-    column: start.column,
-    offset: start.offset
-    // Could also track end position if needed
-  };
-}
-```
+Location utilities provide operations like merging locations from multiple nodes (for nodes that span multiple source locations).
 
 ## AST Analysis Utilities
 
 ### AST Size Calculation
 
-```typescript
-function getASTSize(expr: CoreExpr): number
-```
+Utility to measure AST complexity by counting nodes recursively.
 
 **Purpose:**
 - Measure AST complexity
@@ -227,15 +160,9 @@ function getASTSize(expr: CoreExpr): number
 - Decide when to inline functions
 - Prevent excessive code bloat
 
-**Implementation:**
-- Counts AST nodes recursively
-- Used by optimizer to measure improvements
-
 ### Free Variables Analysis
 
-```typescript
-function getFreeVariables(expr: CoreExpr): Set<string>
-```
+Utility to identify variables used in an expression that are not bound within that expression.
 
 **Purpose:**
 - Identify variables used in expression
@@ -244,26 +171,11 @@ function getFreeVariables(expr: CoreExpr): Set<string>
 - Optimize variable capture
 
 **Example:**
-```typescript
-// Expression: x => x + y
-getFreeVariables(expr)  // Returns: Set{'y'}
-// 'x' is bound, 'y' is free
-```
+For the expression `x => x + y`, the free variable is `y` (since `x` is bound by the lambda).
 
 ### AST Traversal
 
-**Generic traversal pattern:**
-```typescript
-function traverseExpr<T>(
-  expr: CoreExpr,
-  visitor: {
-    onVar?: (name: string) => T,
-    onLambda?: (param: string, body: CoreExpr) => T,
-    onApp?: (func: CoreExpr, arg: CoreExpr) => T,
-    // ... other node types
-  }
-): T
-```
+Generic traversal utilities visit each node in an AST, allowing custom operations at each node type through a visitor pattern.
 
 **Use cases:**
 - Collecting information from AST
@@ -274,12 +186,7 @@ function traverseExpr<T>(
 
 ### Generic Transformation
 
-```typescript
-function transformExpr(
-  expr: CoreExpr,
-  transform: (expr: CoreExpr) => CoreExpr
-): CoreExpr
-```
+Utilities for applying transformations recursively to AST nodes.
 
 **Purpose:**
 - Apply transformation recursively to entire AST
@@ -287,24 +194,11 @@ function transformExpr(
 - Preserves structure and location
 
 **Example:**
-```typescript
-// Replace all occurrences of a variable
-const renamed = transformExpr(expr, e => {
-  if (e.type === 'CoreVar' && e.name === 'oldName') {
-    return { ...e, name: 'newName' };
-  }
-  return e;
-});
-```
+Transformations can recursively apply operations like variable renaming throughout an AST.
 
 ### Mapping Over Children
 
-```typescript
-function mapChildren(
-  expr: CoreExpr,
-  mapper: (child: CoreExpr) => CoreExpr
-): CoreExpr
-```
+Utility to transform only the direct children of a node (non-recursive).
 
 **Purpose:**
 - Transform direct children only (not recursive)
@@ -315,13 +209,7 @@ function mapChildren(
 
 ### Variable Substitution
 
-```typescript
-function substitute(
-  expr: CoreExpr,
-  varName: string,
-  replacement: CoreExpr
-): CoreExpr
-```
+Utilities for replacing all occurrences of a variable with an expression.
 
 **Purpose:**
 - Replace all occurrences of a variable with an expression
@@ -330,26 +218,14 @@ function substitute(
 - Respects variable shadowing
 
 **Example:**
-```typescript
-// Substitute y for x in (x + 1)
-const expr = /* CoreApp(+, x, 1) */;
-const result = substitute(expr, 'x', /* CoreVar(y) */);
-// Result: (y + 1)
-```
+Substituting `y` for `x` in the expression `(x + 1)` produces `(y + 1)`.
 
 ### Capture-Avoiding Substitution
 
-The substitution implementation **avoids variable capture**:
+The substitution implementation avoids variable capture by respecting lambda-bound variables.
 
-```typescript
-// Don't substitute under shadowing lambda
-substitute(
-  /* x => x + outer_x */,
-  'x',
-  /* y */
-)
-// Result: x => x + y (inner 'x' not substituted)
-```
+**Example:**
+When substituting `y` for `x` in `x => x + outer_x`, the inner `x` is not substituted (it's bound by the lambda), but `outer_x` would be substituted if it matched. Result: `x => x + y`.
 
 **Implementation:**
 - Track bound variables during traversal
@@ -360,13 +236,7 @@ substitute(
 
 ### Fresh Variable Generation
 
-```typescript
-class FreshVarGen {
-  constructor(private prefix: string = '$') {}
-
-  fresh(hint?: string): string
-}
-```
+Utilities for generating unique variable names to avoid collisions.
 
 **Purpose:**
 - Generate unique variable names
@@ -374,12 +244,7 @@ class FreshVarGen {
 - Used during desugaring transformations
 
 **Example:**
-```typescript
-const gen = new FreshVarGen('$pipe');
-gen.fresh();  // "$pipe0"
-gen.fresh();  // "$pipe1"
-gen.fresh();  // "$pipe2"
-```
+A fresh variable generator with prefix `$pipe` produces names like `$pipe0`, `$pipe1`, `$pipe2`, etc.
 
 ### Naming Conventions
 
@@ -397,28 +262,13 @@ Different prefixes for different transformations:
 
 ### Usage in Transformations
 
-```typescript
-const gen = new FreshVarGen('$pipe');
-
-// Desugar: x |> f |> g
-// To: let $pipe0 = f(x) in g($pipe0)
-const temp = gen.fresh();
-return {
-  type: 'CoreLet',
-  name: temp,
-  value: /* f(x) */,
-  body: /* g($pipe0) */,
-  loc
-};
-```
+Fresh variable generators are used during transformations to create temporary variables. For example, when desugaring `x |> f |> g`, a fresh variable like `$pipe0` might be created to hold intermediate results.
 
 ## Expression Equality
 
 ### Deep Equality Check
 
-```typescript
-function exprEquals(expr1: CoreExpr, expr2: CoreExpr): boolean
-```
+Utilities for checking if two AST nodes are structurally equal.
 
 **Purpose:**
 - Check if two AST nodes are structurally equal
@@ -431,20 +281,11 @@ function exprEquals(expr1: CoreExpr, expr2: CoreExpr): boolean
 - Ignores locations (semantically irrelevant)
 
 **Example:**
-```typescript
-const e1 = /* x + 1 */;
-const e2 = /* x + 1 */;
-const e3 = /* x + 2 */;
-
-exprEquals(e1, e2);  // true
-exprEquals(e1, e3);  // false
-```
+Two expressions `x + 1` are equal, but `x + 1` and `x + 2` are not.
 
 ### Alpha Equivalence
 
-```typescript
-function alphaEquals(expr1: CoreExpr, expr2: CoreExpr): boolean
-```
+Utilities for checking equality up to variable renaming.
 
 **Purpose:**
 - Check equality up to variable renaming
@@ -459,67 +300,22 @@ function alphaEquals(expr1: CoreExpr, expr2: CoreExpr): boolean
 ### Cloning AST Nodes
 
 **Pattern:**
-```typescript
-// Create modified copy (preserve original)
-const modified = {
-  ...original,
-  field: newValue
-};
-```
+Create modified copies of nodes using object spread, preserving the original while changing specific fields.
 
 **Example:**
-```typescript
-function renameVariable(expr: CoreExpr, oldName: string, newName: string): CoreExpr {
-  if (expr.type === 'CoreVar' && expr.name === oldName) {
-    return {
-      ...expr,
-      name: newName  // New node with changed name
-    };
-  }
-  return expr;  // Return original if no change
-}
-```
+When renaming a variable, create a new node with the updated name rather than mutating the original.
 
 ### Updating Nested Structures
 
 **Pattern:**
-```typescript
-// Update nested field
-const updated = {
-  ...parent,
-  child: {
-    ...parent.child,
-    field: newValue
-  }
-};
-```
+Use nested object spread to update fields deep in a structure while preserving immutability.
 
 **Example:**
-```typescript
-function updateLambdaBody(lambda: CoreLambda, newBody: CoreExpr): CoreLambda {
-  return {
-    ...lambda,
-    body: newBody  // New lambda with new body
-  };
-}
-```
+Updating a lambda's body creates a new lambda object with the new body, leaving the original unchanged.
 
 ### Map/Set for Collections
 
-Use immutable-style operations:
-
-```typescript
-// Add to set (create new set)
-const newSet = new Set([...oldSet, newItem]);
-
-// Add to map (create new map)
-const newMap = new Map([...oldMap, [key, value]]);
-
-// Remove from map
-const newMap = new Map(
-  [...oldMap].filter(([k, v]) => k !== keyToRemove)
-);
-```
+Use immutable-style operations: create new collections rather than mutating existing ones. For example, adding to a Set creates a new Set including the new item, rather than modifying the original Set.
 
 ## Utility Organization
 
@@ -537,16 +333,7 @@ utils/
 
 ### Import Pattern
 
-```typescript
-// Import from utils index
-import {
-  VibefunError,
-  TypeError,
-  getASTSize,
-  transformExpr,
-  substitute
-} from '../utils/index.js';
-```
+Utilities are imported from the utils module index, providing a clean public API.
 
 ## Testing Cross-Cutting Utilities
 
