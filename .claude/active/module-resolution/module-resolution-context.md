@@ -41,7 +41,69 @@
 
 ## Design Decisions
 
-### 1. Warning System Design
+### 1. Separation of Module Loader and Module Resolver
+
+**Decision:** Implement two separate components with distinct responsibilities:
+- **ModuleLoader**: Discovery, file I/O, parsing, caching
+- **ModuleResolver**: Pure graph analysis, cycle detection, warnings
+
+**Rationale:**
+- **Testability**: Module resolver is pure (no I/O), dramatically easier to test
+- **Single Responsibility**: Each component does one thing well
+- **Reusability**: Module resolver works with modules from any source (files, memory, network)
+- **Flexibility**: Can swap in different loaders (FileLoader, MemoryLoader, TestLoader)
+- **Future-proof**: Enables in-memory compilation (REPL), virtual filesystems, incremental compilation
+- **Clear dependencies**: Module resolver only depends on AST types, not filesystem
+
+**Alternative Considered:** Single component that does everything (discovery + analysis)
+**Rejected Because:**
+- Mixed concerns (I/O + graph algorithms)
+- Hard to test (requires filesystem mocking)
+- Limited reusability (can't use for in-memory modules)
+- More dependencies (couples graph analysis to file I/O)
+
+**How They Work Together:**
+```typescript
+// Example: Multi-file compilation
+const entryPoint = 'src/main.vf';
+
+// Step 1: Module Loader discovers & parses all modules
+const modules = loadModules(entryPoint);
+// Handles: main.vf imports file1.vf, file1.vf imports file3.vf,
+//          file2.vf also imports file3.vf (only parsed once due to cache)
+
+// Step 2: Module Resolver analyzes dependencies
+const resolution = resolveModules(modules);
+// Detects cycles, generates warnings, computes compilation order
+
+// Step 3: Use results for compilation
+for (const modulePath of resolution.compilationOrder) {
+  const ast = resolution.modules.get(modulePath);
+  // Desugar, type check, generate code...
+}
+```
+
+**Benefits for Testing:**
+```typescript
+// Module resolver: easy to test (pure function, no I/O)
+it('should detect circular dependencies', () => {
+  const modules = new Map();
+  modules.set('/A.vf', createModuleAST([importFrom('/B.vf')]));
+  modules.set('/B.vf', createModuleAST([importFrom('/A.vf')]));
+
+  const resolution = resolveModules(modules);
+  expect(resolution.warnings).toHaveLength(1);
+});
+
+// Module loader: test with real or mocked filesystem
+it('should discover transitive imports', () => {
+  // Write test files or use in-memory filesystem
+  const modules = loadModules('test/main.vf');
+  expect(modules.size).toBe(3); // main, file1, file2
+});
+```
+
+### 2. Warning System Design
 
 **Decision:** Create `VibefunWarning` class parallel to `VibefunError`
 
@@ -54,7 +116,7 @@
 **Alternative Considered:** Warnings as a subclass of errors
 **Rejected Because:** Semantically different - errors halt compilation, warnings don't
 
-### 2. Module Graph Representation
+### 3. Module Graph Representation
 
 **Decision:** Graph nodes are absolute file paths, edges track import metadata
 
@@ -67,7 +129,7 @@
 **Alternative Considered:** Nodes as Module AST objects
 **Rejected Because:** Too heavyweight, paths are sufficient for graph analysis
 
-### 3. Type-Only vs Value Cycles
+### 4. Type-Only vs Value Cycles
 
 **Decision:** Type-only circular imports don't trigger warnings
 
@@ -79,7 +141,7 @@
 
 **Implementation:** Track `isTypeOnly` boolean on graph edges, cycle is type-only only if ALL edges are type-only
 
-### 4. Topological Sort for Compilation Order
+### 5. Topological Sort for Compilation Order
 
 **Decision:** Return topologically sorted module list for type checking
 
@@ -89,9 +151,9 @@
 - For cyclic graphs: best-effort ordering, rely on type checker to handle forward references
 - Standard algorithm (Kahn's or DFS-based)
 
-### 5. Path Resolution Strategy
+### 6. Path Resolution Strategy
 
-**Decision:** Resolve all relative paths to absolute paths immediately
+**Decision:** Resolve all relative paths to absolute paths immediately (in module loader)
 
 **Rationale:**
 - Eliminates ambiguity across different import contexts
@@ -104,7 +166,7 @@
 - Normalize paths (remove `.`, `..` segments)
 - Use platform-appropriate separators
 
-### 6. Warning Message Format
+### 7. Warning Message Format
 
 **Decision:** Follow spec format (docs/spec/08-modules.md:221-233)
 
@@ -122,21 +184,35 @@
 - Suggestions guide users to solutions
 - Consistency across all warnings
 
-### 7. Module Resolver as Separate Phase
+### 8. Module Loading and Resolution as Separate Phases
 
-**Decision:** Module resolution is a distinct compilation phase after parsing
+**Decision:** Module loading and resolution are distinct compilation phases
 
 **Rationale:**
 - Clean separation of concerns
-- All modules must be parsed before building graph
-- Independent of lexing/parsing logic
+- All modules must be discovered and parsed before analyzing dependencies
+- Independent from lexing/parsing implementation details
 - Can be tested in isolation
-- Matches mental model: parse, then analyze dependencies
+- Matches mental model: load all modules → analyze dependencies → compile
 
 **Pipeline Position:**
 ```
-Parse All Modules → Resolve Modules → Desugar → Type Check → Generate
+Module Loading (recursive) → Module Resolution (graph analysis) → Desugar → Type Check → Generate
 ```
+
+**Loading Phase:**
+1. Parse entry point
+2. Discover imports
+3. Parse each import (recursively)
+4. Repeat until no new modules
+5. Result: `Map<string, Module>`
+
+**Resolution Phase:**
+1. Build dependency graph
+2. Detect cycles
+3. Generate warnings
+4. Compute topological order
+5. Result: `ModuleResolution`
 
 ## Implementation Patterns
 
@@ -190,9 +266,9 @@ class VibefunError extends Error {
 
 **Question:** What if `import { foo } from './missing'` references a file that doesn't exist?
 
-**Current Plan:** This is a separate error (file not found), not part of circular dependency detection. Module resolver assumes all modules in the input map exist.
+**Answer:** Module loader throws an error (file not found) during the discovery phase. Module resolver assumes all modules in the input map exist and are valid.
 
-**Future:** File resolution layer before module resolution.
+**Responsibility:** Module loader handles file I/O errors. Module resolver handles logical errors (cycles).
 
 ### 2. Re-exports and cycles?
 
