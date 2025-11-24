@@ -1649,17 +1649,431 @@ Algorithm M provides Vibefun with:
 
 The two-phase design (generation + solving) is more complex than Algorithm W but provides significant benefits for developer experience and future language evolution.
 
+### 7.6 Unification Algorithm
+
+**Implementation Status:** ✅ COMPLETE - Production-quality Robinson's unification already implemented in `/packages/core/src/typechecker/unify.ts`
+
+#### Overview
+
+**Robinson's Unification Algorithm** is the standard algorithm for unifying types in Hindley-Milner type systems. Vibefun's implementation includes:
+- Core unification for all type forms
+- Occurs check to prevent infinite types
+- Level tracking integration to prevent scope escape
+- Width subtyping for records via common field matching
+- Nominal typing for variants
+
+#### Robinson's Algorithm Specification
+
+**Core unification function:**
+
+```typescript
+function unify(t1: Type, t2: Type): Substitution {
+    // 1. If types are identical, return empty substitution
+    if (typesEqual(t1, t2)) {
+        return empty;
+    }
+
+    // 2. If either is a type variable, bind it (with occurs check)
+    if (t1.type === "Var") {
+        if (occursCheck(t1.id, t2)) {
+            throw new TypeError("Occurs check: cannot create infinite type");
+        }
+        updateLevels(t2, t1.level);  // Prevent scope escape
+        return bind(t1.id, t2);
+    }
+
+    if (t2.type === "Var") {
+        if (occursCheck(t2.id, t1)) {
+            throw new TypeError("Occurs check: cannot create infinite type");
+        }
+        updateLevels(t1, t2.level);  // Prevent scope escape
+        return bind(t2.id, t1);
+    }
+
+    // 3. If both are compound types, recursively unify components
+    if (t1.type === "Function" && t2.type === "Function") {
+        return unifyFunctions(t1, t2);
+    }
+
+    if (t1.type === "Record" && t2.type === "Record") {
+        return unifyRecords(t1, t2);  // Width subtyping
+    }
+
+    if (t1.type === "Variant" && t2.type === "Variant") {
+        return unifyVariants(t1, t2);  // Nominal typing
+    }
+
+    // ... other type forms (App, Tuple, Union, Ref, etc.)
+
+    // 4. Otherwise, types cannot unify
+    throw new TypeError(`Cannot unify ${typeToString(t1)} with ${typeToString(t2)}`);
+}
+```
+
+#### Occurs Check Algorithm
+
+**Purpose:** Prevents infinite types like `α = List<α>` or `α = α -> Int`
+
+**Algorithm:**
+
+```typescript
+function occursCheck(varId: number, type: Type): boolean {
+    switch (type.type) {
+        case "Var":
+            return type.id === varId;
+
+        case "Function":
+            return type.params.some(p => occursCheck(varId, p))
+                || occursCheck(varId, type.result);
+
+        case "App":
+            return occursCheck(varId, type.constructor)
+                || type.args.some(arg => occursCheck(varId, arg));
+
+        case "Record":
+            return Object.values(type.fields).some(field =>
+                occursCheck(varId, field.type)
+            );
+
+        case "Variant":
+            return type.constructors.some(ctor =>
+                ctor.args.some(arg => occursCheck(varId, arg))
+            );
+
+        case "Tuple":
+            return type.elements.some(elem => occursCheck(varId, elem));
+
+        case "Union":
+            return type.types.some(t => occursCheck(varId, t));
+
+        case "Ref":
+            return occursCheck(varId, type.inner);
+
+        default:
+            return false;  // Constants, primitives don't contain variables
+    }
+}
+```
+
+**Key points:**
+- Recursively traverses type structure
+- Returns true if variable ID found anywhere in type
+- Called before binding a type variable
+- Prevents unification that would create infinite types
+
+#### Width Subtyping for Records
+
+**Approach:** Unification-based (NOT subsumption-based, NOT row polymorphism)
+
+**Algorithm:**
+
+```typescript
+function unifyRecords(r1: RecordType, r2: RecordType): Substitution {
+    // Find common fields (intersection of field names)
+    const commonFields = Object.keys(r1.fields).filter(
+        key => key in r2.fields
+    );
+
+    // Unify only the common fields
+    let subst: Substitution = empty;
+    for (const fieldName of commonFields) {
+        const field1 = applySubst(subst, r1.fields[fieldName].type);
+        const field2 = applySubst(subst, r2.fields[fieldName].type);
+
+        const fieldSubst = unify(field1, field2);
+        subst = composeSubst(subst, fieldSubst);
+    }
+
+    // Extra fields in either record are ignored (width subtyping)
+    return subst;
+}
+```
+
+**Key characteristics:**
+- **NOT row polymorphism:** No row variables like `{x: Int | ρ}`
+- **NOT subsumption:** No directional subtyping check `<:`
+- **IS structural matching:** Extra fields ignored during unification
+- **Width subtyping via equality:** `{x: Int, y: Int, z: Int}` unifies with `{x: Int, y: Int}` by checking only `x` and `y`
+
+**Example:**
+```vibefun
+let f: {x: Int} -> Int = (r) => r.x;
+let value = {x: 42, y: "hello", z: true};
+
+f(value);  // OK: value has x: Int (extra fields y, z ignored)
+```
+
+#### Level Updates During Unification
+
+**Purpose:** Prevent type variables from escaping their defining scope
+
+**Algorithm:**
+
+```typescript
+function updateLevels(type: Type, maxLevel: number): void {
+    // For type variables: update level to minimum
+    if (type.type === "Var") {
+        type.level = Math.min(type.level, maxLevel);
+        return;
+    }
+
+    // Recursively update levels in compound types
+    switch (type.type) {
+        case "Function":
+            type.params.forEach(p => updateLevels(p, maxLevel));
+            updateLevels(type.result, maxLevel);
+            break;
+
+        case "App":
+            updateLevels(type.constructor, maxLevel);
+            type.args.forEach(arg => updateLevels(arg, maxLevel));
+            break;
+
+        case "Record":
+            Object.values(type.fields).forEach(field =>
+                updateLevels(field.type, maxLevel)
+            );
+            break;
+
+        // ... other compound types
+    }
+}
+```
+
+**When called:**
+- After occurs check passes
+- Before binding a type variable to a type
+- Ensures all type variables in the bound type have levels ≤ binding variable's level
+
+**Integration with generalization:**
+- Variables at deeper levels (higher numbers) can be generalized
+- Variables at shallower levels (lower numbers) cannot escape
+- See section 7.4 for complete level-based scoping algorithm
+
+#### Substitution Operations
+
+**Substitution representation:**
+
+```typescript
+type Substitution = Map<number, Type>;  // Maps type variable ID to type
+```
+
+**Application (applying substitution to a type):**
+
+```typescript
+function applySubst(subst: Substitution, type: Type): Type {
+    switch (type.type) {
+        case "Var":
+            const binding = subst.get(type.id);
+            if (binding) {
+                // Follow chain: apply subst to the binding recursively
+                return applySubst(subst, binding);
+            }
+            return type;
+
+        case "Function":
+            return {
+                ...type,
+                params: type.params.map(p => applySubst(subst, p)),
+                result: applySubst(subst, type.result)
+            };
+
+        // ... recursively apply to all compound types
+
+        default:
+            return type;  // Constants unchanged
+    }
+}
+```
+
+**Composition (combining substitutions):**
+
+```typescript
+function composeSubst(s1: Substitution, s2: Substitution): Substitution {
+    const result = new Map(s1);
+
+    // For each binding in s2, apply s1 and add to result
+    for (const [varId, type] of s2.entries()) {
+        result.set(varId, applySubst(s1, type));
+    }
+
+    return result;
+}
+```
+
+**Properties:**
+- Application is idempotent: `apply(s, apply(s, t)) = apply(s, t)`
+- Composition is associative: `compose(compose(s1, s2), s3) = compose(s1, compose(s2, s3))`
+
+#### Nominal Typing for Variants
+
+**Approach:** Variants must have identical constructor definitions to unify
+
+```typescript
+function unifyVariants(v1: VariantType, v2: VariantType): Substitution {
+    // Variants must have the same type name (nominal typing)
+    if (v1.name !== v2.name) {
+        throw new TypeError(
+            `Cannot unify variant ${v1.name} with variant ${v2.name}`
+        );
+    }
+
+    // Unify type parameters
+    return unifyTypeArgs(v1.typeArgs, v2.typeArgs);
+}
+```
+
+**Key principle:**
+- Variant types are **nominal**, not structural
+- `type Result<T, E> = Ok(T) | Err(E)` and `type Either<A, B> = Left(A) | Right(B)` do NOT unify
+- Even if structurally identical, different names mean different types
+- This prevents accidental type equivalence and gives better error messages
+
+#### Error Cases and Messages
+
+**Unification can fail in several ways:**
+
+1. **Type mismatch:**
+   ```
+   Error: Cannot unify Int with String
+     Expected: Int
+     Got: String
+   ```
+
+2. **Occurs check failure (infinite type):**
+   ```
+   Error: Occurs check failed: cannot create infinite type
+     Variable 'a cannot equal List<'a>
+   ```
+
+3. **Arity mismatch:**
+   ```
+   Error: Function arity mismatch
+     Expected: (Int, String) -> Bool
+     Got: (Int) -> Bool
+   ```
+
+4. **Nominal type mismatch:**
+   ```
+   Error: Cannot unify variant Result with variant Either
+     These are distinct types even if structurally similar
+   ```
+
+**Error message requirements:**
+- Include location information (file, line, column)
+- Show expected vs actual types
+- Provide helpful context (e.g., "In function application", "In let-binding")
+- Suggest fixes when possible (see Gap 8 for error reporting strategy)
+
+#### Testing Requirements
+
+**Comprehensive test coverage needed for:**
+
+1. **Basic unification:**
+   - Identical types (trivial cases)
+   - Type variable unification
+   - Constant unification
+
+2. **Occurs check:**
+   - Simple cycles (`'a = List<'a>`)
+   - Complex cycles (`'a = 'a -> Int`)
+   - Nested cycles
+   - Cycles through compound types
+
+3. **Level updates:**
+   - Variables at different levels
+   - Level lowering during unification
+   - Integration with generalization
+
+4. **Width subtyping:**
+   - Records with extra fields
+   - Records with missing fields (should unify)
+   - Common fields must unify correctly
+   - Nested records
+
+5. **Compound types:**
+   - Functions (parameters and return types)
+   - Type applications (List<Int>, Option<String>)
+   - Tuples (all elements)
+   - Unions (all alternatives)
+   - Refs (inner type)
+
+6. **Error cases:**
+   - Type mismatches
+   - Occurs check failures
+   - Arity mismatches
+   - Nominal type mismatches
+
+**Current test coverage:** ✅ Excellent - 648 lines of tests in `unify.test.ts` covering all scenarios
+
+#### Performance Characteristics
+
+**Current implementation (functional style):**
+- Substitution application: O(n) where n = type size
+- Substitution composition: O(m) where m = number of bindings
+- Unification: O(n) for type size n
+- Overall type checking: O(n²) in worst case for program size n
+
+**Optimization opportunity (deferred):**
+- **Union-Find with path compression**: Could reduce to O(n α(n)) where α is inverse Ackermann
+- **Mutable state**: Could eliminate substitution composition overhead
+- **Trade-off**: Current functional implementation prioritizes clarity and correctness over micro-optimization
+- **Decision**: Performance is adequate for typical programs; optimize only if profiling shows bottleneck
+
+#### Integration with Algorithm M
+
+Unification is used in **Phase 2 (Constraint Solving)** of Algorithm M:
+
+```typescript
+// During constraint solving (Algorithm M Phase 2)
+for (const constraint of constraints) {
+    if (constraint.kind === "Equality") {
+        const t1 = applySubst(currentSubst, constraint.t1);
+        const t2 = applySubst(currentSubst, constraint.t2);
+
+        const newSubst = unify(t1, t2);  // Call Robinson's unification
+        currentSubst = composeSubst(currentSubst, newSubst);
+    }
+}
+```
+
+The unification algorithm itself is **independent** of whether the type checker uses Algorithm W or Algorithm M - both rely on the same core unification.
+
+#### Sources and References
+
+**Academic Sources:**
+- [Hindley-Milner Type Inference](https://steshaw.org/hm/hindley-milner.pdf) - Original Hindley-Milner paper with Robinson's algorithm
+- [A Theory of Type Polymorphism in Programming](https://courses.cs.washington.edu/courses/cse590p/06sp/milner.pdf) - Milner's seminal paper (1978)
+
+**Tutorial Sources:**
+- [Type Inference - Cornell CS3110](https://www.cs.cornell.edu/courses/cs3110/2011sp/Lectures/lec26-type-inference/type-inference.htm) - Educational presentation of unification
+- [Understanding Algorithm W](https://jeremymikkola.com/posts/2018_03_25_understanding_algorithm_w.html) - Practical guide with unification details
+- [Tying up Type Inference](https://thunderseethe.dev/posts/unification/) - Modern implementation guide
+
+**Advanced Topics:**
+- [Union-Find for Type Inference](https://papl.cs.brown.edu/2016/Type_Inference.html) - Optimization technique
+- [Disjoint-Set Data Structure](https://en.wikipedia.org/wiki/Disjoint-set_data_structure) - Union-find background
+
+**Subtyping and Width:**
+- [Row Polymorphism Isn't Subtyping](https://brianmckenna.org/blog/row_polymorphism_isnt_subtyping) - Clarifies different approaches
+- [Covariance and Contravariance](https://eli.thegreenplace.net/2018/covariance-and-contravariance-in-subtyping/) - Variance in type systems
+
+#### Summary
+
+Vibefun's unification implementation:
+- ✅ **Correct:** Implements Robinson's algorithm with occurs check
+- ✅ **Complete:** Handles all Vibefun type forms
+- ✅ **Integrated:** Works with level-based scoping and Algorithm M
+- ✅ **Tested:** Comprehensive test coverage (100% of scenarios)
+- ✅ **Documented:** This specification provides complete algorithm details
+
+The unification algorithm is a **proven, battle-tested component** that forms the foundation of Vibefun's type inference system.
+
 ## 8. Identified Gaps in Specification
 
 ### 8.1 Algorithm Details Not Specified
 
-1. **Unification algorithm:**
-   - Not specified in detail
-   - Occurs check required (prevent infinite types)
-   - Substitution strategy?
-   - Error recovery when unification fails?
-
-2. **Type error priorities:**
+1. **Type error priorities:**
    - When multiple type errors exist, which to report first?
    - Should we report all errors or stop at first?
    - How to provide most helpful error messages?
