@@ -13,12 +13,12 @@ import type {
     CoreStringLit,
     CoreVariant,
 } from "../types/core-ast.js";
-import type { InferenceContext } from "./infer.js";
+import type { InferenceContext } from "./infer/index.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { buildEnvironment } from "./environment.js";
-import { inferExpr } from "./infer.js";
+import { inferExpr } from "./infer/index.js";
 import { primitiveTypes, resetTypeVarCounter } from "./types.js";
 import { emptySubst } from "./unify.js";
 

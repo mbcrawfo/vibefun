@@ -11,13 +11,13 @@ import type {
     CoreVar,
 } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
-import type { InferenceContext } from "./infer.js";
+import type { InferenceContext } from "./infer/index.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { TypeError } from "../utils/error.js";
 import { getBuiltinEnv } from "./builtins.js";
-import { createContext, inferExpr } from "./infer.js";
+import { createContext, inferExpr } from "./infer/index.js";
 import { primitiveTypes, resetTypeVarCounter } from "./types.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };

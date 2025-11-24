@@ -18,7 +18,7 @@ import type {
 import type { Type, TypeEnv } from "../types/environment.js";
 import type { Substitution } from "./unify.js";
 
-import { instantiate } from "./infer.js";
+import { instantiate } from "./infer/index.js";
 import { primitiveTypes } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
 
