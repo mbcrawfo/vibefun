@@ -225,6 +225,7 @@ Before submitting code, verify:
 - [ ] Classes only used for stateful components
 - [ ] All modules export through index.ts
 - [ ] Imports are from index.ts (not direct implementation files)
+- [ ] Files under 1,000 lines (or exception documented at top of file)
 - [ ] Comprehensive test coverage
 - [ ] All tests pass: `npm run test`
 - [ ] Type checking passes: `npm run check`
@@ -274,10 +275,84 @@ src/
     └── index.ts           # Public exports
 ```
 
-## File Size
+## File Size Limits
 
-- Aim for files under 500 lines
-- Break helper classes/functions out into their own files
+**Maximum file size: 1,000 lines**
+
+All TypeScript files (source and test) should remain under 1,000 lines. When a file approaches or exceeds this threshold:
+
+1. **Refactor the file** into smaller, focused modules
+2. **Extract logical components** into separate files
+3. **Follow module organization patterns** (use index.ts for public APIs)
+
+### File Size Guidelines
+
+- **Target**: Prefer files under 500 lines when possible
+- **Maximum**: 1,000 lines (hard limit)
+- **Single responsibility**: Each file should have one clear purpose
+- **Multi-file modules**: Use index.ts to re-export public APIs
+- **Test files**: Can be split by feature area or test category
+
+### When a File Exceeds 1,000 Lines
+
+If refactoring is not immediately feasible, add a comment block at the top explaining why:
+
+```typescript
+/**
+ * FILE SIZE EXCEPTION
+ *
+ * This file exceeds the 1,000 line guideline.
+ *
+ * Reason: [Explain why this file cannot be reasonably split]
+ *
+ * Examples of valid reasons:
+ * - Generated code that should not be manually edited
+ * - Large lookup tables or constant definitions that must stay together
+ * - Complex state machine with tightly coupled logic
+ *
+ * Last reviewed: [Date]
+ * Reviewer: [Name]
+ */
+```
+
+**Valid exception reasons:**
+- Generated code that must not be manually edited
+- Large constant/lookup tables that must stay together for semantic reasons
+- Complex tightly-coupled state machines where separation would harm clarity
+- Integration test suites that test cross-cutting end-to-end scenarios
+
+**Invalid exception reasons:**
+- "Haven't had time to refactor yet" (use TODO comment instead)
+- "Too hard to split" (usually indicates need for better design)
+- "Works fine as-is" (maintainability matters)
+
+### Refactoring Large Files
+
+When splitting a large file:
+
+1. **Identify logical boundaries**: Group related functions/classes
+2. **Extract to separate files**: Create focused modules
+3. **Use dependency injection**: Pass dependencies as parameters to avoid circular imports
+4. **Create index.ts**: Re-export public API to maintain existing imports
+5. **Run tests**: Verify no behavior changes with `npm run verify`
+
+Example refactoring patterns:
+
+```typescript
+// Before: large-module.ts (1,200 lines)
+export class LargeClass {
+    helperA() { }
+    helperB() { }
+    publicMethod() { }
+}
+
+// After: Split into multiple files
+// large-module/
+// ├── index.ts           # Re-exports public API
+// ├── large-class.ts     # Main class (delegates to helpers)
+// ├── helper-a.ts        # Helper A implementation
+// └── helper-b.ts        # Helper B implementation
+```
 
 ## Documentation
 
