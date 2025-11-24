@@ -1,7 +1,7 @@
 # Large File Breakup - Task Checklist
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 21:23
+**Last Updated:** 2025-11-23 22:20
 
 ## Overview
 
@@ -227,25 +227,25 @@
 
 ## Phase 9: Inference Tests (infer.test.ts)
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Files:** 1 → 5
 **Complexity:** Low
 
 ### Tasks
 
-- [ ] Create `infer-primitives.test.ts` (~350 lines)
+- [x] Create `infer-primitives.test.ts` (364 lines)
   - Move literals, variables, lambdas, applications, complex expressions, type annotations
-- [ ] Create `infer-operators.test.ts` (~150 lines)
+- [x] Create `infer-operators.test.ts` (201 lines)
   - Move binary operators and unary operators test suites
-- [ ] Create `infer-bindings.test.ts` (~350 lines)
+- [x] Create `infer-bindings.test.ts` (450 lines)
   - Move let-bindings, RefAssign/Deref, value restriction, unsafe blocks
-- [ ] Create `infer-records.test.ts` (~300 lines)
+- [x] Create `infer-records.test.ts` (393 lines)
   - Move records test suite and record type annotations
-- [ ] Create `infer-patterns.test.ts` (~850 lines)
+- [x] Create `infer-patterns.test.ts` (814 lines)
   - Move variants and match expressions test suites
-- [ ] Delete original `infer.test.ts`
-- [ ] Run `npm run verify` to ensure all tests pass
-- [ ] Verify all new files are under 1,000 lines
+- [x] Delete original `infer.test.ts`
+- [x] Run `npm run verify` to ensure all tests pass
+- [x] Verify all new files are under 1,000 lines
 
 ---
 
@@ -319,8 +319,8 @@
 | Phase 6: Expression Parser | 🔜 | 5 | ~550 lines | High |
 | Phase 7: Type Inference | 🔜 | 7 | ~450 lines | High |
 | Phase 8: Typechecker Tests | ✅ | 6 | ~350 lines | Low |
-| Phase 9: Inference Tests | 🔜 | 5 | ~850 lines | Low |
+| Phase 9: Inference Tests | ✅ | 5 | 814 lines | Low |
 | Phase 10: Update Coding Standards | 🔜 | 1 (updated) | N/A | Low |
 | **Total** | **5/10** | **50** | **~850 lines** | **-** |
 
-**Progress:** 5/10 phases completed (50%)
+**Progress:** 6/10 phases completed (60%)
