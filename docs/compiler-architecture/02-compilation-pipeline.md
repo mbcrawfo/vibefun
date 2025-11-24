@@ -338,16 +338,18 @@ The desugarer orchestrates multiple independent transformation functions, each i
 
 ### Responsibility
 
-Infer types for all expressions using Algorithm W (Hindley-Milner type inference) and validate type correctness.
+Infer types for all expressions using Algorithm M (constraint-based Hindley-Milner type inference) and validate type correctness.
 
 ### Architecture
 
-**Algorithm W implementation** with:
+**Algorithm M implementation** with two-phase design:
+- **Phase 1:** Constraint generation with bidirectional typing
+- **Phase 2:** Constraint solving with error recovery
 - Type environment management
 - Unification algorithm
-- Substitution tracking
 - Let-polymorphism with value restriction
 - Pattern exhaustiveness checking
+- Partial results for IDE support
 
 ### Input
 
@@ -361,9 +363,10 @@ Infer types for all expressions using Algorithm W (Hindley-Milner type inference
 ### Key Features (Planned)
 
 **1. Type Inference**
-- Hindley-Milner Algorithm W
+- Hindley-Milner Algorithm M (constraint-based)
+- Two-phase architecture (generation + solving)
+- Bidirectional typing (synthesis and checking modes)
 - Automatic type variable generation
-- Unification for constraint solving
 - Let-polymorphism (generalize at let-bindings)
 
 **2. Type Environment**
@@ -387,11 +390,13 @@ Infer types for all expressions using Algorithm W (Hindley-Milner type inference
 
 ### Design Decisions
 
-**Why Algorithm W?**
-- Well-established, proven algorithm
-- Efficient type inference
-- Supports let-polymorphism naturally
-- Extensive literature and examples
+**Why Algorithm M over Algorithm W?**
+- Better error messages through constraint analysis and prioritization
+- Partial results enable IDE support (type-at-cursor, error recovery)
+- Future extensibility for advanced type features (GADTs, effects)
+- Bidirectional typing provides more precise inference
+- Clean separation of concerns (generation vs solving)
+- Trade-off: More complex implementation for better developer experience
 
 **Why value restriction?**
 - Soundness with mutable references

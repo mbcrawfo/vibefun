@@ -300,57 +300,71 @@ The "constraint-based" terminology in the spec is **misleading** - Vibefun uses 
 
 ### Recommendations
 
-#### For Language Specification
+**Status: ✅ PLANNED - Strategic Decision to Use Algorithm M**
 
-**Update `docs/spec/03-type-system/README.md`:**
+#### Strategic Decision
 
-Change from:
-```markdown
-- **Constraint-based inference**: Generates and solves type constraints
-```
+After thorough analysis, **Vibefun will use Algorithm M** (constraint-based, two-phase) instead of Algorithm W (direct unification) to enable:
+- Better error messages through constraint analysis
+- Partial results for IDE support
+- Future extensibility for advanced type features
+- Bidirectional typing for more precise inference
 
-To:
-```markdown
-## Type System Design
+**Trade-off accepted:** More complex implementation in exchange for superior developer experience and future capabilities.
 
-Vibefun's type system is based on **Algorithm W** (Damas-Hindley-Milner) with modern extensions:
+#### Implementation Summary
 
-- **Unification-based inference**: Direct unification during type checking
-- **Type variable scoping with levels**: Prevents type variables from escaping scope
-- **Width subtyping for records**: Structural matching allowing extra fields
-- **Nominal typing for variants**: Variant types require exact constructor matching
-- **Let-polymorphism**: Automatic generalization and instantiation
-- **Syntactic value restriction**: Only syntactic values can be generalized
-```
+**Typechecker Requirements** (`.claude/design/typechecker-requirements.md`):
+- ✅ Updated section 1.1 to specify Algorithm M
+- ✅ Added comprehensive section 7.5 "Algorithm M: Two-Phase Constraint-Based Type Inference"
+  - Complete algorithm specification with pseudocode
+  - Constraint types (Equality, Instance, Subtype)
+  - Bidirectional typing (synthesis + checking modes)
+  - Phase 1: Constraint generation algorithm
+  - Phase 2: Constraint solving with error recovery
+  - Error prioritization strategy
+  - Partial results for IDE support
+  - Migration path from current Algorithm W
+  - Testing requirements
+  - Sources and references
+- ✅ Removed constraint gap from section 8.1 (now fully specified)
 
-**Create new document `docs/spec/03-type-system/inference-algorithm.md`:**
-- Algorithm W overview
-- Inference rules for each expression type
-- Unification algorithm details
-- Occurs check and level-based scoping
-- Constraint types (equality, instance) - documentary only
-- Width subtyping as unification rule
+**Compiler Architecture** (`docs/compiler-architecture/02-compilation-pipeline.md`):
+- ✅ Updated Type Checker section to specify Algorithm M
+- ✅ Added design rationale "Why Algorithm M over Algorithm W?"
+  - Better error messages
+  - IDE support enablement
+  - Future extensibility
+  - Clean architecture
 
-**Update `docs/spec/03-type-system/record-types.md`:**
+**Gap Document** (`.claude/design/typechecker-gaps.md`):
+- ✅ Updated Gap 2 recommendations to reflect Algorithm M decision
 
-Clarify that width subtyping is:
-- Structural matching during unification
-- NOT row polymorphism (no row variables)
-- NOT subsumption-based subtyping
-- Extra fields ignored during unification
+#### Documentation Philosophy
 
-#### For Typechecker Requirements
+This correctly identifies the choice between Algorithm W (simple, fast) and Algorithm M (complex, extensible) as an **architectural decision** for the compiler implementation, not a language specification concern.
 
-**Update `.claude/design/typechecker-requirements.md`:**
+**Language specification** describes type inference semantics (what types are inferred), not the specific algorithm used (how inference is implemented).
 
-1. **Remove from "8.1 Algorithm Details Not Specified"** - constraint-based gap is resolved
-2. **Clarify in overview**: "Vibefun uses Algorithm W with eager unification"
-3. **Document current approach**: Width subtyping via unification rules
-4. **No major changes needed**: Current implementation is correct
+#### Migration Strategy
 
-### Key Takeaway
+**Current state:**
+- Algorithm W implementation with eager unification
+- Constraint types exist but are solved immediately
+- Works correctly but limited error recovery
 
-**Vibefun should embrace Algorithm W, not claim constraint-based inference.** The current implementation is correct and well-suited to Vibefun's goals. Update spec to be accurate about the approach.
+**Target state:**
+- Algorithm M with two-phase architecture
+- Constraint generation phase (bidirectional)
+- Constraint solving phase (with error analysis)
+- Partial results and error prioritization
+
+**Incremental migration:**
+1. Add expected type parameter (Phase 1 foundation)
+2. Separate generation from solving
+3. Implement bidirectional typing rules
+4. Add error recovery with placeholders
+5. Enhance error message quality
 
 ### Sources
 

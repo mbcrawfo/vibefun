@@ -10,7 +10,7 @@ This document provides a comprehensive requirements specification for the vibefu
 - Compiler architecture documentation
 - Parser and desugarer implementation (Core AST structure)
 
-The typechecker implements a **Hindley-Milner type inference system** (Algorithm W) with structural typing for records, nominal typing for variants, and sophisticated pattern matching analysis.
+The typechecker implements a **Hindley-Milner type inference system** (Algorithm M - constraint-based) with structural typing for records, nominal typing for variants, and sophisticated pattern matching analysis.
 
 ## Scope
 
@@ -26,12 +26,14 @@ The typechecker processes the **Core AST** (output from the desugarer) and must 
 
 **Reference:** `docs/spec/03-type-system/type-inference.md`
 
-- **Algorithm:** Hindley-Milner type inference (Algorithm W)
-- **Approach:** Constraint-based inference with constraint generation and solving
+- **Algorithm:** Hindley-Milner type inference (Algorithm M - constraint-based)
+- **Approach:** Two-phase inference with separate constraint generation and solving phases
+- **Bidirectional:** Combines synthesis (bottom-up) and checking (top-down) with expected types
 - **Type Variables:** Level-based scoping to prevent variables from escaping scope (Standard ML approach)
 - **Polymorphism:** Let-polymorphism with automatic generalization and instantiation
 - **Restriction:** Value restriction - only syntactic values can be generalized
 - **Rank:** Rank-1 polymorphism only (no higher-rank types)
+- **Error Recovery:** Partial results with placeholder types for continued inference after errors
 
 ### 1.2 Primitive Types
 
@@ -1253,25 +1255,415 @@ The typechecker implementation must include tests for:
 - The level algorithm is **compatible** with the value restriction - both checks must pass for generalization
 - For efficiency, consider using a union-find data structure for type variables with path compression
 
+### 7.5 Algorithm M: Two-Phase Constraint-Based Type Inference
+
+**Strategic Decision:** Vibefun uses Algorithm M (constraint-based, two-phase) instead of Algorithm W (direct unification) to enable better error messages, partial results for IDE support, and future extensibility.
+
+#### Overview
+
+**Algorithm M** is a constraint-based approach to Hindley-Milner type inference that separates constraint generation from constraint solving. This separation provides significant advantages over Algorithm W:
+
+**Benefits:**
+- **Better error messages:** Can analyze all constraints before choosing which errors to report
+- **Partial results:** Generate type information even when errors exist (critical for IDE support)
+- **Error recovery:** Continue inference after encountering errors using placeholder types
+- **Bidirectional typing:** Expected types flow top-down, inferred types flow bottom-up
+- **Extensibility:** Easier to add new type system features (GADTs, effects, advanced subtyping)
+
+**Trade-offs:**
+- More complex implementation (two phases vs one)
+- Slightly higher memory usage (store all constraints)
+- Performance overhead minimal (two passes vs one, but enables optimizations)
+
+#### Two-Phase Architecture
+
+**Phase 1: Constraint Generation**
+- Traverse the Core AST
+- Generate type constraints without solving them
+- Use bidirectional typing (expected types guide generation)
+- Collect all constraints into a constraint set
+- Do NOT unify during this phase
+
+**Phase 2: Constraint Solving**
+- Process all collected constraints
+- Apply unification to equality constraints
+- Apply subsumption to subtyping constraints
+- Detect and prioritize error reporting
+- Generate substitution mapping type variables to types
+
+#### Constraint Types
+
+The typechecker must support three kinds of constraints:
+
+```typescript
+type Constraint =
+    | { kind: "Equality"; t1: Type; t2: Type; loc: Location }
+    | { kind: "Instance"; type: Type; scheme: TypeScheme; loc: Location }
+    | { kind: "Subtype"; sub: Type; super: Type; loc: Location }
+```
+
+**Equality Constraint** (`t1 = t2`):
+- Requires `t1` and `t2` to unify
+- Generated from: function application, let-binding, pattern matching
+- Solved by: unification algorithm with occurs check
+
+**Instance Constraint** (`t <: scheme`):
+- Type `t` must be an instance of polymorphic scheme
+- Generated from: variable lookup, polymorphic instantiation
+- Solved by: scheme instantiation (create fresh type variables for quantifiers)
+
+**Subtype Constraint** (`t1 <: t2`):
+- Type `t1` must be a subtype of `t2`
+- Generated from: record width subtyping
+- Solved by: structural subtyping rules (extra fields allowed in records)
+
+#### Bidirectional Typing
+
+Algorithm M uses **bidirectional** type checking with expected types:
+
+```typescript
+// Constraint generation with expected type
+function generate(env: TypeEnv, expr: CoreExpr, expected: Type | null): Constraint[] {
+    // expected = null means "synthesize" (infer type bottom-up)
+    // expected = Type means "check" (use top-down information)
+}
+```
+
+**Synthesis mode** (expected = null):
+- Infer type from expression structure
+- Bottom-up type flow
+- Used for: variables, literals, lambdas, applications
+
+**Checking mode** (expected = Type):
+- Use expected type to guide inference
+- Top-down type flow
+- Used for: function arguments, let-bindings, annotations
+
+**Benefits of bidirectionality:**
+- More precise type inference
+- Better error locations (know what was expected)
+- Supports future features (subsumption, higher-rank types)
+
+#### Phase 1: Constraint Generation Algorithm
+
+**Core generation function:**
+
+```typescript
+function generate(env: TypeEnv, expr: CoreExpr, expected: Type | null): Constraint[] {
+    switch (expr.type) {
+        case "Literal":
+            const litType = literalType(expr.value);
+            if (expected) {
+                return [{ kind: "Equality", t1: litType, t2: expected, loc: expr.loc }];
+            }
+            return [];
+
+        case "Variable":
+            const scheme = env.lookup(expr.name);
+            const instType = freshTypeVar(current_level);
+            const constraints: Constraint[] = [
+                { kind: "Instance", type: instType, scheme: scheme, loc: expr.loc }
+            ];
+            if (expected) {
+                constraints.push({ kind: "Equality", t1: instType, t2: expected, loc: expr.loc });
+            }
+            return constraints;
+
+        case "Lambda":
+            // Fresh type variables for parameter and result
+            const paramType = expr.paramType || freshTypeVar(current_level);
+            const resultType = freshTypeVar(current_level);
+            const funType = { type: "Function", param: paramType, result: resultType };
+
+            // Add parameter to environment
+            const bodyEnv = env.extend(expr.param, paramType);
+
+            // Generate constraints for body (checking mode with expected result type)
+            const bodyConstraints = generate(bodyEnv, expr.body, resultType);
+
+            // Unify function type with expected type
+            const constraints = [...bodyConstraints];
+            if (expected) {
+                constraints.push({ kind: "Equality", t1: funType, t2: expected, loc: expr.loc });
+            }
+            return constraints;
+
+        case "Application":
+            // Synthesize function type
+            const argType = freshTypeVar(current_level);
+            const resType = freshTypeVar(current_level);
+            const funType = { type: "Function", param: argType, result: resType };
+
+            const funConstraints = generate(env, expr.func, funType);
+            const argConstraints = generate(env, expr.arg, argType);
+
+            const constraints = [...funConstraints, ...argConstraints];
+            if (expected) {
+                constraints.push({ kind: "Equality", t1: resType, t2: expected, loc: expr.loc });
+            }
+            return constraints;
+
+        case "Let":
+            enterLevel();
+            const bindingConstraints = generate(env, expr.value, null);  // Synthesize
+            leaveLevel();
+
+            // Generalize the inferred type
+            const bindingType = freshTypeVar(current_level);
+            const scheme = generalize(bindingType);
+
+            // Type check body with extended environment
+            const bodyEnv = env.extend(expr.name, scheme);
+            const bodyConstraints = generate(bodyEnv, expr.body, expected);
+
+            return [...bindingConstraints, ...bodyConstraints];
+
+        // ... other expression types
+    }
+}
+```
+
+**Key principles:**
+- Generate constraints, don't solve
+- Use expected types when available (checking mode)
+- Synthesize types when no expectation (synthesis mode)
+- Collect all constraints for later solving
+
+#### Phase 2: Constraint Solving Algorithm
+
+**Core solving function:**
+
+```typescript
+function solve(constraints: Constraint[]): Substitution {
+    let subst: Substitution = empty;
+    const errors: TypeError[] = [];
+
+    for (const constraint of constraints) {
+        try {
+            switch (constraint.kind) {
+                case "Equality":
+                    // Apply current substitution
+                    const t1 = applySubst(subst, constraint.t1);
+                    const t2 = applySubst(subst, constraint.t2);
+
+                    // Unify
+                    const newSubst = unify(t1, t2);
+                    subst = compose(newSubst, subst);
+                    break;
+
+                case "Instance":
+                    // Instantiate scheme
+                    const instType = instantiate(constraint.scheme);
+                    const t = applySubst(subst, constraint.type);
+                    const unifier = unify(t, instType);
+                    subst = compose(unifier, subst);
+                    break;
+
+                case "Subtype":
+                    // Check subtyping (for records)
+                    const tsub = applySubst(subst, constraint.sub);
+                    const tsuper = applySubst(subst, constraint.super);
+                    const subtypeSubst = checkSubtype(tsub, tsuper);
+                    subst = compose(subtypeSubst, subst);
+                    break;
+            }
+        } catch (err) {
+            // Collect errors but continue solving
+            errors.push({ ...err, loc: constraint.loc });
+
+            // Use placeholder type to continue
+            const placeholder = { type: "Error", id: freshErrorId() };
+            // Bind type variables to placeholder to enable partial results
+        }
+    }
+
+    // Analyze and prioritize errors before reporting
+    if (errors.length > 0) {
+        const prioritized = prioritizeErrors(errors);
+        throw prioritized[0];  // Report most helpful error
+    }
+
+    return subst;
+}
+```
+
+**Error recovery strategy:**
+- Catch errors during solving but continue processing
+- Use placeholder "error types" to enable partial results
+- Collect all errors, then prioritize which to report
+- Choose most local, specific, and actionable error
+
+**Error prioritization:**
+1. Type mismatches with location information (most specific)
+2. Occurs check failures (infinite types)
+3. Missing variable errors
+4. Subtyping failures
+
+#### Integration with Type Variable Levels
+
+Algorithm M is **fully compatible** with the level-based scoping algorithm (section 7.4):
+
+- Levels track let-binding nesting during constraint generation
+- `enterLevel()` called before generating constraints for let-bindings
+- `leaveLevel()` called before generalization
+- Generalization uses level checks: `level > current_level`
+- Constraint solving respects level invariants
+
+#### Error Recovery for IDE Support
+
+**Placeholder types:**
+```typescript
+type Type =
+    | ... // normal types
+    | { type: "Error"; id: number }  // Placeholder for errors
+
+// Use error types to continue inference
+function handleError(constraint: Constraint): Type {
+    return { type: "Error", id: freshErrorId() };
+}
+```
+
+**Partial results:**
+- Even with errors, generate types for all expressions
+- Use error types as placeholders where inference fails
+- IDE can show "partial" type information with error markers
+- Enables type-at-cursor even with errors elsewhere
+
+#### Testing Requirements
+
+**Phase 1 testing (Constraint Generation):**
+1. Generate correct constraints for all expression types
+2. Bidirectional mode switching (synthesis vs checking)
+3. Expected type propagation
+4. Constraint collection without premature solving
+
+**Phase 2 testing (Constraint Solving):**
+1. Equality constraint solving (unification)
+2. Instance constraint solving (instantiation)
+3. Subtype constraint solving (width subtyping for records)
+4. Error detection and collection
+5. Error prioritization and reporting
+
+**Integration testing:**
+1. End-to-end type inference with both phases
+2. Error recovery with placeholder types
+3. Partial results with errors
+4. All existing type checker tests adapted to Algorithm M
+
+**Error message quality testing:**
+1. Compare error messages to Algorithm W baseline
+2. Verify error location accuracy
+3. Test error prioritization (most helpful first)
+4. Verify inference chains in error messages
+
+#### Migration from Current Implementation
+
+**Current state:** Vibefun has:
+- Algorithm W implementation with eager unification
+- Constraint types defined but solved eagerly
+- `/packages/core/src/typechecker/constraints.ts` with Equality and Instance constraints
+
+**Migration path:**
+1. **Keep:** Type representation, type environment, level tracking, generalization
+2. **Refactor:** Split `infer()` into `generate()` and `solve()`
+3. **Add:** Expected type parameter to all generation functions
+4. **Add:** Bidirectional typing rules
+5. **Enhance:** Error recovery with placeholder types
+6. **Improve:** Error prioritization and reporting
+
+**Incremental approach:**
+1. Add expected type parameter (can be null initially)
+2. Separate constraint generation from solving
+3. Defer solving to end of generation phase
+4. Add error recovery with placeholders
+5. Enhance error messages with constraint analysis
+
+#### Performance Characteristics
+
+**Algorithm M complexity:**
+- **Constraint generation:** O(n) where n = AST size
+- **Constraint solving:** O(n log n) with union-find optimization
+- **Overall:** Same asymptotic complexity as Algorithm W
+- **Memory:** O(n) to store constraints (acceptable trade-off)
+
+**Optimizations:**
+- Use union-find for type variable unification
+- Cache solved constraints
+- Lazy constraint solving for incremental type checking
+- Parallel constraint solving for independent constraints
+
+#### Implementation Priorities
+
+**Phase 1 (Core Algorithm M):**
+1. Add expected type parameter to inference functions
+2. Implement constraint generation for all expressions
+3. Implement bidirectional typing rules
+4. Separate constraint solving into distinct phase
+
+**Phase 2 (Error Recovery):**
+1. Add error type placeholders
+2. Implement error collection during solving
+3. Continue solving after errors
+4. Generate partial results
+
+**Phase 3 (Error Quality):**
+1. Implement error prioritization algorithm
+2. Add inference chain tracking
+3. Improve error messages with context
+4. Show expected vs actual types clearly
+
+**Phase 4 (IDE Support):**
+1. Incremental constraint generation
+2. Partial result queries
+3. Type-at-cursor with error recovery
+4. Real-time error reporting
+
+#### Sources and References
+
+**Algorithm M and Constraint-Based Inference:**
+- [Hindley-Milner inference with constraints](https://kseo.github.io/posts/2017-01-02-hindley-milner-inference-with-constraints.html) - Kwang Yul Seo's detailed explanation
+- [Damas-Hindley-Milner inference two ways](https://bernsteinbear.com/blog/type-inference/) - Max Bernstein's comparison of Algorithm W vs constraint-based
+- [Lecture 11: Type Inference](https://course.ccs.neu.edu/cs4410sp19/lec_type-inference_notes.html) - Northeastern University course notes
+- [Unification (computer science)](https://en.wikipedia.org/wiki/Unification_(computer_science)) - Unification algorithm details
+
+**Bidirectional Typing:**
+- [Bidirectional Type Checking](https://www.cl.cam.ac.uk/~nk480/bidir.pdf) - Jana Dunfield and Neelakantan R. Krishnaswami (2019)
+- Covers bidirectional typing with synthesis and checking modes
+
+**Error Recovery:**
+- [Resilient Parsing and Error Recovery](http://soft-dev.org/pubs/html/diekmann_tratt__resilient_ll_parsing_tutorial/) - Error recovery strategies
+- [Incremental Type Checking](https://www.pl-enthusiast.net/2015/06/29/incremental-type-checking/) - IDE support patterns
+
+**Production Implementations:**
+- Rust's type checker: Constraint-based with bidirectional typing
+- Elm's type checker: Algorithm M with excellent error messages
+- PureScript: Constraint-based inference with advanced features
+
+#### Summary
+
+Algorithm M provides Vibefun with:
+- ✅ **Better error messages** through constraint analysis
+- ✅ **IDE support** via partial results and error recovery
+- ✅ **Future extensibility** for advanced type features
+- ✅ **Clean architecture** with separated concerns
+
+The two-phase design (generation + solving) is more complex than Algorithm W but provides significant benefits for developer experience and future language evolution.
+
 ## 8. Identified Gaps in Specification
 
 ### 8.1 Algorithm Details Not Specified
 
-1. **Constraint types and solving:**
-   - Spec says "constraint-based inference" but doesn't specify constraint types
-   - What constraints exist? (Equality, subtyping, type class?)
-   - What is the constraint solving algorithm?
-
-2. **Unification algorithm:**
+1. **Unification algorithm:**
    - Not specified in detail
    - Occurs check required (prevent infinite types)
    - Substitution strategy?
    - Error recovery when unification fails?
 
-3. **Type error priorities:**
+2. **Type error priorities:**
    - When multiple type errors exist, which to report first?
    - Should we report all errors or stop at first?
    - How to provide most helpful error messages?
+   - Note: Algorithm M (section 7.5) provides error prioritization strategy
 
 ### 8.2 Ambiguities
 
