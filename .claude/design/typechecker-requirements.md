@@ -1033,27 +1033,242 @@ Error: Type mismatch
    |
 ```
 
+### 7.4 Type Variable Levels Algorithm
+
+**Reference:** `docs/spec/03-type-system/type-inference.md` (semantic description)
+
+The type variable levels algorithm is an essential implementation detail for preventing type variables from escaping their scope during generalization. This section specifies the concrete algorithm requirements.
+
+#### Overview
+
+**Levels** are integers that track the nesting depth of let-bindings, similar to De Bruijn indices for let-quantifiers. This approach was discovered by Didier Rémy (1988) and is used in OCaml, Caml-Light, and other production ML compilers.
+
+**Purpose:**
+- Prevent type variables from escaping their defining scope
+- Enable efficient O(1) generalization checks
+- Ensure soundness of polymorphic type inference
+
+#### Data Structures
+
+The typechecker must maintain:
+
+1. **Global level counter** (`current_level: number`)
+   - Tracks current let-binding nesting depth
+   - Starts at 0 (top level)
+   - Incremented when entering a let-binding
+   - Decremented when leaving a let-binding
+
+2. **Type variable level field** (`level: number` on each type variable)
+   - Records the level at which the type variable was created
+   - Immutable once assigned (never changes for a given type variable)
+   - Used during generalization to detect escape
+
+#### Core Operations
+
+**1. Creating Type Variables (`newvar()`)**
+
+```typescript
+function newvar(): TypeVariable {
+    return { type: "Var", id: freshId(), level: current_level };
+}
+```
+
+When creating a fresh type variable, assign it the current level.
+
+**2. Entering Let-Bindings (`enterLevel()`)**
+
+```typescript
+function enterLevel(): void {
+    current_level++;
+}
+```
+
+Call before type checking the right-hand side of a let-binding.
+
+**3. Leaving Let-Bindings (`leaveLevel()`)**
+
+```typescript
+function leaveLevel(): void {
+    current_level--;
+}
+```
+
+Call after generalizing the type of a let-binding.
+
+**4. Updating Levels During Unification (`updateLevel()`)**
+
+```typescript
+function updateLevel(typeVar: TypeVariable, type: Type): void {
+    // When unifying a type variable with a type,
+    // update the minimum level of all type variables in the type
+    const minLevel = Math.min(typeVar.level, minLevelIn(type));
+    setLevelInType(type, minLevel);
+}
+```
+
+During unification, if a type variable at level L₁ is unified with a type containing type variables at level L₂, update all type variables in the unified type to `min(L₁, L₂)`. This ensures that if a variable escapes, its level reflects the outermost scope it appears in.
+
+**5. Generalization with Levels (`generalize()`)**
+
+```typescript
+function generalize(type: Type): TypeScheme {
+    const quantifiedVars: TypeVariable[] = [];
+
+    // Find all type variables whose level is GREATER than current level
+    for (const tv of freeTypeVars(type)) {
+        if (tv.level > current_level) {
+            quantifiedVars.push(tv);
+        }
+    }
+
+    // Convert those variables to quantified type parameters
+    return { quantified: quantifiedVars, type: type };
+}
+```
+
+**Key invariant:** A type variable with `level > current_level` was created in a nested let-binding and is safe to generalize. Variables with `level <= current_level` come from an outer scope and must NOT be generalized.
+
+#### Type Checking Let-Bindings with Levels
+
+**Complete algorithm for `let x = expr`:**
+
+```typescript
+function checkLetBinding(name: string, expr: Expr, body: Expr): Type {
+    // 1. Enter a new level
+    enterLevel();
+
+    // 2. Type check the right-hand side at the new level
+    const exprType = infer(expr);
+
+    // 3. Leave the level (back to outer scope)
+    leaveLevel();
+
+    // 4. Generalize: quantify variables with level > current_level
+    const scheme = generalize(exprType);
+
+    // 5. Add to environment and type check body
+    const newEnv = env.extend(name, scheme);
+    return inferInEnv(body, newEnv);
+}
+```
+
+#### Example Execution Trace
+
+```vibefun
+let id = (x) => x
+```
+
+**Trace:**
+1. `current_level = 0` (top level)
+2. `enterLevel()` → `current_level = 1`
+3. Infer type of `(x) => x`:
+   - Create type variable for `x`: `t1 = { level: 1 }`
+   - Infer body type: `t1`
+   - Result: `t1 -> t1`
+4. `leaveLevel()` → `current_level = 0`
+5. `generalize(t1 -> t1)`:
+   - Find free variables: `[t1]`
+   - Check levels: `t1.level (1) > current_level (0)` ✓
+   - Generalize `t1` to `T`
+   - Result: `<T>(T) -> T`
+
+#### Preventing Escape Example
+
+```vibefun
+fun f -> let id = f in id
+```
+
+**Trace:**
+1. `current_level = 0`
+2. Infer `fun f ->`:
+   - Create `f: t1 = { level: 0 }`  // function parameter at outer level
+3. Enter let: `enterLevel()` → `current_level = 1`
+4. Infer `let id = f`:
+   - `f` has type `t1` (from environment)
+   - No new variables created
+5. `leaveLevel()` → `current_level = 0`
+6. `generalize(t1)`:
+   - Find free variables: `[t1]`
+   - Check levels: `t1.level (0) > current_level (0)` ✗ FAIL
+   - **Do NOT generalize** `t1`
+   - Result: `t1` (monomorphic, NOT `<T>T`)
+
+This correctly prevents `f` from being generalized because it comes from the outer scope.
+
+#### Algorithm Invariants
+
+The implementation must maintain:
+
+1. **Level monotonicity:** `0 <= current_level <= max_nesting_depth`
+2. **Variable creation:** All type variables created have `level = current_level` at creation time
+3. **Level lowering:** During unification, levels can only decrease (via `updateLevel`), never increase
+4. **Generalization safety:** Only generalize variables where `level > current_level`
+5. **Scope correlation:** A variable's level corresponds to the let-binding depth where it was introduced
+
+#### Performance Characteristics
+
+- **Level operations:** O(1) - increment/decrement counter
+- **Variable creation:** O(1) - assign current level
+- **Generalization check:** O(1) per variable - compare `level > current_level`
+- **Overall:** Linear in type size, no need to scan entire environment
+
+Compare to naive Algorithm W:
+- **Naive approach:** O(n) scan of environment to check if variable is free
+- **Level-based:** O(1) level comparison
+- **Speedup:** Significant for deeply nested let-bindings
+
+#### Testing Requirements
+
+The typechecker implementation must include tests for:
+
+1. **Basic generalization:**
+   - `let id = (x) => x` should be polymorphic
+   - Multiple uses with different types should succeed
+
+2. **Escape prevention:**
+   - Function parameters should not be generalized
+   - Variables from outer scopes should not be generalized
+
+3. **Nested let-bindings:**
+   - Each level should generalize independently
+   - Inner lets can use polymorphic outer lets
+
+4. **Value restriction interaction:**
+   - Non-values should not be generalized (separate from levels)
+   - Levels should still prevent escape for non-values
+
+5. **Unification level updates:**
+   - Unifying variables at different levels should update correctly
+   - Level lowering should propagate through types
+
+6. **Edge cases:**
+   - Deep nesting (many levels)
+   - Mutually recursive let-bindings
+   - Type variables in function return types
+
+#### Implementation Notes
+
+- The level field is an **implementation detail** and should not appear in user-facing type error messages
+- Type variable pretty-printing should use names (`a`, `b`, `t`, etc.), not levels
+- The level algorithm is **compatible** with the value restriction - both checks must pass for generalization
+- For efficiency, consider using a union-find data structure for type variables with path compression
+
 ## 8. Identified Gaps in Specification
 
 ### 8.1 Algorithm Details Not Specified
 
-1. **Type variable levels algorithm:**
-   - Spec mentions "level-based scoping" but doesn't detail the algorithm
-   - Need to clarify: what are levels, how are they assigned, when do they change?
-   - Standard ML approach: levels track nesting depth of let-bindings
-
-2. **Constraint types and solving:**
+1. **Constraint types and solving:**
    - Spec says "constraint-based inference" but doesn't specify constraint types
    - What constraints exist? (Equality, subtyping, type class?)
    - What is the constraint solving algorithm?
 
-3. **Unification algorithm:**
+2. **Unification algorithm:**
    - Not specified in detail
    - Occurs check required (prevent infinite types)
    - Substitution strategy?
    - Error recovery when unification fails?
 
-4. **Type error priorities:**
+3. **Type error priorities:**
    - When multiple type errors exist, which to report first?
    - Should we report all errors or stop at first?
    - How to provide most helpful error messages?

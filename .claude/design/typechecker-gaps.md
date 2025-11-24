@@ -151,71 +151,43 @@ The implementation includes:
 
 ### Recommendations
 
-#### For Language Specification
+**Status: ✅ IMPLEMENTED** - Reorganized to properly separate language semantics from implementation details.
 
-**Add to `docs/spec/03-type-system/type-inference.md`:**
+#### Implementation Summary
 
-Create new section "Level-Based Type Variable Scoping" with:
-1. Explanation of what levels are (nesting depth)
-2. Level operations (creating variables, entering/leaving let-bindings, unification)
-3. Generalization rule (L > current_level)
-4. Algorithm invariants
-5. Step-by-step examples (like the one above)
-6. Why levels are necessary (efficiency vs. naive approach)
+The type variable levels content has been properly separated across three documentation locations:
 
-#### For Typechecker Requirements
+**1. Language Specification** (`docs/spec/03-type-system/type-inference.md`)
+- ✅ Added section "Type Variable Scoping and Generalization"
+- Semantic description of when generalization happens
+- Scope-based rules for type variables
+- User-facing examples showing correct vs incorrect generalization
+- NO implementation algorithm details (kept semantic)
 
-**Update `.claude/design/typechecker-requirements.md`:**
+**2. Typechecker Requirements** (`.claude/design/typechecker-requirements.md`)
+- ✅ Added section 7.4 "Type Variable Levels Algorithm"
+- Complete algorithm specification with pseudocode
+- Data structures (current_level counter, type variable level field)
+- Core operations (enterLevel, leaveLevel, newvar, updateLevel, generalize)
+- Example execution traces
+- Algorithm invariants and performance characteristics
+- Comprehensive testing requirements
 
-1. **Remove from "8.1 Algorithm Details Not Specified"** - this gap is now resolved
-2. **Add new section** with detailed level algorithm requirements:
-   - Data structures (current_level counter, type variable level field)
-   - Operations (enterLevel, leaveLevel, newvar, updateLevel)
-   - Generalization algorithm with levels
-   - Unification with level updates
-   - Type checking let-bindings
-   - Testing requirements for level tracking
+**3. Compiler Architecture** (`docs/compiler-architecture/02-compilation-pipeline.md`)
+- ✅ Added design rationale "Why level-based type variable scoping?"
+- High-level explanation of design choice
+- Efficiency benefits (O(1) vs O(n))
+- Historical context (Rémy 1988, OCaml/SML)
+- NO implementation details (kept architectural)
 
-**Sample content:**
+#### Documentation Philosophy Applied
 
-```markdown
-### Level-Based Type Variable Scoping Implementation
+This reorganization properly separates:
+- **What** (language spec) - semantic behavior users need to understand
+- **Why** (compiler architecture) - design decisions and trade-offs
+- **How** (typechecker requirements) - implementation algorithm details
 
-**Data Structures**:
-- Maintain mutable `current_level: number` in type checker state (starts at 1)
-- Each type variable has a `level: number` field
-- Use special level value (e.g., -1 or Infinity) for generic (quantified) variables
-
-**Operations**:
-```typescript
-function enterLevel(): void {
-    current_level++;
-}
-
-function leaveLevel(): void {
-    current_level--;
-}
-
-function newvar(): TypeVariable {
-    return new TypeVariable(current_level);
-}
-
-function updateLevel(tv: TypeVariable, newLevel: number): void {
-    if (newLevel < tv.level) {
-        tv.level = newLevel;
-    }
-}
-```
-
-**Generalization** [includes full algorithm pseudocode]
-
-**Testing Requirements**:
-- Test level tracking through nested let-bindings
-- Test level updates during unification
-- Test generalization prevents escape
-- Test value restriction interacts correctly with levels
-- Test mutually recursive bindings (all at same level)
-```
+The level-based algorithm is correctly identified as an **implementation detail** of the type checker, not a language specification concern. Users need to understand generalization semantics, but not the specific mechanism used to implement it.
 
 ### Sources
 
