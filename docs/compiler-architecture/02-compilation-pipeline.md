@@ -410,6 +410,15 @@ Infer types for all expressions using Algorithm M (constraint-based Hindley-Miln
 - Simpler implementation than alternative approaches
 - Discovered by Didier Rémy (1988), battle-tested in production compilers
 
+**Why Robinson's unification algorithm?**
+- Standard algorithm for Hindley-Milner type systems since 1965
+- Well-understood with extensive academic literature and proven correctness
+- Simple functional implementation emphasizing clarity over micro-optimization
+- Occurs check prevents infinite types (e.g., prevents `α = List<α>`)
+- Natural integration with level tracking for scope safety
+- Alternative (union-find optimization) noted but deferred for simplicity
+- Trade-off: Clarity and maintainability over theoretical performance gains
+
 **Why width subtyping for records?**
 - Convenient for JavaScript interop
 - Natural for structural record types
