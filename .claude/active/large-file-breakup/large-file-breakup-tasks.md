@@ -1,7 +1,7 @@
 # Large File Breakup - Task Checklist
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 22:37
+**Last Updated:** 2025-11-23 22:51
 
 ## Overview
 
@@ -137,29 +137,29 @@
 
 ## Phase 6: Expression Parser (parse-expressions.ts)
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Files:** 1 → 5
 **Complexity:** High
 
 ### Tasks
 
-- [ ] Create `parse-expression-operators.ts` (~550 lines)
+- [x] Create `parse-expression-operators.ts` (584 lines)
   - Move all precedence chain functions (parseLambda → parseMultiplicative)
   - Move parseUnary() and parseCall()
   - Keep parseExpression() entry point here
-- [ ] Create `parse-expression-primary.ts` (~350 lines)
+- [x] Create `parse-expression-primary.ts` (369 lines)
   - Move parsePrimary() function
   - Handle literals, if, while, variables, etc.
-- [ ] Create `parse-expression-lambda.ts` (~450 lines)
+- [x] Create `parse-expression-lambda.ts` (462 lines)
   - Move isOperatorToken(), parseLambdaParam(), isLikelyLambda(), parseLambdaOrParen()
-- [ ] Create `parse-expression-complex.ts` (~460 lines)
+- [x] Create `parse-expression-complex.ts` (479 lines)
   - Move parseMatchExpr(), parseRecordExpr(), parseBlockExpr(), parseLetExpr()
-- [ ] Create `parse-expressions.ts` aggregator (~50 lines)
+- [x] Create `parse-expressions.ts` aggregator (100 lines)
   - Set up dependency injection between modules
   - Re-export public API (parseExpression, parseBlockExpr)
-- [ ] Update imports in `parse-declarations.ts` and other files
-- [ ] Run `npm run verify` to ensure all tests pass
-- [ ] Verify all new files are under 1,000 lines
+- [x] Update imports in `parse-declarations.ts` and other files
+- [x] Run `npm run verify` to ensure all tests pass
+- [x] Verify all new files are under 1,000 lines
 
 ---
 
@@ -316,11 +316,11 @@
 | Phase 3: Operators Tests | ✅ | 4 | 381 lines | Low |
 | Phase 4: Expression Tests | ✅ | 8 | 685 lines | Medium |
 | Phase 5: Parser Integration Tests | ✅ | 4 | 541 lines | Low |
-| Phase 6: Expression Parser | 🔜 | 5 | ~550 lines | High |
+| Phase 6: Expression Parser | ✅ | 5 | 584 lines | High |
 | Phase 7: Type Inference | 🔜 | 7 | ~450 lines | High |
 | Phase 8: Typechecker Tests | ✅ | 6 | 350 lines | Low |
 | Phase 9: Inference Tests | ✅ | 5 | 814 lines | Low |
 | Phase 10: Update Coding Standards | ✅ | 1 (updated) | N/A | Low |
-| **Total** | **7/10** | **51** | **814 lines** | **-** |
+| **Total** | **8/10** | **51** | **814 lines** | **-** |
 
-**Progress:** 7/10 phases completed (70%)
+**Progress:** 8/10 phases completed (80%)
