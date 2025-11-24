@@ -398,6 +398,13 @@ Infer types for all expressions using Algorithm W (Hindley-Milner type inference
 - Prevents polymorphic references
 - Standard approach in ML-family languages
 
+**Why level-based type variable scoping?**
+- Efficient O(1) generalization checks (vs O(n) environment scanning)
+- Prevents type variables from escaping their defining scope
+- Well-proven approach from OCaml and Standard ML implementations
+- Simpler implementation than alternative approaches
+- Discovered by Didier Rémy (1988), battle-tested in production compilers
+
 **Why width subtyping for records?**
 - Convenient for JavaScript interop
 - Natural for structural record types

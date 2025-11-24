@@ -132,6 +132,123 @@ let numbers = [1, 2, 3]                 // List<Int>
 let result = numbers |> map(double)     // List<Int>
 ```
 
+### Type Variable Scoping and Generalization
+
+**Generalization** is the process of making a type polymorphic by converting type variables into type parameters. This happens automatically at `let`-bindings and determines when functions can be used with different types.
+
+#### When Generalization Happens
+
+Generalization occurs at `let`-bindings when the type checker has inferred a type containing type variables:
+
+```vibefun
+// Before generalization: inferred type is (t) -> t (monomorphic type variable t)
+// After generalization: type becomes <T>(T) -> T (polymorphic type parameter T)
+let identity = (x) => x;
+
+// Each use gets a fresh instance of T
+identity(42);      // T := Int
+identity("hello"); // T := String (independent from previous use)
+```
+
+Without generalization, you could only use `identity` with one specific type throughout your program.
+
+#### Scope-Based Generalization
+
+Type variables can only be generalized if they don't escape the scope where they were created. This prevents unsound type assignments:
+
+```vibefun
+// ✅ CORRECT: Type variable is local to the let-binding
+let f = (x) => {
+  let id = (y) => y;  // Generalized to <T>(T) -> T
+  id(x)               // Uses id polymorphically
+};
+// f has type: <A>(A) -> A
+
+// ✅ CORRECT: Each let-binding generalizes independently
+let g = (x) => {
+  let f1 = (y) => y;  // <T>(T) -> T
+  let f2 = (z) => z;  // <U>(U) -> U (different type parameter)
+  f1(x)               // T := A (from g's parameter)
+};
+
+// ❌ INCORRECT: Would be unsound - variable would escape its scope
+// This is prevented by the type system
+let h = (x) => {
+  let f = x;           // Cannot generalize x - it comes from outer scope
+  f                    // f has the same type as x, not a polymorphic type
+};
+```
+
+#### Generalization and Function Arguments
+
+Function parameters are never generalized—they remain monomorphic within the function body:
+
+```vibefun
+let apply = (f, x) => f(x);
+// f has type (a) -> b (monomorphic variables a and b)
+// f is NOT generalized to <T>(T) -> T
+
+// When apply is called:
+apply(identity, 42);
+// f is unified with identity's type: (a) -> b unifies with Int -> Int
+// So a := Int, b := Int for this call
+
+// Different call, different instantiation:
+apply(identity, "hello");
+// New instantiation: a := String, b := String
+```
+
+The key insight: **polymorphism happens at let-bindings, not at lambda abstractions**.
+
+#### Nested Let-Bindings
+
+Type variables are generalized at the innermost `let`-binding that contains them:
+
+```vibefun
+let outer =
+  let inner1 = (x) => x;      // Generalized: <T>(T) -> T
+  let inner2 = (y) => inner1(y);  // inner1 instantiated freshly
+  inner2;                     // Generalized: <U>(U) -> U
+
+// Each nested let can generalize independently
+outer(42);      // U := Int
+outer("test");  // U := String
+```
+
+#### Why Scoping Matters
+
+Without proper scoping rules, you could create unsound programs:
+
+```vibefun
+// Imagine if this were allowed (it's NOT):
+let makeInconsistent = (x) => {
+  let f = x;  // If we generalized x here to <T>(T) -> T
+  f           // We could use x as any type!
+};
+
+let intId = (n: Int) => n + 1;
+let bad = makeInconsistent(intId);  // bad would have type <T>(T) -> T
+bad("hello");  // Runtime error! We're calling (Int -> Int) with a String
+
+// The type system prevents this by NOT generalizing x
+// Instead: makeInconsistent has type <A>((A) -> A) -> (A) -> A
+// No polymorphism is introduced improperly
+```
+
+#### Summary of Generalization Rules
+
+**Type variables are generalized at `let`-bindings when:**
+1. The `let`-binding has inferred a type containing type variables
+2. Those type variables don't come from an outer scope
+3. The value restriction is satisfied (see next section)
+
+**Type variables are NOT generalized when:**
+1. They come from function parameters (remain monomorphic in function body)
+2. They would escape their defining scope
+3. The value restriction blocks it (non-value right-hand side)
+
+**Key principle:** Generalization creates polymorphism at `let`-bindings, and scoping rules ensure type safety by preventing type variables from escaping where they were created.
+
 ### Value Restriction and Polymorphism
 
 The **value restriction** is a type system rule that determines when a `let`-binding can be generalized to a polymorphic type. This restriction is essential for maintaining type safety in the presence of mutable references and side effects.
