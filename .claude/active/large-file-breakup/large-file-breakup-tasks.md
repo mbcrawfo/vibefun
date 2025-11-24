@@ -1,7 +1,7 @@
 # Large File Breakup - Task Checklist
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 20:24
+**Last Updated:** 2025-11-23 20:41
 
 ## Overview
 
@@ -115,23 +115,23 @@
 
 ## Phase 5: Parser Integration Tests (parser-integration.test.ts)
 
-**Status:** 🔜 Not Started
-**Files:** 1 → 3
+**Status:** ✅ Done
+**Files:** 1 → 4 (helper + 3 test files)
 **Complexity:** Low
 
 ### Tasks
 
-- [ ] Create `packages/core/src/parser/parser-test-helpers.ts` (~30 lines)
+- [x] Create `packages/core/src/parser/parser-test-helpers.ts` (17 lines)
   - Extract shared `parseModule()` helper function
-- [ ] Create `parser-integration-basic.test.ts` (~360 lines)
+- [x] Create `parser-integration-basic.test.ts` (388 lines)
   - Move simple functions, recursive functions, types, imports, externals, exports, real-world examples
-- [ ] Create `parser-integration-patterns.test.ts` (~180 lines)
+- [x] Create `parser-integration-patterns.test.ts` (131 lines)
   - Move pattern matching and complex expressions suites
-- [ ] Create `parser-integration-phase4.test.ts` (~530 lines)
+- [x] Create `parser-integration-phase4.test.ts` (541 lines)
   - Move all Phase 4 new features integration tests
-- [ ] Delete original `parser-integration.test.ts`
-- [ ] Run `npm run verify` to ensure all tests pass
-- [ ] Verify all new files are under 1,000 lines
+- [x] Delete original `parser-integration.test.ts`
+- [x] Run `npm run verify` to ensure all tests pass
+- [x] Verify all new files are under 1,000 lines
 
 ---
 
@@ -315,12 +315,12 @@
 | Phase 2: Lexer Integration Tests | 🔜 | 4 | ~499 lines | Low |
 | Phase 3: Operators Tests | 🔜 | 4 | ~385 lines | Low |
 | Phase 4: Expression Tests | ✅ | 8 | ~685 lines | Medium |
-| Phase 5: Parser Integration Tests | 🔜 | 3 | ~530 lines | Low |
+| Phase 5: Parser Integration Tests | ✅ | 4 | ~541 lines | Low |
 | Phase 6: Expression Parser | 🔜 | 5 | ~550 lines | High |
 | Phase 7: Type Inference | 🔜 | 7 | ~450 lines | High |
 | Phase 8: Typechecker Tests | 🔜 | 6 | ~350 lines | Low |
 | Phase 9: Inference Tests | 🔜 | 5 | ~850 lines | Low |
 | Phase 10: Update Coding Standards | 🔜 | 1 (updated) | N/A | Low |
-| **Total** | **3/10** | **49** | **~850 lines** | **-** |
+| **Total** | **4/10** | **50** | **~850 lines** | **-** |
 
-**Progress:** 3/10 phases completed (30%)
+**Progress:** 4/10 phases completed (40%)
