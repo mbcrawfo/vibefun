@@ -3,6 +3,12 @@
 **Created:** 2025-11-23
 **Last Updated:** 2025-11-23
 
+## Overview
+
+This implementation consists of two major components:
+1. **Module Loader**: Discovers and parses all modules transitively from entry point
+2. **Module Resolver**: Analyzes dependency graph, detects cycles, emits warnings
+
 ## Phase 1: Warning Infrastructure
 
 ### Setup
@@ -29,31 +35,98 @@
 
 ---
 
-## Phase 2: Module Graph Construction
+## Phase 2: Module Loader (Discovery & Parsing)
 
 ### Core Implementation
-- [ ] Create directory: `packages/core/src/module-resolver/`
+- [ ] Create directory: `packages/core/src/module-loader/`
+- [ ] Implement `ModuleLoader` class
+  - [ ] Constructor
+  - [ ] Method: `loadModules(entryPoint: string): Map<string, Module>`
+  - [ ] Method: `loadModule(path: string): Module` (private)
+  - [ ] Method: `discoverImports(module: Module): string[]` (private)
+  - [ ] Method: `resolvePath(from: string, importPath: string): string` (private)
+  - [ ] Cache: `Map<string, Module>` to prevent duplicate parsing
+
+### Path Resolution
+- [ ] Implement path resolution logic
+  - [ ] Resolve relative imports (`./file`, `../parent/file`)
+  - [ ] Handle absolute paths
+  - [ ] Normalize paths (remove `.`, `..` segments)
+  - [ ] Use Node.js `path` module for cross-platform support
+  - [ ] Add `.vf` extension if not present
+
+### Integration with Parser
+- [ ] Import existing `Lexer` class
+- [ ] Import existing `Parser` class
+- [ ] Read file contents using `fs.readFileSync`
+- [ ] Create `Lexer` instance with file contents
+- [ ] Create `Parser` instance with tokens
+- [ ] Parse to get `Module` AST
+- [ ] Handle parse errors gracefully
+
+### Discovery Algorithm
+- [ ] Implement transitive closure discovery
+  - [ ] Start with entry point
+  - [ ] Parse entry point module
+  - [ ] Extract all import statements
+  - [ ] Resolve import paths to absolute paths
+  - [ ] For each import (if not in cache):
+    - [ ] Parse the imported module
+    - [ ] Add to cache
+    - [ ] Add to queue for import discovery
+  - [ ] Repeat until queue is empty
+- [ ] Return complete module map
+
+### Error Handling
+- [ ] Handle file not found (throw clear error)
+- [ ] Handle parse errors (let them propagate)
+- [ ] Handle circular imports during loading (not an error, just cache them)
+- [ ] Handle invalid import paths (throw clear error)
+
+### Public API
+- [ ] Export `loadModules(entryPoint: string): Map<string, Module>` function
+- [ ] Export from `packages/core/src/module-loader/index.ts`
+- [ ] Add JSDoc documentation
+
+### Tests
+- [ ] Test single module (no imports)
+- [ ] Test two modules (A imports B)
+- [ ] Test three modules (A imports B, B imports C)
+- [ ] Test diamond dependency (A imports B and C, both import D)
+- [ ] Test shared dependency (A imports C, B imports C, only parsed once)
+- [ ] Test relative path resolution (`./`, `../`)
+- [ ] Test path normalization
+- [ ] Test missing file error
+- [ ] Test circular imports (should not error during loading)
+- [ ] Test type-only imports (still discovered)
+- [ ] Test re-exports
+
+### Quality Checks
+- [ ] Run `npm run verify`
+- [ ] Ensure 90%+ test coverage
+- [ ] Add JSDoc comments
+- [ ] No `any` types
+
+---
+
+## Phase 3: Module Graph Construction
+
+### Core Implementation
+- [ ] Create directory: `packages/core/src/module-resolver/` (if not done in Phase 2)
 - [ ] Implement `ModuleGraph` class
-  - [ ] Add module: `addModule(path: string, module: Module): void`
+  - [ ] Add module: `addModule(path: string): void`
   - [ ] Add dependency: `addDependency(from: string, to: string, isTypeOnly: boolean): void`
   - [ ] Get dependencies: `getDependencies(path: string): string[]`
   - [ ] Get all modules: `getModules(): string[]`
   - [ ] Check for cycle: `hasCycle(): boolean`
   - [ ] Topological sort: `getTopologicalOrder(): string[] | null`
 - [ ] Implement `ModuleGraphBuilder` class
-  - [ ] Extract imports from `Module` AST
+  - [ ] Build graph from `Map<string, Module>`
+  - [ ] Extract imports from each `Module` AST
   - [ ] Handle `ImportDecl` nodes
   - [ ] Handle `ReExportDecl` nodes
   - [ ] Distinguish type-only imports (`import type`)
-  - [ ] Resolve relative paths to absolute
-
-### Path Resolution
-- [ ] Implement `resolvePath(from: string, to: string): string`
-  - [ ] Handle `./relative` paths
-  - [ ] Handle `../parent` paths
-  - [ ] Handle absolute paths
-  - [ ] Normalize paths (remove `.`, `..` segments)
-  - [ ] Use Node.js `path` module for cross-platform support
+  - [ ] Create edges in graph
 
 ### Tests
 - [ ] Test `ModuleGraph` creation
@@ -63,13 +136,11 @@
 - [ ] Test graph with cycles
 - [ ] Test topological sort (acyclic graph)
 - [ ] Test topological sort (cyclic graph)
-- [ ] Test path resolution (relative)
-- [ ] Test path resolution (parent directory)
-- [ ] Test path resolution (absolute)
 - [ ] Test `ModuleGraphBuilder` with simple imports
 - [ ] Test `ModuleGraphBuilder` with type-only imports
 - [ ] Test `ModuleGraphBuilder` with re-exports
 - [ ] Test `ModuleGraphBuilder` with wildcard imports
+- [ ] Test building graph from module map
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -78,7 +149,7 @@
 
 ---
 
-## Phase 3: Circular Dependency Detection
+## Phase 4: Circular Dependency Detection
 
 ### Core Implementation
 - [ ] Implement `CircularDependencyDetector` class
@@ -117,7 +188,7 @@
 
 ---
 
-## Phase 4: Warning Generation
+## Phase 5: Warning Generation
 
 ### Core Implementation
 - [ ] Implement `generateCircularDependencyWarning(cycle: Cycle): VibefunWarning`
@@ -150,7 +221,7 @@
 
 ---
 
-## Phase 5: Module Resolver API
+## Phase 6: Module Resolver API
 
 ### Core Implementation
 - [ ] Implement `resolveModules(modules: Map<string, Module>): ModuleResolution`
@@ -159,15 +230,23 @@
   - [ ] Generate warnings for value cycles
   - [ ] Compute topological order
   - [ ] Return `ModuleResolution` object
+- [ ] Implement `loadAndResolveModules(entryPoint: string): ModuleResolution`
+  - [ ] Call `loadModules(entryPoint)`
+  - [ ] Call `resolveModules(modules)`
+  - [ ] Return combined result
 - [ ] Define `ModuleResolution` type
   - [ ] `compilationOrder: string[]`
   - [ ] `warnings: VibefunWarning[]`
   - [ ] `graph: ModuleGraph`
+  - [ ] `modules: Map<string, Module>`
 - [ ] Export public API from `packages/core/src/module-resolver/index.ts`
   - [ ] Export `resolveModules` function
+  - [ ] Export `loadAndResolveModules` function
   - [ ] Export `ModuleResolution` type
   - [ ] Export `Cycle` type (for tooling)
-- [ ] Update `packages/core/src/index.ts` to export module resolver
+- [ ] Export from `packages/core/src/module-loader/index.ts`
+  - [ ] Export `loadModules` function
+- [ ] Update `packages/core/src/index.ts` to export module resolver and loader
 
 ### Tests
 - [ ] Test `resolveModules` with no cycles
@@ -178,7 +257,8 @@
 - [ ] Test with single module
 - [ ] Test with empty input
 - [ ] Test with large module graph (10+ modules)
-- [ ] Integration test: realistic multi-module program
+- [ ] Test `loadAndResolveModules` convenience function
+- [ ] Integration test: realistic multi-module program from file
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -188,7 +268,7 @@
 
 ---
 
-## Phase 6: Comprehensive Testing
+## Phase 7: Comprehensive Testing
 
 ### Example Programs
 - [ ] Create `examples/module-resolution/` directory
@@ -234,14 +314,16 @@
 
 ---
 
-## Phase 7: Documentation
+## Phase 8: Documentation
 
 ### Compiler Architecture Docs
 - [ ] Review `docs/architecture/compiler-architecture/` structure
 - [ ] Check if module resolution fits high-level scope
 - [ ] If appropriate:
   - [ ] Add "Module Resolution" section to `04-compilation-pipeline.md`
-  - [ ] Explain position in pipeline (after parsing, before type checking)
+  - [ ] Explain module loader (discovery & parsing)
+  - [ ] Explain module resolver (graph analysis)
+  - [ ] Explain position in pipeline (loading after parsing, resolution before type checking)
   - [ ] Describe module graph structure (high-level)
   - [ ] Describe cycle detection (high-level)
   - [ ] Include diagram if helpful
@@ -273,8 +355,9 @@
 - [ ] Clean git history (squash WIP commits if needed)
 
 ### Ready for Integration
+- [ ] Module loader API is stable
 - [ ] Module resolver API is stable
-- [ ] Exported from @vibefun/core
+- [ ] Both exported from @vibefun/core
 - [ ] Ready for type checker integration
 - [ ] Ready for future CLI integration
 
@@ -282,7 +365,11 @@
 
 ## Progress Summary
 
-**Phases Completed:** 0/7 (0%)
+**Phases Completed:** 0/8 (0%)
 **Tasks Completed:** 0/TBD
 **Current Phase:** Not started
 **Blockers:** None
+
+**Components:**
+- Module Loader: Not started
+- Module Resolver: Not started

@@ -9,34 +9,87 @@
 
 Build a complete module resolution system that detects circular dependencies and emits warnings, as specified in `docs/spec/08-modules.md`. This enables multi-module compilation and is foundational for the type checker to work across files.
 
+The system consists of two separate components following the **separation of concerns** principle:
+1. **ModuleLoader**: Discovers and parses all modules transitively from an entry point
+2. **ModuleResolver**: Analyzes dependency graph, detects cycles, emits warnings
+
 ## Goals
 
-1. Detect circular dependencies between modules
-2. Emit warnings for problematic circular value dependencies
-3. Allow safe type-only circular dependencies
-4. Provide clear, actionable warning messages
-5. Determine correct compilation order (topological sort)
+1. Discover all modules transitively from entry point (module loader)
+2. Build dependency graph from parsed modules (module resolver)
+3. Detect circular dependencies between modules (module resolver)
+4. Emit warnings for problematic circular value dependencies (module resolver)
+5. Allow safe type-only circular dependencies (module resolver)
+6. Provide clear, actionable warning messages (module resolver)
+7. Determine correct compilation order via topological sort (module resolver)
+
+## Architecture: Separation of Concerns
+
+### Module Loader (Discovery & Parsing)
+- **Responsibility**: File I/O, discovery, parsing, caching
+- **Input**: Entry point file path (`main.vf`)
+- **Output**: `Map<string, Module>` (all discovered modules)
+- **Behavior**:
+  - Recursively discovers imports (transitive closure)
+  - Parses each module once (caching prevents duplicates)
+  - Resolves import paths to absolute paths
+  - Handles: `import { x } from './file1'` causes `file1.vf` to be discovered
+
+### Module Resolver (Graph Analysis)
+- **Responsibility**: Pure graph analysis, cycle detection, warnings
+- **Input**: `Map<string, Module>` (pre-loaded modules)
+- **Output**: `ModuleResolution` (compilation order + warnings)
+- **Behavior**:
+  - Builds dependency graph from import declarations
+  - Detects circular dependencies using DFS
+  - Distinguishes type-only vs value cycles
+  - Generates warnings for problematic cycles
+  - Computes topological sort for compilation order
+
+### Why Separate?
+
+**Pros of Separation:**
+- ✅ Module resolver is pure (no I/O) - highly testable
+- ✅ Clear single responsibility for each component
+- ✅ Module resolver reusable for different sources (files, memory, network)
+- ✅ Easy to test resolver with constructed ASTs
+- ✅ Can substitute different loaders (test, file, cached)
+- ✅ Future-proof for virtual filesystems, in-memory compilation (REPL)
+
+**Example: How They Work Together:**
+```typescript
+// Module Loader: discovers & parses
+const modules = loadModules('src/main.vf');
+// => Map {
+//   '/abs/path/src/main.vf' => Module { ... },
+//   '/abs/path/src/file1.vf' => Module { ... },
+//   '/abs/path/src/file2.vf' => Module { ... },
+//   '/abs/path/src/file3.vf' => Module { ... }  // Both file1 and file2 import this
+// }
+
+// Module Resolver: analyzes dependencies
+const resolution = resolveModules(modules);
+// => ModuleResolution {
+//   compilationOrder: ['/abs/path/src/file3.vf', '/abs/path/src/file1.vf', ...],
+//   warnings: [VibefunWarning { ... }],
+//   graph: ModuleGraph { ... }
+// }
+```
 
 ## Position in Compilation Pipeline
 
-Module resolution fits between parsing and type checking:
-
 ```
-1. Lexer          → Tokenize each .vf file
-2. Parser         → Build AST for each file (produces Module nodes)
-3. Module Resolver ← NEW: Build dependency graph, detect cycles, emit warnings
-4. Desugarer      → Transform ASTs in dependency order
-5. Type Checker   → Type check across modules in topological order
-6. Optimizer      → Optional optimizations
-7. Code Generator → Emit JavaScript
+1. Lexer             → Tokenize entry point .vf file
+2. Parser            → Build AST for entry point (produces Module node)
+3. Module Loader     ← NEW: Discover & parse all imported modules recursively
+4. Module Resolver   ← NEW: Build dependency graph, detect cycles, emit warnings
+5. Desugarer         → Transform ASTs in dependency order
+6. Type Checker      → Type check across modules in topological order
+7. Optimizer         → Optional optimizations
+8. Code Generator    → Emit JavaScript
 ```
 
-The module resolver:
-- Takes a collection of parsed AST `Module` nodes
-- Extracts import/export information
-- Builds a dependency graph
-- Detects circular dependencies
-- Returns compilation order and warnings
+**Key Insight:** Steps 1-3 happen recursively (parse main → discover imports → parse imports → discover more imports → ...) until all modules are discovered. Then step 4 analyzes the complete graph.
 
 ## Implementation Phases
 
@@ -56,7 +109,49 @@ The module resolver:
 - Warnings don't halt compilation (unlike errors)
 - Formatted output distinguishes warnings from errors
 
-### Phase 2: Module Graph Construction
+### Phase 2: Module Loader (Discovery & Parsing)
+
+**Goal:** Discover and parse all modules transitively from entry point
+
+**Deliverables:**
+- Create `packages/core/src/module-loader/` directory
+- `ModuleLoader` class with module discovery logic
+- Module cache to prevent duplicate parsing
+- Path resolution utilities (relative to absolute)
+- Integration with existing lexer and parser
+- Tests for module discovery and caching
+
+**Design:**
+```typescript
+class ModuleLoader {
+  private cache: Map<string, Module> = new Map();
+
+  loadModules(entryPoint: string): Map<string, Module>
+  private loadModule(path: string): Module
+  private discoverImports(module: Module): string[]
+  private resolvePath(from: string, importPath: string): string
+}
+
+export function loadModules(entryPoint: string): Map<string, Module>;
+```
+
+**Algorithm:**
+1. Start with entry point file path
+2. Parse entry point → add to cache
+3. Extract imports from parsed module
+4. For each import path:
+   - Resolve to absolute path
+   - If not in cache: parse it, add to cache, queue for import discovery
+5. Repeat step 3-4 until no new modules discovered
+6. Return complete module cache
+
+**Key Decisions:**
+- Cache keyed by absolute file paths (prevents `file3.vf` being parsed twice)
+- Relative paths resolved immediately to absolute
+- File reading and parsing happen here
+- Errors for missing files thrown here
+
+### Phase 3: Module Graph Construction
 
 **Goal:** Build dependency graph from parsed AST modules
 
@@ -64,13 +159,12 @@ The module resolver:
 - Create `packages/core/src/module-resolver/` directory
 - `ModuleGraph` class with nodes (modules) and edges (imports)
 - `ModuleGraphBuilder` to extract imports from `Module` AST nodes
-- Path resolution (relative to absolute)
 - Tests for graph construction
 
 **Design:**
 ```typescript
 class ModuleGraph {
-  addModule(path: string, module: Module): void
+  addModule(path: string): void
   addDependency(from: string, to: string, isTypeOnly: boolean): void
   getTopologicalOrder(): string[]
   getDependencies(path: string): string[]
@@ -79,12 +173,12 @@ class ModuleGraph {
 ```
 
 **Key Decisions:**
-- Graph nodes are absolute file paths
+- Graph nodes are absolute file paths (no Module ASTs stored in graph)
 - Edges track whether import is type-only
-- Relative paths (`./foo`, `../bar`) resolved to absolute
 - Handles named imports, wildcard imports, re-exports
+- Pure data structure (no I/O)
 
-### Phase 3: Circular Dependency Detection
+### Phase 4: Circular Dependency Detection
 
 **Goal:** Detect cycles using graph algorithms
 
@@ -109,13 +203,13 @@ type Cycle = {
 ```
 
 **Algorithm:**
-- Depth-first search with visited/visiting/visited states
+- Depth-first search with visited/visiting/visiting states
 - Back edges indicate cycles
 - Track complete cycle path for helpful messages
 - Type-only cycle: ALL edges in cycle use `import type`
 - Value cycle: at least ONE edge imports values/functions
 
-### Phase 4: Warning Generation
+### Phase 5: Warning Generation
 
 **Goal:** Generate spec-compliant, helpful warning messages
 
@@ -152,43 +246,56 @@ Warning: Circular dependency detected
 - Provide concrete suggestions
 - Link to documentation
 
-### Phase 5: Module Resolver API
+### Phase 6: Module Resolver API
 
 **Goal:** Create public API for compilation pipeline
 
 **Deliverables:**
-- Main `resolveModules()` function
+- Main `resolveModules()` function (pure, takes pre-loaded modules)
+- Main `loadAndResolveModules()` convenience function (combines loader + resolver)
 - Clean return type with all needed information
-- Integration with compilation pipeline
 - Public exports from `packages/core/src/module-resolver/index.ts`
+- Public exports from `packages/core/src/module-loader/index.ts`
 - Integration tests
 
 **API Design:**
 ```typescript
+// Pure resolver (takes pre-loaded modules)
 export function resolveModules(
   modules: Map<string, Module>
+): ModuleResolution;
+
+// Convenience function (loads + resolves)
+export function loadAndResolveModules(
+  entryPoint: string
 ): ModuleResolution;
 
 type ModuleResolution = {
   compilationOrder: string[]    // Topologically sorted module paths
   warnings: VibefunWarning[]    // Circular dependency warnings
   graph: ModuleGraph            // Dependency graph (for debugging/tooling)
+  modules: Map<string, Module>  // All loaded modules
 };
 ```
 
-**Usage:**
+**Usage Examples:**
 ```typescript
-// After parsing all modules
-const modules = new Map<string, Module>();
-modules.set('/path/to/A.vf', parsedModuleA);
-modules.set('/path/to/B.vf', parsedModuleB);
+// Option 1: Use convenience function (typical case)
+const resolution = loadAndResolveModules('src/main.vf');
+// Internally: loads all modules, then resolves them
 
+// Option 2: Separate loading and resolution (for testing or advanced use)
+const modules = loadModules('src/main.vf');
 const resolution = resolveModules(modules);
-// Use resolution.compilationOrder for type checking order
-// Display resolution.warnings to user
+
+// Option 3: Completely custom loading (tests, in-memory compilation)
+const modules = new Map<string, Module>();
+modules.set('/path/to/A.vf', constructedModuleA);
+modules.set('/path/to/B.vf', constructedModuleB);
+const resolution = resolveModules(modules);  // Pure, no I/O
 ```
 
-### Phase 6: Comprehensive Testing
+### Phase 7: Comprehensive Testing
 
 **Goal:** Ensure correctness and robustness
 
@@ -206,7 +313,7 @@ const resolution = resolveModules(modules);
 - Example programs in `examples/` demonstrating safe vs unsafe patterns
 - Target: 90%+ test coverage
 
-### Phase 7: Documentation
+### Phase 8: Documentation
 
 **Goal:** Document the module resolution system
 
@@ -215,8 +322,9 @@ const resolution = resolveModules(modules);
   - File: `docs/architecture/compiler-architecture/04-compilation-pipeline.md`
   - Only if this fits the high-level scope of those docs
 - Explain position in pipeline
-- Document module graph structure
-- Describe cycle detection algorithm
+- Document separation between module loader and module resolver
+- Document module graph structure (high-level)
+- Describe cycle detection algorithm (high-level)
 - Include diagrams if helpful
 
 **Do NOT:**
@@ -226,22 +334,34 @@ const resolution = resolveModules(modules);
 
 ## Success Criteria
 
+**Module Loader:**
+- ✅ Discovers all modules transitively from entry point
+- ✅ Caching prevents duplicate parsing (file3.vf parsed once even if imported by multiple modules)
+- ✅ Path resolution correct (relative → absolute)
+- ✅ Handles missing files with clear errors
+
+**Module Resolver:**
 - ✅ Module graph correctly built from AST imports
 - ✅ Circular dependencies detected accurately
 - ✅ Type-only cycles don't trigger warnings
 - ✅ Value cycles emit spec-compliant warnings
 - ✅ Topological sort provides correct compilation order
+
+**Integration:**
+- ✅ Both components work together via clean API
+- ✅ Pure module resolver can be tested without file I/O
 - ✅ All quality checks pass (`npm run verify`)
 - ✅ 90%+ test coverage for new code
-- ✅ Integration ready for future type checker updates
+- ✅ Ready for future type checker integration
 
 ## Non-Goals (Future Work)
 
 - CLI integration (CLI not implemented yet, will be designed later)
-- Module caching or incremental compilation
+- Incremental compilation (cache invalidation, watch mode)
 - Module bundling or dead code elimination
-- npm package resolution
+- npm package resolution (node_modules, package.json)
 - Source map support for module boundaries
+- Module preloading or lazy loading
 
 ## Dependencies
 
