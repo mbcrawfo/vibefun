@@ -14,8 +14,13 @@ import * as Operators from "./parse-expression-operators.js";
 import * as Primary from "./parse-expression-primary.js";
 
 // Forward declarations for pattern and type parsing (injected from parser.ts)
-let parsePattern: (parser: ParserBase) => Pattern;
-let parseTypeExpr: (parser: ParserBase) => TypeExpr;
+// Initialized to error-throwing functions for type safety and better error messages
+let parsePattern: (parser: ParserBase) => Pattern = () => {
+    throw new Error("parsePattern not initialized - setParsePattern must be called first");
+};
+let parseTypeExpr: (parser: ParserBase) => TypeExpr = () => {
+    throw new Error("parseTypeExpr not initialized - setParseTypeExpr must be called first");
+};
 
 /**
  * Set the pattern parsing function (called during initialization from parser.ts)
@@ -67,14 +72,12 @@ function initializeDependencies(): void {
     });
 }
 
-// Initialize dependencies immediately when module loads
-// This is safe because the forward declarations are set before any parsing happens
+// Track initialization state
 let initialized = false;
 
-/**
- * Ensure dependencies are initialized before first use
- */
-function ensureInitialized(): void {
+// Initialize dependencies immediately when module loads
+// This ensures all functions are wired up before any parsing happens
+function initializeOnce(): void {
     if (!initialized) {
         initializeDependencies();
         initialized = true;
@@ -86,7 +89,7 @@ function ensureInitialized(): void {
  * Entry point for expression parsing with operator precedence
  */
 export function parseExpression(parser: ParserBase): Expr {
-    ensureInitialized();
+    initializeOnce();
     return Operators.parseExpression(parser);
 }
 
@@ -95,6 +98,6 @@ export function parseExpression(parser: ParserBase): Expr {
  * Syntax: { expr; expr; ... result }
  */
 export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
-    ensureInitialized();
+    initializeOnce();
     return Complex.parseBlockExpr(parser, startLoc);
 }

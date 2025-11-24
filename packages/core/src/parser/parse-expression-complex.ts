@@ -8,10 +8,19 @@ import type { Expr, Location, MatchCase, RecordField } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
 // Forward declarations (injected by aggregator)
-let parsePatternFn: (parser: ParserBase) => import("../types/index.js").Pattern;
-let parseTypeExprFn: (parser: ParserBase) => import("../types/index.js").TypeExpr;
-let parseExpressionFn: (parser: ParserBase) => Expr;
-let parseLogicalOrFn: (parser: ParserBase) => Expr;
+// Initialized to error-throwing functions for type safety and better error messages
+let parsePatternFn: (parser: ParserBase) => import("../types/index.js").Pattern = () => {
+    throw new Error("parsePatternFn not initialized - setDependencies must be called first");
+};
+let parseTypeExprFn: (parser: ParserBase) => import("../types/index.js").TypeExpr = () => {
+    throw new Error("parseTypeExprFn not initialized - setDependencies must be called first");
+};
+let parseExpressionFn: (parser: ParserBase) => Expr = () => {
+    throw new Error("parseExpressionFn not initialized - setDependencies must be called first");
+};
+let parseLogicalOrFn: (parser: ParserBase) => Expr = () => {
+    throw new Error("parseLogicalOrFn not initialized - setDependencies must be called first");
+};
 
 /**
  * Set the dependent parsers (called during initialization)
