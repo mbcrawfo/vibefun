@@ -10,7 +10,7 @@ import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
 import { buildEnvironment } from "./environment.js";
-import { convertTypeExpr, createContext, inferExpr } from "./infer.js";
+import { convertTypeExpr, createContext, inferExpr } from "./infer/index.js";
 import { checkPattern } from "./patterns.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";

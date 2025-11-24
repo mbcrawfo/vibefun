@@ -1,7 +1,7 @@
 # Large File Breakup - Task Checklist
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 22:51
+**Last Updated:** 2025-11-23 23:07
 
 ## Overview
 
@@ -165,36 +165,39 @@
 
 ## Phase 7: Type Inference (infer.ts)
 
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 **Files:** 1 → 7 (+ new directory)
 **Complexity:** High
 
 ### Tasks
 
-- [ ] Create `packages/core/src/typechecker/infer/` directory
-- [ ] Create `infer/infer-context.ts` (~150 lines)
+- [x] Create `packages/core/src/typechecker/infer/` directory
+- [x] Create `infer/infer-context.ts` (146 lines)
   - Move InferenceContext, InferResult types
-  - Move instantiate(), substituteTypeVars(), generalize()
+  - Move instantiate(), substituteTypeVars()
   - Move createContext()
-- [ ] Create `infer/infer-primitives.ts` (~180 lines)
+- [x] Create `infer/infer-primitives.ts` (318 lines)
   - Keep main inferExpr() dispatcher
   - Move literal inference
   - Move inferVar(), inferTypeAnnotation(), inferUnsafe()
-- [ ] Create `infer/infer-functions.ts` (~100 lines)
+  - Move convertTypeExpr()
+- [x] Create `infer/infer-functions.ts` (128 lines)
   - Move inferLambda(), inferApp()
-- [ ] Create `infer/infer-operators.ts` (~250 lines)
+- [x] Create `infer/infer-operators.ts` (267 lines)
   - Move inferBinOp(), getBinOpTypes(), inferUnaryOp(), getUnaryOpTypes()
-- [ ] Create `infer/infer-bindings.ts` (~350 lines)
+- [x] Create `infer/infer-bindings.ts` (330 lines)
   - Move inferLet(), inferLetRecExpr()
-- [ ] Create `infer/infer-structures.ts` (~450 lines)
+  - Move generalize()
+- [x] Create `infer/infer-structures.ts` (441 lines)
   - Move inferRecord(), inferRecordAccess(), inferRecordUpdate()
   - Move inferVariant(), inferMatch()
-  - Move convertTypeExpr()
-- [ ] Create `infer/index.ts` (~20 lines)
+- [x] Create `infer/index.ts` (61 lines)
+  - Wire up dependency injection
   - Re-export all public functions
-- [ ] Update imports throughout typechecker module (from `./infer.js` to `./infer/index.js`)
-- [ ] Run `npm run verify` to ensure all tests pass
-- [ ] Verify all new files are under 1,000 lines
+- [x] Update imports throughout typechecker module (from `./infer.js` to `./infer/index.js`)
+- [x] Delete original `infer.ts`
+- [x] Run `npm run verify` to ensure all tests pass
+- [x] Verify all new files are under 1,000 lines (largest: 441 lines)
 
 ---
 
@@ -317,10 +320,10 @@
 | Phase 4: Expression Tests | ✅ | 8 | 685 lines | Medium |
 | Phase 5: Parser Integration Tests | ✅ | 4 | 541 lines | Low |
 | Phase 6: Expression Parser | ✅ | 5 | 584 lines | High |
-| Phase 7: Type Inference | 🔜 | 7 | ~450 lines | High |
+| Phase 7: Type Inference | ✅ | 7 | 441 lines | High |
 | Phase 8: Typechecker Tests | ✅ | 6 | 350 lines | Low |
 | Phase 9: Inference Tests | ✅ | 5 | 814 lines | Low |
 | Phase 10: Update Coding Standards | ✅ | 1 (updated) | N/A | Low |
-| **Total** | **8/10** | **51** | **814 lines** | **-** |
+| **Total** | **9/10** | **52** | **814 lines** | **-** |
 
-**Progress:** 8/10 phases completed (80%)
+**Progress:** 9/10 phases completed (90%)
