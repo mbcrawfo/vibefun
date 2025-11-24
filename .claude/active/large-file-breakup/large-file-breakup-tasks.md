@@ -1,7 +1,7 @@
 # Large File Breakup - Task Checklist
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23 19:54
+**Last Updated:** 2025-11-23 20:24
 
 ## Overview
 
@@ -85,31 +85,31 @@
 
 ## Phase 4: Expression Tests (expressions.test.ts)
 
-**Status:** 🔜 Not Started
-**Files:** 1 → 7
+**Status:** ✅ Done
+**Files:** 1 → 8 (helper + 7 test files)
 **Complexity:** Medium
 
 ### Tasks
 
-- [ ] Create `packages/core/src/parser/expression-test-helpers.ts` (~30 lines)
+- [x] Create `packages/core/src/parser/expression-test-helpers.ts` (16 lines)
   - Extract shared `parseExpression()` helper function
-- [ ] Create `expression-literals.test.ts` (~280 lines)
+- [x] Create `expression-literals.test.ts` (283 lines)
   - Move literals, variables, parenthesized expressions, error cases
-- [ ] Create `expression-operators.test.ts` (~490 lines)
+- [x] Create `expression-operators.test.ts` (488 lines)
   - Move binary operators suite (all 7 subsections)
-- [ ] Create `expression-unary-postfix.test.ts` (~320 lines)
+- [x] Create `expression-unary-postfix.test.ts` (310 lines)
   - Move unary operators and postfix dereference suites
-- [ ] Create `expression-functions.test.ts` (~560 lines)
-  - Move function calls, lambdas, type annotations, blocks, unsafe blocks
-- [ ] Create `expression-control-flow.test.ts` (~325 lines)
-  - Move if expressions and match expressions suites
-- [ ] Create `expression-lists.test.ts` (~290 lines)
+- [x] Create `expression-functions.test.ts` (441 lines)
+  - Move function calls, lambdas, type annotations
+- [x] Create `expression-control-flow.test.ts` (582 lines)
+  - Move block expressions, unsafe blocks, if expressions and match expressions suites
+- [x] Create `expression-lists.test.ts` (283 lines)
   - Move lists and list spreads suites
-- [ ] Create `expression-records.test.ts` (~690 lines)
+- [x] Create `expression-records.test.ts` (685 lines)
   - Move all record-related test suites
-- [ ] Delete original `expressions.test.ts`
-- [ ] Run `npm run verify` to ensure all tests pass
-- [ ] Verify all new files are under 1,000 lines
+- [x] Delete original `expressions.test.ts`
+- [x] Run `npm run verify` to ensure all tests pass
+- [x] Verify all new files are under 1,000 lines
 
 ---
 
@@ -314,13 +314,13 @@
 | Phase 1: Lexer Core | 🔜 | 7 | ~300 lines | Medium |
 | Phase 2: Lexer Integration Tests | 🔜 | 4 | ~499 lines | Low |
 | Phase 3: Operators Tests | 🔜 | 4 | ~385 lines | Low |
-| Phase 4: Expression Tests | 🔜 | 7 | ~690 lines | Medium |
+| Phase 4: Expression Tests | ✅ | 8 | ~685 lines | Medium |
 | Phase 5: Parser Integration Tests | 🔜 | 3 | ~530 lines | Low |
 | Phase 6: Expression Parser | 🔜 | 5 | ~550 lines | High |
 | Phase 7: Type Inference | 🔜 | 7 | ~450 lines | High |
 | Phase 8: Typechecker Tests | 🔜 | 6 | ~350 lines | Low |
 | Phase 9: Inference Tests | 🔜 | 5 | ~850 lines | Low |
 | Phase 10: Update Coding Standards | 🔜 | 1 (updated) | N/A | Low |
-| **Total** | **0/10** | **48** | **~850 lines** | **-** |
+| **Total** | **3/10** | **49** | **~850 lines** | **-** |
 
-**Progress:** 0/10 phases completed (0%)
+**Progress:** 3/10 phases completed (30%)
