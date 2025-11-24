@@ -470,3 +470,134 @@ import { tokenize } from './lexer/index.js';
 // Bad - mixing when you only need types
 import { Token } from './types/index.js'; // ❌ Use 'import type'
 ```
+
+## Dependency Injection Pattern
+
+To avoid circular dependencies between modules (especially in the parser and typechecker), we use **dependency injection** with error-throwing initialization.
+
+### When to Use Dependency Injection
+
+Use this pattern when:
+- Two modules need to call each other's functions (circular dependency)
+- A module needs to be split into smaller files but they cross-reference each other
+- You want to wire up module dependencies at initialization time
+
+Examples: parser expression modules, typechecker inference modules
+
+### Implementation Pattern
+
+**Step 1: Declare dependencies with error-throwing initialization**
+
+In the dependent module, declare forward references initialized to error-throwing functions:
+
+```typescript
+// parse-expression-primary.ts
+import type { Expr, Location } from "../types/index.js";
+import type { ParserBase } from "./parser-base.js";
+
+// Forward declarations - initialized to error-throwing functions
+let parseLambdaFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseLambdaFn not initialized - setDependencies must be called first");
+};
+let parseMatchFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseMatchFn not initialized - setDependencies must be called first");
+};
+
+/**
+ * Set dependencies (called during initialization)
+ */
+export function setDependencies(fns: {
+    parseLambda: typeof parseLambdaFn;
+    parseMatch: typeof parseMatchFn;
+}): void {
+    parseLambdaFn = fns.parseLambda;
+    parseMatchFn = fns.parseMatch;
+}
+
+// Now use parseLambdaFn and parseMatchFn in your functions
+export function parsePrimary(parser: ParserBase): Expr {
+    if (parser.check("LPAREN")) {
+        return parseLambdaFn(parser, parser.peek().loc);
+    }
+    // ...
+}
+```
+
+**Step 2: Wire dependencies at initialization**
+
+Create an aggregator or index file that wires all dependencies:
+
+```typescript
+// parse-expressions.ts (aggregator)
+import * as Primary from "./parse-expression-primary.js";
+import * as Lambda from "./parse-expression-lambda.js";
+import * as Complex from "./parse-expression-complex.js";
+
+let initialized = false;
+
+function initializeDependencies(): void {
+    // Wire up all modules
+    Primary.setDependencies({
+        parseLambda: Lambda.parseLambda,
+        parseMatch: Complex.parseMatch,
+    });
+
+    Lambda.setDependencies({
+        parseExpression: Primary.parsePrimary,
+    });
+
+    Complex.setDependencies({
+        parseExpression: Primary.parsePrimary,
+    });
+}
+
+function initializeOnce(): void {
+    if (!initialized) {
+        initializeDependencies();
+        initialized = true;
+    }
+}
+
+// Entry points call initializeOnce before delegating
+export function parseExpression(parser: ParserBase): Expr {
+    initializeOnce();
+    return Primary.parsePrimary(parser);
+}
+```
+
+### Why Error-Throwing Initialization?
+
+```typescript
+// ❌ BAD: Uninitialized (TypeScript allows this but it's unsafe)
+let parseFn: (parser: ParserBase) => Expr;
+
+// ✅ GOOD: Error-throwing initialization
+let parseFn: (parser: ParserBase) => Expr = () => {
+    throw new Error("parseFn not initialized - setDependencies must be called first");
+};
+```
+
+**Benefits:**
+1. **Type safety**: Variable is never `undefined`, avoiding runtime type errors
+2. **Clear error messages**: If initialization is forgotten, you get a helpful error
+3. **Better debugging**: Error tells you exactly what went wrong and how to fix it
+4. **Catches initialization bugs early**: Fails fast with clear context
+
+### Alternative: Definite Assignment Assertion
+
+For simpler cases, you can use TypeScript's definite assignment assertion:
+
+```typescript
+// Also acceptable (but less informative error messages)
+let parseFn!: (parser: ParserBase) => Expr;
+```
+
+This tells TypeScript "trust me, this will be initialized before use." However, error-throwing initialization is preferred because it provides better error messages if something goes wrong.
+
+### When NOT to Use DI
+
+- Simple one-way dependencies → use direct imports
+- No circular dependencies → use direct imports
+- Stateless utility functions → use direct imports
+
+Only use dependency injection when you truly need it to break circular dependencies.

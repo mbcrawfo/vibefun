@@ -8,12 +8,25 @@ import type { Expr, ListElement, Location } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
 // Forward declarations for complex expression parsers (injected by aggregator)
-let parseLambdaOrParenFn: (parser: ParserBase, startLoc: Location) => Expr;
-let parseMatchExprFn: (parser: ParserBase, startLoc: Location) => Expr;
-let parseRecordExprFn: (parser: ParserBase, startLoc: Location) => Expr;
-let parseBlockExprFn: (parser: ParserBase, startLoc: Location) => Expr;
-let parseLetExprFn: (parser: ParserBase, startLoc: Location) => Expr;
-let parseExpressionFn: (parser: ParserBase) => Expr;
+// Initialized to error-throwing functions for type safety and better error messages
+let parseLambdaOrParenFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseLambdaOrParenFn not initialized - setComplexParsers must be called first");
+};
+let parseMatchExprFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseMatchExprFn not initialized - setComplexParsers must be called first");
+};
+let parseRecordExprFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseRecordExprFn not initialized - setComplexParsers must be called first");
+};
+let parseBlockExprFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseBlockExprFn not initialized - setComplexParsers must be called first");
+};
+let parseLetExprFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
+    throw new Error("parseLetExprFn not initialized - setComplexParsers must be called first");
+};
+let parseExpressionFn: (parser: ParserBase) => Expr = () => {
+    throw new Error("parseExpressionFn not initialized - setComplexParsers must be called first");
+};
 
 /**
  * Set the complex expression parsers (called during initialization)

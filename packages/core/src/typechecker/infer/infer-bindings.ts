@@ -14,7 +14,10 @@ import { freeTypeVarsAtLevel, freshTypeVar, isSyntacticValue } from "../types.js
 import { applySubst, composeSubst, unify } from "../unify.js";
 
 // Import inferExpr - will be set via dependency injection
-let inferExprFn: (ctx: InferenceContext, expr: CoreExpr) => InferResult;
+// Initialized to error-throwing function for type safety and better error messages
+let inferExprFn: (ctx: InferenceContext, expr: CoreExpr) => InferResult = () => {
+    throw new Error("inferExprFn not initialized - setInferExpr must be called first");
+};
 
 /**
  * Set up dependency injection for inferExpr

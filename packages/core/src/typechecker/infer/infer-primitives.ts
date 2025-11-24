@@ -16,17 +16,49 @@ import { instantiate } from "./infer-context.js";
 
 // Import functions from other infer modules
 // These will be set via dependency injection in index.ts
-let inferLambdaFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLambda" }>) => InferResult;
-let inferAppFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreApp" }>) => InferResult;
-let inferBinOpFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreBinOp" }>) => InferResult;
-let inferUnaryOpFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreUnaryOp" }>) => InferResult;
-let inferLetFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>) => InferResult;
-let inferLetRecExprFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLetRecExpr" }>) => InferResult;
-let inferRecordFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecord" }>) => InferResult;
-let inferRecordAccessFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecordAccess" }>) => InferResult;
-let inferRecordUpdateFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecordUpdate" }>) => InferResult;
-let inferVariantFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreVariant" }>) => InferResult;
-let inferMatchFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreMatch" }>) => InferResult;
+// Initialized to error-throwing functions for type safety and better error messages
+let inferLambdaFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLambda" }>) => InferResult = () => {
+    throw new Error("inferLambdaFn not initialized - setInferenceFunctions must be called first");
+};
+let inferAppFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreApp" }>) => InferResult = () => {
+    throw new Error("inferAppFn not initialized - setInferenceFunctions must be called first");
+};
+let inferBinOpFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreBinOp" }>) => InferResult = () => {
+    throw new Error("inferBinOpFn not initialized - setInferenceFunctions must be called first");
+};
+let inferUnaryOpFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreUnaryOp" }>) => InferResult = () => {
+    throw new Error("inferUnaryOpFn not initialized - setInferenceFunctions must be called first");
+};
+let inferLetFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>) => InferResult = () => {
+    throw new Error("inferLetFn not initialized - setInferenceFunctions must be called first");
+};
+let inferLetRecExprFn: (
+    ctx: InferenceContext,
+    expr: Extract<CoreExpr, { kind: "CoreLetRecExpr" }>,
+) => InferResult = () => {
+    throw new Error("inferLetRecExprFn not initialized - setInferenceFunctions must be called first");
+};
+let inferRecordFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreRecord" }>) => InferResult = () => {
+    throw new Error("inferRecordFn not initialized - setInferenceFunctions must be called first");
+};
+let inferRecordAccessFn: (
+    ctx: InferenceContext,
+    expr: Extract<CoreExpr, { kind: "CoreRecordAccess" }>,
+) => InferResult = () => {
+    throw new Error("inferRecordAccessFn not initialized - setInferenceFunctions must be called first");
+};
+let inferRecordUpdateFn: (
+    ctx: InferenceContext,
+    expr: Extract<CoreExpr, { kind: "CoreRecordUpdate" }>,
+) => InferResult = () => {
+    throw new Error("inferRecordUpdateFn not initialized - setInferenceFunctions must be called first");
+};
+let inferVariantFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreVariant" }>) => InferResult = () => {
+    throw new Error("inferVariantFn not initialized - setInferenceFunctions must be called first");
+};
+let inferMatchFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreMatch" }>) => InferResult = () => {
+    throw new Error("inferMatchFn not initialized - setInferenceFunctions must be called first");
+};
 
 /**
  * Set up dependency injection for other inference functions
