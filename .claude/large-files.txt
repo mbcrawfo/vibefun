@@ -1,0 +1,9 @@
+packages/core/src/lexer/lexer.ts
+packages/core/src/lexer/lexer-integration.test.ts
+packages/core/src/lexer/operators.test.ts
+packages/core/src/parser/expressions.test.ts
+packages/core/src/parser/parser-integration.test.ts
+packages/core/src/parser/parse-expressions.ts
+packages/core/src/typechecker/infer.ts
+packages/core/src/typechecker/typechecker.test.ts
+packages/core/src/typechecker/infer.test.ts
