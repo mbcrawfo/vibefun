@@ -1,6 +1,6 @@
 # Error Unification - Context Document
 
-**Last Updated:** 2025-11-24
+**Last Updated:** 2025-11-25
 
 ## Key Design Decisions
 
@@ -34,6 +34,54 @@ Tests are placed side-by-side with source files (e.g., `diagnostic.ts` and `diag
 
 **Rationale:** Follows project conventions. Easier to find related test files.
 
+### 7. Internal vs User-Facing Errors (Resolved 2025-11-25)
+Internal errors (compiler bugs) remain plain `Error` throws, not diagnostic codes.
+
+**Examples of internal errors (keep as plain Error):**
+- "Unknown expression kind: {kind}"
+- "Internal error: empty types array"
+- "parseLambdaFn not initialized" (DI initialization)
+- Exhaustiveness check failures
+
+**User-facing errors get VFxxxx codes.**
+
+**Rationale:** Internal errors indicate compiler bugs that should never reach users. They don't need lookup or documentation. Keeps diagnostic system focused on user-actionable errors.
+
+### 8. Factory Function Migration (Resolved 2025-11-25)
+Full replacement approach - DELETE all `createXxxError()` factory functions.
+
+**Before:**
+```typescript
+throw createTypeMismatchError(expected, actual, loc);
+```
+
+**After:**
+```typescript
+throwDiagnostic("VF4001", loc, { expected, actual });
+```
+
+**Rationale:** Single code path. No confusion about which pattern to use. Breaking change is acceptable for this internal refactor.
+
+### 9. Warning Infrastructure (Resolved 2025-11-25)
+Warnings are included in this work, not deferred.
+
+**Components:**
+- `WarningCollector` class accumulates warnings without stopping
+- VFx900-x999 codes have `severity: "warning"`
+- Warnings reported after compilation completes
+
+**Rationale:** Unreachable pattern warnings are already needed. Better to build infrastructure now than patch later.
+
+### 10. Source Context Threading (Resolved 2025-11-25)
+Pass `source: string` through the entire compilation pipeline.
+
+**Changes required:**
+- `typecheck(program, source, options)` - add source parameter
+- `desugar(program, source)` - add source parameter
+- CLI `compile()` - thread source to all phases
+
+**Rationale:** All error messages should show source context with `^` pointer. This requires source to be available everywhere.
+
 ## Critical Files
 
 ### Files to Create
@@ -45,10 +93,14 @@ Tests are placed side-by-side with source files (e.g., `diagnostic.ts` and `diag
 | `packages/core/src/diagnostics/registry.test.ts` | Tests (side-by-side) |
 | `packages/core/src/diagnostics/factory.ts` | Error creation helpers |
 | `packages/core/src/diagnostics/factory.test.ts` | Tests (side-by-side) |
+| `packages/core/src/diagnostics/warning-collector.ts` | Warning accumulation (NEW) |
+| `packages/core/src/diagnostics/warning-collector.test.ts` | Tests (side-by-side) |
+| `packages/core/src/diagnostics/test-helpers.ts` | Test utilities: expectDiagnostic(), expectWarning() (NEW) |
+| `packages/core/src/diagnostics/test-helpers.test.ts` | Tests (side-by-side) |
 | `packages/core/src/diagnostics/codes/lexer.ts` | VF1xxx definitions |
 | `packages/core/src/diagnostics/codes/parser.ts` | VF2xxx definitions |
 | `packages/core/src/diagnostics/codes/desugarer.ts` | VF3xxx definitions |
-| `packages/core/src/diagnostics/codes/typechecker.ts` | VF4xxx definitions |
+| `packages/core/src/diagnostics/codes/typechecker.ts` | VF4xxx definitions (~45 codes) |
 | `packages/core/src/diagnostics/codes/modules.ts` | VF5xxx definitions |
 | `packages/core/src/diagnostics/index.ts` | Public API exports |
 | `scripts/generate-error-docs.ts` | Documentation generator |
@@ -63,16 +115,20 @@ Tests are placed side-by-side with source files (e.g., `diagnostic.ts` and `diag
 | `packages/core/src/parser/parser-base.ts` | Replace error helper with diagnostics |
 | `packages/core/src/parser/parse-declarations.ts` | Use new error pattern |
 | `packages/core/src/parser/parse-expressions.ts` | Use new error pattern |
-| `packages/core/src/desugarer/desugarer.ts` | Replace DesugarError with diagnostics |
-| `packages/core/src/typechecker/typechecker.ts` | Update to use diagnostics/factory.ts |
-| `packages/core/src/typechecker/unify.ts` | Update to use diagnostics/factory.ts |
+| `packages/core/src/desugarer/desugarer.ts` | Replace DesugarError, add source parameter |
+| `packages/core/src/desugarer/desugarListWithConcats.ts` | Convert plain Error throws to diagnostics |
+| `packages/core/src/typechecker/typechecker.ts` | Add source parameter, use throwDiagnostic() |
+| `packages/core/src/typechecker/unify.ts` | Convert 18+ plain Error throws to diagnostics |
+| `packages/core/src/typechecker/patterns.ts` | Convert throws to diagnostics |
+| `packages/core/src/typechecker/infer/*.ts` | Replace factory calls with throwDiagnostic() |
+| `packages/cli/src/index.ts` | Thread source through compilation pipeline |
 
 ### Files to Delete
-| File | Reason |
-|------|--------|
-| `packages/core/src/desugarer/DesugarError.ts` | Replaced by unified diagnostics |
-| `packages/core/src/utils/error.ts` | Old error classes replaced by VibefunDiagnostic |
-| `packages/core/src/typechecker/errors.ts` | TypeCheckerError replaced by diagnostics (factory functions moved to diagnostics/factory.ts) |
+| File | When | Reason |
+|------|------|--------|
+| `packages/core/src/desugarer/DesugarError.ts` | Phase 4 | Replaced by unified diagnostics |
+| `packages/core/src/typechecker/errors.ts` | Phase 5 | DELETE factory functions entirely. Move `typeToString()` utilities elsewhere |
+| `packages/core/src/utils/error.ts` | Phase 8 | Old error classes replaced by VibefunDiagnostic |
 
 ### Files to Archive/Update
 | File | Action |
@@ -157,9 +213,22 @@ packages/core/src/desugarer/DesugarError.ts:
 | (branch mismatch) | VF4004 | BranchTypeMismatch |
 | (if branch mismatch) | VF4005 | IfBranchTypeMismatch |
 | (list element mismatch) | VF4006 | ListElementMismatch |
+| (tuple element mismatch) | VF4007 | TupleElementMismatch (NEW) |
+| (record field mismatch) | VF4008 | RecordFieldMismatch (NEW) |
 | (numeric mismatch) | VF4009 | NumericTypeMismatch |
 | (operator mismatch) | VF4010 | OperatorTypeMismatch |
+| (guard type mismatch) | VF4011 | GuardTypeMismatch (NEW) |
+| (annotation mismatch) | VF4012 | AnnotationMismatch (NEW) |
 | (not a function) | VF4013 | NotAFunction |
+| (not a record) | VF4014 | NotARecord (NEW) |
+| (not a ref) | VF4015 | NotARef (NEW) |
+| (ref assignment) | VF4016 | RefAssignmentMismatch (NEW) |
+| (unify.ts: cannot unify) | VF4020 | CannotUnify (NEW) |
+| (unify.ts: function arity) | VF4021 | FunctionArityMismatch (NEW) |
+| (unify.ts: type app arity) | VF4022 | TypeApplicationArityMismatch (NEW) |
+| (unify.ts: union arity) | VF4023 | UnionArityMismatch (NEW) |
+| (unify.ts: incompatible) | VF4024 | IncompatibleTypes (NEW) |
+| (unify.ts: variant) | VF4025 | VariantUnificationError (NEW) |
 | createUndefinedVariableError | VF4100 | UndefinedVariable |
 | createUndefinedTypeError | VF4101 | UndefinedType |
 | createUndefinedConstructorError | VF4102 | UndefinedConstructor |
@@ -167,7 +236,10 @@ packages/core/src/desugarer/DesugarError.ts:
 | createConstructorArityError | VF4200 | ConstructorArity |
 | createOverloadError | VF4201 | NoMatchingOverload |
 | (wrong argument count) | VF4202 | WrongArgumentCount |
+| (tuple arity) | VF4203 | TupleArity (NEW) |
+| (type arg count) | VF4204 | TypeArgumentCount (NEW) |
 | createOccursCheckError | VF4300 | InfiniteType |
+| (recursive alias) | VF4301 | RecursiveAlias (NEW) |
 | createNonExhaustiveError | VF4400 | NonExhaustiveMatch |
 | createInvalidGuardError | VF4401 | InvalidGuard |
 | (duplicate binding) | VF4402 | DuplicateBinding |
@@ -176,6 +248,8 @@ packages/core/src/desugarer/DesugarError.ts:
 | (missing field) | VF4501 | MissingRecordField |
 | (duplicate field) | VF4502 | DuplicateRecordField |
 | (unknown constructor) | VF4600 | UnknownConstructor |
+| (constructor arg mismatch) | VF4601 | ConstructorArgMismatch (NEW) |
+| (variant mismatch) | VF4602 | VariantMismatch (NEW) |
 | createValueRestrictionError | VF4700 | ValueRestriction |
 | createEscapeError | VF4701 | TypeEscape |
 | (unreachable pattern) | VF4900 | UnreachablePattern (warning) |
