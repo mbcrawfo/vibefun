@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ParserError } from "../utils/index.js";
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Control Flow", () => {
@@ -149,11 +149,11 @@ describe("Parser - Control Flow", () => {
         });
 
         it("should throw on missing semicolon between expressions", () => {
-            expect(() => parseExpression("{ 1 2 }")).toThrow(ParserError);
+            expect(() => parseExpression("{ 1 2 }")).toThrow(VibefunDiagnostic);
         });
 
         it("should throw on unclosed block", () => {
-            expect(() => parseExpression("{ 1; 2")).toThrow(ParserError);
+            expect(() => parseExpression("{ 1; 2")).toThrow(VibefunDiagnostic);
         });
 
         it("should allow single expression with semicolon", () => {
@@ -248,11 +248,11 @@ describe("Parser - Control Flow", () => {
         });
 
         it("should throw on unsafe without braces", () => {
-            expect(() => parseExpression("unsafe x")).toThrow(ParserError);
+            expect(() => parseExpression("unsafe x")).toThrow(VibefunDiagnostic);
         });
 
         it("should throw on unclosed unsafe block", () => {
-            expect(() => parseExpression("unsafe { x")).toThrow(ParserError);
+            expect(() => parseExpression("unsafe { x")).toThrow(VibefunDiagnostic);
         });
 
         it("should parse unsafe with record construction", () => {

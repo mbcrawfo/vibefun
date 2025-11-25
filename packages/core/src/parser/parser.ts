@@ -15,7 +15,7 @@
 import type { Declaration, Expr, Module, Pattern, TypeExpr } from "../types/index.js";
 import type { Token } from "../types/token.js";
 
-import { ParserError } from "../utils/index.js";
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import * as Declarations from "./parse-declarations.js";
 import * as Expressions from "./parse-expressions.js";
 import * as Patterns from "./parse-patterns.js";
@@ -157,11 +157,9 @@ export class Parser extends ParserBase {
 
                 // Require explicit semicolon after every declaration
                 if (!this.check("SEMICOLON")) {
-                    throw this.error(
-                        "Expected ';' after declaration",
-                        this.peek().loc,
-                        "All declarations must end with a semicolon",
-                    );
+                    throw this.error("VF2107", this.peek().loc, {
+                        context: "declarations",
+                    });
                 }
                 this.advance(); // Consume the semicolon
 
@@ -169,7 +167,7 @@ export class Parser extends ParserBase {
                 while (this.match("NEWLINE"));
             } catch (error) {
                 // Error during declaration parsing - synchronize and continue
-                if (error instanceof ParserError) {
+                if (error instanceof VibefunDiagnostic) {
                     // Error already collected, synchronize and continue
                     this.synchronize();
                 } else {

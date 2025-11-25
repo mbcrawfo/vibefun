@@ -52,11 +52,7 @@ export function parseMatchExpr(parser: ParserBase, startLoc: Location): Expr {
 
     // Validate at least one case before loop
     if (parser.check("RBRACE")) {
-        throw parser.error(
-            "Match expression must have at least one case",
-            parser.peek().loc,
-            "Add at least one pattern match case: | pattern => expr",
-        );
+        throw parser.error("VF2100", parser.peek().loc);
     }
 
     // ALL cases require leading pipe (including first)
@@ -172,12 +168,10 @@ export function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
 
                 // Require comma before next item
                 if (!parser.check("COMMA")) {
-                    const nextToken = parser.peek();
-                    throw parser.error(
-                        `Expected ',' between record fields`,
-                        parser.peek(-1).loc,
-                        `Found ${nextToken.type} instead. Add a comma to separate fields.`,
-                    );
+                    throw parser.error("VF2110", parser.peek(-1).loc, {
+                        expected: "'}' to close record",
+                        context: "record field",
+                    });
                 }
                 parser.advance(); // Consume comma
 
@@ -222,11 +216,7 @@ export function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                         // Check if field is a keyword - can't use shorthand with keywords
                         const token = parser.peek(-1); // Get the field name token we just consumed
                         if (token.type === "KEYWORD") {
-                            throw parser.error(
-                                `Cannot use keyword '${fieldName}' in field shorthand`,
-                                fieldLoc,
-                                `Use explicit syntax: { ...base, ${fieldName}: value }`,
-                            );
+                            throw parser.error("VF2201", fieldLoc, { keyword: fieldName });
                         }
 
                         // Shorthand in update: { ...base, name }
@@ -291,11 +281,7 @@ export function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
                 // Check if field is a keyword - can't use shorthand with keywords
                 const token = parser.peek(-1); // Get the field name token we just consumed
                 if (token.type === "KEYWORD") {
-                    throw parser.error(
-                        `Cannot use keyword '${fieldName}' in field shorthand`,
-                        fieldLoc,
-                        `Use explicit syntax: { ${fieldName}: value }`,
-                    );
+                    throw parser.error("VF2201", fieldLoc, { keyword: fieldName });
                 }
 
                 // Shorthand: { name } → { name: Var(name) }
@@ -334,12 +320,10 @@ export function parseRecordExpr(parser: ParserBase, startLoc: Location): Expr {
 
             // Require comma before next field - enhanced error message
             if (!parser.check("COMMA")) {
-                const nextToken = parser.peek();
-                throw parser.error(
-                    `Expected ',' between record fields`,
-                    parser.peek(-1).loc,
-                    `Found ${nextToken.type} instead. Add a comma to separate fields.`,
-                );
+                throw parser.error("VF2110", parser.peek(-1).loc, {
+                    expected: "'}' to close record",
+                    context: "record field",
+                });
             }
             parser.advance(); // Consume comma
 
@@ -389,11 +373,9 @@ export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
 
         // Require semicolon after every statement in block
         if (!parser.check("SEMICOLON")) {
-            throw parser.error(
-                "Expected ';' after statement in block",
-                parser.peek().loc,
-                "All statements in a block must end with a semicolon",
-            );
+            throw parser.error("VF2107", parser.peek().loc, {
+                context: "statements in block",
+            });
         }
         parser.advance(); // Consume the semicolon
 
@@ -460,11 +442,9 @@ export function parseLetExpr(parser: ParserBase, startLoc: Location): Expr {
 
     // Require explicit semicolon after let binding
     if (!parser.check("SEMICOLON")) {
-        throw parser.error(
-            "Expected ';' after let binding",
-            parser.peek().loc,
-            "Let expressions in blocks must be followed by a semicolon",
-        );
+        throw parser.error("VF2107", parser.peek().loc, {
+            context: "let binding and body",
+        });
     }
     parser.advance(); // Consume the semicolon
 

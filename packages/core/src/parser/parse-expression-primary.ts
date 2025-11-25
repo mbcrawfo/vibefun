@@ -113,7 +113,7 @@ export function parsePrimary(parser: ParserBase): Expr {
 
         parser.expect("KEYWORD", "Expected 'then' after if condition");
         if (parser.peek(-1).value !== "then") {
-            throw parser.error("Expected 'then' after if condition", parser.peek(-1).loc);
+            throw parser.error("VF2105", parser.peek(-1).loc);
         }
 
         const thenExpr = parseExpressionFn(parser);
@@ -342,20 +342,16 @@ export function parsePrimary(parser: ParserBase): Expr {
                 // Ambiguous case: { expr }
                 // This could be a record field shorthand OR a single-expression block
                 // Decision: require semicolon for blocks, so this is an error
-                throw parser.error(
-                    "Ambiguous syntax: single expression in braces",
-                    startLoc,
-                    "Use semicolon for block ({ expr; }) or field:value syntax for record ({ field: value })",
-                );
+                throw parser.error("VF2107", startLoc, {
+                    context: "statements in block",
+                });
             }
 
             // If we get here, there's more content but no semicolon
             // This is likely a malformed record or block
-            throw parser.error(
-                "Expected semicolon, closing brace, or colon",
-                parser.peek().loc,
-                "Use semicolons to separate statements in blocks, or use field:value syntax for records",
-            );
+            throw parser.error("VF2107", parser.peek().loc, {
+                context: "statements in block",
+            });
         } catch (error) {
             // If expression parsing failed, restore position and throw
             p.current = checkpoint;
@@ -374,9 +370,11 @@ export function parsePrimary(parser: ParserBase): Expr {
     }
 
     // If we get here, unexpected token
-    throw parser.error(
-        `Unexpected token: ${parser.peek().type}`,
-        parser.peek().loc,
-        "Expected an expression (literal, variable, or parenthesized expression)",
-    );
+    const token = parser.peek();
+    const value = token.type === "KEYWORD" ? token.value : token.type;
+    throw parser.error("VF2101", token.loc, {
+        tokenType: token.type === "KEYWORD" ? "keyword" : "token",
+        value: String(value),
+        hint: "Expected an expression (literal, variable, or parenthesized expression)",
+    });
 }

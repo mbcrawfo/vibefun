@@ -4,23 +4,23 @@
 
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
-import { ParserError } from "../utils/error.js";
 import { Parser } from "./parser.js";
 
 // Helper to attempt parsing and expect an error
-function expectParseError(source: string): ParserError {
+function expectParseError(source: string): VibefunDiagnostic {
     const lexer = new Lexer(source, "test.vf");
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens, "test.vf");
 
-    expect(() => parser.parse()).toThrow(ParserError);
+    expect(() => parser.parse()).toThrow(VibefunDiagnostic);
 
     try {
         parser.parse();
-        throw new Error("Expected parser to throw ParserError");
+        throw new Error("Expected parser to throw VibefunDiagnostic");
     } catch (error) {
-        if (error instanceof ParserError) {
+        if (error instanceof VibefunDiagnostic) {
             return error;
         }
         throw error;
