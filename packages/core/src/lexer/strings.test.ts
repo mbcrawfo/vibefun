@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { LexerError } from "../utils/index.js";
+import { expectDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Single-Line Strings", () => {
@@ -262,71 +262,61 @@ describe("Lexer - Single-Line Strings", () => {
         it("should throw error for unterminated string", () => {
             const lexer = new Lexer('"hello', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"hello', "test.vf").tokenize()).toThrow(/unterminated string/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1002");
         });
 
         it("should throw error for newline in single-line string", () => {
             const lexer = new Lexer('"hello\nworld"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"hello\nworld"', "test.vf").tokenize()).toThrow(/newline/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1001");
         });
 
         it("should throw error for invalid escape sequence", () => {
             const lexer = new Lexer('"test\\q"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"test\\q"', "test.vf").tokenize()).toThrow(/invalid escape/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1010");
         });
 
         it("should throw error for incomplete hex escape", () => {
             const lexer = new Lexer('"\\x4"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\x4"', "test.vf").tokenize()).toThrow(/expected 2 hex digits/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1011");
         });
 
         it("should throw error for invalid hex escape", () => {
             const lexer = new Lexer('"\\xGG"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\xGG"', "test.vf").tokenize()).toThrow(/expected 2 hex digits/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1011");
         });
 
         it("should throw error for incomplete unicode escape", () => {
             const lexer = new Lexer('"\\u004"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\u004"', "test.vf").tokenize()).toThrow(/expected 4 hex digits/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1012");
         });
 
         it("should throw error for unterminated long unicode", () => {
             const lexer = new Lexer('"\\u{41"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\u{41"', "test.vf").tokenize()).toThrow(/expected closing }/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1012");
         });
 
         it("should throw error for empty long unicode", () => {
             const lexer = new Lexer('"\\u{}"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\u{}"', "test.vf").tokenize()).toThrow(/expected 1-6 hex digits/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1012");
         });
 
         it("should throw error for too long unicode", () => {
             const lexer = new Lexer('"\\u{1234567}"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\u{1234567}"', "test.vf").tokenize()).toThrow(/expected 1-6 hex digits/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1012");
         });
 
         it("should throw error for unicode codepoint out of range", () => {
             const lexer = new Lexer('"\\u{110000}"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"\\u{110000}"', "test.vf").tokenize()).toThrow(/0x10FFFF/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1012");
         });
     });
 });
@@ -440,22 +430,19 @@ describe("Lexer - Multi-Line Strings", () => {
         it("should throw error for unterminated multi-line string", () => {
             const lexer = new Lexer('"""hello', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"""hello', "test.vf").tokenize()).toThrow(/unterminated multi-line string/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1003");
         });
 
         it("should throw error for unterminated with single closing quote", () => {
             const lexer = new Lexer('"""hello"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"""hello"', "test.vf").tokenize()).toThrow(/unterminated multi-line string/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1003");
         });
 
         it("should throw error for unterminated with two closing quotes", () => {
             const lexer = new Lexer('"""hello""', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
-            expect(() => new Lexer('"""hello""', "test.vf").tokenize()).toThrow(/unterminated multi-line string/i);
+            expectDiagnostic(() => lexer.tokenize(), "VF1003");
         });
     });
 });

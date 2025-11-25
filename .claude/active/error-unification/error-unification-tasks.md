@@ -1,89 +1,89 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Review Amendments Applied)
+**Last Updated:** 2025-11-25 (Phase 2 Complete)
 
 ## Phase 1: Infrastructure
-**Status:** Not Started
+**Status:** ✅ Complete (Commit: a70dd58)
 
-- [ ] Create `packages/core/src/diagnostics/` directory structure
-- [ ] Implement `diagnostic.ts`:
-  - [ ] `DiagnosticSeverity` type
-  - [ ] `DiagnosticPhase` type
-  - [ ] `DiagnosticExample` interface (bad, good, description)
-  - [ ] `DiagnosticDefinition` interface:
-    - [ ] Core fields: code, title, messageTemplate, severity, phase, category
-    - [ ] Optional hint: hintTemplate
-    - [ ] Documentation fields: explanation (required), example (required)
-    - [ ] Optional documentation: relatedCodes, seeAlso
-  - [ ] `Diagnostic` interface
-  - [ ] `VibefunDiagnostic` class with `format(source?)` method
-- [ ] Implement `registry.ts`:
-  - [ ] `DiagnosticRegistry` class
-  - [ ] `get(code)` method
-  - [ ] `all()` method
-  - [ ] `byPhase(phase)` method
-  - [ ] `bySeverity(severity)` method (NEW - for warnings)
-  - [ ] `explain(code)` method
-  - [ ] Duplicate detection on registration
-- [ ] Implement `factory.ts`:
-  - [ ] `interpolate()` helper for message templates
-  - [ ] `createDiagnostic()` function
-  - [ ] `throwDiagnostic()` function
-- [ ] Implement `warning-collector.ts` (NEW):
-  - [ ] `WarningCollector` class
-  - [ ] `add(warning)` method
-  - [ ] `getWarnings()` method
-  - [ ] `hasWarnings()` method
-  - [ ] `clear()` method
-- [ ] Implement `test-helpers.ts` (NEW):
-  - [ ] `expectDiagnostic(fn, code)` function
-  - [ ] `expectWarning(collector, code)` function
-- [ ] Create `codes/index.ts` with empty placeholder exports
-- [ ] Create `diagnostics/index.ts` public exports
-- [ ] Write unit tests (side-by-side with source files):
-  - [ ] `diagnostic.test.ts` - class creation, formatting with source
-  - [ ] `registry.test.ts` - lookup, duplicate detection, severity filtering
-  - [ ] `factory.test.ts` - interpolation, creation
-  - [ ] `warning-collector.test.ts` - accumulation, retrieval
-  - [ ] `test-helpers.test.ts` - helper functions
-- [ ] Implement `interpolate()` with missing placeholder handling:
-  - [ ] Leave unmatched `{placeholder}` as-is in output
-  - [ ] Add test cases for missing placeholders
-- [ ] Implement registry duplicate detection:
-  - [ ] Throw Error at registration time for duplicates
-  - [ ] Add test case for duplicate code detection
-- [ ] Implement `format()` source line truncation:
-  - [ ] Add `MAX_LINE_LENGTH = 120` constant
-  - [ ] Implement `truncateAroundColumn()` helper
-  - [ ] Preserve caret visibility for truncated lines
-  - [ ] Add test cases for long line truncation
-- [ ] Run `npm run verify` - all tests pass
+- [x] Create `packages/core/src/diagnostics/` directory structure
+- [x] Implement `diagnostic.ts`:
+  - [x] `DiagnosticSeverity` type
+  - [x] `DiagnosticPhase` type
+  - [x] `DiagnosticExample` interface (bad, good, description)
+  - [x] `DiagnosticDefinition` interface:
+    - [x] Core fields: code, title, messageTemplate, severity, phase, category
+    - [x] Optional hint: hintTemplate
+    - [x] Documentation fields: explanation (required), example (required)
+    - [x] Optional documentation: relatedCodes, seeAlso
+  - [x] `Diagnostic` interface
+  - [x] `VibefunDiagnostic` class with `format(source?)` method
+- [x] Implement `registry.ts`:
+  - [x] `DiagnosticRegistry` class
+  - [x] `get(code)` method
+  - [x] `all()` method
+  - [x] `byPhase(phase)` method
+  - [x] `bySeverity(severity)` method (NEW - for warnings)
+  - [x] `explain(code)` method
+  - [x] Duplicate detection on registration
+- [x] Implement `factory.ts`:
+  - [x] `interpolate()` helper for message templates
+  - [x] `createDiagnostic()` function
+  - [x] `throwDiagnostic()` function
+- [x] Implement `warning-collector.ts` (NEW):
+  - [x] `WarningCollector` class
+  - [x] `add(warning)` method
+  - [x] `getWarnings()` method
+  - [x] `hasWarnings()` method
+  - [x] `clear()` method
+- [x] Implement `test-helpers.ts` (NEW):
+  - [x] `expectDiagnostic(fn, code)` function
+  - [x] `expectWarning(collector, code)` function
+- [x] Create `codes/index.ts` with empty placeholder exports
+- [x] Create `diagnostics/index.ts` public exports
+- [x] Write unit tests (side-by-side with source files):
+  - [x] `diagnostic.test.ts` - class creation, formatting with source
+  - [x] `registry.test.ts` - lookup, duplicate detection, severity filtering
+  - [x] `factory.test.ts` - interpolation, creation
+  - [x] `warning-collector.test.ts` - accumulation, retrieval
+  - [x] `test-helpers.test.ts` - helper functions
+- [x] Implement `interpolate()` with missing placeholder handling:
+  - [x] Leave unmatched `{placeholder}` as-is in output
+  - [x] Add test cases for missing placeholders
+- [x] Implement registry duplicate detection:
+  - [x] Throw Error at registration time for duplicates
+  - [x] Add test case for duplicate code detection
+- [x] Implement `format()` source line truncation:
+  - [x] Add `MAX_LINE_LENGTH = 120` constant
+  - [x] Implement `truncateAroundColumn()` helper
+  - [x] Preserve caret visibility for truncated lines
+  - [x] Add test cases for long line truncation
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 2: Lexer Migration
-**Status:** Not Started
+**Status:** ✅ Complete (Commit: c77efbb)
 
-- [ ] Create `codes/lexer.ts` with VF1xxx definitions:
-  - [ ] VF1001 UnterminatedString
-  - [ ] VF1002 UnterminatedStringEOF
-  - [ ] VF1003 UnterminatedMultilineString
-  - [ ] VF1010 InvalidEscapeSequence
-  - [ ] VF1011 InvalidHexEscape
-  - [ ] VF1012 InvalidUnicodeEscape
-  - [ ] VF1100 InvalidNumberSeparator
-  - [ ] VF1101 InvalidBinaryLiteral
-  - [ ] VF1102 InvalidHexLiteral
-  - [ ] VF1103 InvalidOctalLiteral
-  - [ ] VF1104 InvalidScientificNotation
-  - [ ] VF1300 UnterminatedComment
-  - [ ] VF1400 UnexpectedCharacter
-- [ ] Register lexer codes in registry
-- [ ] Migrate `string-parser.ts` throw sites
-- [ ] Migrate `number-parser.ts` throw sites
-- [ ] Migrate `comment-handler.ts` throw sites
-- [ ] Migrate `operator-parser.ts` throw sites
-- [ ] Migrate `lexer.ts` throw sites
-- [ ] Update lexer tests to expect new error format
-- [ ] Run `npm run verify` - all tests pass
+- [x] Create `codes/lexer.ts` with VF1xxx definitions:
+  - [x] VF1001 UnterminatedString
+  - [x] VF1002 UnterminatedStringEOF
+  - [x] VF1003 UnterminatedMultilineString
+  - [x] VF1010 InvalidEscapeSequence
+  - [x] VF1011 InvalidHexEscape
+  - [x] VF1012 InvalidUnicodeEscape
+  - [x] VF1100 InvalidNumberSeparator
+  - [x] VF1101 InvalidBinaryLiteral
+  - [x] VF1102 InvalidHexLiteral
+  - [x] VF1103 InvalidOctalLiteral (not needed - no octal support)
+  - [x] VF1104 InvalidScientificNotation
+  - [x] VF1300 UnterminatedComment
+  - [x] VF1400 UnexpectedCharacter
+- [x] Register lexer codes in registry
+- [x] Migrate `string-parser.ts` throw sites
+- [x] Migrate `number-parser.ts` throw sites
+- [x] Migrate `comment-handler.ts` throw sites
+- [x] Migrate `operator-parser.ts` throw sites
+- [x] Migrate `lexer.ts` throw sites (no changes needed - delegates to helpers)
+- [x] Update lexer tests to expect new error format
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 3: Parser Migration
 **Status:** Not Started
@@ -406,8 +406,8 @@ Before starting Phase 1, verify:
 
 | Phase | Status | Tasks | Notes |
 |-------|--------|-------|-------|
-| Phase 1: Infrastructure | Not Started | 0/21 | Core diagnostics module + interpolate/registry/truncation |
-| Phase 2: Lexer Migration | Not Started | 0/9 | ~15 error codes |
+| Phase 1: Infrastructure | ✅ Complete | 21/21 | Core diagnostics module + interpolate/registry/truncation |
+| Phase 2: Lexer Migration | ✅ Complete | 9/9 | 13 error codes (VF1001-VF1400) |
 | Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. import/export) |
 | Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
 | Phase 5a: TC Codes & Basic | Not Started | 0/12 | ~52 codes (incl. FFI), UnifyContext setup |
@@ -417,6 +417,6 @@ Before starting Phase 1, verify:
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 0/10 Phases Complete (0%)**
+**Overall: 2/10 Phases Complete (20%)**
 **Estimated Total Error Codes: ~92**
 **Estimated Test Updates: ~180-250 tests**

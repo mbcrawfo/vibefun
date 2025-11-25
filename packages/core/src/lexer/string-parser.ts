@@ -7,7 +7,7 @@
 import type { Location, Token } from "../types/index.js";
 import type { Lexer } from "./lexer.js";
 
-import { LexerError } from "../utils/index.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 import { isHexDigit } from "./character-utils.js";
 
 /**
@@ -45,11 +45,7 @@ function readSingleLineString(lexer: Lexer, start: Location, hadLeadingWhitespac
 
     while (!lexer.isAtEnd() && lexer.peek() !== '"') {
         if (lexer.peek() === "\n") {
-            throw new LexerError(
-                "Unterminated string: newline in single-line string",
-                lexer.makeLocation(),
-                'Use """ for multi-line strings or escape the newline with \\n',
-            );
+            throwDiagnostic("VF1001", lexer.makeLocation());
         }
 
         if (lexer.peek() === "\\") {
@@ -60,7 +56,7 @@ function readSingleLineString(lexer: Lexer, start: Location, hadLeadingWhitespac
     }
 
     if (lexer.isAtEnd()) {
-        throw new LexerError('Unterminated string: expected closing "', lexer.makeLocation());
+        throwDiagnostic("VF1002", lexer.makeLocation());
     }
 
     lexer.advance(); // consume closing "
@@ -118,7 +114,7 @@ function readMultiLineString(lexer: Lexer, start: Location, hadLeadingWhitespace
         }
     }
 
-    throw new LexerError('Unterminated multi-line string: expected closing """', lexer.makeLocation());
+    throwDiagnostic("VF1003", lexer.makeLocation());
 }
 
 /**
@@ -159,11 +155,7 @@ function readEscapeSequence(lexer: Lexer): string {
             return readUnicodeEscape(lexer);
 
         default:
-            throw new LexerError(
-                `Invalid escape sequence: \\${char}`,
-                lexer.makeLocation(),
-                "Valid escapes: \\n, \\t, \\r, \\\", \\', \\\\, \\xHH, \\uXXXX, \\u{XXXXXX}",
-            );
+            throwDiagnostic("VF1010", lexer.makeLocation(), { char: char ?? "EOF" });
     }
 }
 
@@ -180,7 +172,7 @@ function readHexEscape(lexer: Lexer): string {
     let hex = "";
     for (let i = 0; i < 2; i++) {
         if (!isHexDigit(lexer.peek())) {
-            throw new LexerError("Invalid \\xHH escape: expected 2 hex digits", lexer.makeLocation());
+            throwDiagnostic("VF1011", lexer.makeLocation());
         }
         hex += lexer.advance();
     }
@@ -211,19 +203,21 @@ function readUnicodeEscape(lexer: Lexer): string {
 
         // After reading hex digits, we must find a closing }
         if (lexer.peek() !== "}") {
-            throw new LexerError("Invalid \\u{...} escape: expected closing }", lexer.makeLocation());
+            throwDiagnostic("VF1012", lexer.makeLocation(), { reason: "expected closing }" });
         }
 
         lexer.advance(); // consume '}'
 
         if (hex.length === 0 || hex.length > 6) {
-            throw new LexerError("Invalid \\u{...} escape: expected 1-6 hex digits", lexer.makeLocation());
+            throwDiagnostic("VF1012", lexer.makeLocation(), { reason: "expected 1-6 hex digits" });
         }
 
         const codePoint = parseInt(hex, 16);
 
         if (codePoint > 0x10ffff) {
-            throw new LexerError(`Invalid unicode codepoint: 0x${hex} (max is 0x10FFFF)`, lexer.makeLocation());
+            throwDiagnostic("VF1012", lexer.makeLocation(), {
+                reason: `codepoint 0x${hex} exceeds maximum 0x10FFFF`,
+            });
         }
 
         return String.fromCodePoint(codePoint);
@@ -233,7 +227,7 @@ function readUnicodeEscape(lexer: Lexer): string {
     let hex = "";
     for (let i = 0; i < 4; i++) {
         if (!isHexDigit(lexer.peek())) {
-            throw new LexerError("Invalid \\uXXXX escape: expected 4 hex digits", lexer.makeLocation());
+            throwDiagnostic("VF1012", lexer.makeLocation(), { reason: "expected 4 hex digits for \\uXXXX" });
         }
         hex += lexer.advance();
     }
