@@ -147,7 +147,19 @@ let numBox: Box<Float> = intBox  // ❌ Error: Box<Int> ≠ Box<Float>
 
 **Contravariance in function types:**
 
-When records appear in function argument positions, subtyping is **contravariant**:
+When records appear in function argument positions, subtyping has **contravariant** semantics in theory. However, Vibefun's current implementation requires **exact function type matching**.
+
+#### Theoretical Variance Rules
+
+In type theory, functions have the following variance:
+- **Contravariant** in parameters: If `S <: T`, then `(T) -> R <: (S) -> R`
+- **Covariant** in return types: If `R <: S`, then `(T) -> R <: (T) -> S`
+
+This means a function expecting "more fields" can substitute for one expecting "fewer fields."
+
+#### Why Vibefun Requires Exact Matching
+
+Vibefun uses **unification** rather than **subsumption** for type checking. This means function types must match exactly:
 
 ```vibefun
 type Point2D = { x: Int, y: Int };
@@ -156,19 +168,78 @@ type Point3D = { x: Int, y: Int, z: Int };
 // Function that accepts Point3D
 let process3D: (Point3D) -> Int = (p) => p.x + p.y + p.z;
 
-// Can we assign to a function that accepts Point2D?
+// Cannot assign to a function that accepts Point2D
 let process2D: (Point2D) -> Int = process3D;
-// ❌ Error: (Point3D) -> Int is NOT a subtype of (Point2D) -> Int
+// ❌ Error: (Point3D) -> Int does not unify with (Point2D) -> Int
 
-// Why? If this were allowed:
-// process2D({ x: 1, y: 2 })  // Pass Point2D
-// But process3D expects z, which doesn't exist!
-
-// The reverse IS allowed (covariant in return type, contravariant in args):
+// Similarly, even the "safe" direction doesn't work:
 let accepts2D: (Point2D) -> Int = (p) => p.x + p.y;
-let accepts3D: (Point3D) -> Int = accepts2D;  // ✅ OK
-// A function expecting Point2D can accept Point3D (has all fields)
+let accepts3D: (Point3D) -> Int = accepts2D;
+// ❌ Error: types must match exactly (no implicit variance)
 ```
+
+#### Why This Design Choice?
+
+Implementing function variance would require:
+
+1. **Directional type checking**: Know whether we're checking "T <: S" or "T = S"
+2. **Subsumption rule**: A separate mechanism from unification
+3. **Bidirectional typing**: More complex inference algorithm
+
+Vibefun prioritizes:
+- **Simplicity**: Unification-only approach is easier to understand
+- **Predictability**: No surprising type coercions
+- **Clear errors**: Easy to explain why types don't match
+- **Decidability**: Preserves complete type inference
+
+#### Workarounds
+
+**1. Manual wrapping**: Explicitly create a new function
+
+```vibefun
+let accepts2D: (Point2D) -> Int = (p) => p.x + p.y;
+
+// Wrap to create Point3D version
+let accepts3D: (Point3D) -> Int = (p) => accepts2D(p);  // ✅ OK
+// Width subtyping happens at the call site, not function assignment
+```
+
+**2. Use generic functions**: Let width subtyping happen at call sites
+
+```vibefun
+// Generic function with minimum field requirements
+let sumXY = (p: { x: Int, y: Int }) => p.x + p.y;
+
+// Works with both Point2D and Point3D at call sites
+sumXY({ x: 1, y: 2 });            // Point2D: OK
+sumXY({ x: 1, y: 2, z: 3 });      // Point3D: OK (width subtyping)
+```
+
+**3. Design for minimum requirements**: Write functions accepting only needed fields
+
+```vibefun
+// Instead of accepting Point3D specifically, accept what you need:
+let getSum = (p: { x: Int, y: Int }) => p.x + p.y;
+
+// This naturally works with any record having x and y
+```
+
+#### When Width Subtyping DOES Work
+
+Width subtyping works at **function call sites**, not function type assignments:
+
+```vibefun
+let distance = (p: { x: Int, y: Int }) => p.x * p.x + p.y * p.y;
+
+// These calls work via width subtyping:
+distance({ x: 3, y: 4 });              // ✅ Exact match
+distance({ x: 3, y: 4, z: 5 });        // ✅ Extra field z ignored
+distance({ x: 3, y: 4, label: "A" });  // ✅ Extra field label ignored
+```
+
+The distinction is:
+- **Function calls**: Width subtyping applies (argument can have extra fields)
+- **Function assignment**: Types must unify exactly (no implicit variance)
 
 **Pattern matching and width subtyping:**
 

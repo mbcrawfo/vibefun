@@ -1015,78 +1015,69 @@ This is **correct and necessary for soundness**.
 
 ### Recommendations
 
-#### For Language Specification
+**Status: ✅ IMPLEMENTED** - All specification updates complete.
 
-**Create `docs/spec/03-type-system/subtyping.md`:**
+#### Implementation Summary
 
-```markdown
-# Subtyping
+Gap 5 identified the need to document how subtyping interacts with type inference. The existing implementation is correct; documentation was missing.
 
-## Record Width Subtyping
+**New Files Created:**
+- ✅ `docs/spec/03-type-system/subtyping.md` - Comprehensive subtyping specification covering:
+  - Record width subtyping definition and semantics
+  - Symmetric width matching during unification
+  - Integration with type inference (unification-based approach)
+  - Function type variance (exact matching required)
+  - Type parameter invariance (with soundness rationale)
+  - When type annotations help vs. are required
 
-[Formalize the subtyping relation for records]
+**Existing Files Updated:**
+- ✅ `docs/spec/03-type-system/type-inference.md`
+  - Added "When Type Annotations Are Needed" section
+  - Covers when annotations are NOT required (width subtyping, let-polymorphism, etc.)
+  - Covers when annotations ARE helpful (documentation, error localization, etc.)
 
-## Function Type Variance
+- ✅ `docs/spec/03-type-system/record-types.md`
+  - Expanded contravariance explanation with:
+    - Theoretical variance rules
+    - Why Vibefun requires exact matching (not subsumption)
+    - Design rationale (simplicity, predictability, decidability)
+    - Three workaround patterns (manual wrapping, generic functions, minimum requirements)
+    - Clear distinction: width subtyping at call sites vs. exact matching for assignments
 
-Functions are theoretically contravariant in parameters, but Vibefun's
-current implementation requires exact matching.
+- ✅ `docs/spec/03-type-system/generic-types.md`
+  - Added comprehensive "Type Parameter Variance" section covering:
+    - Invariance rule with examples
+    - Why covariance is unsound (even for immutable data)
+    - Comparison with other languages (Kotlin, Scala, C#, TypeScript)
+    - Vibefun's design decision rationale
+    - Workarounds for variance-like behavior
 
-[Explain why, show examples]
+- ✅ `docs/spec/03-type-system/README.md`
+  - Added subtyping.md to contents list
 
-## Type Parameter Invariance
+- ✅ `docs/spec/.agent-map.md`
+  - Added subtyping.md to Quick Lookup Table
+  - Added variance queries to "What is...?" section
+  - Added to Core Type System Journey
+  - Updated file count (9 → 10 files)
+  - Added variance-related entries to Edge Cases & Gotchas
 
-Generic type parameters are invariant for soundness.
+- ✅ `.claude/design/typechecker-requirements.md`
+  - Updated section 8.2 item 4 with resolved status and design decision
 
-[Show examples of unsoundness if covariant/contravariant]
+#### Key Design Decision
 
-## Integration with Type Inference
+**Width subtyping via unification (not subsumption):**
+- Preserves decidability of Hindley-Milner inference
+- Integrates naturally with Algorithm W/M
+- No need for separate subtyping judgment
+- Pragmatic for JavaScript interop
 
-Vibefun integrates subtyping into unification:
-- During record unification: width subtyping automatic
-- During function unification: parameters must match exactly
-- During type application: arguments must match exactly
-
-[Algorithm details]
-```
-
-**Update `docs/spec/03-type-system/type-inference.md`:**
-
-Add section "When Type Annotations Are Needed":
-- Rarely required due to complete inference
-- Optional for documentation
-- Helpful for complex cases
-- List specific scenarios
-
-**Update `docs/spec/03-type-system/record-types.md`:**
-
-Expand contravariance section:
-- Explain why contravariance isn't supported yet
-- Show what would be needed to implement it
-- Provide workarounds
-
-**Update `docs/spec/03-type-system/generic-types.md`:**
-
-Add comprehensive variance section:
-- Explain invariance with examples
-- Show why covariance is unsound
-- Provide workarounds for variance needs
-
-#### For Typechecker Requirements
-
-**Update `.claude/design/typechecker-requirements.md`:**
-
-**Section 8.2 - Resolve ambiguity:**
-
-```markdown
-4. **Subtyping and inference:**
-   - **Decision**: Width subtyping via unification (not subsumption)
-   - **Rationale**: Preserves decidability, integrates with Algorithm W
-   - **Implementation**:
-     - Record unification checks common fields only
-     - Function types must unify exactly (no contravariance)
-     - Type parameters are strictly invariant
-   - **Specification**: See `docs/spec/03-type-system/subtyping.md`
-```
+**Implementation approach:**
+- Record unification checks common fields only (extra fields ignored)
+- Function types must unify exactly (no variance)
+- Type parameters are strictly invariant
+- Width subtyping happens at call sites, not type assignments
 
 ### Advanced Approaches (For Future Consideration)
 
@@ -1952,7 +1943,7 @@ All 8 specification gaps have been resolved with clear design decisions:
 | **2. Constraint-Based Inference** | Use Algorithm W (not constraint-based) | Simpler, adequate for Vibefun's goals, already implemented |
 | **3. Unification Algorithm** | Robinson's with occurs check + levels | Standard, correct, already implemented |
 | **4. Polymorphic Recursion** | FORBID (SML-style) | Preserves decidable inference, simpler, rare in practice |
-| **5. Subtyping Integration** | Width subtyping via unification | Decidable, pragmatic, already implemented |
+| **5. Subtyping Integration** | Width subtyping via unification ✅ | Decidable, pragmatic, documented |
 | **6. Module Type Checking** | Dependency-order with phases | MVP: whole-program, Future: separate compilation |
 | **7. Type Representation** | Current implementation excellent | Integer IDs + levels, standard ADTs, no changes needed |
 | **8. Error Reporting** | Local-first with error recovery | Modern best practices, continue after errors |
