@@ -1,8 +1,8 @@
 # Module Resolution System Implementation Plan
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23
-**Status:** Planning
+**Last Updated:** 2025-11-24
+**Status:** Planning (Updated after comprehensive audit)
 **Branch:** module-resolution
 
 ## Overview
@@ -95,31 +95,88 @@ const resolution = resolveModules(modules);
 
 ### Phase 1: Warning Infrastructure
 
-**Goal:** Create warning system parallel to existing error system
+**Goal:** Create warning system parallel to existing error system with warning codes
 
 **Deliverables:**
 - `packages/core/src/utils/warning.ts` with `VibefunWarning` class
 - `CompilerDiagnostics` type: `{ errors: VibefunError[], warnings: VibefunWarning[] }`
 - Warning formatting and display (reuse error infrastructure)
+- **Warning code system**: Each warning has a unique code (W001, W002, etc.)
+- **Warning code registry**: Central registry mapping codes to warning types
 - Export from `packages/core/src/utils/index.ts`
-- Tests for warning creation and formatting
+- Tests for warning creation, formatting, and code handling
 
 **Design:**
 - Similar API to `VibefunError` (location, message, help text)
+- **Add code property**: `VibefunWarning` includes `code: string` field
 - Warnings don't halt compilation (unlike errors)
 - Formatted output distinguishes warnings from errors
+- Warning codes enable easier documentation lookups and tool integration
+
+### Phase 1.5: Path Resolution Utilities
+
+**Goal:** Build robust, cross-platform path resolution with symlink support
+
+**Deliverables:**
+- Create `packages/core/src/module-loader/path-resolver.ts`
+- Implement `resolveImportPath(from: string, to: string): string`
+- Implement `resolveModulePath(importPath: string): string | null`
+- Implement symlink resolution using `fs.realpathSync()`
+- Implement path normalization (handle `..`, `.`, trailing slashes)
+- Handle cross-platform paths (Windows `\` vs Unix `/`, drive letters)
+- Detect and error on circular symlinks
+- Tests for all edge cases
+
+**Design:**
+```typescript
+// Resolve import path from importing file to imported file
+export function resolveImportPath(
+  fromFile: string,      // Absolute path to importing file
+  importPath: string     // Import path from source code
+): string;               // Returns absolute real path (symlinks resolved)
+
+// Resolve module path using Node.js/TypeScript rules
+export function resolveModulePath(
+  basePath: string       // Absolute path to try resolving from
+): string | null;        // Returns real path to .vf file or null if not found
+```
+
+**Resolution Algorithm** (following Node.js/TypeScript):
+1. For `import "./foo"`:
+   - Try `<dir>/foo.vf` (exact file)
+   - Try `<dir>/foo/index.vf` (directory with index)
+   - Return null if neither exists
+2. If both file and directory exist, file takes precedence
+3. Resolve symlinks using `fs.realpathSync()` (canonical path)
+4. Normalize paths: `./a/../b` → `./b`
+5. Handle trailing slashes: `./foo/` → try `./foo/index.vf`
+6. Handle current directory: `./.` → try `./index.vf`
+
+**Symlink Handling:**
+- All paths resolved to real paths using `fs.realpathSync()`
+- Module cache keyed by real path (prevents duplicate modules)
+- Circular symlinks detected and reported as errors
+- Symlinked files treated as same module as original
+
+**Key Decisions:**
+- Follow Node.js/TypeScript resolution rules exactly
+- File precedence over directory (if both `foo.vf` and `foo/index.vf` exist)
+- Symlinks always resolved to real paths
+- Cross-platform support using Node.js `path` module
 
 ### Phase 2: Module Loader (Discovery & Parsing)
 
-**Goal:** Discover and parse all modules transitively from entry point
+**Goal:** Discover and parse all modules transitively with comprehensive error collection
 
 **Deliverables:**
 - Create `packages/core/src/module-loader/` directory
 - `ModuleLoader` class with module discovery logic
-- Module cache to prevent duplicate parsing
-- Path resolution utilities (relative to absolute)
+- **Module cache keyed by real path** (after symlink resolution)
+- **Error collection** (collect all errors, report together)
+- Path resolution integration (use Phase 1.5 utilities)
 - Integration with existing lexer and parser
-- Tests for module discovery and caching
+- **Helpful error messages** (typo suggestions, clear locations)
+- Tests for module discovery, caching, and error handling
 
 **Design:**
 ```typescript
@@ -145,21 +202,37 @@ export function loadModules(entryPoint: string): Map<string, Module>;
 5. Repeat step 3-4 until no new modules discovered
 6. Return complete module cache
 
+**Error Collection Strategy:**
+- **Collect all errors before reporting** (not fail-fast)
+- Continue discovering modules even if some fail to parse
+- Collect parse errors, missing file errors, permission errors
+- Report all errors together at the end
+- Allows users to fix multiple issues in one iteration
+
+**Helpful Error Messages:**
+- Missing files: Suggest similar filenames (typo detection)
+- Parse errors: Show exact location and context
+- Permission errors: Include full path and permissions info
+- Invalid paths: Explain what was expected
+
 **Key Decisions:**
-- Cache keyed by absolute file paths (prevents `file3.vf` being parsed twice)
-- Relative paths resolved immediately to absolute
+- Cache keyed by **real paths** after symlink resolution (prevents duplicates)
+- Relative paths resolved immediately to absolute using Phase 1.5 utilities
+- Symlinks resolved to real paths before caching
 - File reading and parsing happen here
-- Errors for missing files thrown here
+- Error collection (not fail-fast) enables better user experience
 
 ### Phase 3: Module Graph Construction
 
-**Goal:** Build dependency graph from parsed AST modules
+**Goal:** Build dependency graph from parsed AST modules with proper edge tracking
 
 **Deliverables:**
 - Create `packages/core/src/module-resolver/` directory
 - `ModuleGraph` class with nodes (modules) and edges (imports)
 - `ModuleGraphBuilder` to extract imports from `Module` AST nodes
-- Tests for graph construction
+- **Dual import edge handling** (mixed type-only and value imports)
+- **Re-export tracking** (re-exports create dependency edges)
+- Tests for graph construction including edge cases
 
 **Design:**
 ```typescript
@@ -172,22 +245,44 @@ class ModuleGraph {
 }
 ```
 
+**Dual Import Edge Handling:**
+When a module has both type-only and value imports from the same source:
+```typescript
+import type { TypeA } from "./mod"  // Type-only edge
+import { valueB } from "./mod"      // Value edge
+```
+- Create **single edge** marked as value import (value subsumes type)
+- Edge is considered value import if ANY import is value
+- This ensures cycle detection works correctly
+
+**Re-Export Tracking:**
+```typescript
+export { x } from "./other"  // Creates dependency edge
+export * from "./other"      // Creates dependency edge
+```
+- Re-exports treated as dependencies for cycle detection
+- Edge tracked as value import (conservative approach)
+- Necessary for detecting cycles through re-exports
+
 **Key Decisions:**
-- Graph nodes are absolute file paths (no Module ASTs stored in graph)
+- Graph nodes are absolute **real file paths** (symlinks resolved)
 - Edges track whether import is type-only
+- Mixed imports (type + value) create value edge
+- Re-exports create dependency edges
 - Handles named imports, wildcard imports, re-exports
 - Pure data structure (no I/O)
 
 ### Phase 4: Circular Dependency Detection
 
-**Goal:** Detect cycles using graph algorithms
+**Goal:** Detect ALL cycles using Tarjan's strongly connected components algorithm
 
 **Deliverables:**
 - `CircularDependencyDetector` class
-- DFS-based cycle detection with back-edge tracking
+- **Tarjan's SCC algorithm** for finding all strongly connected components
 - Distinction between type-only and value cycles
-- Cycle path extraction (for warning messages)
-- Tests for various cycle patterns
+- Cycle path extraction for each SCC (for warning messages)
+- **Self-import detection** (module importing itself)
+- Tests for various cycle patterns including multiple cycles
 
 **Design:**
 ```typescript
@@ -202,27 +297,41 @@ type Cycle = {
 }
 ```
 
-**Algorithm:**
-- Depth-first search with visited/visiting/visiting states
-- Back edges indicate cycles
-- Track complete cycle path for helpful messages
-- Type-only cycle: ALL edges in cycle use `import type`
-- Value cycle: at least ONE edge imports values/functions
+**Algorithm - Tarjan's SCC:**
+- **Finds all strongly connected components** in O(V+E) time
+- Each SCC represents a group of mutually reachable modules (cycle)
+- Reports ALL cycles in the graph (not just first one)
+- Single-node SCCs without self-edges are not cycles
+- Self-imports (A → A) detected as 1-node SCC with self-edge
+
+**Type-Only vs Value Cycles:**
+- Type-only cycle: **ALL** edges in cycle use `import type`
+- Value cycle: **at least ONE** edge imports values/functions
+- Mixed cycles (some type-only, some value) are value cycles
+- Type-only cycles don't trigger warnings (safe at runtime)
+
+**Why Tarjan's Algorithm:**
+- Finds ALL cycles in one pass (better than finding one at a time)
+- Same O(V+E) complexity as simple DFS
+- Better user experience (see all problems at once)
+- Standard algorithm for SCC detection
 
 ### Phase 5: Warning Generation
 
-**Goal:** Generate spec-compliant, helpful warning messages
+**Goal:** Generate spec-compliant, helpful warning messages with codes
 
 **Deliverables:**
 - Warning message generation per `docs/spec/08-modules.md:221-233`
+- **Warning code W001** for circular dependencies
 - Include cycle path visualization
 - Provide actionable suggestions
 - Link to documentation
+- **Snapshot tests** for warning format regression prevention
 - Tests for message formatting
 
 **Warning Format:**
 ```
-Warning: Circular dependency detected
+Warning [W001]: Circular dependency detected
   Module cycle: src/moduleA.vf → src/moduleB.vf → src/moduleA.vf
 
   at src/moduleA.vf:1:1:
@@ -236,15 +345,21 @@ Warning: Circular dependency detected
   - Break cycle by extracting shared code to new module
   - Use dependency injection patterns
 
-  See: docs/spec/08-modules.md#circular-dependencies
+  See: docs/compiler/warning-codes.md#w001
 ```
 
 **Key Points:**
+- **Include warning code [W001]** in message
 - Show complete cycle path with arrows
 - Include source locations for imports
 - Explain the danger (runtime errors)
 - Provide concrete suggestions
-- Link to documentation
+- Link to warning code documentation
+- **Snapshot tests** ensure format doesn't regress
+
+**Warning Codes:**
+- `W001`: Circular dependency (value cycle)
+- Future codes: W002, W003, etc. for other warnings
 
 ### Phase 6: Module Resolver API
 
@@ -297,40 +412,177 @@ const resolution = resolveModules(modules);  // Pure, no I/O
 
 ### Phase 7: Comprehensive Testing
 
-**Goal:** Ensure correctness and robustness
+**Goal:** Ensure correctness and robustness with extensive edge case coverage
 
-**Test Coverage:**
-- Unit tests for each class (ModuleGraph, CircularDependencyDetector, etc.)
-- Integration tests for realistic multi-module programs
-- Edge cases: empty graphs, single modules, large graphs
-- Test cases:
-  - Simple cycles (A → B → A)
-  - Complex cycles (A → B → C → D → A)
-  - Type-only cycles (should not warn)
-  - Mixed cycles (some type-only edges, some value edges)
-  - Multiple independent cycles
-  - No cycles (topological sort correctness)
-- Example programs in `examples/` demonstrating safe vs unsafe patterns
-- Target: 90%+ test coverage
+**Unit Tests for Each Component:**
+- `ModuleGraph`: add modules, add dependencies, query graph
+- `CircularDependencyDetector`: various cycle patterns with Tarjan's
+- `VibefunWarning`: formatting, location tracking, code handling
+- Path resolution: relative to absolute, normalization, symlinks
+- Module loader: discovery, caching, error collection
+
+**Cycle Detection Test Cases:**
+- Simple cycles (A → B → A)
+- Complex cycles (A → B → C → D → A)
+- **Self-imports** (A → A)
+- Type-only cycles (should not warn)
+- Mixed cycles (some type-only edges, some value edges)
+- **Multiple independent cycles** (detect all, not just first)
+- **Re-exports in cycles** (A exports from B, B exports from C, C imports A)
+- **Long cycles** (10+ modules)
+- No cycles (topological sort correctness)
+
+**Path Resolution Edge Cases:**
+- **Symlinks** (same module via symlink and real path)
+- **Circular symlinks** (should error)
+- **Case sensitivity** (cross-platform testing)
+- Path normalization (`./a/../b` → `./b`)
+- **Empty modules** (modules with no imports/exports)
+- **Unicode in file paths** (non-ASCII characters)
+- **Very deep import chains** (100+ levels)
+- **Index file precedence** (`foo.vf` vs `foo/index.vf`)
+
+**Error Handling Tests:**
+- **Missing imports** (file doesn't exist)
+- **Parse errors during loading** (malformed .vf files)
+- **Permission errors** (unreadable files)
+- **Malformed paths** (invalid path syntax)
+- **Error collection** (multiple errors reported together)
+- **Typo suggestions** (suggest similar filenames)
+
+**Performance Tests:**
+- **1000-module graph** (cycle detection speed)
+- **Wide imports** (one module imports 100 modules)
+- **Deep hierarchies** (100 levels of nesting)
+- Verify O(V+E) complexity in practice
+
+**Runtime Behavior Tests:**
+- Compile cyclic modules to JavaScript
+- **Run generated JS with Node.js**
+- Verify initialization order matches spec
+- Verify deferred initialization semantics
+- Verify type-only cycles work at runtime
+
+**Integration Tests:**
+- Realistic multi-module programs
+- Mixed safe/unsafe patterns
+- Example programs demonstrating best practices
+
+**Example Programs:**
+- `examples/module-resolution/safe-types/` - Type-only circular imports
+- `examples/module-resolution/unsafe-values/` - Value circular imports
+- `examples/module-resolution/lazy-eval/` - Safe lazy evaluation pattern
+- `examples/module-resolution/complex-cycle/` - Multi-module cycle
+
+**Target:** 90%+ test coverage for all new code
+
+### Phase 7.5: Integration Testing
+
+**Goal:** Verify module resolution integrates correctly with other compiler phases
+
+**Type Checker Integration:**
+- Test forward references in cycles
+  - Module A uses type from Module B
+  - Module B uses type from Module A
+  - Type checker should handle gracefully
+- Test type-only cycles don't cause type errors
+- Test value cycles with proper type checking
+- Verify types resolved across modules in correct order
+
+**Code Generator Integration:**
+- Test module initialization order in generated JavaScript
+- Verify generated JS handles cycles correctly
+- Test that initialization happens in dependency order (where possible)
+- Verify runtime behavior matches spec
+  - Modules initialized exactly once
+  - Dependencies fully initialized before dependents
+  - Cycles work with deferred initialization
+
+**Desugarer Integration:**
+- Verify desugaring happens in dependency order
+- Test sugar in cyclic modules handled correctly
+- Ensure desugared ASTs maintain module structure
+- Verify transformations don't break module graph
+
+**End-to-End Compilation Tests:**
+- Compile complete multi-module programs from .vf to .js
+- Run generated JavaScript with Node.js
+- Verify output correctness
+- Test example programs from docs compile and run
+- Verify warnings appear but don't halt compilation
+- Test programs with and without circular dependencies
+
+**Test Cases:**
+- Multi-file program with no cycles (should compile cleanly)
+- Multi-file program with type-only cycles (should compile with no warnings)
+- Multi-file program with value cycles (should compile with warnings)
+- Complex program using all module features (imports, exports, re-exports)
+- Program with shared dependencies (diamond pattern)
+
+**Success Criteria:**
+- Module resolution integrates seamlessly with existing phases
+- No regressions in existing tests
+- End-to-end compilation works for multi-file programs
+- Generated JavaScript executes correctly
+- All integration tests pass
 
 ### Phase 8: Documentation
 
-**Goal:** Document the module resolution system
+**Goal:** Document the module resolution system and create user-facing guides
 
 **Deliverables:**
-- Add "Module Resolution" section to compiler architecture docs
-  - File: `docs/architecture/compiler-architecture/04-compilation-pipeline.md`
-  - Only if this fits the high-level scope of those docs
-- Explain position in pipeline
-- Document separation between module loader and module resolver
-- Document module graph structure (high-level)
-- Describe cycle detection algorithm (high-level)
-- Include diagrams if helpful
+
+**1. Error and Warning Code Documentation:**
+- Create `docs/compiler/error-codes.md`
+  - Document all error codes with examples
+  - Include fixes and explanations for each
+  - Make it easy to search by code
+- Create `docs/compiler/warning-codes.md`
+  - **W001: Circular dependency (value cycle)**
+  - Include cycle visualization examples
+  - Provide refactoring patterns to fix cycles
+  - Explain when cycles are acceptable
+  - Link to detailed guide
+
+**2. User Guide - Module Resolution:**
+- Create `docs/guides/module-resolution.md`
+  - How Vibefun finds imported modules
+  - Resolution algorithm details (file vs directory, precedence)
+  - Extension resolution rules (.vf optional)
+  - Index file conventions
+  - Symlink handling
+  - Cross-platform considerations
+  - Search order for packages (when implemented)
+  - Troubleshooting common issues
+
+**3. User Guide - Fixing Circular Dependencies:**
+- Create `docs/guides/fixing-circular-dependencies.md`
+  - Why circular dependencies are problematic
+  - When are they acceptable (type-only cycles)
+  - Detailed refactoring patterns:
+    - **Lazy evaluation** (wrap in functions)
+    - **Extract shared module** (break cycle)
+    - **Dependency injection** (invert dependencies)
+    - **Event emitters** (decouple modules)
+  - Examples of each pattern in Vibefun
+  - Before/after code samples
+  - Best practices for module organization
+
+**4. Architecture Documentation:**
+- Update `docs/architecture/compiler-architecture/02-compilation-pipeline.md`
+  - Add module loader and resolver phases
+  - Document position in pipeline
+  - Explain separation between loader (I/O) and resolver (pure logic)
+  - Document module graph structure (high-level)
+  - Describe Tarjan's SCC algorithm (high-level)
+  - Explain type-only vs value cycle distinction
+  - Include diagrams if helpful
+  - Keep it high-level (architecture, not implementation)
 
 **Do NOT:**
 - Update root CLAUDE.md (per documentation rules)
-- Document implementation details (keep it high-level)
-- Include status indicators
+- Document implementation details in architecture docs
+- Include status indicators or progress tracking
 
 ## Success Criteria
 
