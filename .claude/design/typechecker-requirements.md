@@ -2069,6 +2069,201 @@ Vibefun's unification implementation:
 
 The unification algorithm is a **proven, battle-tested component** that forms the foundation of Vibefun's type inference system.
 
+### 7.7 Error Reporting System
+
+**Strategic Decision:** Vibefun uses a comprehensive error reporting system with error codes, error recovery via placeholder types, and TypeScript-style concise messages.
+
+**Reference:** See `docs/spec/03-type-system/error-reporting.md` for the full specification.
+
+#### 7.7.1 Error Type Placeholder
+
+Add an Error type variant to the Type union to enable continued type checking after errors:
+
+```typescript
+type Type =
+    | { type: "Var"; id: number; level: number }
+    | { type: "Const"; name: string }
+    | { type: "Fun"; params: Type[]; return: Type }
+    // ... other type forms
+    | { type: "Error"; errorId: number }  // NEW: Error placeholder
+```
+
+**Error type semantics:**
+- Error types unify with ANY type without generating new errors
+- Each error type has a unique `errorId` linking to the original error
+- Prevents cascading errors from a single root cause
+- Enables partial type information for IDE support
+
+**Unification handling:**
+```typescript
+function unify(t1: Type, t2: Type): Substitution {
+    // Error types unify with anything silently
+    if (t1.type === "Error") return empty;
+    if (t2.type === "Error") return empty;
+
+    // ... normal unification
+}
+```
+
+#### 7.7.2 Error Collection Infrastructure
+
+**ErrorCollector interface:**
+```typescript
+interface TypeErrorInfo {
+    id: number;                    // Unique error ID
+    code: string;                  // VF0001, VF0002, etc.
+    message: string;               // Formatted message
+    loc: Location;                 // Source location
+    hint?: string;                 // Actionable suggestion
+    isPrimary: boolean;            // true = report, false = suppress
+    derivedFrom?: number;          // ID of primary error that caused this
+    severity: "error" | "warning";
+    expectedType?: Type;           // For type mismatches
+    actualType?: Type;             // For type mismatches
+}
+
+interface ErrorCollector {
+    errors: TypeErrorInfo[];
+    errorTypes: Map<number, TypeErrorInfo>;  // errorId -> info
+
+    addPrimaryError(info: Omit<TypeErrorInfo, "isPrimary" | "id">): number;
+    addDerivedError(info: Omit<TypeErrorInfo, "isPrimary" | "id">, primaryId: number): number;
+    createErrorType(errorId: number): Type;
+    getReportableErrors(): TypeErrorInfo[];  // Filters to primaries only
+}
+```
+
+**Primary vs derived error classification:**
+
+| Condition | Classification |
+|-----------|---------------|
+| First error at a location | Primary |
+| Error where expected OR actual type contains Error | Derived (suppress) |
+| Error in same expression as prior error | Derived |
+| Error in independent expression | Primary |
+
+#### 7.7.3 Error Codes
+
+Vibefun uses 4-digit error codes (VF0001-VF0299) for documentation lookup and tooling support.
+
+**Reference:** See `docs/spec/03-type-system/error-catalog.md` for the complete catalog.
+
+**Error code ranges:**
+
+| Range | Category |
+|-------|----------|
+| VF0001-VF0049 | Type Mismatch |
+| VF0050-VF0069 | Undefined References |
+| VF0070-VF0089 | Arity Errors |
+| VF0090-VF0099 | Infinite Types |
+| VF0100-VF0149 | Pattern Errors |
+| VF0150-VF0169 | Record Errors |
+| VF0170-VF0189 | Variant Errors |
+| VF0190-VF0209 | Polymorphism Errors |
+| VF0210-VF0229 | Module Errors |
+| VF0230-VF0249 | External/FFI Errors |
+
+**CLI support:** `vibefun --explain VF0001` shows detailed documentation for error codes.
+
+#### 7.7.4 Error Recovery Rules
+
+| Error Type | Recovery Action | Result Type |
+|------------|-----------------|-------------|
+| Undefined variable | Log error, create Error type | `Error{id}` |
+| Undefined type | Log error, create Error type | `Error{id}` |
+| Type mismatch | Log error, return Error type | `Error{id}` |
+| Occurs check failure | Log error, skip binding | `Error{id}` |
+| Arity mismatch | Log error, return Error type | `Error{id}` |
+| Missing record field | Log error, use Error for field | `Error{id}` |
+| Non-exhaustive match | Log **warning**, continue | Original type |
+| Unreachable pattern | Log **warning**, continue | Original type |
+| Value restriction | Log error, keep monomorphic | Monomorphic type |
+
+#### 7.7.5 Cascading Prevention
+
+**Algorithm for error suppression:**
+```typescript
+function shouldReport(error: TypeErrorInfo, collector: ErrorCollector): boolean {
+    // Always report primary errors
+    if (error.isPrimary) return true;
+
+    // Suppress errors involving Error placeholder types
+    if (error.expectedType?.type === "Error" || error.actualType?.type === "Error") {
+        return false;
+    }
+
+    // Suppress if derived from already-reported primary
+    if (error.derivedFrom !== undefined) {
+        const primary = collector.errors.find(e => e.id === error.derivedFrom);
+        if (primary?.isPrimary) return false;
+    }
+
+    return true;
+}
+```
+
+**Example of cascading prevention:**
+```vibefun
+let x = unknownVar      // VF0050: Undefined variable 'unknownVar' - REPORTED
+let y = x + 1           // No error: Error{id:1} + Int = Error{id:1}
+let z = y * 2           // No error: Error{id:1} * Int = Error{id:1}
+let w = 10 / anotherUnknown  // VF0050: Undefined variable 'anotherUnknown' - REPORTED (independent)
+```
+
+Only two errors reported because `y` and `z` errors are derived from the `x` error.
+
+#### 7.7.6 Message Format Specification
+
+**Standard error format (TypeScript-style):**
+```
+error[VF0001]: Type mismatch
+  --> src/example.vf:10:15
+   |
+10 | let result = compute() + "hello"
+   |              ^^^^^^^^^
+   |
+   = expected: Int
+   =      got: String
+   |
+   = hint: Use String.fromInt() for conversion
+```
+
+**Format components:**
+- Error code: `VF0001` (enables `--explain` lookup)
+- Brief message: One-line description
+- Location: File path, line, column
+- Source context: Relevant source line(s) with caret indicator
+- Type info: Expected vs actual (when applicable)
+- Hint: Actionable suggestion (optional)
+
+**Type display conventions:**
+
+| Type Form | Display |
+|-----------|---------|
+| Primitives | `Int`, `String`, `Bool`, `Float`, `Unit` |
+| Type variables | `'a`, `'b`, `'c` (sequential lowercase) |
+| Functions | `Int -> String` or `(Int, String) -> Bool` |
+| Generics | `List<Int>`, `Option<'a>` |
+| Records (≤3 fields) | `{ x: Int, y: Int }` |
+| Records (>3 fields) | `{ name: String, age: Int, ... }` |
+| Tuples | `(Int, String)` |
+
+#### 7.7.7 Testing Requirements
+
+**Error reporting tests:**
+1. Each error code produces correct format
+2. Error types unify silently with all types
+3. Primary/derived classification correct
+4. Recovery continues after each error type
+5. Cascading errors properly suppressed
+6. Location accuracy across files
+7. Hints are helpful and context-aware
+
+**Snapshot tests:**
+- Error message format consistency
+- Type display format consistency
+- Multi-line errors display correctly
+
 ## 8. Identified Gaps in Specification
 
 ### 8.1 Algorithm Details Not Specified

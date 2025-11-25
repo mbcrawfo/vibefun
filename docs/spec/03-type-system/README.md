@@ -14,6 +14,8 @@ Vibefun uses a Hindley-Milner type system extended with generics, union types, a
 8. **[Recursive Types](./recursive-types.md)** - Recursive and mutually recursive type definitions
 9. **[Type Aliases](./type-aliases.md)** - Type aliases and annotations
 10. **[Subtyping](./subtyping.md)** - Width subtyping for records, type parameter invariance, and integration with inference
+11. **[Error Reporting](./error-reporting.md)** - Type error format, recovery strategy, and message conventions
+12. **[Error Catalog](./error-catalog.md)** - Complete reference of all type error codes (VF0001-VF0249)
 
 ## Type System Design
 
