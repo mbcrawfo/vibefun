@@ -2,6 +2,7 @@
 
 **Created:** 2025-11-23
 **Last Updated:** 2025-11-24
+**Audit:** 2025-11-24 - Scope expanded per audit findings
 
 ## Overview
 
@@ -76,6 +77,51 @@ This implementation consists of two major components:
   - [ ] Unix: `/` separators
   - [ ] Use `path.sep`, `path.normalize`, `path.resolve`
 
+### [NEW] Package Import Resolution
+- [ ] Create file: `packages/core/src/module-loader/package-resolver.ts`
+- [ ] Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
+  - [ ] Detect package imports (no `./` or `../` prefix)
+  - [ ] Support scoped packages (`@org/package`)
+  - [ ] Search node_modules in current directory
+  - [ ] Search node_modules in ancestor directories
+  - [ ] Try `<package>.vf` and `<package>/index.vf`
+  - [ ] Return null if not found
+- [ ] Implement node_modules search algorithm
+  - [ ] Start from importing file's directory
+  - [ ] Walk up directory tree
+  - [ ] Check each `node_modules/` directory
+  - [ ] Stop at filesystem root
+
+### [NEW] vibefun.json Config Loading
+- [ ] Create file: `packages/core/src/module-loader/config-loader.ts`
+- [ ] Define `VibefunConfig` type
+  - [ ] `compilerOptions?.paths?: Record<string, string[]>`
+- [ ] Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
+  - [ ] Find vibefun.json (walk up from entry point)
+  - [ ] Parse JSON with error handling
+  - [ ] Return null if not found (not an error)
+  - [ ] Return clear error for invalid JSON
+- [ ] Implement `applyPathMapping(importPath: string, config: VibefunConfig, projectRoot: string): string | null`
+  - [ ] Match import against path patterns
+  - [ ] Support wildcards (`@/*` → `./src/*`)
+  - [ ] Try each mapping target in order
+  - [ ] Return resolved path or null
+- [ ] Implement `findProjectRoot(entryPoint: string): string`
+  - [ ] Walk up from entry point
+  - [ ] Look for vibefun.json or package.json
+  - [ ] Return directory containing config
+
+### [NEW] Case Sensitivity Warning
+- [ ] Implement case sensitivity checking
+  - [ ] After resolving file, get actual filename from directory listing
+  - [ ] Compare import path case with actual file case
+  - [ ] If different, return warning info
+- [ ] Define W002 warning
+  - [ ] Add to warning code registry
+  - [ ] Format: "Import path case doesn't match file"
+  - [ ] Include import path and actual file path
+  - [ ] Explain cross-platform implications
+
 ### Tests
 - [ ] Test relative path resolution (`./`, `../`)
 - [ ] Test absolute path passthrough
@@ -95,6 +141,30 @@ This implementation consists of two major components:
 - [ ] Test very long paths
 - [ ] Test Windows paths (if on Windows)
 - [ ] Test cross-platform path separators
+
+### [NEW] Package Resolution Tests
+- [ ] Test `@vibefun/std` resolves via node_modules
+- [ ] Test `@org/package` scoped package resolution
+- [ ] Test node_modules search up directory tree
+- [ ] Test package not found returns null
+- [ ] Test package with `.vf` file
+- [ ] Test package with `index.vf` directory
+- [ ] Test package precedence (file over directory)
+
+### [NEW] Config Loading Tests
+- [ ] Test loading vibefun.json from project root
+- [ ] Test path mapping `@/*` → `./src/*`
+- [ ] Test path mapping with multiple targets (fallback)
+- [ ] Test missing vibefun.json (returns null, not error)
+- [ ] Test invalid JSON (clear error message)
+- [ ] Test finding project root (walk up from entry point)
+- [ ] Test nested project (vibefun.json in subdirectory)
+
+### [NEW] Case Sensitivity Tests
+- [ ] Test case mismatch on case-insensitive FS → returns warning info
+- [ ] Test exact case match → no warning
+- [ ] Test directory case mismatch → returns warning info
+- [ ] Test warning message format (W002)
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -248,6 +318,34 @@ This implementation consists of two major components:
 - [ ] Test: explicit re-exports with same name detected
 - [ ] Test: no conflict when same module re-exported via different paths
 
+### [NEW] Import Conflict Detection
+- [ ] Track imported names per module during graph construction
+- [ ] Detect duplicate imports from different modules → error
+  - [ ] Collect all import names with their source modules
+  - [ ] Check for same name from different modules
+  - [ ] Generate error with both import locations
+- [ ] Detect import/local shadowing → error
+  - [ ] Check imports against module's local declarations
+  - [ ] `let x` shadows `import { x }` → error
+  - [ ] Show both import and declaration locations
+- [ ] Exception handling:
+  - [ ] Same name from same module → deduplicate (allowed)
+  - [ ] Function parameters → allowed (different scope, not checked here)
+  - [ ] Type import + value import same name, different modules → error
+- [ ] Error message formatting:
+  - [ ] "Duplicate import of 'x'" with both locations
+  - [ ] "Import 'x' is shadowed by local declaration"
+
+### [NEW] Circular Re-Export Handling
+- [ ] Ensure re-exports create dependency edges in graph
+- [ ] Handle circular re-exports without infinite loop
+  - [ ] Each module visited only once during graph construction
+  - [ ] Break cycle at second visit
+- [ ] Mark edges as "re-export" for better warning messages
+- [ ] Test: `export * from './a'` ↔ `export * from './b'` detected as cycle
+- [ ] Test: `export { x } from './a'` chains detected
+- [ ] Test: No infinite loop with circular re-exports
+
 ### Tests
 - [ ] Test `DependencyEdge` type stores location
 - [ ] Test `ModuleGraph` creation
@@ -267,6 +365,22 @@ This implementation consists of two major components:
 - [ ] Test building graph from module map
 - [ ] Test self-imports (A → A)
 - [ ] Test edge type-only flag correct for each case
+
+### [NEW] Import Conflict Tests
+- [ ] Test duplicate import from different modules → error
+- [ ] Test duplicate import from same module → deduplicate (allowed)
+- [ ] Test import shadowed by `let` declaration → error
+- [ ] Test import not shadowed by function parameter (different scope)
+- [ ] Test type import + value import same name different modules → error
+- [ ] Test error message shows both import locations
+- [ ] Test error message shows import and declaration locations
+
+### [NEW] Circular Re-Export Tests
+- [ ] Test `export * from './a'` ↔ `export * from './b'` detected as cycle
+- [ ] Test `export { x } from './a'` ↔ `export { y } from './b'` where x imports b
+- [ ] Test deep re-export chain A→B→C→A detected
+- [ ] Test no infinite loop with circular re-exports
+- [ ] Test re-export edges marked correctly in graph
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -355,8 +469,26 @@ This implementation consists of two major components:
   - [ ] Explain runtime error risk
   - [ ] Suggest solutions (lazy eval, extract module, DI)
   - [ ] Link to `docs/compiler/warning-codes.md#w001`
-- [ ] Define warning code constant
+- [ ] Define warning code constants
   - [ ] `W001 = "circular-dependency"`
+  - [ ] **[NEW]** `W002 = "case-sensitivity-mismatch"`
+
+### [NEW] Case Sensitivity Warning (W002)
+- [ ] Implement `generateCaseSensitivityWarning(importPath: string, actualPath: string, loc: Location): VibefunWarning`
+  - [ ] Format import path and actual file path
+  - [ ] Include source location
+  - [ ] Explain cross-platform implications
+  - [ ] Link to warning code documentation
+- [ ] Warning format:
+  ```
+  Warning [W002]: Import path case doesn't match file
+    at src/main.vf:1:1:
+      import { x } from './Utils';
+    File is: src/utils.vf
+
+  This may cause errors on case-sensitive file systems (Linux).
+  See: docs/compiler/warning-codes.md#w002
+  ```
 
 ### Tests
 - [ ] Test warning message format
@@ -369,6 +501,14 @@ This implementation consists of two major components:
 - [ ] Test documentation link
 - [ ] Verify matches spec examples
 - [ ] **Snapshot test for warning format** (prevent regressions)
+
+### [NEW] W002 Tests
+- [ ] Test W002 warning message format
+- [ ] Test warning code W002 included
+- [ ] Test import path and actual path shown correctly
+- [ ] Test cross-platform explanation included
+- [ ] Test documentation link
+- [ ] **Snapshot test for W002 format**
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -609,6 +749,9 @@ Instead of implementing runtime tests now, create a design doc:
   - [ ] Provide refactoring patterns to fix cycles
   - [ ] Explain when cycles are acceptable (type-only)
   - [ ] Link to detailed fixing guide
+  - [ ] **[NEW]** **W002: Case sensitivity mismatch**
+  - [ ] Explain cross-platform implications
+  - [ ] Show how to fix (rename import to match file)
   - [ ] Format: Code, Description, Example, Suggestions, See Also
 
 ### User Guide - Module Resolution
@@ -620,14 +763,35 @@ Instead of implementing runtime tests now, create a design doc:
     - [ ] Extension resolution rules (`.vf` optional in imports)
     - [ ] Index file conventions
     - [ ] Relative path resolution (`./`, `../`)
+  - [ ] **[NEW]** Package import resolution (`@vibefun/std`, `@org/package`)
+  - [ ] **[NEW]** node_modules search algorithm
   - [ ] Symlink handling (resolved to real paths)
   - [ ] Cross-platform considerations (Windows vs Unix)
-  - [ ] Search order for packages (when implemented)
+  - [ ] **[NEW]** Case sensitivity warnings (W002)
   - [ ] Troubleshooting common issues
     - [ ] Module not found
     - [ ] Ambiguous imports
     - [ ] Circular dependencies
+    - [ ] **[NEW]** Import conflicts (duplicates, shadowing)
   - [ ] Examples with code snippets
+
+### [NEW] User Guide - vibefun.json Configuration
+- [ ] Create `docs/guides/vibefun-json.md`
+  - [ ] Purpose and location of vibefun.json
+  - [ ] Finding project root
+  - [ ] `compilerOptions.paths` section
+    - [ ] Path mapping syntax
+    - [ ] Wildcard patterns (`@/*` → `./src/*`)
+    - [ ] Multiple mapping targets (fallback order)
+  - [ ] Examples:
+    - [ ] Simple alias (`@/utils` → `./src/utils`)
+    - [ ] Multiple aliases
+    - [ ] Scoped alias (`@components/*`)
+  - [ ] Interaction with package imports
+  - [ ] Troubleshooting
+    - [ ] Path mapping not resolving
+    - [ ] Invalid JSON syntax
+    - [ ] Mapping conflicts
 
 ### User Guide - Fixing Circular Dependencies
 - [ ] Create `docs/guides/fixing-circular-dependencies.md`
@@ -715,28 +879,36 @@ Instead of implementing runtime tests now, create a design doc:
 ## Progress Summary
 
 **Phases Completed:** 0/9 (0%)
-**Estimated Tasks:** ~200 (expanded from ~100 in original plan)
+**Estimated Tasks:** ~250 (expanded from ~200 after 2025-11-24 audit)
 **Tasks Completed:** 0
 **Current Phase:** Not started
 **Blockers:** None
 
 **Major Components:**
 - **Phase 1**: Warning Infrastructure (with codes)
-- **Phase 1.5**: Path Resolution Utilities (NEW - symlinks, normalization)
+- **Phase 1.5**: Path Resolution + **Package Resolution** + **Config Loading** (expanded)
 - **Phase 2**: Module Loader (with error collection)
-- **Phase 3**: Module Graph (with dual imports, re-exports)
+- **Phase 3**: Module Graph + **Import Conflict Detection** (expanded)
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
-- **Phase 5**: Warning Generation (with codes, snapshot tests)
+- **Phase 5**: Warning Generation (W001 + **W002 case sensitivity**)
 - **Phase 6**: Module Resolver API
 - **Phase 7**: Comprehensive Testing (extensive edge cases)
-- **Phase 7.5**: Integration Testing (NEW - type checker, code gen, desugarer)
-- **Phase 8**: Documentation (4 new docs)
+- **Phase 7.5**: Integration Testing (type checker, code gen, desugarer)
+- **Phase 8**: Documentation (**5 docs** including vibefun.json guide)
 
-**Scope Expansion Summary:**
+**Scope Expansion Summary (Original):**
 - Added symlink resolution and cross-platform path handling
 - Added error collection (collect all, not fail-fast)
 - Changed to Tarjan's SCC (detect ALL cycles, not just first)
 - Added warning code system (W001, W002, etc.)
 - Added integration testing phase
 - Added 4 user-facing documentation files
-- Approximately 2x original task count for production-ready implementation
+
+**Scope Expansion Summary (2025-11-24 Audit):**
+- **[NEW]** Package import resolution (node_modules lookup)
+- **[NEW]** vibefun.json path mappings support
+- **[NEW]** Import conflict detection (duplicates, shadowing → errors)
+- **[NEW]** Circular re-export handling
+- **[NEW]** Case sensitivity warning (W002)
+- **[NEW]** vibefun.json configuration guide
+- Approximately ~50 additional tasks from audit findings

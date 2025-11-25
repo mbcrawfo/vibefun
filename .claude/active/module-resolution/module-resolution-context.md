@@ -2,6 +2,7 @@
 
 **Created:** 2025-11-23
 **Last Updated:** 2025-11-24
+**Audit:** 2025-11-24 - Scope expanded per audit findings
 
 ## Key Files
 
@@ -29,6 +30,9 @@
 - `docs/compiler/warning-codes.md` - Warning code documentation (Phase 8)
 - `docs/guides/module-resolution.md` - User guide for module resolution (Phase 8)
 - `docs/guides/fixing-circular-dependencies.md` - User guide for fixing cycles (Phase 8)
+- **[NEW]** `packages/core/src/module-loader/package-resolver.ts` - node_modules resolution (Phase 1.5)
+- **[NEW]** `packages/core/src/module-loader/config-loader.ts` - vibefun.json parsing (Phase 1.5)
+- **[NEW]** `docs/guides/vibefun-json.md` - Config file documentation (Phase 8)
 
 ### Parser Architecture
 - `packages/core/src/parser/CLAUDE.md` - Modular parser design with dependency injection
@@ -448,6 +452,171 @@ type DependencyEdge = {
 
 **Alternative Considered:** Claim `vibefun` npm name, use subpath exports
 **Rejected Because:** More complex, potential confusion with compiler package
+
+### 20. Package Import Resolution (NEW - from 2025-11-24 audit)
+
+**Decision:** Implement node_modules lookup for package imports
+
+**Rationale:**
+- Required by spec (08-modules.md:75-95)
+- Enables `@vibefun/std` and third-party packages
+- Follows Node.js/TypeScript resolution patterns
+- Standard developer expectations
+
+**Implementation:**
+- Create `package-resolver.ts` with `resolvePackageImport()` function
+- Search node_modules in current and ancestor directories
+- Support scoped packages (`@org/package`)
+- Try `<package>.vf` and `<package>/index.vf`
+- Return null if not found (error handled by caller)
+
+**Search Order:**
+1. Check vibefun.json path mappings first (if configured)
+2. `<dir>/node_modules/<package>.vf`
+3. `<dir>/node_modules/<package>/index.vf`
+4. Repeat in parent directories
+
+**Alternative Considered:** Only support relative imports
+**Rejected Because:** Can't use standard library or third-party packages
+
+### 21. vibefun.json Path Mappings (NEW - from 2025-11-24 audit)
+
+**Decision:** Support TypeScript-style path mappings in vibefun.json
+
+**Rationale:**
+- Required by spec (08-modules.md:302-326)
+- Enables `@/utils` style aliases
+- Common pattern in modern JS/TS projects
+- Improves developer experience
+
+**Implementation:**
+- Create `config-loader.ts` with `loadVibefunConfig()` function
+- Parse `compilerOptions.paths` from vibefun.json
+- Support wildcards: `"@/*": ["./src/*"]`
+- Apply mappings before relative/package resolution
+
+**Schema:**
+```typescript
+type VibefunConfig = {
+  compilerOptions?: {
+    paths?: Record<string, string[]>;
+  };
+};
+```
+
+**Behavior:**
+- Missing vibefun.json: Skip path mappings (not an error)
+- Invalid JSON: Clear error with line/column
+- Multiple mapping targets: Try in order until one resolves
+
+### 22. Import Conflict Detection (NEW - from 2025-11-24 audit)
+
+**Decision:** Duplicate imports and import/local shadowing are compile-time errors
+
+**Rationale:**
+- Prevents ambiguity in code
+- Catches mistakes early
+- Clear, deterministic behavior
+- Aligns with stricter ML-style languages
+
+**Implementation:**
+- Track imported names per module during graph construction
+- Detect duplicate imports from different modules → error
+- Detect import shadowed by local `let` declaration → error
+- Exception: Same name from same module → deduplicate (allowed)
+- Exception: Function parameters → allowed (different scope)
+
+**Error Messages:**
+```
+Error: Duplicate import of 'x'
+  at src/main.vf:1:1:
+    import { x } from './a';
+  and src/main.vf:2:1:
+    import { x } from './b';
+```
+
+**Alternative Considered:** Allow shadowing like JavaScript
+**Rejected Because:** Leads to confusing code, inconsistent with ML-style languages
+
+### 23. Import Name Validation Responsibility (NEW - from 2025-11-24 audit)
+
+**Decision:** Import name validation (checking exported names exist) is the type checker's responsibility
+
+**Rationale:**
+- Matches TypeScript approach - proven at scale
+- Clean separation of concerns
+- Module system stays simple (file I/O + graph analysis)
+- Type checker already needs export info for type checking
+- Better testability (module system can be tested without semantic analysis)
+
+**Module System Responsibility:**
+- Find files and build dependency graph
+- Detect cycles
+- Return modules in compilation order
+
+**Type Checker Responsibility:**
+- Validate imported names exist in target module
+- Validate imported types match
+- Build cross-module type environment
+
+**Alternative Considered:** Module system validates exports exist
+**Rejected Because:** Duplicates type checker work, couples graph analysis to semantics
+
+### 24. Case Sensitivity Warning W002 (NEW - from 2025-11-24 audit)
+
+**Decision:** Warn when import path case doesn't match actual file case
+
+**Rationale:**
+- Cross-platform safety (macOS/Windows vs Linux)
+- Prevents "works on my machine" bugs
+- Early warning, not error (allows existing code to compile)
+- Improves deployment reliability
+
+**Implementation:**
+- After resolving file, check actual filename case using `fs.readdirSync()`
+- Compare import path case with actual file case
+- If different, emit W002 warning
+
+**Warning Format:**
+```
+Warning [W002]: Import path case doesn't match file
+  at src/main.vf:1:1:
+    import { x } from './Utils';
+  File is: src/utils.vf
+
+This may cause errors on case-sensitive file systems (Linux).
+```
+
+**Alternative Considered:** Make case mismatch an error
+**Rejected Because:** Too strict for existing codebases, warning is sufficient
+
+### 25. Circular Re-Export Handling (NEW - from 2025-11-24 audit)
+
+**Decision:** Circular re-exports are detected as cycles (warning), not infinite loops
+
+**Rationale:**
+- Re-exports create dependency edges (must be tracked)
+- Circular re-exports are problematic at runtime
+- Must not cause compiler to hang
+- Consistent with import cycle handling
+
+**Implementation:**
+- Re-exports create edges in dependency graph
+- Tarjan's SCC detects re-export cycles same as import cycles
+- Each module resolved once (break cycle at second visit)
+- Mark edge as "re-export" for clearer warning messages
+
+**Behavior:**
+```vibefun
+// a.vf
+export * from './b';  // Creates edge a → b
+
+// b.vf
+export * from './a';  // Creates edge b → a, detected as cycle
+```
+
+**Alternative Considered:** Don't track re-exports in graph
+**Rejected Because:** Misses important cycles, incorrect compilation order
 
 ## Implementation Patterns
 
