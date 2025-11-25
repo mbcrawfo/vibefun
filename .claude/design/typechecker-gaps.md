@@ -1946,24 +1946,26 @@ All 8 specification gaps have been resolved with clear design decisions:
 | **5. Subtyping Integration** | Width subtyping via unification ✅ | Decidable, pragmatic, documented |
 | **6. Module Type Checking** | Dependency-order with phases | MVP: whole-program, Future: separate compilation |
 | **7. Type Representation** | Current implementation excellent | Integer IDs + levels, standard ADTs, no changes needed |
-| **8. Error Reporting** | Local-first with error recovery | Modern best practices, continue after errors |
+| **8. Error Reporting** | Local-first with error recovery ✅ | Modern best practices, continue after errors, **DOCUMENTED** |
 
 ### Specification Updates Required
 
 **New Files to Create:**
 1. `docs/spec/03-type-system/unification.md` - Unification algorithm details
 2. `docs/spec/03-type-system/subtyping.md` - Subtyping rules formalization
-3. `docs/spec/03-type-system/error-reporting.md` - Error reporting guarantees
-4. `docs/spec/13-appendix/implementation-notes.md` - Optional implementer guidance
+3. `docs/spec/03-type-system/error-reporting.md` - Error reporting guarantees ✅ **CREATED**
+4. `docs/spec/03-type-system/error-catalog.md` - Complete error code catalog (VF0001-VF0249) ✅ **CREATED**
+5. `docs/spec/13-appendix/implementation-notes.md` - Optional implementer guidance
 
 **Existing Files to Update:**
-1. `docs/spec/03-type-system/README.md` - Remove "constraint-based", add Algorithm W
+1. `docs/spec/03-type-system/README.md` - Remove "constraint-based", add Algorithm W, add error doc links ✅ **UPDATED**
 2. `docs/spec/03-type-system/type-inference.md` - Add levels, polymorphic recursion, annotations
 3. `docs/spec/03-type-system/record-types.md` - Expand contravariance explanation
 4. `docs/spec/03-type-system/generic-types.md` - Add variance section
 5. `docs/spec/06-functions.md` - Add polymorphic recursion note
 6. `docs/spec/08-modules.md` - Add type checking semantics
-7. `.claude/design/typechecker-requirements.md` - Resolve all gaps, add implementation details
+7. `.claude/design/typechecker-requirements.md` - Resolve all gaps, add implementation details ✅ **UPDATED (Section 7.7)**
+8. `docs/spec/.agent-map.md` - Add error queries ✅ **UPDATED**
 
 ### Key Takeaways
 
@@ -2004,11 +2006,12 @@ All 8 specification gaps have been resolved with clear design decisions:
    - Import/export validation
    - Type checking in dependency order
 
-2. **Error recovery** (Gap 8)
-   - Error type placeholders
-   - Multiple error reporting
-   - Cascading error prevention
-   - Enhanced error messages
+2. **Error recovery** (Gap 8) ✅ **DOCUMENTED**
+   - Error type placeholders - Specified in `typechecker-requirements.md` section 7.7
+   - Multiple error reporting - Specified in `error-reporting.md`
+   - Cascading error prevention - Specified with algorithm
+   - Enhanced error messages - Complete catalog in `error-catalog.md` (VF0001-VF0249)
+   - **Implementation**: Future work to add Error type to codebase
 
 **Deliverables:**
 - Module type checking infrastructure
