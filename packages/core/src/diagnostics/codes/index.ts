@@ -5,6 +5,7 @@
 import { registerDesugarerCodes } from "./desugarer.js";
 import { registerLexerCodes } from "./lexer.js";
 import { registerParserCodes } from "./parser.js";
+import { registerTypecheckerCodes } from "./typechecker.js";
 
 /**
  * Aggregate exports for all diagnostic code definitions
@@ -28,6 +29,7 @@ import { registerParserCodes } from "./parser.js";
 export * from "./desugarer.js";
 export * from "./lexer.js";
 export * from "./parser.js";
+export * from "./typechecker.js";
 
 let initialized = false;
 
@@ -43,7 +45,7 @@ export function initializeDiagnosticCodes(): void {
     registerDesugarerCodes();
     registerLexerCodes();
     registerParserCodes();
-    // Additional phase registrations will be added as they are implemented
+    registerTypecheckerCodes();
 }
 
 // Auto-initialize when this module is imported

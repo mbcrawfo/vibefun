@@ -6,9 +6,9 @@ import type { Expr, Module } from "../types/index.js";
 
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
 import { Parser } from "../parser/index.js";
-import { TypeError } from "../utils/error.js";
 import { buildEnvironment } from "./environment.js";
 import { getOverloads, isOverloaded, resolveCall } from "./resolver.js";
 
@@ -51,8 +51,8 @@ describe("Overload Resolver", () => {
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
-            expect(() => resolveCall(env, "nonExistent", dummyExpr(1), callLoc)).toThrow(TypeError);
-            expect(() => resolveCall(env, "nonExistent", dummyExpr(1), callLoc)).toThrow(/Undefined function/);
+            expect(() => resolveCall(env, "nonExistent", dummyExpr(1), callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "nonExistent", dummyExpr(1), callLoc)).toThrow(/VF4100/);
         });
     });
 
@@ -138,15 +138,15 @@ describe("Overload Resolver", () => {
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
             // Try with 0 arguments
-            expect(() => resolveCall(env, "fetch", dummyExpr(0), callLoc)).toThrow(TypeError);
-            expect(() => resolveCall(env, "fetch", dummyExpr(0), callLoc)).toThrow(/No matching signature/);
+            expect(() => resolveCall(env, "fetch", dummyExpr(0), callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "fetch", dummyExpr(0), callLoc)).toThrow(/VF4201/);
 
             // Try with 3 arguments
-            expect(() => resolveCall(env, "fetch", dummyExpr(3), callLoc)).toThrow(TypeError);
-            expect(() => resolveCall(env, "fetch", dummyExpr(3), callLoc)).toThrow(/No matching signature/);
+            expect(() => resolveCall(env, "fetch", dummyExpr(3), callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "fetch", dummyExpr(3), callLoc)).toThrow(/VF4201/);
         });
 
-        it("error message shows expected argument counts", () => {
+        it("error message shows code and message", () => {
             const source = `
                 external fetch: (String) -> Promise<Response> = "fetch";
                 external fetch: (String, RequestInit) -> Promise<Response> = "fetch";
@@ -160,10 +160,10 @@ describe("Overload Resolver", () => {
                 resolveCall(env, "fetch", dummyExpr(0), callLoc);
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                if (error instanceof TypeError) {
-                    expect(error.message).toMatch(/No matching signature/);
-                    expect(error.help).toMatch(/Expected 1 or 2 arguments/);
-                    expect(error.help).toMatch(/got 0/);
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                if (error instanceof VibefunDiagnostic) {
+                    expect(error.diagnostic.definition.code).toBe("VF4201");
+                    expect(error.diagnostic.message).toContain("No matching overload");
                 }
             }
         });
@@ -179,8 +179,8 @@ describe("Overload Resolver", () => {
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
             // Both overloads have 1 parameter, so this is ambiguous without type info
-            expect(() => resolveCall(env, "log", dummyExpr(1), callLoc)).toThrow(TypeError);
-            expect(() => resolveCall(env, "log", dummyExpr(1), callLoc)).toThrow(/Ambiguous call/);
+            expect(() => resolveCall(env, "log", dummyExpr(1), callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "log", dummyExpr(1), callLoc)).toThrow(/VF4205/);
         });
     });
 

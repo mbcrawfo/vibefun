@@ -8,8 +8,8 @@
 import type { Declaration, Module, TypeExpr } from "../types/ast.js";
 import type { ExternalOverload, TypeEnv, ValueBinding } from "../types/environment.js";
 
+import { throwDiagnostic } from "../diagnostics/index.js";
 import { emptyEnv } from "../types/environment.js";
-import { TypeError } from "../utils/error.js";
 import { getBuiltinEnv } from "./builtins.js";
 
 /**
@@ -146,32 +146,20 @@ function processOverloadGroup(env: TypeEnv, name: string, declarations: Declarat
         const firstDecl = declarations[0];
         const errorLoc =
             firstNonExternal?.loc ?? (firstDecl ? firstDecl.loc : { file: "unknown", line: 0, column: 0, offset: 0 });
-        throw new TypeError(
-            `Duplicate declaration for '${name}'`,
-            errorLoc,
-            `Only external functions can be overloaded. Remove duplicate declaration or use different names.`,
-        );
+        throwDiagnostic("VF5102", errorLoc, { name });
     }
 
     // Verify all have the same jsName
     const firstDecl = externalDecls[0];
     if (!firstDecl) {
-        throw new TypeError(
-            `No external declarations found for '${name}'`,
-            { file: "unknown", line: 0, column: 0, offset: 0 },
-            `Internal error: expected at least one external declaration.`,
-        );
+        // Internal error - should never happen given the check above
+        throw new Error(`Internal error: No external declarations found for '${name}'`);
     }
 
     const firstJsName = firstDecl.jsName;
     for (const decl of externalDecls) {
         if (decl.jsName !== firstJsName) {
-            throw new TypeError(
-                `Overloaded function '${name}' has inconsistent JavaScript names`,
-                decl.loc,
-                `All overloads must map to the same JavaScript function. ` +
-                    `Expected "${firstJsName}", got "${decl.jsName}".`,
-            );
+            throwDiagnostic("VF4801", decl.loc, { name });
         }
     }
 
@@ -179,23 +167,14 @@ function processOverloadGroup(env: TypeEnv, name: string, declarations: Declarat
     const firstFrom = firstDecl.from;
     for (const decl of externalDecls) {
         if (decl.from !== firstFrom) {
-            throw new TypeError(
-                `Overloaded function '${name}' has inconsistent module imports`,
-                decl.loc,
-                `All overloads must have the same 'from' clause. ` +
-                    `Expected ${firstFrom ? `"${firstFrom}"` : "none"}, got ${decl.from ? `"${decl.from}"` : "none"}.`,
-            );
+            throwDiagnostic("VF4802", decl.loc, { name });
         }
     }
 
     // Verify all have function types
     for (const decl of externalDecls) {
         if (decl.typeExpr.kind !== "FunctionType") {
-            throw new TypeError(
-                `Overloaded external '${name}' must have function type`,
-                decl.loc,
-                `Only functions can be overloaded. This declaration has type '${decl.typeExpr.kind}'.`,
-            );
+            throwDiagnostic("VF4803", decl.loc, { name });
         }
     }
 
