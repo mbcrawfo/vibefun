@@ -1,7 +1,7 @@
 # Module Resolution Context
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-24
 
 ## Key Files
 
@@ -16,6 +16,19 @@
 - `packages/core/src/types/ast.ts:365-369` - `Module` AST type
 - `packages/core/src/types/ast.ts:323-329` - Import/export declaration types
 - `packages/core/src/types/ast.ts:352-356` - `ImportItem` type
+
+### New Files (To Be Created)
+- `packages/core/src/utils/warning.ts` - Warning system (Phase 1)
+- `packages/core/src/module-loader/path-resolver.ts` - Path resolution utilities (Phase 1.5)
+- `packages/core/src/module-loader/module-loader.ts` - Module discovery and loading (Phase 2)
+- `packages/core/src/module-resolver/module-graph.ts` - Dependency graph (Phase 3)
+- `packages/core/src/module-resolver/cycle-detector.ts` - Tarjan's SCC algorithm (Phase 4)
+- `packages/core/src/module-resolver/warning-generator.ts` - Warning formatting (Phase 5)
+- `packages/core/src/module-resolver/index.ts` - Public API (Phase 6)
+- `docs/compiler/error-codes.md` - Error code documentation (Phase 8)
+- `docs/compiler/warning-codes.md` - Warning code documentation (Phase 8)
+- `docs/guides/module-resolution.md` - User guide for module resolution (Phase 8)
+- `docs/guides/fixing-circular-dependencies.md` - User guide for fixing cycles (Phase 8)
 
 ### Parser Architecture
 - `packages/core/src/parser/CLAUDE.md` - Modular parser design with dependency injection
@@ -213,6 +226,131 @@ Module Loading (recursive) → Module Resolution (graph analysis) → Desugar �
 3. Generate warnings
 4. Compute topological order
 5. Result: `ModuleResolution`
+
+### 9. Error Collection Strategy (NEW)
+
+**Decision:** Module loader collects all errors before reporting (not fail-fast)
+
+**Rationale:**
+- Better user experience - fix multiple issues at once
+- Continue discovering modules even if some fail to parse
+- Report all errors together at the end
+- Reduces iteration time for developers
+
+**Implementation:**
+- Collect parse errors, missing file errors, permission errors
+- Store errors in array while continuing discovery
+- After discovery complete, throw if any errors collected
+- Each error includes file path and detailed context
+
+**Alternative Considered:** Fail-fast on first error
+**Rejected Because:** Forces users to fix errors one at a time, slower workflow
+
+### 10. Symlink Resolution (NEW)
+
+**Decision:** Follow Node.js/TypeScript symlink handling rules using `fs.realpathSync()`
+
+**Rationale:**
+- Industry standard approach (matches developer expectations)
+- Prevents duplicate modules (symlink and original as different modules)
+- Module cache keyed by real path ensures consistency
+- Works correctly across platforms
+
+**Implementation:**
+- All paths resolved to real paths using `fs.realpathSync()`
+- Module cache keyed by real path (not symlink path)
+- Circular symlinks detected and reported as errors
+- Symlinked file and original file treated as identical module
+
+**Alternative Considered:** Don't resolve symlinks (use symlink paths directly)
+**Rejected Because:** Causes duplicate module instances, breaks module singleton semantics
+
+### 11. Index File Precedence (NEW)
+
+**Decision:** Follow Node.js/TypeScript precedence - file before directory
+
+**Rationale:**
+- Industry standard (matches Node.js, TypeScript, bundlers)
+- Predictable resolution behavior
+- Explicit files take precedence over implicit directories
+- Prevents ambiguity
+
+**Resolution Algorithm:**
+For `import "./foo"`:
+1. Try `./foo.vf` (exact file) - **if exists, use this**
+2. Try `./foo/index.vf` (directory with index) - **only if file doesn't exist**
+3. Error if neither exists
+
+**Alternative Considered:** Directory precedence over file
+**Rejected Because:** Not standard, would confuse developers
+
+### 12. Cycle Detection Algorithm (NEW)
+
+**Decision:** Use Tarjan's Strongly Connected Components (SCC) algorithm
+
+**Rationale:**
+- Finds ALL cycles in one pass (not just first cycle)
+- Better user experience (see all problems at once)
+- Same O(V+E) complexity as simple DFS
+- Standard algorithm for SCC detection
+- Handles self-imports, multiple independent cycles
+
+**Implementation:**
+- Tarjan's algorithm finds all SCCs in graph
+- Each SCC with 2+ nodes or self-edge is a cycle
+- Report all cycles found (not just first)
+- Extract meaningful cycle paths for warnings
+
+**Alternative Considered:** Simple DFS with back-edge detection
+**Rejected Because:** Only finds one cycle, requires multiple passes for all cycles
+
+### 13. Warning Code System (NEW)
+
+**Decision:** All warnings have unique codes (W001, W002, etc.)
+
+**Rationale:**
+- Easier documentation lookups ("what is W001?")
+- Tool integration (parsers can recognize codes)
+- Enables warning suppression by code (future)
+- Matches error code systems (TypeScript, Rust, etc.)
+- Professional, polished developer experience
+
+**Implementation:**
+- `VibefunWarning` class includes `code: string` property
+- Warning registry maps codes to types
+- `W001`: Circular dependency (value cycle)
+- Future: W002, W003, etc.
+- Documentation in `docs/compiler/warning-codes.md`
+
+**Alternative Considered:** No warning codes
+**Rejected Because:** Harder to document, search, and reference
+
+### 14. Dual Import Edge Handling (NEW)
+
+**Decision:** Mixed type-only and value imports create single value edge
+
+**Rationale:**
+- Simplifies graph structure (one edge per module pair)
+- Conservative approach (value subsumes type)
+- Correct cycle detection (if ANY import is value, cycle is value)
+- Matches runtime behavior (value import loads module)
+
+**Implementation:**
+```typescript
+import type { TypeA } from "./mod"  // Type-only edge initially
+import { valueB } from "./mod"      // Upgrades edge to value
+
+// Result: Single edge from current → "./mod", isTypeOnly = false
+```
+
+**Algorithm:**
+- When adding edge, check if edge already exists
+- If exists and new edge is value, upgrade to value
+- If exists and both type-only, keep as type-only
+- Value import always wins
+
+**Alternative Considered:** Two separate edges (one type, one value)
+**Rejected Because:** Complicates graph, cycle detection, and topological sort
 
 ## Implementation Patterns
 
