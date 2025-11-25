@@ -3,6 +3,7 @@
 **Created:** 2025-11-23
 **Last Updated:** 2025-11-24
 **Status:** Planning (Audit amendments integrated)
+**Audit:** 2025-11-24 - Scope expanded per audit findings
 **Branch:** module-resolution
 
 ## Overview
@@ -22,6 +23,10 @@ The system consists of two separate components following the **separation of con
 5. Allow safe type-only circular dependencies (module resolver)
 6. Provide clear, actionable warning messages (module resolver)
 7. Determine correct compilation order via topological sort (module resolver)
+8. **[NEW]** Resolve package imports via node_modules (`@vibefun/std`, `@org/package`)
+9. **[NEW]** Support vibefun.json path mappings (`@/*: ./src/*`)
+10. **[NEW]** Detect import conflicts (duplicate imports, shadowing) as compile-time errors
+11. **[NEW]** Emit case sensitivity warnings for cross-platform safety (W002)
 
 ## Architecture: Separation of Concerns
 
@@ -115,7 +120,7 @@ const resolution = resolveModules(modules);
 
 ### Phase 1.5: Path Resolution Utilities
 
-**Goal:** Build robust, cross-platform path resolution with symlink support
+**Goal:** Build robust, cross-platform path resolution with symlink support, package resolution, and config loading
 
 **Deliverables:**
 - Create `packages/core/src/module-loader/path-resolver.ts`
@@ -125,6 +130,11 @@ const resolution = resolveModules(modules);
 - Implement path normalization (handle `..`, `.`, trailing slashes)
 - Handle cross-platform paths (Windows `\` vs Unix `/`, drive letters)
 - Detect and error on circular symlinks
+- **[NEW]** Create `packages/core/src/module-loader/package-resolver.ts`
+- **[NEW]** Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
+- **[NEW]** Create `packages/core/src/module-loader/config-loader.ts`
+- **[NEW]** Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
+- **[NEW]** Implement case sensitivity checking with W002 warning
 - Tests for all edge cases
 
 **Design:**
@@ -166,6 +176,62 @@ export function resolveModulePath(
 - File precedence over directory (if both `foo.vf` and `foo/index.vf` exist)
 - Symlinks always resolved to real paths
 - Cross-platform support using Node.js `path` module
+
+**[NEW] Package Import Resolution:**
+```typescript
+// Resolve package imports (no ./ or ../ prefix)
+export function resolvePackageImport(
+  importPath: string,      // e.g., '@vibefun/std' or '@myorg/package'
+  fromDir: string          // Directory of importing file
+): string | null;          // Returns absolute path or null if not found
+```
+
+**Package Resolution Algorithm:**
+1. Determine if import is a package (doesn't start with `./ ` or `../`)
+2. Check vibefun.json path mappings first (if configured)
+3. Search node_modules in current and ancestor directories:
+   - `<dir>/node_modules/<package>.vf`
+   - `<dir>/node_modules/<package>/index.vf`
+   - `<parent>/node_modules/...` (continue up tree)
+4. Support scoped packages: `@org/package` → `node_modules/@org/package`
+5. Return null if not found (error handled by caller)
+
+**[NEW] vibefun.json Path Mappings:**
+```typescript
+type VibefunConfig = {
+  compilerOptions?: {
+    paths?: Record<string, string[]>;  // e.g., { "@/*": ["./src/*"] }
+  };
+};
+
+export function loadVibefunConfig(projectRoot: string): VibefunConfig | null;
+export function applyPathMapping(
+  importPath: string,
+  config: VibefunConfig,
+  projectRoot: string
+): string | null;
+```
+
+**Path Mapping Resolution:**
+1. Load `vibefun.json` from project root (walk up from entry point)
+2. For each path pattern in `paths`:
+   - Match import against pattern (e.g., `@/utils` matches `@/*`)
+   - Apply replacement (e.g., `./src/*` → `./src/utils`)
+   - Try each mapping in order until one resolves
+3. If no mapping matches, fall back to package/relative resolution
+
+**[NEW] Case Sensitivity Warning (W002):**
+- When file is found via case-insensitive match but case differs:
+  ```
+  Warning [W002]: Import path case doesn't match file
+    at src/main.vf:1:1:
+      import { x } from './Utils';
+    File is: src/utils.vf
+
+  This may cause errors on case-sensitive file systems (Linux).
+  ```
+- Check actual filename case after resolution using `fs.readdirSync()`
+- Emit warning if import case differs from file case
 
 ### Phase 2: Module Loader (Discovery & Parsing)
 
@@ -233,7 +299,7 @@ export function loadModules(entryPoint: string): Map<string, Module>;
 
 ### Phase 3: Module Graph Construction
 
-**Goal:** Build dependency graph from parsed AST modules with proper edge tracking
+**Goal:** Build dependency graph from parsed AST modules with proper edge tracking and import conflict detection
 
 **Deliverables:**
 - Create `packages/core/src/module-resolver/` directory
@@ -241,6 +307,8 @@ export function loadModules(entryPoint: string): Map<string, Module>;
 - `ModuleGraphBuilder` to extract imports from `Module` AST nodes
 - **Dual import edge handling** (mixed type-only and value imports)
 - **Re-export tracking** (re-exports create dependency edges)
+- **[NEW]** Import conflict detection (duplicates, shadowing)
+- **[NEW]** Circular re-export handling
 - Tests for graph construction including edge cases
 
 **Design:**
@@ -293,6 +361,58 @@ export * from './list';   // also exports `map` - ERROR!
 - For wildcard re-exports, collect all re-exported names
 - Detect name conflicts (same name from multiple sources)
 - Generate compile-time error: "Name conflict in re-exports: 'map' is exported from both './array' and './list'"
+
+**[NEW] Import Conflict Detection:**
+Detect duplicate imports and import/local shadowing as compile-time errors:
+
+```typescript
+// Duplicate import from different modules → ERROR
+import { x } from './a';
+import { x } from './b';  // Error: Duplicate import of 'x'
+
+// Import shadowed by local declaration → ERROR
+import { x } from './a';
+let x = 1;  // Error: Import 'x' is shadowed by local declaration
+```
+
+**Detection Algorithm:**
+1. During graph construction, track imported names per module
+2. For each import statement:
+   - Check if name already imported from different module → error
+   - Check if name conflicts with local declaration → error
+3. Exception: Same name imported multiple times from SAME module → deduplicate (not error)
+4. Exception: Function parameters shadow imports → allowed (different scope)
+
+**Error Messages:**
+```
+Error: Duplicate import of 'x'
+  at src/main.vf:1:1:
+    import { x } from './a';
+  and src/main.vf:2:1:
+    import { x } from './b';
+
+Error: Import 'x' is shadowed by local declaration
+  at src/main.vf:3:1:
+    let x = 1;
+  Import was at src/main.vf:1:1:
+    import { x } from './a';
+```
+
+**[NEW] Circular Re-Export Handling:**
+Ensure circular re-exports don't cause infinite loops:
+```typescript
+// a.vf
+export * from './b';
+
+// b.vf
+export * from './a';  // Cycle!
+```
+
+**Behavior:**
+- Re-exports create dependency edges (detected as cycle)
+- Warn with W001 but don't infinite loop
+- Each module resolved once (break cycle at second visit)
+- Mark edge as "re-export" for cycle message clarity
 
 **Key Decisions:**
 - Graph nodes are absolute **real file paths** (symlinks resolved)
@@ -400,7 +520,8 @@ Warning [W001]: Circular dependency detected
 
 **Warning Codes:**
 - `W001`: Circular dependency (value cycle)
-- Future codes: W002, W003, etc. for other warnings
+- **[NEW]** `W002`: Case sensitivity mismatch (cross-platform safety)
+- Future codes: W003, W004, etc. for other warnings
 
 ### Phase 6: Module Resolver API
 
@@ -476,12 +597,18 @@ const resolution = resolveModules(modules);  // Pure, no I/O
 **Path Resolution Edge Cases:**
 - **Symlinks** (same module via symlink and real path)
 - **Circular symlinks** (should error)
-- **Case sensitivity** (cross-platform testing)
+- **Case sensitivity** (cross-platform testing, W002 warning)
 - Path normalization (`./a/../b` → `./b`)
 - **Empty modules** (modules with no imports/exports)
 - **Unicode in file paths** (non-ASCII characters)
 - **Very deep import chains** (100+ levels)
 - **Index file precedence** (`foo.vf` vs `foo/index.vf`)
+- **[NEW]** Package imports (`@vibefun/std`, `@org/package`)
+- **[NEW]** node_modules search up directory tree
+- **[NEW]** vibefun.json path mappings
+- **[NEW]** Path mapping with wildcards (`@/*` → `./src/*`)
+- **[NEW]** Missing vibefun.json (graceful handling)
+- **[NEW]** Invalid vibefun.json (clear error)
 
 **Error Handling Tests:**
 - **Missing imports** (file doesn't exist)
@@ -490,6 +617,13 @@ const resolution = resolveModules(modules);  // Pure, no I/O
 - **Malformed paths** (invalid path syntax)
 - **Error collection** (multiple errors reported together)
 - **Typo suggestions** (suggest similar filenames)
+- **[NEW]** Duplicate imports from different modules → error
+- **[NEW]** Duplicate import from same module → deduplicate (allowed)
+- **[NEW]** Import shadowed by let declaration → error
+- **[NEW]** Import shadowed by function parameter → allowed (different scope)
+- **[NEW]** Circular re-exports → warning (not infinite loop)
+- **[NEW]** Package not found → clear error with search paths
+- **[NEW]** Package exists but no .vf entry point → error
 
 **Performance Tests:**
 - **1000-module graph** (cycle detection speed)
@@ -679,9 +813,10 @@ Instead of implementing runtime tests now, create a design doc:
 - CLI integration (CLI not implemented yet, will be designed later)
 - Incremental compilation (cache invalidation, watch mode)
 - Module bundling or dead code elimination
-- npm package resolution (node_modules, package.json)
+- ~~npm package resolution (node_modules, package.json)~~ **[NOW IN SCOPE]**
 - Source map support for module boundaries
 - Module preloading or lazy loading
+- npm package.json `main`/`exports` field parsing (use simple .vf resolution)
 
 ## Dependencies
 
@@ -710,3 +845,26 @@ Not included per project guidelines.
 - Existing Error System: `packages/core/src/utils/error.ts`
 - Parser Architecture: `packages/core/src/parser/CLAUDE.md`
 - AST Types: `packages/core/src/types/ast.ts`
+
+---
+
+## Audit Amendments Summary (2025-11-24)
+
+This plan was audited and the following scope expansions were approved:
+
+| Amendment | Description | Phase |
+|-----------|-------------|-------|
+| Package imports | node_modules lookup for `@vibefun/std`, `@org/package` | 1.5 |
+| Path mappings | vibefun.json `compilerOptions.paths` support | 1.5 |
+| Case sensitivity | W002 warning for cross-platform safety | 1.5, 5 |
+| Import conflicts | Duplicate imports and shadowing as compile errors | 3 |
+| Circular re-exports | Detect and warn, don't infinite loop | 3, 4 |
+
+**New Files Added:**
+- `packages/core/src/module-loader/package-resolver.ts`
+- `packages/core/src/module-loader/config-loader.ts`
+- `docs/guides/vibefun-json.md`
+
+**Key Decisions from Audit:**
+- Import name validation (checking exported names exist) is the **type checker's** responsibility, not module resolution
+- This matches TypeScript's approach and maintains clean separation of concerns
