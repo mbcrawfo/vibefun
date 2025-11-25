@@ -201,8 +201,8 @@ type Type =
 ```typescript
 interface TypeVar {
   kind: 'TypeVar';
-  name: string;      // e.g., "T", "U", "a"
-  id: number;        // Unique identifier for unification
+  id: number;        // Globally unique identifier
+  level: number;     // Scope level for generalization
 }
 ```
 
@@ -210,6 +210,21 @@ interface TypeVar {
 - Represent unknown types during inference
 - Unified during type checking
 - Generalized in polymorphic types
+
+**Design Decisions:**
+
+**Integer IDs for uniqueness:**
+- Each type variable has a globally unique integer ID generated via counter
+- Efficient comparison (integer equality vs string comparison)
+- Standard approach in ML implementations (matches OCaml's internal representation)
+- Fresh variables created via `freshTypeVar(level)` pattern
+
+**Level tracking for scope safety:**
+- Each type variable carries a "level" indicating its scope depth
+- Discovered by Didier Rémy (1988), used in OCaml and Standard ML
+- Enables O(1) generalization checks (vs O(n) environment scanning)
+- Prevents type variables from escaping their defining scope
+- Example: In `let f = (x => x) in ...`, the type variable for `x` has level 1, and can be generalized because no outer scope references it
 
 ### Type Constructors
 
@@ -282,24 +297,156 @@ interface RecordType {
 
 ```typescript
 interface TypeScheme {
-  typeVars: string[];   // Quantified type variables
-  type: Type;           // The actual type
+  vars: number[];      // IDs of quantified type variables
+  type: Type;          // Type body with free occurrences
 }
 ```
 
+**Purpose:**
+- Represent polymorphic types (universally quantified types)
+- Enable let-polymorphism where each use of a let-bound variable gets fresh type variables
+- Store generalized types in the type environment
+
 **Example:**
-The identity function `id: forall a. a -> a` is represented as a TypeScheme with one type variable 'a' and a function type from 'a' to 'a'.
+
+The identity function `forall a. a -> a` is represented as:
+```typescript
+{
+  vars: [0],           // Variable ID 0 is quantified
+  type: FunctionType(TypeVar(0), TypeVar(0))
+}
+```
+
+When instantiated, each quantified variable gets replaced with a fresh type variable, allowing the same function to be used at different types.
+
+**Design Decisions:**
+
+**Explicit quantified variable list:**
+- Variables listed by their integer IDs (not names)
+- Standard approach in ML type systems
+- Clear separation between bound (quantified) and free type variables
+- Enables efficient instantiation by iterating over the variable list
 
 ### Type Environment
 
 ```typescript
-type TypeEnv = Map<string, TypeScheme>;
+interface TypeEnv {
+  values: Map<string, ValueBinding>;   // Variable name → type scheme
+  types: Map<string, TypeBinding>;     // Type name → type definition
+}
 ```
 
 **Purpose:**
 - Maps variable names to their type schemes
+- Maps type names to their definitions
 - Tracks types through scope
 - Supports shadowing (inner bindings override outer)
+
+**Design Decisions:**
+
+**Flat maps vs nested scopes:**
+- Uses flat `Map` structures rather than linked scope chains
+- Shadowing handled by creating new maps: `new Map(oldEnv.values)`
+- Simpler implementation with O(1) lookup
+- Sufficient for Algorithm W which doesn't require backtracking
+
+**Separate value and type namespaces:**
+- Values (variables, functions) and types (type definitions) kept in separate maps
+- Allows same name to exist as both value and type (e.g., `Some` as constructor and `Option` as type)
+- Clean separation matches language semantics
+
+**Immutable environment updates:**
+- Extending environment creates new map, leaving old unchanged
+- Enables easy scope exit (just discard extended environment)
+- Simpler reasoning about environment state during type checking
+
+### Substitution
+
+```typescript
+type Substitution = Map<number, Type>;  // Type variable ID → Type
+```
+
+**Purpose:**
+- Records type variable bindings discovered during unification
+- Maps type variable IDs to their resolved types
+- Accumulated throughout type inference
+
+**Operations:**
+
+- **Empty substitution:** `new Map()` - no bindings
+- **Single binding:** `map.set(id, type)` - bind one variable
+- **Composition:** `composeSubst(s1, s2)` - combine two substitutions, applying s1 to types in s2
+- **Application:** `applySubst(subst, type)` - replace all bound variables in a type
+
+**Design Decisions:**
+
+**Map from IDs to Types:**
+- Simple, efficient representation using JavaScript Map
+- O(1) lookup and insertion
+- Standard functional approach (vs mutable reference cells)
+
+**Immutable composition:**
+- Composing substitutions creates new map
+- `composeSubst(s1, s2)` applies s1 to all types in s2, then merges
+- Maintains referential transparency
+
+**Implicit path compression:**
+- Chains like `α → β → Int` resolved during `applySubst`
+- Recursive application follows chains to final type
+- Simple correctness over optimization (explicit path compression could be added if needed)
+
+### Type System Design Decisions
+
+**Why immutable substitutions over mutable type variables?**
+
+OCaml uses **mutable type variables** where unification directly modifies type variable cells in place. This is faster (O(1) unification updates) but more complex to implement correctly.
+
+Vibefun uses **immutable substitutions** where unification returns a new substitution map. This is:
+- Simpler to implement and debug
+- Easier to reason about (no hidden mutation)
+- Sufficient performance for typical programs
+- Standard approach in functional implementations
+
+Trade-off: Slightly more memory allocation, but enables cleaner error messages and easier debugging.
+
+**Why this specific type representation?**
+
+The type representation uses TypeScript discriminated unions, which provide:
+- Type-safe pattern matching via `type` field
+- Exhaustiveness checking by the TypeScript compiler
+- Natural recursive structure for type traversal
+- Clear, readable code
+
+Maps used for record fields and variant constructors provide O(1) lookup, important for field access type checking and constructor resolution.
+
+### Potential Future Optimizations
+
+If profiling reveals type checking bottlenecks, these optimizations could be considered:
+
+**1. Union-Find for type variables**
+- Replace substitution map with union-find data structure
+- O(α(n)) amortized unification (nearly O(1))
+- Standard optimization in production compilers
+- Trade-off: More complex implementation
+
+**2. Hash-consing for types**
+- Share identical type structures in memory
+- Reduces memory usage for large programs
+- Enables O(1) type equality checks (pointer comparison)
+- Trade-off: Requires global type table
+
+**3. Path compression in substitution**
+- Eagerly collapse substitution chains
+- Reduces repeated chain traversals
+- Trade-off: Slightly more complex apply operation
+
+**4. Persistent data structures for environments**
+- Use immutable maps with structural sharing
+- Faster environment extension (O(log n) vs O(n) copy)
+- Libraries like Immutable.js provide this
+- Trade-off: Additional dependency
+
+**Current recommendation:** Keep the simple implementation. It's clean, correct, and performant enough for expected use cases. Optimize only if profiling shows actual bottlenecks.
 
 ## Location Information
 
@@ -464,4 +611,4 @@ Continue reading:
 
 ---
 
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-24
