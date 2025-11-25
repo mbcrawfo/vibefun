@@ -18,7 +18,6 @@ import type {
 import { describe, expect, it } from "vitest";
 
 import { desugar } from "./desugarer.js";
-import { DesugarError } from "./DesugarError.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -539,7 +538,6 @@ describe("Lambda Currying - Error Cases", () => {
             loc: testLoc,
         };
 
-        expect(() => desugar(lambda)).toThrow(DesugarError);
         expect(() => desugar(lambda)).toThrow("Lambda with zero parameters");
     });
 });

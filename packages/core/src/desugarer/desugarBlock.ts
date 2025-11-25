@@ -6,8 +6,6 @@ import type { Expr, Location, Pattern } from "../types/ast.js";
 import type { CoreExpr, CorePattern } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
-import { DesugarError } from "./DesugarError.js";
-
 /**
  * Desugar a block expression into nested let bindings
  *
@@ -24,21 +22,22 @@ import { DesugarError } from "./DesugarError.js";
  */
 export function desugarBlock(
     exprs: Expr[],
-    loc: Location,
+    _loc: Location,
     gen: FreshVarGen,
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
 ): CoreExpr {
-    // Empty block is an error
+    // Internal error: Empty block shouldn't happen (parser should catch this)
     if (exprs.length === 0) {
-        throw new DesugarError("Empty block expression", loc, "Block must contain at least one expression");
+        throw new Error("Empty block expression");
     }
 
     // Single expression - just desugar it
     if (exprs.length === 1) {
         const singleExpr = exprs[0];
         if (!singleExpr) {
-            throw new DesugarError("Block has undefined expression", loc);
+            // Internal error: array bounds check
+            throw new Error("Block has undefined expression");
         }
         return desugar(singleExpr, gen);
     }
@@ -47,7 +46,8 @@ export function desugarBlock(
     // All expressions except the last should be Let bindings
     const lastExpr = exprs[exprs.length - 1];
     if (!lastExpr) {
-        throw new DesugarError("Block has undefined last expression", loc);
+        // Internal error: array bounds check
+        throw new Error("Block has undefined last expression");
     }
 
     // Process expressions right-to-left to build nested structure
@@ -57,16 +57,13 @@ export function desugarBlock(
     for (let i = exprs.length - 2; i >= 0; i--) {
         const expr = exprs[i];
         if (!expr) {
-            throw new DesugarError(`Block has undefined expression at index ${i}`, loc);
+            // Internal error: array bounds check
+            throw new Error(`Block has undefined expression at index ${i}`);
         }
 
-        // Each expression should be a Let binding
+        // Internal error: Each expression should be a Let binding (parser should enforce this)
         if (expr.kind !== "Let") {
-            throw new DesugarError(
-                "Non-let expression in block (except final expression)",
-                expr.loc,
-                "All expressions in a block except the last must be let bindings",
-            );
+            throw new Error("Non-let expression in block (except final expression)");
         }
 
         // Wrap the result in a let binding

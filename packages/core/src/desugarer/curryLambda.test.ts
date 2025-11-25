@@ -11,7 +11,6 @@ import type { FreshVarGen } from "./FreshVarGen.js";
 import { describe, expect, it } from "vitest";
 
 import { curryLambda } from "./curryLambda.js";
-import { DesugarError } from "./DesugarError.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -39,7 +38,9 @@ const mockGen = { fresh: () => "$tmp0", reset: () => {} } as FreshVarGen;
 describe("curryLambda", () => {
     it("should throw on zero parameters", () => {
         const body: Expr = { kind: "Var", name: "x", loc: testLoc };
-        expect(() => curryLambda([], body, testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(DesugarError);
+        expect(() => curryLambda([], body, testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(
+            "Lambda with zero parameters",
+        );
     });
 
     it("should desugar single parameter lambda", () => {

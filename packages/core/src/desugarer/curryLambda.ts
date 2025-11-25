@@ -6,8 +6,6 @@ import type { Expr, Location, Pattern } from "../types/ast.js";
 import type { CoreExpr, CorePattern } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
-import { DesugarError } from "./DesugarError.js";
-
 /**
  * Curry a multi-parameter lambda into nested single-parameter lambdas
  *
@@ -31,16 +29,17 @@ export function curryLambda(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
 ): CoreExpr {
-    // Zero parameters shouldn't happen (parser should catch this)
+    // Internal error: Zero parameters shouldn't happen (parser should catch this)
     if (params.length === 0) {
-        throw new DesugarError("Lambda with zero parameters", loc, "Lambdas must have at least one parameter");
+        throw new Error("Lambda with zero parameters");
     }
 
     // Single parameter - just desugar
     if (params.length === 1) {
         const param = params[0];
         if (!param) {
-            throw new DesugarError("Lambda has undefined parameter", loc);
+            // Internal error: array bounds check
+            throw new Error("Lambda has undefined parameter");
         }
         return {
             kind: "CoreLambda",
@@ -54,7 +53,8 @@ export function curryLambda(
     // Build nested lambdas from left to right
     const firstParam = params[0];
     if (!firstParam) {
-        throw new DesugarError("Lambda has undefined first parameter", loc);
+        // Internal error: array bounds check
+        throw new Error("Lambda has undefined first parameter");
     }
 
     // The body of the first lambda is another lambda with remaining parameters

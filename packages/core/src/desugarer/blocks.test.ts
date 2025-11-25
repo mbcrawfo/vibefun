@@ -20,7 +20,6 @@ import type {
 import { describe, expect, it } from "vitest";
 
 import { desugar } from "./desugarer.js";
-import { DesugarError } from "./DesugarError.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -405,7 +404,6 @@ describe("Block Desugaring - Error Cases", () => {
             loc: testLoc,
         };
 
-        expect(() => desugar(block)).toThrow(DesugarError);
         expect(() => desugar(block)).toThrow("Empty block expression");
     });
 
@@ -420,7 +418,6 @@ describe("Block Desugaring - Error Cases", () => {
             loc: testLoc,
         };
 
-        expect(() => desugar(block)).toThrow(DesugarError);
         expect(() => desugar(block)).toThrow("Non-let expression in block (except final expression)");
     });
 
@@ -444,7 +441,7 @@ describe("Block Desugaring - Error Cases", () => {
             loc: testLoc,
         };
 
-        expect(() => desugar(block)).toThrow(DesugarError);
+        expect(() => desugar(block)).toThrow("Non-let expression in block (except final expression)");
     });
 });
 

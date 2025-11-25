@@ -48,7 +48,6 @@ import { curryLambda } from "./curryLambda.js";
 import { desugarBinOp } from "./desugarBinOp.js";
 import { desugarBlock } from "./desugarBlock.js";
 import { desugarComposition } from "./desugarComposition.js";
-import { DesugarError } from "./DesugarError.js";
 import { desugarListLiteral } from "./desugarListLiteral.js";
 import { desugarListPattern } from "./desugarListPattern.js";
 import { desugarListWithConcats } from "./desugarListWithConcats.js";
@@ -65,7 +64,7 @@ import { FreshVarGen } from "./FreshVarGen.js";
  * @param expr - Surface expression to desugar
  * @param gen - Fresh variable generator (optional, created if not provided)
  * @returns Desugared core expression
- * @throws {DesugarError} If desugaring fails
+ * @throws {VibefunDiagnostic} If desugaring fails
  *
  * @example
  * const surfaceExpr = { kind: "IntLit", value: 42, loc };
@@ -414,12 +413,8 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         }
 
         default:
-            // Should never reach here if all cases are covered
-            throw new DesugarError(
-                `Unknown expression kind: ${(expr as Expr).kind}`,
-                (expr as Expr).loc,
-                "This may indicate a parser bug or missing desugaring implementation",
-            );
+            // Internal error: Should never reach here if all cases are covered
+            throw new Error(`Unknown expression kind: ${(expr as Expr).kind}`);
     }
 }
 
@@ -475,12 +470,8 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
             return desugarListPattern(pattern.elements, pattern.rest, pattern.loc, gen, desugarPattern);
 
         case "OrPattern":
-            // Or-patterns should be expanded at the Match level before reaching here
-            throw new DesugarError(
-                "Or-pattern should have been expanded at match level",
-                pattern.loc,
-                "This is an internal compiler error - or-patterns must be expanded before pattern desugaring",
-            );
+            // Internal error: Or-patterns should be expanded at the Match level before reaching here
+            throw new Error("Or-pattern should have been expanded at match level");
 
         case "TuplePattern":
             return {
@@ -496,11 +487,8 @@ export function desugarPattern(pattern: Pattern, gen: FreshVarGen): CorePattern 
             return desugarPattern(pattern.pattern, gen);
 
         default:
-            throw new DesugarError(
-                `Unknown pattern kind: ${(pattern as Pattern).kind}`,
-                (pattern as Pattern).loc,
-                "This may indicate a parser bug",
-            );
+            // Internal error: Should never reach here if all cases are covered
+            throw new Error(`Unknown pattern kind: ${(pattern as Pattern).kind}`);
     }
 }
 
@@ -639,11 +627,8 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
             };
 
         default:
-            throw new DesugarError(
-                `Unknown declaration kind: ${(decl as Declaration).kind}`,
-                (decl as Declaration).loc,
-                "This may indicate a parser bug",
-            );
+            // Internal error: Should never reach here if all cases are covered
+            throw new Error(`Unknown declaration kind: ${(decl as Declaration).kind}`);
     }
 }
 
