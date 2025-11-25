@@ -177,6 +177,23 @@ readonly seeAlso?: readonly string[];      // Links to spec docs
 - Internal docs guide future contributors
 - All ~85 error codes get complete documentation (explanation + example)
 
+### 17. Interpolation Behavior for Missing Placeholders (Resolved 2025-11-25)
+Leave unmatched placeholders as-is in the output for debugging visibility.
+
+```typescript
+interpolate("Cannot unify {t1} with {t2}", { t1: "Int" })
+// → "Cannot unify Int with {t2}"
+```
+
+### 18. Registry Duplicate Detection (Resolved 2025-11-25)
+Throw an error at registration time if a duplicate code is detected (fail-fast).
+
+### 19. Source Line Truncation (Resolved 2025-11-25)
+Truncate source lines longer than 120 characters with `...` ellipsis in `format()`.
+
+### 20. Test Helper Return Value (Resolved 2025-11-25)
+`expectDiagnostic()` returns the caught diagnostic for property assertions, matching the `expectParseError()` pattern.
+
 ## Critical Files
 
 ### Files to Create
