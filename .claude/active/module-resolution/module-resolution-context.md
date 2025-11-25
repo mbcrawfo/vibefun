@@ -352,6 +352,103 @@ import { valueB } from "./mod"      // Upgrades edge to value
 **Alternative Considered:** Two separate edges (one type, one value)
 **Rejected Because:** Complicates graph, cycle detection, and topological sort
 
+### 15. Self-Import Error Handling (NEW - from audit)
+
+**Decision:** Self-imports (module importing itself) are compile-time ERRORS, not warnings
+
+**Rationale:**
+- Self-imports serve no useful purpose
+- Likely indicates a mistake (typo in import path)
+- Different from circular dependencies between modules (which are warnings)
+- No legitimate use case for a module importing itself
+
+**Implementation:**
+- Self-import creates 1-node SCC with self-edge in Tarjan's algorithm
+- Detected during cycle detection phase
+- Generate clear error: "Module cannot import itself: [path]"
+- Error halts compilation (unlike circular dependency warnings)
+
+**Alternative Considered:** Treat self-import as value cycle (warning)
+**Rejected Because:** No valid use case, should fail fast
+
+### 16. Deterministic Cyclic Ordering (NEW - from audit)
+
+**Decision:** Modules within a cycle are sorted alphabetically by absolute path
+
+**Rationale:**
+- Reproducible builds (same input → same compilation order)
+- Easier debugging (predictable order)
+- No meaningful "correct" order for cycles, so alphabetical is as good as any
+- Helps with test stability (consistent results)
+
+**Implementation:**
+- After Tarjan's SCC finds cycle, sort module paths alphabetically
+- Return sorted order in `compilationOrder`
+- Document: "Modules within a cycle are compiled in alphabetical order"
+
+**Alternative Considered:** Arbitrary (implementation-defined) order
+**Rejected Because:** Non-deterministic builds are harder to debug
+
+### 17. Import Location on Graph Edges (NEW - from audit)
+
+**Decision:** Graph edges store the source location of the import statement
+
+**Rationale:**
+- Warnings need to show WHERE the import is (not just which modules)
+- Better error messages for users
+- Enables IDE integration (jump to import)
+- Required for spec-compliant warning format
+
+**Implementation:**
+```typescript
+type DependencyEdge = {
+  to: string;           // Target module path
+  isTypeOnly: boolean;  // Type-only import?
+  importLoc: Location;  // Source location of import statement
+};
+```
+
+**Alternative Considered:** Edges store only module paths
+**Rejected Because:** Cannot show import location in warnings
+
+### 18. Re-Export Name Conflict Detection (NEW - from audit)
+
+**Decision:** Wildcard re-export name conflicts are compile-time errors
+
+**Rationale:**
+- Required by spec (08-modules.md:540-549)
+- Ambiguous which export to use
+- Should fail early, not at runtime
+- Matches TypeScript/JavaScript behavior
+
+**Implementation:**
+- During graph construction, track exported names per module
+- For wildcard re-exports (`export * from`), collect all re-exported names
+- Detect duplicates from different sources
+- Generate error: "Name conflict in re-exports: 'map' is exported from both './array' and './list'"
+
+**Alternative Considered:** Last re-export wins
+**Rejected Because:** Spec requires error, and it's ambiguous behavior
+
+### 19. Standard Library Package Naming (NEW - from audit)
+
+**Decision:** Rename stdlib package from `@vibefun/stdlib` to `@vibefun/std`
+
+**Rationale:**
+- Cleaner import: `import { Option } from '@vibefun/std'`
+- Matches spec intent (though spec used `vibefun/std`)
+- No compiler rewriting needed - source matches generated JS
+- Standard node_modules resolution
+
+**Implementation:**
+- Rename `packages/stdlib` package.json name to `@vibefun/std`
+- Update spec `docs/spec/08-modules.md` examples to use `@vibefun/std`
+- CLI depends on `@vibefun/std` - installing CLI installs stdlib
+- No special handling in module resolution (standard node_modules lookup)
+
+**Alternative Considered:** Claim `vibefun` npm name, use subpath exports
+**Rejected Because:** More complex, potential confusion with compiler package
+
 ## Implementation Patterns
 
 ### Parser Dependency Injection Pattern

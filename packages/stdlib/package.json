@@ -1,5 +1,5 @@
 {
-    "name": "@vibefun/stdlib",
+    "name": "@vibefun/std",
     "version": "0.1.0",
     "description": "Vibefun standard library",
     "type": "module",

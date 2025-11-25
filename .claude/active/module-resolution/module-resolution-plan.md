@@ -2,7 +2,7 @@
 
 **Created:** 2025-11-23
 **Last Updated:** 2025-11-24
-**Status:** Planning (Updated after comprehensive audit)
+**Status:** Planning (Audit amendments integrated)
 **Branch:** module-resolution
 
 ## Overview
@@ -143,14 +143,17 @@ export function resolveModulePath(
 
 **Resolution Algorithm** (following Node.js/TypeScript):
 1. For `import "./foo"`:
-   - Try `<dir>/foo.vf` (exact file)
-   - Try `<dir>/foo/index.vf` (directory with index)
+   - If path ends with `.vf`: try path as-is (don't append `.vf.vf`)
+   - If path does NOT end with `.vf`:
+     - Try `<dir>/foo.vf` (exact file)
+     - Try `<dir>/foo/index.vf` (directory with index)
    - Return null if neither exists
 2. If both file and directory exist, file takes precedence
 3. Resolve symlinks using `fs.realpathSync()` (canonical path)
 4. Normalize paths: `./a/../b` → `./b`
 5. Handle trailing slashes: `./foo/` → try `./foo/index.vf`
 6. Handle current directory: `./.` → try `./index.vf`
+7. Both `./utils` and `./utils.vf` should resolve to same cached module
 
 **Symlink Handling:**
 - All paths resolved to real paths using `fs.realpathSync()`
@@ -194,13 +197,19 @@ export function loadModules(entryPoint: string): Map<string, Module>;
 
 **Algorithm:**
 1. Start with entry point file path
-2. Parse entry point → add to cache
-3. Extract imports from parsed module
-4. For each import path:
+2. **Validate entry point exists** (if not, clear error with tried paths)
+3. If entry point is a directory, resolve to `dir/index.vf`
+4. Parse entry point → add to cache
+5. Extract imports from parsed module
+6. For each import path:
    - Resolve to absolute path
    - If not in cache: parse it, add to cache, queue for import discovery
-5. Repeat step 3-4 until no new modules discovered
-6. Return complete module cache
+7. Repeat step 5-6 until no new modules discovered
+8. Return complete module cache
+
+**Entry Point Validation:**
+- If entry point doesn't exist, error with: "Entry point not found: src/main.vf\n  Tried: src/main.vf, src/main/index.vf"
+- Entry point parse errors included in error collection
 
 **Error Collection Strategy:**
 - **Collect all errors before reporting** (not fail-fast)
@@ -236,9 +245,19 @@ export function loadModules(entryPoint: string): Map<string, Module>;
 
 **Design:**
 ```typescript
+// Edge stores import location for warning messages
+type DependencyEdge = {
+  to: string;           // Target module path
+  isTypeOnly: boolean;  // Type-only import?
+  importLoc: Location;  // Source location of import statement (for warnings)
+};
+
 class ModuleGraph {
+  private edges: Map<string, DependencyEdge[]>;  // from → edges[]
+
   addModule(path: string): void
-  addDependency(from: string, to: string, isTypeOnly: boolean): void
+  addDependency(from: string, to: string, isTypeOnly: boolean, loc: Location): void
+  getDependencyEdges(from: string): DependencyEdge[]
   getTopologicalOrder(): string[]
   getDependencies(path: string): string[]
   hasCycle(): boolean
@@ -263,6 +282,17 @@ export * from "./other"      // Creates dependency edge
 - Re-exports treated as dependencies for cycle detection
 - Edge tracked as value import (conservative approach)
 - Necessary for detecting cycles through re-exports
+
+**Re-Export Name Conflict Detection:**
+Per spec (08-modules.md:540-549), wildcard re-export name conflicts are compile-time errors:
+```typescript
+export * from './array';  // exports `map`
+export * from './list';   // also exports `map` - ERROR!
+```
+- During graph construction, track exported names per module
+- For wildcard re-exports, collect all re-exported names
+- Detect name conflicts (same name from multiple sources)
+- Generate compile-time error: "Name conflict in re-exports: 'map' is exported from both './array' and './list'"
 
 **Key Decisions:**
 - Graph nodes are absolute **real file paths** (symlinks resolved)
@@ -304,11 +334,22 @@ type Cycle = {
 - Single-node SCCs without self-edges are not cycles
 - Self-imports (A → A) detected as 1-node SCC with self-edge
 
+**Self-Import Handling:**
+- Self-imports (module importing itself) are **compile-time ERRORS** (not warnings)
+- Self-import creates 1-node SCC with self-edge in Tarjan's algorithm
+- Generate clear error message: "Module cannot import itself: [path]"
+- Rationale: Self-imports serve no useful purpose and indicate a mistake
+
 **Type-Only vs Value Cycles:**
 - Type-only cycle: **ALL** edges in cycle use `import type`
 - Value cycle: **at least ONE** edge imports values/functions
 - Mixed cycles (some type-only, some value) are value cycles
 - Type-only cycles don't trigger warnings (safe at runtime)
+
+**Deterministic Cyclic Order:**
+- When returning modules in SCC, sort alphabetically by absolute path
+- Ensures reproducible builds (same input → same compilation order)
+- Modules within a cycle are compiled in alphabetical order
 
 **Why Tarjan's Algorithm:**
 - Finds ALL cycles in one pass (better than finding one at a time)
@@ -456,12 +497,33 @@ const resolution = resolveModules(modules);  // Pure, no I/O
 - **Deep hierarchies** (100 levels of nesting)
 - Verify O(V+E) complexity in practice
 
-**Runtime Behavior Tests:**
-- Compile cyclic modules to JavaScript
-- **Run generated JS with Node.js**
-- Verify initialization order matches spec
-- Verify deferred initialization semantics
-- Verify type-only cycles work at runtime
+**Runtime Behavior Tests (DEFERRED - blocked on code generator):**
+Instead of implementing runtime tests now, create a design doc:
+- Create `.claude/design/runtime-integration-tests.md`
+- Document test scenarios for when code generator is ready:
+  - Cyclic module initialization order
+  - Deferred initialization semantics
+  - Type-only cycles at runtime
+  - Module singleton semantics
+  - Error propagation during init
+- Define expected JavaScript output patterns
+- Define Node.js test harness approach
+
+**Test Infrastructure (Dual Approach):**
+
+*Fixture-based tests (version controlled):*
+- Create `packages/core/src/module-loader/__fixtures__/`
+- Pre-made test modules for common patterns:
+  - `simple-import/` - Basic A imports B
+  - `diamond-dependency/` - A → B,C → D
+  - `type-only-cycle/` - Safe circular type imports
+  - `value-cycle/` - Unsafe circular value imports
+
+*Temp directory tests (isolation for edge cases):*
+- Use Node.js `fs.mkdtempSync()` for test isolation
+- Create symlinks, set permissions dynamically
+- Clean up after each test
+- Use for: symlink tests, permission tests, Unicode paths, case sensitivity
 
 **Integration Tests:**
 - Realistic multi-module programs
@@ -578,6 +640,12 @@ const resolution = resolveModules(modules);  // Pure, no I/O
   - Explain type-only vs value cycle distinction
   - Include diagrams if helpful
   - Keep it high-level (architecture, not implementation)
+
+**5. Package and Spec Updates:**
+- Rename `packages/stdlib` package.json name from `@vibefun/stdlib` to `@vibefun/std`
+- Update all internal imports across the monorepo
+- Update spec `docs/spec/08-modules.md` examples to use `@vibefun/std`
+- Module resolution: standard node_modules lookup for `@vibefun/*` (no special handling)
 
 **Do NOT:**
 - Update root CLAUDE.md (per documentation rules)
