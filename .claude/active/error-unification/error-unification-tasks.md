@@ -101,47 +101,42 @@
 **Status:** Not Started
 
 - [ ] Create `codes/desugarer.ts` with VF3xxx definitions:
-  - [ ] VF3001 UnknownExpressionKind (keep as plain Error - internal)
-  - [ ] VF3002 UnknownPatternKind (keep as plain Error - internal)
-  - [ ] VF3003 UnknownDeclarationKind (keep as plain Error - internal)
-  - [ ] VF3100 OrPatternNotExpanded (keep as plain Error - internal)
   - [ ] VF3101 UndefinedListElement
-  - [ ] VF3102 EmptySegmentList (from plain Error in desugarListWithConcats.ts)
-  - [ ] VF3103 EmptySegment (from plain Error in desugarListWithConcats.ts)
+  - (Note: VF3001-VF3003, VF3100 are internal errors, remain plain Error)
+  - (Note: desugarListWithConcats.ts errors are internal assertions, remain plain Error)
 - [ ] Register desugarer codes in registry
 - [ ] Add `source` parameter to `desugar()` entry point
 - [ ] Migrate `desugarer.ts` throw sites (keep internal errors as plain Error)
 - [ ] Migrate `desugarListPattern.ts`
 - [ ] Migrate `buildConsChain.ts`
 - [ ] Migrate `desugarListLiteral.ts`
-- [ ] Migrate `desugarListWithConcats.ts` - convert plain `Error` to diagnostics
 - [ ] Delete `DesugarError.ts`
 - [ ] Update desugarer tests (use `expectDiagnostic()`)
 - [ ] Run `npm run verify` - all tests pass
 
-## Phase 5: Type Checker Migration
+## Phase 5a: Type Checker Codes & Basic Migration
 **Status:** Not Started
 
-**Approach:** Full replacement - DELETE factory functions, replace ALL call sites.
+**Goal:** Define VF4xxx codes and set up infrastructure for type checker migration.
 
-- [ ] Create `codes/typechecker.ts` with VF4xxx definitions:
+- [ ] Create `codes/typechecker.ts` with VF4xxx definitions (~45 codes):
   - [ ] VF4001 TypeMismatch
   - [ ] VF4002 ArgumentTypeMismatch
   - [ ] VF4003 ReturnTypeMismatch
   - [ ] VF4004 BranchTypeMismatch
   - [ ] VF4005 IfBranchTypeMismatch
   - [ ] VF4006 ListElementMismatch
-  - [ ] VF4007 TupleElementMismatch (NEW)
-  - [ ] VF4008 RecordFieldMismatch (NEW)
+  - [ ] VF4007 TupleElementMismatch
+  - [ ] VF4008 RecordFieldMismatch
   - [ ] VF4009 NumericTypeMismatch
   - [ ] VF4010 OperatorTypeMismatch
-  - [ ] VF4011 GuardTypeMismatch (NEW)
-  - [ ] VF4012 AnnotationMismatch (NEW)
+  - [ ] VF4011 GuardTypeMismatch
+  - [ ] VF4012 AnnotationMismatch
   - [ ] VF4013 NotAFunction
-  - [ ] VF4014 NotARecord (NEW)
-  - [ ] VF4015 NotARef (NEW)
-  - [ ] VF4016 RefAssignmentMismatch (NEW)
-  - [ ] VF4020-VF4025 Unification errors (NEW - from unify.ts plain Errors)
+  - [ ] VF4014 NotARecord
+  - [ ] VF4015 NotARef
+  - [ ] VF4016 RefAssignmentMismatch
+  - [ ] VF4020-VF4025 Unification errors (from unify.ts)
   - [ ] VF4100 UndefinedVariable
   - [ ] VF4101 UndefinedType
   - [ ] VF4102 UndefinedConstructor
@@ -149,10 +144,10 @@
   - [ ] VF4200 ConstructorArity
   - [ ] VF4201 NoMatchingOverload
   - [ ] VF4202 WrongArgumentCount
-  - [ ] VF4203 TupleArity (NEW)
-  - [ ] VF4204 TypeArgumentCount (NEW)
+  - [ ] VF4203 TupleArity
+  - [ ] VF4204 TypeArgumentCount
   - [ ] VF4300 InfiniteType
-  - [ ] VF4301 RecursiveAlias (NEW)
+  - [ ] VF4301 RecursiveAlias
   - [ ] VF4400 NonExhaustiveMatch
   - [ ] VF4401 InvalidGuard
   - [ ] VF4402 DuplicateBinding
@@ -161,27 +156,101 @@
   - [ ] VF4501 MissingRecordField
   - [ ] VF4502 DuplicateRecordField
   - [ ] VF4600 UnknownConstructor
-  - [ ] VF4601 ConstructorArgMismatch (NEW)
-  - [ ] VF4602 VariantMismatch (NEW)
+  - [ ] VF4601 ConstructorArgMismatch
+  - [ ] VF4602 VariantMismatch
   - [ ] VF4700 ValueRestriction
   - [ ] VF4701 TypeEscape
   - [ ] VF4900 UnreachablePattern (warning)
 - [ ] Register typechecker codes in registry
 - [ ] Add `source` parameter to `typecheck()` entry point
-- [ ] Migrate `typechecker/errors.ts`:
-  - [ ] DELETE `createTypeMismatchError()` and all factory functions
-  - [ ] KEEP `typeToString()` and `typeSchemeToString()` utilities
-  - [ ] DELETE `TypeCheckerError` class
-- [ ] Migrate `unify.ts`:
-  - [ ] Convert 18+ plain `Error` throws to VF4020-VF4025 diagnostics
-  - [ ] Keep internal assertion errors as plain `Error`
-- [ ] Migrate `patterns.ts`:
-  - [ ] Convert 12+ throws to diagnostics
-  - [ ] Keep internal exhaustiveness checks as plain `Error`
-- [ ] Migrate `typechecker.ts` - replace factory calls with `throwDiagnostic()`
-- [ ] Migrate all `infer/*.ts` files - replace factory calls
+- [ ] Create `UnifyContext` type in typechecker module:
+  ```typescript
+  interface UnifyContext {
+      loc: Location;
+      source?: string;
+  }
+  ```
+- [ ] Create `typechecker/format.ts` with utilities:
+  - [ ] Move `typeToString()` from errors.ts
+  - [ ] Move `typeSchemeToString()` from errors.ts
+  - [ ] Move `findSimilarStrings()` from errors.ts
+  - [ ] Move `levenshteinDistance()` from errors.ts
+- [ ] Migrate `typechecker.ts` factory calls to `throwDiagnostic()`
+- [ ] Keep `TypeCheckerError` temporarily (for `infer/*.ts` files)
+- [ ] Run `npm run verify` - all tests pass
+
+## Phase 5b: Unification & Pattern Migration
+**Status:** Not Started
+
+**Goal:** Migrate unify.ts and patterns.ts with the UnifyContext pattern.
+
+- [ ] Add `UnifyContext` parameter to `unify()` signature
+- [ ] Update all `unify()` call sites (~15-20 changes):
+  - [ ] `typechecker.ts`
+  - [ ] `infer/*.ts` files
+  - [ ] `constraints.ts`
+  - [ ] `patterns.ts`
+- [ ] Convert `unify.ts` user-facing errors (10 errors) to VF4xxx diagnostics:
+  - [ ] VF4020 CannotUnify (line 205)
+  - [ ] VF4021 FunctionArityMismatch (line 211)
+  - [ ] VF4022 TypeApplicationArityMismatch (line 235)
+  - [ ] VF4023 UnionArityMismatch (line 268)
+  - [ ] VF4024 IncompatibleTypes (line 308)
+  - [ ] VF4025 VariantUnificationError (lines 451, 456, 472)
+  - [ ] VF4300 InfiniteType/OccursCheck (line 327)
+  - [ ] Tuple arity mismatch (line 288)
+- [ ] Leave internal assertion errors as plain `Error` (7 errors):
+  - [ ] "Missing parameter at index" (lines 221, 479)
+  - [ ] "Missing argument at index" (line 246)
+  - [ ] "Missing type at index" (line 276)
+  - [ ] "Missing element at index" (line 298)
+  - [ ] "Missing field type" (line 425)
+  - [ ] "Missing constructor" (line 468)
+- [ ] Convert `patterns.ts` user-facing errors (8 errors) to VF4xxx diagnostics:
+  - [ ] VF4102 UndefinedConstructor (line 163)
+  - [ ] VF4600 NotValueBinding (line 167)
+  - [ ] VF4200 ConstructorArity (lines 183, 202)
+  - [ ] VF4402 DuplicateBinding (lines 229, 279)
+  - [ ] VF4500 NonRecordAccess (line 257)
+  - [ ] VF4501 MissingRecordField (line 270)
+- [ ] Leave internal errors as plain `Error` (3 errors):
+  - [ ] "Unknown pattern kind" (line 81)
+  - [ ] "Unknown literal type" (line 135)
+  - [ ] "Missing argument pattern" (line 220)
+- [ ] Update relevant tests
+- [ ] Run `npm run verify` - all tests pass
+
+## Phase 5c: Inference Migration & Cleanup
+**Status:** Not Started
+
+**Goal:** Complete the type checker migration and remove old infrastructure.
+
+- [ ] Migrate all `infer/*.ts` files to `throwDiagnostic()`:
+  - [ ] `infer-primitives.ts`
+  - [ ] `infer-operators.ts`
+  - [ ] `infer-functions.ts`
+  - [ ] `infer-structures.ts`
+  - [ ] `infer-patterns.ts`
+  - [ ] `infer-records.ts`
+  - [ ] `infer-variants.ts`
 - [ ] Migrate `resolver.ts`, `constraints.ts`, `environment.ts`
+- [ ] Delete `TypeCheckerError` class from `errors.ts`
+- [ ] Delete factory functions from `errors.ts`:
+  - [ ] `createTypeMismatchError()`
+  - [ ] `createUndefinedVariableError()`
+  - [ ] `createNonExhaustiveError()`
+  - [ ] `createOccursCheckError()`
+  - [ ] `createOverloadError()`
+  - [ ] `createUndefinedTypeError()`
+  - [ ] `createMissingFieldError()`
+  - [ ] `createNonRecordAccessError()`
+  - [ ] `createUndefinedConstructorError()`
+  - [ ] `createConstructorArityError()`
+  - [ ] `createValueRestrictionError()`
+  - [ ] `createEscapeError()`
+  - [ ] `createInvalidGuardError()`
 - [ ] Update typechecker tests (use `expectDiagnostic()`)
+- [ ] Verify all call sites use new diagnostic pattern
 - [ ] Run `npm run verify` - all tests pass
 
 ## Phase 6: Module System Integration
@@ -255,12 +324,15 @@ Before starting Phase 1, verify:
 |-------|--------|-------|-------|
 | Phase 1: Infrastructure | Not Started | 0/15 | Core diagnostics module |
 | Phase 2: Lexer Migration | Not Started | 0/9 | ~15 error codes |
-| Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. new import/export) |
-| Phase 4: Desugarer Migration | Not Started | 0/11 | ~5 error codes + plain Error conversion |
-| Phase 5: Type Checker Migration | Not Started | 0/12 | ~45 error codes (largest phase) |
-| Phase 6: Module System Integration | Not Started | 0/5 | ~8 error codes |
-| Phase 7: Documentation Generation | Not Started | 0/7 | Auto-generated docs |
+| Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. import/export) |
+| Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
+| Phase 5a: TC Codes & Basic | Not Started | 0/9 | ~45 codes, UnifyContext setup |
+| Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 18 errors |
+| Phase 5c: Inference Cleanup | Not Started | 0/15 | Migrate infer/*.ts, delete old code |
+| Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
+| Phase 7: Documentation Gen | Not Started | 0/7 | Auto-generated docs |
 | Phase 8: Cleanup | Not Started | 0/11 | Remove old classes |
 
-**Overall: 0/8 Phases Complete (0%)**
-**Estimated Total Error Codes: ~90**
+**Overall: 0/10 Phases Complete (0%)**
+**Estimated Total Error Codes: ~85**
+**Estimated Test Updates: ~85-95 tests**
