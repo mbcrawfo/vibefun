@@ -1,0 +1,9 @@
+# Exclude source files
+src/
+
+# Exclude config files
+tsconfig*.json
+
+# Exclude development files
+*.log
+.DS_Store
