@@ -8,7 +8,7 @@
 import type { Expr, TypeExpr } from "../types/ast.js";
 import type { ExternalOverload, TypeEnv, ValueBinding } from "../types/environment.js";
 
-import { TypeError } from "../utils/error.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 
 /**
  * Result of overload resolution
@@ -61,11 +61,7 @@ export function resolveCall(
     const binding = env.values.get(name);
 
     if (!binding) {
-        throw new TypeError(
-            `Undefined function '${name}'`,
-            callLoc,
-            `The function '${name}' is not defined in this scope.`,
-        );
+        throwDiagnostic("VF4100", callLoc, { name });
     }
 
     // If not overloaded, return the single binding
@@ -113,21 +109,8 @@ function resolveOverload(
 
     if (arityCandidates.length === 0) {
         // No overload matches the argument count
-        const arities = overloads.map((o) => o.paramTypes.length);
-        const uniqueArities = Array.from(new Set(arities)).sort((a, b) => a - b);
-        const expectedArity =
-            uniqueArities.length === 1
-                ? `${uniqueArities[0]}`
-                : uniqueArities.length === 2
-                  ? `${uniqueArities[0]} or ${uniqueArities[1]}`
-                  : `one of ${uniqueArities.join(", ")}`;
-
-        throw new TypeError(
-            `No matching signature for '${name}'`,
-            callLoc,
-            `Expected ${expectedArity} argument${expectedArity === "1" ? "" : "s"}, but got ${argCount}.\n` +
-                `Available signatures:\n${formatOverloads(overloads)}`,
-        );
+        const signatures = formatOverloads(overloads);
+        throwDiagnostic("VF4201", callLoc, { name, argCount: String(argCount), signatures });
     }
 
     // Step 2: Filter by type compatibility
@@ -140,12 +123,8 @@ function resolveOverload(
         // Exactly one match - success!
         const selected = candidates[0];
         if (!selected) {
-            // Should never happen given the length check, but TypeScript doesn't know that
-            throw new TypeError(
-                `Internal error resolving call to '${name}'`,
-                callLoc,
-                `Expected a candidate but found none.`,
-            );
+            // Should never happen given the length check - internal error
+            throw new Error(`Internal error resolving call to '${name}': expected a candidate but found none.`);
         }
         return {
             kind: "Overload",
@@ -160,14 +139,7 @@ function resolveOverload(
     // This can happen when:
     // - We don't have type information yet (no inference implemented)
     // - Multiple overloads have the same arity but different types
-    const candidateSignatures = candidates.map((c) => formatOverload(c.overload)).join("\n  ");
-
-    throw new TypeError(
-        `Ambiguous call to '${name}'`,
-        callLoc,
-        `Multiple signatures match the argument count:\n  ${candidateSignatures}\n` +
-            `Add explicit type annotations to the arguments to disambiguate.`,
-    );
+    throwDiagnostic("VF4205", callLoc, { name });
 }
 
 /**

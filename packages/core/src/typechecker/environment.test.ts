@@ -6,9 +6,9 @@ import type { Module } from "../types/index.js";
 
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
 import { Parser } from "../parser/index.js";
-import { TypeError } from "../utils/error.js";
 import { buildEnvironment } from "./environment.js";
 
 function parseModule(source: string): Module {
@@ -163,8 +163,8 @@ describe("Environment Builder - External Overloading", () => {
             `;
             const module = parseModule(source);
 
-            expect(() => buildEnvironment(module)).toThrow(TypeError);
-            expect(() => buildEnvironment(module)).toThrow(/inconsistent JavaScript names/);
+            expect(() => buildEnvironment(module)).toThrow(VibefunDiagnostic);
+            expect(() => buildEnvironment(module)).toThrow(/VF4801/);
         });
 
         it("throws error for inconsistent from clause in overloads", () => {
@@ -174,8 +174,8 @@ describe("Environment Builder - External Overloading", () => {
             `;
             const module = parseModule(source);
 
-            expect(() => buildEnvironment(module)).toThrow(TypeError);
-            expect(() => buildEnvironment(module)).toThrow(/inconsistent module imports/);
+            expect(() => buildEnvironment(module)).toThrow(VibefunDiagnostic);
+            expect(() => buildEnvironment(module)).toThrow(/VF4802/);
         });
 
         it("throws error for overload without from when first has from", () => {
@@ -185,8 +185,8 @@ describe("Environment Builder - External Overloading", () => {
             `;
             const module = parseModule(source);
 
-            expect(() => buildEnvironment(module)).toThrow(TypeError);
-            expect(() => buildEnvironment(module)).toThrow(/inconsistent module imports/);
+            expect(() => buildEnvironment(module)).toThrow(VibefunDiagnostic);
+            expect(() => buildEnvironment(module)).toThrow(/VF4802/);
         });
 
         it("throws error for non-function type in overloads", () => {
@@ -196,8 +196,8 @@ describe("Environment Builder - External Overloading", () => {
             `;
             const module = parseModule(source);
 
-            expect(() => buildEnvironment(module)).toThrow(TypeError);
-            expect(() => buildEnvironment(module)).toThrow(/must have function type/);
+            expect(() => buildEnvironment(module)).toThrow(VibefunDiagnostic);
+            expect(() => buildEnvironment(module)).toThrow(/VF4803/);
         });
     });
 

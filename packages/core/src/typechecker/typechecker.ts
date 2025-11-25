@@ -5,7 +5,7 @@
  * Hindley-Milner type inference on a desugared CoreModule.
  */
 
-import type { Module } from "../types/ast.js";
+import type { Location, Module } from "../types/ast.js";
 import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
@@ -14,6 +14,27 @@ import { convertTypeExpr, createContext, inferExpr } from "./infer/index.js";
 import { checkPattern } from "./patterns.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
+
+/**
+ * Context for unification operations
+ *
+ * This context carries location and source information through unification
+ * to enable accurate error reporting.
+ */
+export interface UnifyContext {
+    /** Source location for error reporting */
+    readonly loc: Location;
+    /** Optional source code for error formatting */
+    readonly source?: string;
+}
+
+/**
+ * Options for type checking
+ */
+export interface TypeCheckOptions {
+    /** Source code (optional, for error formatting) */
+    readonly source?: string;
+}
 
 /**
  * A typed module with inferred types attached to expressions
@@ -34,16 +55,18 @@ export type TypedModule = {
  * CoreModule and performs Hindley-Milner type inference on all declarations.
  *
  * @param module - The desugared CoreModule to type check
+ * @param options - Optional type checking options (source for error formatting)
  * @returns A TypedModule with inferred types
- * @throws TypeCheckerError if type checking fails
+ * @throws VibefunDiagnostic if type checking fails
  *
  * @example
  * ```typescript
  * const module = parseAndDesugar(source);
- * const typedModule = typeCheck(module);
+ * const typedModule = typeCheck(module, { source });
  * ```
  */
-export function typeCheck(module: CoreModule): TypedModule {
+export function typeCheck(module: CoreModule, _options?: TypeCheckOptions): TypedModule {
+    // Note: options.source will be used in future phases for error formatting
     // Build initial type environment from module declarations
     // This includes built-ins, user type definitions, and external declarations
     // Note: CoreModule is structurally compatible with Module for buildEnvironment's purposes

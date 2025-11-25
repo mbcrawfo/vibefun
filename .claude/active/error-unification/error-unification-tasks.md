@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 4 Complete)
+**Last Updated:** 2025-11-25 (Phase 5a Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -154,76 +154,73 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 5a: Type Checker Codes & Basic Migration
-**Status:** Not Started
+**Status:** ✅ Complete
 
 **Goal:** Define VF4xxx codes and set up infrastructure for type checker migration.
 
-- [ ] Create `codes/typechecker.ts` with VF4xxx definitions (~52 codes):
-  - [ ] VF4001 TypeMismatch
-  - [ ] VF4002 ArgumentTypeMismatch
-  - [ ] VF4003 ReturnTypeMismatch
-  - [ ] VF4004 BranchTypeMismatch
-  - [ ] VF4005 IfBranchTypeMismatch
-  - [ ] VF4006 ListElementMismatch
-  - [ ] VF4007 TupleElementMismatch
-  - [ ] VF4008 RecordFieldMismatch
-  - [ ] VF4009 NumericTypeMismatch
-  - [ ] VF4010 OperatorTypeMismatch
-  - [ ] VF4011 GuardTypeMismatch
-  - [ ] VF4012 AnnotationMismatch
-  - [ ] VF4013 NotAFunction
-  - [ ] VF4014 NotARecord
-  - [ ] VF4015 NotARef
-  - [ ] VF4016 RefAssignmentMismatch
-  - [ ] VF4020-VF4025 Unification errors (from unify.ts)
-  - [ ] VF4100 UndefinedVariable
-  - [ ] VF4101 UndefinedType
-  - [ ] VF4102 UndefinedConstructor
-  - [ ] VF4103 UndefinedField
-  - [ ] VF4200 ConstructorArity
-  - [ ] VF4201 NoMatchingOverload
-  - [ ] VF4202 WrongArgumentCount
-  - [ ] VF4203 TupleArity
-  - [ ] VF4204 TypeArgumentCount
-  - [ ] VF4300 InfiniteType
-  - [ ] VF4301 RecursiveAlias
-  - [ ] VF4400 NonExhaustiveMatch
-  - [ ] VF4401 InvalidGuard
-  - [ ] VF4402 DuplicateBinding
-  - [ ] VF4403 OrPatternBindingMismatch
-  - [ ] VF4500 NonRecordAccess
-  - [ ] VF4501 MissingRecordField
-  - [ ] VF4502 DuplicateRecordField
-  - [ ] VF4600 UnknownConstructor
-  - [ ] VF4601 ConstructorArgMismatch
-  - [ ] VF4602 VariantMismatch
-  - [ ] VF4700 ValueRestriction
-  - [ ] VF4701 TypeEscape
-  - [ ] VF4800-VF4803 FFI errors (4 codes):
-    - [ ] VF4800 FFIError
-    - [ ] VF4801 FFIInconsistentName
-    - [ ] VF4802 FFIInconsistentImport
-    - [ ] VF4803 FFINotFunction
-  - [ ] VF4900 UnreachablePattern (warning)
-- [ ] Add VF4205 AmbiguousOverload (resolver.ts)
-- [ ] Add VF5102 DuplicateDeclaration (environment.ts)
-- [ ] Register typechecker codes in registry
-- [ ] Add `source` parameter to `typecheck()` entry point
-- [ ] Create `UnifyContext` type in typechecker module:
-  ```typescript
-  interface UnifyContext {
-      loc: Location;
-      source?: string;
-  }
-  ```
-- [ ] Create `typechecker/format.ts` with utilities:
-  - [ ] Move `typeToString()` from errors.ts
-  - [ ] Move `typeSchemeToString()` from errors.ts
-  - [ ] Move `findSimilarStrings()` from errors.ts
-  - [ ] Move `levenshteinDistance()` from errors.ts
-- [ ] Migrate `typechecker.ts` factory calls to `throwDiagnostic()`
-- [ ] Keep `TypeCheckerError` temporarily (for `infer/*.ts` files)
-- [ ] Run `npm run verify` - all tests pass
+- [x] Create `codes/typechecker.ts` with VF4xxx definitions (~52 codes):
+  - [x] VF4001 TypeMismatch
+  - [x] VF4002 ArgumentTypeMismatch
+  - [x] VF4003 ReturnTypeMismatch
+  - [x] VF4004 BranchTypeMismatch
+  - [x] VF4005 IfBranchTypeMismatch
+  - [x] VF4006 ListElementMismatch
+  - [x] VF4007 TupleElementMismatch
+  - [x] VF4008 RecordFieldMismatch
+  - [x] VF4009 NumericTypeMismatch
+  - [x] VF4010 OperatorTypeMismatch
+  - [x] VF4011 GuardTypeMismatch
+  - [x] VF4012 AnnotationMismatch
+  - [x] VF4013 NotAFunction
+  - [x] VF4014 NotARecord
+  - [x] VF4015 NotARef
+  - [x] VF4016 RefAssignmentMismatch
+  - [x] VF4020-VF4026 Unification errors (from unify.ts)
+  - [x] VF4100 UndefinedVariable
+  - [x] VF4101 UndefinedType
+  - [x] VF4102 UndefinedConstructor
+  - [x] VF4103 UndefinedField
+  - [x] VF4200 ConstructorArity
+  - [x] VF4201 NoMatchingOverload
+  - [x] VF4202 WrongArgumentCount
+  - [x] VF4203 TupleArity
+  - [x] VF4204 TypeArgumentCount
+  - [x] VF4205 AmbiguousOverload
+  - [x] VF4300 InfiniteType
+  - [x] VF4301 RecursiveAlias
+  - [x] VF4400 NonExhaustiveMatch
+  - [x] VF4401 InvalidGuard
+  - [x] VF4402 DuplicateBinding
+  - [x] VF4403 OrPatternBindingMismatch
+  - [x] VF4500 NonRecordAccess
+  - [x] VF4501 MissingRecordField
+  - [x] VF4502 DuplicateRecordField
+  - [x] VF4600 UnknownConstructor
+  - [x] VF4601 ConstructorArgMismatch
+  - [x] VF4602 VariantMismatch
+  - [x] VF4700 ValueRestriction
+  - [x] VF4701 TypeEscape
+  - [x] VF4800-VF4803 FFI errors (4 codes):
+    - [x] VF4800 FFIError
+    - [x] VF4801 FFIInconsistentName
+    - [x] VF4802 FFIInconsistentImport
+    - [x] VF4803 FFINotFunction
+  - [x] VF4900 UnreachablePattern (warning)
+  - [x] VF5102 DuplicateDeclaration (environment.ts)
+- [x] Register typechecker codes in registry
+- [x] Add `source` parameter to `typecheck()` entry point (as TypeCheckOptions)
+- [x] Create `UnifyContext` type in typechecker module
+- [x] Create `typechecker/format.ts` with utilities:
+  - [x] Move `typeToString()` from errors.ts
+  - [x] Move `typeSchemeToString()` from errors.ts
+  - [x] Move `findSimilarStrings()` from errors.ts
+  - [x] Move `levenshteinDistance()` from errors.ts
+- [x] Migrate `resolver.ts` to `throwDiagnostic()` (3 errors)
+- [x] Migrate `environment.ts` to `throwDiagnostic()` (4 errors)
+- [x] Update resolver.test.ts to expect VibefunDiagnostic
+- [x] Update environment.test.ts to expect VibefunDiagnostic
+- [x] Keep `TypeCheckerError` temporarily (for `infer/*.ts` files)
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 5b: Unification & Pattern Migration
 **Status:** Not Started
@@ -433,13 +430,13 @@ Before starting Phase 1, verify:
 | Phase 2: Lexer Migration | ✅ Complete | 9/9 | 13 error codes (VF1001-VF1400) |
 | Phase 3: Parser Migration | ✅ Complete | 9/9 | 37 error codes (VF2000-VF2501) |
 | Phase 4: Desugarer Migration | ✅ Complete | 12/12 | 1 error code (VF3101), internal errors → plain Error |
-| Phase 5a: TC Codes & Basic | Not Started | 0/12 | ~52 codes (incl. FFI), UnifyContext setup |
+| Phase 5a: TC Codes & Basic | ✅ Complete | 23/23 | 53 codes (VF4xxx + VF5102), resolver/environment migrated |
 | Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 20-21 errors |
-| Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts, resolver.ts, environment.ts |
+| Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts |
 | Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 4/10 Phases Complete (40%)**
-**Estimated Total Error Codes: ~114 (13 lexer + 37 parser + 1 desugarer + ~63 remaining)**
+**Overall: 5/10 Phases Complete (50%)**
+**Estimated Total Error Codes: ~114 (13 lexer + 37 parser + 1 desugarer + 53 typechecker + remaining)**
 **Estimated Test Updates: ~180-250 tests**
