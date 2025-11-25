@@ -46,6 +46,17 @@
   - [ ] `factory.test.ts` - interpolation, creation
   - [ ] `warning-collector.test.ts` - accumulation, retrieval
   - [ ] `test-helpers.test.ts` - helper functions
+- [ ] Implement `interpolate()` with missing placeholder handling:
+  - [ ] Leave unmatched `{placeholder}` as-is in output
+  - [ ] Add test cases for missing placeholders
+- [ ] Implement registry duplicate detection:
+  - [ ] Throw Error at registration time for duplicates
+  - [ ] Add test case for duplicate code detection
+- [ ] Implement `format()` source line truncation:
+  - [ ] Add `MAX_LINE_LENGTH = 120` constant
+  - [ ] Implement `truncateAroundColumn()` helper
+  - [ ] Preserve caret visibility for truncated lines
+  - [ ] Add test cases for long line truncation
 - [ ] Run `npm run verify` - all tests pass
 
 ## Phase 2: Lexer Migration
@@ -371,6 +382,10 @@
 - [ ] Verify `DesugarError.ts` deleted (should be done in Phase 4)
 - [ ] Update all imports across codebase to use new diagnostics
 - [ ] Update CLI `compile()` to thread source through pipeline
+- [ ] Update CLI error handling:
+  - [ ] Call `error.format(source)` for VibefunDiagnostic
+  - [ ] Print warnings after successful compilation
+  - [ ] Consider color output for terminal
 - [ ] Move `docs/spec/03-type-system/error-catalog.md` to `.claude/archive/`
 - [ ] Update `docs/spec/03-type-system/error-reporting.md`:
   - [ ] Reference new error code system
@@ -391,7 +406,7 @@ Before starting Phase 1, verify:
 
 | Phase | Status | Tasks | Notes |
 |-------|--------|-------|-------|
-| Phase 1: Infrastructure | Not Started | 0/18 | Core diagnostics module (incl. doc fields) |
+| Phase 1: Infrastructure | Not Started | 0/21 | Core diagnostics module + interpolate/registry/truncation |
 | Phase 2: Lexer Migration | Not Started | 0/9 | ~15 error codes |
 | Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. import/export) |
 | Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
@@ -400,7 +415,7 @@ Before starting Phase 1, verify:
 | Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts, resolver.ts, environment.ts |
 | Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
-| Phase 8: Cleanup | Not Started | 0/9 | Remove old classes |
+| Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
 **Overall: 0/10 Phases Complete (0%)**
 **Estimated Total Error Codes: ~92**

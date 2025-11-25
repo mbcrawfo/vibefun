@@ -105,6 +105,75 @@ Functions to move:
 - `findSimilarStrings(target, candidates, maxDistance): string[]`
 - `levenshteinDistance(a, b): number`
 
+### 9. Interpolation Behavior for Missing Placeholders (Added 2025-11-25)
+**Decision:** Leave unmatched placeholders as-is in the output.
+
+```typescript
+// If a placeholder has no corresponding value, leave it verbatim
+interpolate("Cannot unify {t1} with {t2}", { t1: "Int" })
+// → "Cannot unify Int with {t2}"
+```
+
+**Rationale:** Aids debugging by making missing parameters visible. Prevents silent failures in error message construction.
+
+### 10. Registry Duplicate Detection Behavior (Added 2025-11-25)
+**Decision:** Throw an error at registration time if a duplicate code is detected.
+
+```typescript
+// In registry.ts
+register(definition: DiagnosticDefinition): void {
+    if (this.codes.has(definition.code)) {
+        throw new Error(`Duplicate diagnostic code: ${definition.code}`);
+    }
+    this.codes.set(definition.code, definition);
+}
+```
+
+**Rationale:** Fail-fast during module load catches errors immediately during development. No silent overwrites.
+
+### 11. Source Line Truncation in format() (Added 2025-11-25)
+**Decision:** Truncate source lines longer than 120 characters with `...` ellipsis.
+
+```typescript
+// In format() method
+const MAX_LINE_LENGTH = 120;
+if (line.length > MAX_LINE_LENGTH) {
+    // Truncate around the error column to keep caret visible
+    line = truncateAroundColumn(line, column, MAX_LINE_LENGTH);
+}
+```
+
+**Rationale:** Prevents very long lines from breaking terminal display while keeping error location visible.
+
+### 12. Test Helper Return Value (Added 2025-11-25)
+**Decision:** `expectDiagnostic()` must return the caught diagnostic for property assertions.
+
+```typescript
+export function expectDiagnostic(
+    fn: () => void,
+    expectedCode: string
+): VibefunDiagnostic {
+    expect(fn).toThrow(VibefunDiagnostic);
+    try {
+        fn();
+        throw new Error("Expected function to throw");
+    } catch (error) {
+        if (error instanceof VibefunDiagnostic) {
+            expect(error.code).toBe(expectedCode);
+            return error;  // Return for further assertions
+        }
+        throw error;
+    }
+}
+
+// Usage in tests
+const diag = expectDiagnostic(() => typecheck(program), "VF4001");
+expect(diag.message).toContain("expected Int");
+expect(diag.location.line).toBe(5);
+```
+
+**Rationale:** Matches existing `expectParseError()` pattern in parser-errors.test.ts. Enables property assertions beyond just error code.
+
 ## Error Code Ranges
 
 4-digit codes organized by compiler phase. Each phase reserves codes 000-899 for errors and 900-999 for warnings:
@@ -521,6 +590,18 @@ Remove old error classes entirely (breaking changes OK) and update documentation
 - `docs/spec/03-type-system/error-reporting.md` → Reference new system
 - `docs/spec/.agent-map.md` → Add docs/errors/ reference
 
+**CLI Integration:**
+- Update `packages/cli/src/index.ts` to use `format()`:
+  ```typescript
+  if (error instanceof VibefunDiagnostic) {
+      console.error(error.format(source));
+  } else {
+      console.error(error.message);
+  }
+  ```
+- Add warning output after successful compilation
+- Consider color output for errors (red) vs warnings (yellow) if terminal supports
+
 ## Test Migration Patterns
 
 When updating tests during migration, use these patterns:
@@ -570,6 +651,10 @@ expect(warning.message).toContain("Unreachable");
 11. All ~92 error codes have complete documentation (explanation + example)
 12. `npm run docs:errors:check` fails in CI if docs are stale
 13. Internal README files guide future contributors (diagnostics/README.md, codes/README.md)
+14. `interpolate()` leaves unmatched placeholders visible (debugging aid)
+15. Registry throws on duplicate code registration (fail-fast)
+16. Long source lines truncated to 120 chars with visible caret
+17. CLI uses `format()` method for diagnostic output
 
 ## Non-Goals
 
