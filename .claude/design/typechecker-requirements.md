@@ -2081,10 +2081,20 @@ The unification algorithm is a **proven, battle-tested component** that forms th
 
 ### 8.2 Ambiguities
 
-1. **Polymorphic recursion:**
-   - Is polymorphic recursion allowed or forbidden?
-   - Standard ML forbids it, OCaml allows with annotations
-   - Affects let rec type checking
+1. **Polymorphic recursion:** ✅ RESOLVED
+   - **Decision**: Polymorphic recursion is **FORBIDDEN** (SML-style)
+   - **Rationale**:
+     - Preserves decidable type inference (polymorphic recursion requires semi-unification, which is undecidable)
+     - Simpler implementation and better error messages
+     - Limited practical utility (most programs don't need it)
+     - Can be added later with annotations if needed (backward compatible)
+   - **Implementation**: During `let rec` type inference:
+     1. Assume function has monomorphic type variable `t`
+     2. Type check body with function having type `t`
+     3. Unify all recursive uses with `t` (same type instantiation)
+     4. Generalize `t` only after entire definition is complete
+   - **Specification**: See `docs/spec/03-type-system/type-inference.md#polymorphic-recursion`
+   - **Workarounds documented**: Restructure data types, explicit type witnesses, mutually recursive functions
 
 2. **Module type checking order:**
    - How to handle circular imports?

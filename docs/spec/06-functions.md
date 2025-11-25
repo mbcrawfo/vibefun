@@ -308,6 +308,8 @@ let rec length = (list) => match list {
 }
 ```
 
+**Note on polymorphic recursion**: Vibefun does not support polymorphic recursion. Recursive functions must call themselves with the same type instantiation—you cannot have a recursive call that uses different type arguments than the original call. This ensures decidable type inference. See [Type Inference](./03-type-system/type-inference.md#polymorphic-recursion) for details and workarounds.
+
 ### Mutually Recursive Functions
 
 Use the `and` keyword to define mutually recursive functions (OCaml/F# style):

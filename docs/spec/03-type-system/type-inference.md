@@ -249,6 +249,131 @@ bad("hello");  // Runtime error! We're calling (Int -> Int) with a String
 
 **Key principle:** Generalization creates polymorphism at `let`-bindings, and scoping rules ensure type safety by preventing type variables from escaping where they were created.
 
+### Polymorphic Recursion
+
+**Polymorphic recursion** occurs when a recursive function calls itself with different type instantiations. Vibefun **does not support** polymorphic recursion—recursive functions must call themselves with the same type instantiation.
+
+#### What is Polymorphic Recursion?
+
+In standard (monomorphic) recursion, a function calls itself with the same types:
+
+```vibefun
+// ✅ Standard recursion - same type throughout
+let rec length = <A>(list: List<A>) => match list {
+    | [] => 0
+    | [_, ...rest] => 1 + length(rest)  // Calls length<A> with same type A
+};
+```
+
+Polymorphic recursion would allow a function to call itself with *different* type instantiations:
+
+```ocaml
+(* OCaml example showing polymorphic recursion *)
+(* Vibefun does NOT support this pattern *)
+
+type 'a nested = Leaf of 'a | Node of ('a * 'a) nested
+
+let rec flatten : 'a. 'a nested -> 'a list = function
+  | Leaf x -> [x]
+  | Node t ->
+      (* Recursive call with DIFFERENT type: ('a * 'a) nested, not 'a nested *)
+      List.concat (List.map (fun (x,y) -> [x;y]) (flatten t))
+```
+
+In this example, `flatten` is called with type `'a nested` at the top level, but the recursive call uses type `('a * 'a) nested`—a different instantiation of the type parameter.
+
+#### Why Polymorphic Recursion is Forbidden
+
+Vibefun forbids polymorphic recursion for several important reasons:
+
+**1. Decidable Type Inference**
+
+Type inference with polymorphic recursion is **undecidable** in the general case. The problem is equivalent to semi-unification, which has been proven to have no general algorithm. By forbidding polymorphic recursion, Vibefun maintains decidable, predictable type inference.
+
+**2. Simpler Mental Model**
+
+Without polymorphic recursion, the type of a recursive function is straightforward: the function has a single polymorphic type, and all recursive calls use that same type. This makes code easier to understand and debug.
+
+**3. Better Error Messages**
+
+When polymorphic recursion is forbidden, type errors in recursive functions are clearer and more actionable. The type checker can explain exactly why types don't match.
+
+**4. Limited Practical Impact**
+
+Most real-world programs don't need polymorphic recursion. The primary use cases are specialized data structures (nested datatypes) that are rare in practice.
+
+#### How Recursive Functions Are Type-Checked
+
+During type inference, recursive functions are checked as follows:
+
+1. **Assume monomorphic type**: Create a fresh type variable `t` for the function
+2. **Type check body**: Infer the type of the function body, with the function itself having type `t` in the environment
+3. **Unify recursive calls**: All recursive calls must unify with `t`—they cannot use different type instantiations
+4. **Generalize after**: Only after the entire definition is checked does the type checker generalize `t` to a polymorphic type scheme
+
+This approach ensures that within its own definition, a recursive function has a single, consistent type.
+
+#### Workarounds for Common Cases
+
+If you need behavior similar to polymorphic recursion, consider these approaches:
+
+**1. Restructure the Data Type**
+
+Often, nested datatypes can be redesigned to avoid the need for polymorphic recursion:
+
+```vibefun
+// Instead of a nested type requiring polymorphic recursion,
+// use a simpler recursive structure
+type Tree<T> =
+    | Leaf(T)
+    | Branch(Tree<T>, Tree<T>);
+
+let rec flatten = <T>(tree: Tree<T>) => match tree {
+    | Leaf(x) => [x]
+    | Branch(l, r) => List.concat([flatten(l), flatten(r)])
+};
+```
+
+**2. Use Explicit Type Witnesses**
+
+Pass transformation functions as arguments instead of relying on type parameter changes:
+
+```vibefun
+let rec flattenWith = <A, B>(tree: Tree<A>, transform: (A) -> List<B>) =>
+    match tree {
+        | Leaf(x) => transform(x)
+        | Branch(l, r) =>
+            List.concat([
+                flattenWith(l, transform),
+                flattenWith(r, transform)
+            ])
+    };
+```
+
+**3. Use Mutually Recursive Functions**
+
+For cases where you need different types at different recursion levels, use separate mutually recursive functions:
+
+```vibefun
+let rec processLevel1 = (data: Level1Data) =>
+    // Process and call processLevel2
+    processLevel2(transform(data))
+and processLevel2 = (data: Level2Data) =>
+    // Process at this level
+    ...;
+```
+
+#### Comparison with Other Languages
+
+| Language | Polymorphic Recursion | Approach |
+|----------|----------------------|----------|
+| **Vibefun** | ❌ Forbidden | SML-style: decidable inference |
+| **Standard ML** | ❌ Forbidden | Same approach as Vibefun |
+| **OCaml** | ✅ With annotations | Requires explicit `'a.` universal quantifier |
+| **Haskell** | ✅ With annotations | Requires explicit type signature |
+
+Vibefun follows the Standard ML approach: simpler, more predictable, and adequate for nearly all practical programs.
+
 ### Value Restriction and Polymorphism
 
 The **value restriction** is a type system rule that determines when a `let`-binding can be generalized to a polymorphic type. This restriction is essential for maintaining type safety in the presence of mutable references and side effects.
