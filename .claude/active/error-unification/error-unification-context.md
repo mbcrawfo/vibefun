@@ -1,6 +1,6 @@
 # Error Unification - Context Document
 
-**Last Updated:** 2025-11-25 (Documentation Strategy Added)
+**Last Updated:** 2025-11-25 (Review Amendments Applied)
 
 ## Key Design Decisions
 
@@ -107,8 +107,8 @@ Detailed classification of errors in unify.ts and patterns.ts.
 - 7 internal assertions → remain plain Error
 
 **patterns.ts (11 total throws):**
-- 8 user-facing → VF4xxx codes
-- 3 internal assertions → remain plain Error
+- 10-11 user-facing → VF4xxx codes (includes duplicate pattern variable errors VF4402)
+- 1-2 internal assertions → remain plain Error
 
 **desugarListWithConcats.ts (2 throws):**
 - 0 user-facing (both are internal assertions) → remain plain Error
@@ -221,6 +221,9 @@ readonly seeAlso?: readonly string[];      // Links to spec docs
 | `packages/core/src/typechecker/unify.ts` | Convert 18+ plain Error throws to diagnostics |
 | `packages/core/src/typechecker/patterns.ts` | Convert throws to diagnostics |
 | `packages/core/src/typechecker/infer/*.ts` | Replace factory calls with throwDiagnostic() |
+| `packages/core/src/typechecker/resolver.ts` | Convert 4 throws to diagnostics |
+| `packages/core/src/typechecker/environment.ts` | Convert 5 throws to diagnostics |
+| `packages/core/src/typechecker/constraints.ts` | Convert throws if applicable |
 | `packages/cli/src/index.ts` | Thread source through compilation pipeline |
 | `package.json` | Add `docs:errors` and `docs:errors:check` scripts |
 | `.github/workflows/ci.yml` | Add `npm run docs:errors:check` step |
@@ -356,6 +359,14 @@ packages/core/src/desugarer/DesugarError.ts:
 | createEscapeError | VF4701 | TypeEscape |
 | (unreachable pattern) | VF4900 | UnreachablePattern (warning) |
 
+### FFI/External (VF4800-VF4899)
+| Current Message | New Code | Title |
+|-----------------|----------|-------|
+| Ambiguous call to '{name}' | VF4205 | AmbiguousOverload |
+| Inconsistent JavaScript names | VF4801 | FFIInconsistentName |
+| Inconsistent module imports | VF4802 | FFIInconsistentImport |
+| Must have function type | VF4803 | FFINotFunction |
+
 ### Module System (VF5xxx)
 | Description | New Code | Title |
 |-------------|----------|-------|
@@ -365,6 +376,7 @@ packages/core/src/desugarer/DesugarError.ts:
 | Import shadowed by local | VF5003 | ImportShadowed |
 | Duplicate export | VF5100 | DuplicateExport |
 | Re-export name conflict | VF5101 | ReexportConflict |
+| Duplicate declaration for '{name}' | VF5102 | DuplicateDeclaration |
 | Circular import (value) | VF5900 | CircularDependency (warning) |
 | Case sensitivity mismatch | VF5901 | CaseSensitivityMismatch (warning) |
 
