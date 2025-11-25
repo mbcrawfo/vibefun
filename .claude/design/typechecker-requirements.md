@@ -2106,10 +2106,23 @@ The unification algorithm is a **proven, battle-tested component** that forms th
    - Can annotations override value restriction?
    - How do annotations interact with inference?
 
-4. **Subtyping and inference:**
-   - Width subtyping is specified for records
-   - How does it interact with type inference?
-   - When to apply subtyping vs. unification?
+4. **Subtyping and inference:** ✅ RESOLVED
+   - **Decision**: Width subtyping via unification (not subsumption)
+   - **Rationale**:
+     - Preserves decidability of Hindley-Milner inference
+     - Integrates naturally with Algorithm W/M
+     - No need for separate subtyping judgment
+     - Pragmatic for JavaScript interop
+   - **Implementation**:
+     - Record unification checks common fields only (extra fields ignored)
+     - Function types must unify exactly (no variance)
+     - Type parameters are strictly invariant
+     - Width subtyping happens at call sites, not type assignments
+   - **Specification**: See `docs/spec/03-type-system/subtyping.md`
+   - **Related updates**:
+     - Added "When Type Annotations Are Needed" section to `type-inference.md`
+     - Expanded contravariance explanation in `record-types.md`
+     - Added variance section to `generic-types.md`
 
 5. **Error recovery:**
    - Should type checker continue after errors?

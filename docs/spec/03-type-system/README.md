@@ -9,10 +9,11 @@ Vibefun uses a Hindley-Milner type system extended with generics, union types, a
 3. **[Type Inference](./type-inference.md)** - Type variables, polymorphism, inference rules, and value restriction
 4. **[Record Types](./record-types.md)** - Structural records with width subtyping
 5. **[Variant Types](./variant-types.md)** - Sum types and tagged unions with nominal typing
-6. **[Generic Types](./generic-types.md)** - Parametric polymorphism and generic functions
+6. **[Generic Types](./generic-types.md)** - Parametric polymorphism, generic functions, and type parameter variance
 7. **[Union Types](./union-types.md)** - Union types for variants and literals
 8. **[Recursive Types](./recursive-types.md)** - Recursive and mutually recursive type definitions
 9. **[Type Aliases](./type-aliases.md)** - Type aliases and annotations
+10. **[Subtyping](./subtyping.md)** - Width subtyping for records, type parameter invariance, and integration with inference
 
 ## Type System Design
 

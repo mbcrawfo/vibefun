@@ -514,5 +514,116 @@ let mut polyRef = ref({ apply: (x) => x })  // Ref<PolyFunc>
 - If you have a function call: it won't be polymorphic (unless you eta-expand)
 - Refs are always monomorphic in their type variables
 
+### When Type Annotations Are Needed
+
+Vibefun's Hindley-Milner type inference is **complete** for the supported type system—meaning type annotations are **never required** for well-typed programs. However, annotations can be helpful in certain situations.
+
+#### Annotations Are NOT Required For
+
+**1. Width subtyping**: Works automatically during unification
+
+```vibefun
+// Type inferred correctly without annotations
+let getX = (p) => p.x;
+getX({ x: 42, y: 100 });  // Extra fields handled automatically
+```
+
+**2. Let-polymorphism**: Generalization is automatic for syntactic values
+
+```vibefun
+// Polymorphic type inferred without annotation
+let identity = (x) => x;  // Inferred: <T>(T) -> T
+identity(42);             // Works with Int
+identity("hello");        // Works with String
+```
+
+**3. Record field access**: Field types are inferred from usage
+
+```vibefun
+let process = (user) => user.name ++ " is " ++ String.fromInt(user.age);
+// Inferred: ({ name: String, age: Int, ... }) -> String
+```
+
+**4. Pattern matching**: Scrutinee and pattern types are inferred
+
+```vibefun
+let describe = (opt) => match opt {
+    | Some(x) => "has value"
+    | None => "empty"
+};
+// Inferred: <T>(Option<T>) -> String
+```
+
+#### When Annotations Are Helpful
+
+**1. Documentation**: Make intent explicit for readers
+
+```vibefun
+// Type annotation documents expected input
+let processUser: (User) -> String = (user) => user.name;
+```
+
+**2. Constraining polymorphism**: Prevent unwanted generalization
+
+```vibefun
+// Without annotation: <T>(T) -> T
+let wrapped = (x) => x;
+
+// With annotation: constrained to specific type
+let wrappedInt: (Int) -> Int = (x) => x;
+```
+
+**3. Error localization**: Help pinpoint where type mismatches occur
+
+```vibefun
+// Annotation helps identify error source in complex expressions
+let result: String = complexComputation();  // Error points here
+```
+
+In complex expressions with multiple potential error locations, annotations help the type checker report errors at the most relevant location.
+
+**4. Value restriction workarounds**: Enable polymorphism via eta-expansion
+
+```vibefun
+// Monomorphic due to value restriction (function application)
+let composed = f >> g;  // (t) -> t (not polymorphic)
+
+// Polymorphic via eta-expansion with annotation
+let composed: <T>(T) -> T = (x) => f(g(x));
+```
+
+**5. Resolving ambiguity**: When multiple valid types exist
+
+```vibefun
+// Ambiguous: could be List<Int> or List<Float>
+let numbers = [];  // Inferred: <T>List<T>
+
+// If you need a specific type:
+let intNumbers: List<Int> = [];
+```
+
+**6. Interface documentation**: Clarify public API types
+
+```vibefun
+// For exported functions, annotations document the interface
+export let formatUser: (User) -> String = (user) => ...;
+export let parseConfig: (String) -> Result<Config, ParseError> = ...;
+```
+
+#### Summary
+
+| Situation | Annotation Needed? | Reason |
+|-----------|-------------------|--------|
+| Width subtyping | No | Handled by unification |
+| Polymorphic functions | No | Automatic generalization |
+| Record operations | No | Types inferred from usage |
+| Pattern matching | No | Types flow through patterns |
+| Documentation | Helpful | Clarifies intent |
+| Error localization | Helpful | Better error messages |
+| Value restriction | Sometimes | Enables eta-expanded polymorphism |
+| Ambiguous types | Sometimes | Resolves when context insufficient |
+
+**Key principle**: Vibefun's type inference is designed to minimize annotation burden. When in doubt, try without annotations first—the type checker will tell you if it needs help.
+
 ---
 
