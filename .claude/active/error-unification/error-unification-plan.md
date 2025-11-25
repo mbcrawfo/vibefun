@@ -1,7 +1,7 @@
 # Unified Error and Warning System Plan
 
 **Created:** 2025-11-24
-**Last Updated:** 2025-11-25 (Review Complete)
+**Last Updated:** 2025-11-25 (Review Amendments Applied)
 **Status:** Ready for Implementation
 **Branch:** error-unification
 
@@ -213,6 +213,24 @@ These codes were identified as missing during the plan review:
 | VF4024 | IncompatibleTypes | "Cannot unify types: {type1} with {type2}" |
 | VF4025 | VariantUnificationError | "Cannot unify variant types" |
 
+**Type Checker (VF4xxx) - Overload Resolution (from resolver.ts):**
+| Code | Name | Message |
+|------|------|---------|
+| VF4205 | AmbiguousOverload | "Ambiguous call to '{name}': multiple signatures match" |
+
+**Type Checker (VF4xxx) - External/FFI Errors (from environment.ts):**
+| Code | Name | Message |
+|------|------|---------|
+| VF4800 | FFIError | "{message}" |
+| VF4801 | FFIInconsistentName | "Inconsistent JavaScript names for '{name}'" |
+| VF4802 | FFIInconsistentImport | "Inconsistent module imports for '{name}'" |
+| VF4803 | FFINotFunction | "External declaration must have function type" |
+
+**Module System (VF5xxx) - Additional:**
+| Code | Name | Message |
+|------|------|---------|
+| VF5102 | DuplicateDeclaration | "Duplicate declaration for '{name}'" |
+
 ## Directory Structure
 
 ```
@@ -410,7 +428,7 @@ Define desugarer error codes and migrate DesugarError usage (~3 user-facing code
 Define VF4xxx codes and set up infrastructure for type checker migration.
 
 **Key deliverables:**
-- Define ~45 VF4xxx codes in `codes/typechecker.ts`
+- Define ~52 VF4xxx codes in `codes/typechecker.ts` (including FFI codes VF4800-4803)
 - Add `source` parameter to `typecheck()` entry point
 - Create `UnifyContext` type for location threading
 - Create `typechecker/format.ts` with `typeToString()` utilities
@@ -425,8 +443,9 @@ Migrate unify.ts and patterns.ts with the UnifyContext pattern.
 - Add `UnifyContext` parameter to `unify()` signature
 - Update all `unify()` call sites (~15-20 changes)
 - Convert `unify.ts` user-facing errors (10 errors) to VF4xxx diagnostics
-- Convert `patterns.ts` user-facing errors (8 errors) to VF4xxx diagnostics
-- Leave internal assertion errors as plain `Error` (7 in unify.ts, 3 in patterns.ts)
+- Convert `patterns.ts` user-facing errors (10-11 errors) to VF4xxx diagnostics
+  - Note: Duplicate pattern variable errors (VF4402) are user-facing, not internal
+- Leave internal assertion errors as plain `Error` (7 in unify.ts, 1-2 in patterns.ts)
 
 ### Phase 5c: Inference Migration & Cleanup
 
@@ -434,11 +453,23 @@ Complete the type checker migration and remove old infrastructure.
 
 **Migration targets:**
 - Migrate all `infer/*.ts` files to `throwDiagnostic()`
+- Migrate `resolver.ts` (4 throws):
+  - VF4100 "Undefined function"
+  - VF4201 "No matching signature"
+  - VF4205 "Ambiguous call"
+  - Leave internal error as plain Error
+- Migrate `environment.ts` (5 throws):
+  - VF5102 "Duplicate declaration"
+  - VF4801 "Inconsistent JavaScript names"
+  - VF4802 "Inconsistent module imports"
+  - VF4803 "Must have function type"
+  - Leave internal error as plain Error
+- Migrate `constraints.ts` if applicable
 - Delete `TypeCheckerError` class from `errors.ts`
 - Delete factory functions from `errors.ts`
 - Verify all call sites use new diagnostic pattern
 
-**Estimated total codes for Phase 5:** ~45 (including unification errors)
+**Estimated total codes for Phase 5:** ~52 (including unification and FFI errors)
 
 ### Phase 6: Module System Integration
 
@@ -515,7 +546,7 @@ const warning = expectWarning(collector, "VF4900");
 expect(warning.message).toContain("Unreachable");
 ```
 
-**Key test files requiring updates (~85-95 tests total):**
+**Key test files requiring updates (~180-250 tests total):**
 - `packages/core/src/parser/semicolon-required.test.ts` (54 assertions - largest)
 - `packages/core/src/parser/parser-errors.test.ts` (62 assertions)
 - `packages/core/src/typechecker/errors.test.ts` (52 assertions)
@@ -536,7 +567,7 @@ expect(warning.message).toContain("Unreachable");
 8. Warning infrastructure functional (collector, reporting)
 9. Source context available in all error formatting
 10. Test helpers available for diagnostic assertions
-11. All ~85 error codes have complete documentation (explanation + example)
+11. All ~92 error codes have complete documentation (explanation + example)
 12. `npm run docs:errors:check` fails in CI if docs are stale
 13. Internal README files guide future contributors (diagnostics/README.md, codes/README.md)
 

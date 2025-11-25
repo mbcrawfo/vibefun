@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-11-25 (Review Amendments Applied)
 
 ## Phase 1: Infrastructure
 **Status:** Not Started
@@ -124,7 +124,7 @@
 
 **Goal:** Define VF4xxx codes and set up infrastructure for type checker migration.
 
-- [ ] Create `codes/typechecker.ts` with VF4xxx definitions (~45 codes):
+- [ ] Create `codes/typechecker.ts` with VF4xxx definitions (~52 codes):
   - [ ] VF4001 TypeMismatch
   - [ ] VF4002 ArgumentTypeMismatch
   - [ ] VF4003 ReturnTypeMismatch
@@ -165,7 +165,14 @@
   - [ ] VF4602 VariantMismatch
   - [ ] VF4700 ValueRestriction
   - [ ] VF4701 TypeEscape
+  - [ ] VF4800-VF4803 FFI errors (4 codes):
+    - [ ] VF4800 FFIError
+    - [ ] VF4801 FFIInconsistentName
+    - [ ] VF4802 FFIInconsistentImport
+    - [ ] VF4803 FFINotFunction
   - [ ] VF4900 UnreachablePattern (warning)
+- [ ] Add VF4205 AmbiguousOverload (resolver.ts)
+- [ ] Add VF5102 DuplicateDeclaration (environment.ts)
 - [ ] Register typechecker codes in registry
 - [ ] Add `source` parameter to `typecheck()` entry point
 - [ ] Create `UnifyContext` type in typechecker module:
@@ -211,7 +218,7 @@
   - [ ] "Missing element at index" (line 298)
   - [ ] "Missing field type" (line 425)
   - [ ] "Missing constructor" (line 468)
-- [ ] Convert `patterns.ts` user-facing errors (8 errors) to VF4xxx diagnostics:
+- [ ] Convert `patterns.ts` user-facing errors (10-11 errors) to VF4xxx diagnostics:
   - [ ] VF4102 UndefinedConstructor (line 163)
   - [ ] VF4600 NotValueBinding (line 167)
   - [ ] VF4200 ConstructorArity (lines 183, 202)
@@ -238,7 +245,18 @@
   - [ ] `infer-patterns.ts`
   - [ ] `infer-records.ts`
   - [ ] `infer-variants.ts`
-- [ ] Migrate `resolver.ts`, `constraints.ts`, `environment.ts`
+- [ ] Migrate `resolver.ts` (4 throws):
+  - [ ] VF4100 "Undefined function"
+  - [ ] VF4201 "No matching signature"
+  - [ ] VF4205 "Ambiguous call"
+  - [ ] Leave internal error as plain Error
+- [ ] Migrate `environment.ts` (5 throws):
+  - [ ] VF5102 "Duplicate declaration"
+  - [ ] VF4801 "Inconsistent JavaScript names"
+  - [ ] VF4802 "Inconsistent module imports"
+  - [ ] VF4803 "Must have function type"
+  - [ ] Leave internal error as plain Error
+- [ ] Migrate `constraints.ts` if applicable
 - [ ] Delete `TypeCheckerError` class from `errors.ts`
 - [ ] Delete factory functions from `errors.ts`:
   - [ ] `createTypeMismatchError()`
@@ -377,13 +395,13 @@ Before starting Phase 1, verify:
 | Phase 2: Lexer Migration | Not Started | 0/9 | ~15 error codes |
 | Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. import/export) |
 | Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
-| Phase 5a: TC Codes & Basic | Not Started | 0/9 | ~45 codes, UnifyContext setup |
-| Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 18 errors |
-| Phase 5c: Inference Cleanup | Not Started | 0/15 | Migrate infer/*.ts, delete old code |
+| Phase 5a: TC Codes & Basic | Not Started | 0/12 | ~52 codes (incl. FFI), UnifyContext setup |
+| Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 20-21 errors |
+| Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts, resolver.ts, environment.ts |
 | Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/9 | Remove old classes |
 
 **Overall: 0/10 Phases Complete (0%)**
-**Estimated Total Error Codes: ~85**
-**Estimated Test Updates: ~85-95 tests**
+**Estimated Total Error Codes: ~92**
+**Estimated Test Updates: ~180-250 tests**
