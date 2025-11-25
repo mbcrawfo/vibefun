@@ -9,7 +9,12 @@
 - [ ] Implement `diagnostic.ts`:
   - [ ] `DiagnosticSeverity` type
   - [ ] `DiagnosticPhase` type
-  - [ ] `DiagnosticDefinition` interface
+  - [ ] `DiagnosticExample` interface (bad, good, description)
+  - [ ] `DiagnosticDefinition` interface:
+    - [ ] Core fields: code, title, messageTemplate, severity, phase, category
+    - [ ] Optional hint: hintTemplate
+    - [ ] Documentation fields: explanation (required), example (required)
+    - [ ] Optional documentation: relatedCodes, seeAlso
   - [ ] `Diagnostic` interface
   - [ ] `VibefunDiagnostic` class with `format(source?)` method
 - [ ] Implement `registry.ts`:
@@ -273,17 +278,66 @@
 ## Phase 7: Documentation Generation
 **Status:** Not Started
 
+### 7.1: Generator Script
 - [ ] Create `scripts/generate-error-docs.ts`:
-  - [ ] Read all codes from registry
-  - [ ] Generate markdown for each phase
-  - [ ] Include severity column in tables (error vs warning)
-  - [ ] Generate index README.md with all codes
-- [ ] Create `docs/error-codes/` directory
-- [ ] Add npm script: `"docs:errors": "tsx scripts/generate-error-docs.ts"`
-- [ ] Generate initial documentation
-- [ ] Add `--explain` command to CLI (if CLI exists)
-- [ ] Test documentation generation
+  - [ ] Import all codes from registry
+  - [ ] Group codes by phase
+  - [ ] Generate `docs/errors/README.md` index:
+    - [ ] Quick reference table (code, name, severity, description)
+    - [ ] Links to phase-specific files
+    - [ ] Auto-generated header comment
+  - [ ] Generate `docs/errors/{phase}.md` for each phase:
+    - [ ] Phase overview with category table
+    - [ ] Individual error sections with:
+      - [ ] Code and title as heading
+      - [ ] Severity badge
+      - [ ] Message template
+      - [ ] Explanation section
+      - [ ] Example section (Problem/Solution code blocks)
+      - [ ] Related codes section with links
+      - [ ] See Also section with spec links
+  - [ ] Add `--check` flag for CI validation:
+    - [ ] Compare generated content with existing files
+    - [ ] Exit non-zero if any files would change
+    - [ ] Print helpful message listing changed files
+- [ ] Create `docs/errors/` directory
+
+### 7.2: NPM Scripts
+- [ ] Add npm scripts to root `package.json`:
+  - [ ] `"docs:errors": "tsx scripts/generate-error-docs.ts"`
+  - [ ] `"docs:errors:check": "tsx scripts/generate-error-docs.ts --check"`
+- [ ] Test both scripts work correctly
+
+### 7.3: CI Integration
+- [ ] Update `.github/workflows/ci.yml`:
+  - [ ] Add "Check error documentation is up to date" step
+  - [ ] Run `npm run docs:errors:check` after format check
+  - [ ] Verify CI fails when docs are stale
+- [ ] Document expected failure output in plan
+
+### 7.4: Internal Documentation
+- [ ] Create `packages/core/src/diagnostics/README.md`:
+  - [ ] Architecture overview (diagnostic.ts, registry.ts, factory.ts, etc.)
+  - [ ] Usage examples (throwDiagnostic, WarningCollector)
+  - [ ] Link to codes/README.md for adding new codes
+- [ ] Create `packages/core/src/diagnostics/codes/README.md`:
+  - [ ] Step-by-step guide for adding new error codes
+  - [ ] Code range table (VF1xxx=lexer, VF2xxx=parser, etc.)
+  - [ ] Subcategory allocation for each phase
+  - [ ] Complete error definition template with all required fields
+  - [ ] Registration instructions (export from codes/index.ts)
+  - [ ] Test writing instructions (expectDiagnostic pattern)
+  - [ ] Documentation regeneration instructions
+  - [ ] Quality checklist for new codes
+
+### 7.5: Finalization
+- [ ] Update `docs/spec/.agent-map.md`:
+  - [ ] Add reference to `docs/errors/`
+  - [ ] Update error-related queries
+- [ ] Generate initial documentation with `npm run docs:errors`
+- [ ] Verify generated docs look correct
 - [ ] Run `npm run verify`
+- [ ] Run `npm run docs:errors:check` to verify CI check works
 
 ## Phase 8: Cleanup
 **Status:** Not Started
@@ -303,9 +357,6 @@
 - [ ] Update `docs/spec/03-type-system/error-reporting.md`:
   - [ ] Reference new error code system
   - [ ] Update examples to show VFxxxx codes
-- [ ] Update `docs/spec/.agent-map.md`:
-  - [ ] Add reference to `docs/error-codes/`
-  - [ ] Update error-related queries
 - [ ] Final `npm run verify`
 - [ ] Update CLAUDE.md if needed
 
@@ -322,7 +373,7 @@ Before starting Phase 1, verify:
 
 | Phase | Status | Tasks | Notes |
 |-------|--------|-------|-------|
-| Phase 1: Infrastructure | Not Started | 0/15 | Core diagnostics module |
+| Phase 1: Infrastructure | Not Started | 0/18 | Core diagnostics module (incl. doc fields) |
 | Phase 2: Lexer Migration | Not Started | 0/9 | ~15 error codes |
 | Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. import/export) |
 | Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
@@ -330,8 +381,8 @@ Before starting Phase 1, verify:
 | Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 18 errors |
 | Phase 5c: Inference Cleanup | Not Started | 0/15 | Migrate infer/*.ts, delete old code |
 | Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
-| Phase 7: Documentation Gen | Not Started | 0/7 | Auto-generated docs |
-| Phase 8: Cleanup | Not Started | 0/11 | Remove old classes |
+| Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
+| Phase 8: Cleanup | Not Started | 0/9 | Remove old classes |
 
 **Overall: 0/10 Phases Complete (0%)**
 **Estimated Total Error Codes: ~85**

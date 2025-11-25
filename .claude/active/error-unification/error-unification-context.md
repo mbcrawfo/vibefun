@@ -1,6 +1,6 @@
 # Error Unification - Context Document
 
-**Last Updated:** 2025-11-25 (Review Complete)
+**Last Updated:** 2025-11-25 (Documentation Strategy Added)
 
 ## Key Design Decisions
 
@@ -136,6 +136,47 @@ Functions to move:
 - `findSimilarStrings(target, candidates, maxDistance): string[]`
 - `levenshteinDistance(a, b): number`
 
+### 16. Documentation Generation Strategy (Resolved 2025-11-25)
+Auto-generate user-facing error documentation from TypeScript definitions with CI enforcement.
+
+**Key decisions:**
+- **Location:** `docs/errors/` (not `docs/error-codes/` - shorter, more intuitive)
+- **CLI explain command:** Deferred to future work, focus on generated docs first
+- **Example format:** Bad + Good code only (simple and clear, not error output)
+
+**DiagnosticDefinition documentation fields:**
+```typescript
+interface DiagnosticExample {
+    readonly bad: string;          // Vibefun code that triggers error
+    readonly good: string;         // Corrected version
+    readonly description: string;  // What changed between bad and good
+}
+
+// Added to DiagnosticDefinition:
+readonly explanation: string;              // Why this error occurs (REQUIRED)
+readonly example: DiagnosticExample;       // Bad + good code (REQUIRED)
+readonly relatedCodes?: readonly string[]; // Related error codes
+readonly seeAlso?: readonly string[];      // Links to spec docs
+```
+
+**Generator script:** `scripts/generate-error-docs.ts` with `--check` flag for CI.
+
+**NPM scripts:**
+- `npm run docs:errors` - Generate documentation
+- `npm run docs:errors:check` - Validate docs are current (CI)
+
+**CI integration:** `npm run docs:errors:check` step in `.github/workflows/ci.yml` after format check.
+
+**Internal documentation:**
+- `packages/core/src/diagnostics/README.md` - Architecture overview
+- `packages/core/src/diagnostics/codes/README.md` - Guide for adding new codes
+
+**Rationale:**
+- Single source of truth (TypeScript definitions)
+- CI enforcement prevents stale documentation
+- Internal docs guide future contributors
+- All ~85 error codes get complete documentation (explanation + example)
+
 ## Critical Files
 
 ### Files to Create
@@ -151,14 +192,18 @@ Functions to move:
 | `packages/core/src/diagnostics/warning-collector.test.ts` | Tests (side-by-side) |
 | `packages/core/src/diagnostics/test-helpers.ts` | Test utilities: expectDiagnostic(), expectWarning() |
 | `packages/core/src/diagnostics/test-helpers.test.ts` | Tests (side-by-side) |
+| `packages/core/src/diagnostics/README.md` | Internal contributor documentation |
 | `packages/core/src/diagnostics/codes/lexer.ts` | VF1xxx definitions |
 | `packages/core/src/diagnostics/codes/parser.ts` | VF2xxx definitions |
 | `packages/core/src/diagnostics/codes/desugarer.ts` | VF3xxx definitions |
 | `packages/core/src/diagnostics/codes/typechecker.ts` | VF4xxx definitions (~45 codes) |
 | `packages/core/src/diagnostics/codes/modules.ts` | VF5xxx definitions |
+| `packages/core/src/diagnostics/codes/README.md` | Guide for adding new error codes |
 | `packages/core/src/diagnostics/index.ts` | Public API exports |
 | `packages/core/src/typechecker/format.ts` | Type formatting utilities (moved from errors.ts) |
 | `scripts/generate-error-docs.ts` | Documentation generator |
+| `docs/errors/README.md` | Generated index (auto) |
+| `docs/errors/*.md` | Generated phase docs (auto) |
 
 ### Files to Modify
 | File | Changes |
@@ -177,6 +222,8 @@ Functions to move:
 | `packages/core/src/typechecker/patterns.ts` | Convert throws to diagnostics |
 | `packages/core/src/typechecker/infer/*.ts` | Replace factory calls with throwDiagnostic() |
 | `packages/cli/src/index.ts` | Thread source through compilation pipeline |
+| `package.json` | Add `docs:errors` and `docs:errors:check` scripts |
+| `.github/workflows/ci.yml` | Add `npm run docs:errors:check` step |
 
 ### Files to Delete
 | File | When | Reason |
@@ -190,7 +237,7 @@ Functions to move:
 |------|--------|
 | `docs/spec/03-type-system/error-catalog.md` | Move to archive folder |
 | `docs/spec/03-type-system/error-reporting.md` | Update to reference new system |
-| `docs/spec/.agent-map.md` | Update error code references |
+| `docs/spec/.agent-map.md` | Add `docs/errors/` reference, update error queries |
 
 ## Existing Error Infrastructure
 
@@ -323,7 +370,8 @@ packages/core/src/desugarer/DesugarError.ts:
 
 ## Related Documentation
 
-- Existing error catalog: `docs/spec/03-type-system/error-catalog.md`
+- Existing error catalog: `docs/spec/03-type-system/error-catalog.md` (will be archived)
 - Error reporting spec: `docs/spec/03-type-system/error-reporting.md`
 - Module resolution plan: `.claude/active/module-resolution/module-resolution-plan.md`
 - Typechecker requirements: `.claude/design/typechecker-requirements.md`
+- **New user-facing error docs:** `docs/errors/` (auto-generated from TypeScript)

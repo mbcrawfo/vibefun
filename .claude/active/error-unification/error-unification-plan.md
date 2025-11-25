@@ -14,7 +14,7 @@ Unify all compiler diagnostics (errors and warnings) under a single VFxxxx code 
 1. Unified VFxxxx codes for all diagnostics with severity as a property
 2. Renumbered code ranges organized by compiler phase
 3. TypeScript as source of truth for error codes
-4. Auto-generated documentation in `docs/error-codes/`
+4. Auto-generated documentation in `docs/errors/`
 5. Consistent error class hierarchy across all compiler phases
 6. Full migration of all existing error throw sites
 7. Warning infrastructure with collection and reporting
@@ -225,12 +225,14 @@ packages/core/src/
 │   ├── registry.test.ts            # Tests (side-by-side)
 │   ├── factory.ts                  # Error creation helpers
 │   ├── factory.test.ts             # Tests (side-by-side)
-│   ├── warning-collector.ts        # Warning accumulation (NEW)
+│   ├── warning-collector.ts        # Warning accumulation
 │   ├── warning-collector.test.ts   # Tests (side-by-side)
-│   ├── test-helpers.ts             # Test utilities (NEW)
+│   ├── test-helpers.ts             # Test utilities
 │   ├── test-helpers.test.ts        # Tests (side-by-side)
+│   ├── README.md                   # Internal contributor documentation
 │   ├── codes/
 │   │   ├── index.ts                # Aggregate exports
+│   │   ├── README.md               # Guide for adding new error codes
 │   │   ├── lexer.ts                # VF1xxx definitions
 │   │   ├── parser.ts               # VF2xxx definitions
 │   │   ├── desugarer.ts            # VF3xxx definitions
@@ -241,7 +243,7 @@ packages/core/src/
 scripts/
 └── generate-error-docs.ts          # Documentation generator
 
-docs/error-codes/
+docs/errors/                        # Auto-generated user-facing documentation
 ├── README.md                       # Index (auto-generated)
 ├── lexer.md                        # VF1xxx (auto-generated)
 ├── parser.md                       # VF2xxx (auto-generated)
@@ -262,16 +264,51 @@ export type DiagnosticPhase =
     | "lexer" | "parser" | "desugarer"
     | "typechecker" | "modules" | "codegen" | "runtime";
 
+/**
+ * Documentation example demonstrating the error and its fix.
+ */
+export interface DiagnosticExample {
+    /** Vibefun code that triggers this error */
+    readonly bad: string;
+    /** Corrected version of the code */
+    readonly good: string;
+    /** Brief description of what changed (e.g., "Changed value to match declared type") */
+    readonly description: string;
+}
+
+/**
+ * Complete definition of a diagnostic (error or warning).
+ * This serves as the single source of truth for:
+ * - Runtime error creation
+ * - User-facing documentation generation
+ * - Future CLI --explain command
+ */
 export interface DiagnosticDefinition {
+    /** Unique code: VF1001, VF4001, etc. */
     readonly code: string;
+    /** PascalCase identifier: TypeMismatch, UndefinedVariable */
     readonly title: string;
+    /** Template with {placeholders} for runtime interpolation */
     readonly messageTemplate: string;
+    /** Error or warning */
     readonly severity: DiagnosticSeverity;
+    /** Compiler phase that produces this diagnostic */
     readonly phase: DiagnosticPhase;
+    /** Subcategory within phase (e.g., "mismatch", "undefined") */
     readonly category: string;
+    /** Template for actionable fix suggestion with {placeholders} */
     readonly hintTemplate?: string;
-    readonly example?: { code: string; description: string };
-    readonly fix?: string;
+
+    // === DOCUMENTATION FIELDS (for generated docs) ===
+
+    /** One-paragraph explanation of why this error occurs */
+    readonly explanation: string;
+    /** Code example demonstrating the error and fix (REQUIRED) */
+    readonly example: DiagnosticExample;
+    /** Related error codes users might also encounter */
+    readonly relatedCodes?: readonly string[];
+    /** Links to relevant spec documentation (relative paths from docs/) */
+    readonly seeAlso?: readonly string[];
 }
 
 export interface Diagnostic {
@@ -409,11 +446,35 @@ Define module system codes including circular dependency warnings (~8 codes).
 
 ### Phase 7: Documentation Generation
 
-Create script to generate markdown docs from TypeScript.
+Create script to generate markdown docs from TypeScript, with CI enforcement to ensure documentation stays current.
 
-**Additional requirements:**
-- Include severity column in error tables
-- Document warning codes alongside error codes
+**Generator script features:**
+- Read all codes from registry
+- Generate `docs/errors/README.md` index with quick reference table
+- Generate `docs/errors/{phase}.md` for each phase
+- Include severity column in tables
+- Include "Related" and "See Also" sections
+- `--check` flag for CI validation (exits non-zero if docs would change)
+
+**NPM scripts to add:**
+- `docs:errors` - Generate documentation
+- `docs:errors:check` - Validate docs are current (for CI)
+
+**CI integration:**
+- Add `npm run docs:errors:check` step to `.github/workflows/ci.yml`
+- Runs after format check step
+- Fails build if generated docs are out of date
+
+**Internal documentation:**
+- `packages/core/src/diagnostics/README.md` - Architecture overview, usage examples
+- `packages/core/src/diagnostics/codes/README.md` - Step-by-step guide for adding new error codes
+
+**Generated documentation format:**
+- Each error includes: code, title, severity badge, message template
+- Explanation section with common causes
+- Example section with "Problem" and "Solution" code blocks
+- Related codes section with links
+- See Also section with spec links
 
 ### Phase 8: Cleanup
 
@@ -427,7 +488,7 @@ Remove old error classes entirely (breaking changes OK) and update documentation
 **Files to update:**
 - `docs/spec/03-type-system/error-catalog.md` → Move to archive
 - `docs/spec/03-type-system/error-reporting.md` → Reference new system
-- `docs/spec/.agent-map.md` → Add error-codes reference
+- `docs/spec/.agent-map.md` → Add docs/errors/ reference
 
 ## Test Migration Patterns
 
@@ -467,14 +528,17 @@ expect(warning.message).toContain("Unreachable");
 
 1. All diagnostics use VFxxxx codes
 2. `throwDiagnostic("VF1001", loc, params)` pattern throughout codebase
-3. `vibefun explain VF4001` returns detailed explanation
-4. `docs/error-codes/` auto-generated from TypeScript
+3. `vibefun explain VF4001` returns detailed explanation (deferred to future CLI work)
+4. `docs/errors/` auto-generated from TypeScript
 5. All existing tests pass
 6. Error messages remain user-friendly with locations and hints
 7. No duplicate error codes (registry validates)
 8. Warning infrastructure functional (collector, reporting)
 9. Source context available in all error formatting
 10. Test helpers available for diagnostic assertions
+11. All ~85 error codes have complete documentation (explanation + example)
+12. `npm run docs:errors:check` fails in CI if docs are stale
+13. Internal README files guide future contributors (diagnostics/README.md, codes/README.md)
 
 ## Non-Goals
 
