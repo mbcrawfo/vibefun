@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ParserError } from "../utils/index.js";
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Records", () => {
@@ -90,14 +90,14 @@ describe("Parser - Records", () => {
         // Negative tests - should error when commas are missing
 
         it("should require comma between regular fields on same line", () => {
-            expect(() => parseExpression("{ x: 1 y: 2 }")).toThrow(ParserError);
-            expect(() => parseExpression("{ x: 1 y: 2 }")).toThrow(/Expected ',' between record fields/);
+            expect(() => parseExpression("{ x: 1 y: 2 }")).toThrow(VibefunDiagnostic);
+            expect(() => parseExpression("{ x: 1 y: 2 }")).toThrow(/VF2110/);
         });
 
         it("should require comma between shorthand fields", () => {
             // Note: Error is "Expected ':' after field name" because parser
             // tries to parse 'y' as a regular field after shorthand 'x'
-            expect(() => parseExpression("{ x y z }")).toThrow(ParserError);
+            expect(() => parseExpression("{ x y z }")).toThrow(VibefunDiagnostic);
         });
 
         it("should require comma in multi-line records", () => {
@@ -106,24 +106,24 @@ describe("Parser - Records", () => {
                     x: 1
                     y: 2
                 }`),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
             expect(() =>
                 parseExpression(`{
                     x: 1
                     y: 2
                 }`),
-            ).toThrow(/Expected ',' between record fields/);
+            ).toThrow(/VF2110/);
         });
 
         it("should require comma after spread operator", () => {
-            expect(() => parseExpression("{ ...base x: 1 }")).toThrow(ParserError);
-            expect(() => parseExpression("{ ...base x: 1 }")).toThrow(/Expected ',' between record fields/);
+            expect(() => parseExpression("{ ...base x: 1 }")).toThrow(VibefunDiagnostic);
+            expect(() => parseExpression("{ ...base x: 1 }")).toThrow(/VF2110/);
         });
 
         it("should require comma in mixed shorthand and regular fields", () => {
             // Note: Error is "Expected ':' after field name" because parser
             // tries to parse 'age' as a regular field after shorthand 'x'
-            expect(() => parseExpression("{ x age: 30 }")).toThrow(ParserError);
+            expect(() => parseExpression("{ x age: 30 }")).toThrow(VibefunDiagnostic);
         });
 
         it("should require comma after field even with comment-induced newline", () => {
@@ -134,24 +134,22 @@ describe("Parser - Records", () => {
                     x: 1
                     y: 2
                 }`),
-            ).toThrow(/Expected ',' between record fields/);
+            ).toThrow(/VF2110/);
         });
 
         it("should error on first missing comma when multiple are missing", () => {
-            expect(() => parseExpression("{ x: 1 y: 2 z: 3 }")).toThrow(ParserError);
-            expect(() => parseExpression("{ x: 1 y: 2 z: 3 }")).toThrow(/Expected ',' between record fields/);
+            expect(() => parseExpression("{ x: 1 y: 2 z: 3 }")).toThrow(VibefunDiagnostic);
+            expect(() => parseExpression("{ x: 1 y: 2 z: 3 }")).toThrow(/VF2110/);
         });
 
         it("should error on missing comma in nested record", () => {
-            expect(() => parseExpression("{ a: 1, b: { x: 1 y: 2 }, c: 3 }")).toThrow(ParserError);
-            expect(() => parseExpression("{ a: 1, b: { x: 1 y: 2 }, c: 3 }")).toThrow(
-                /Expected ',' between record fields/,
-            );
+            expect(() => parseExpression("{ a: 1, b: { x: 1 y: 2 }, c: 3 }")).toThrow(VibefunDiagnostic);
+            expect(() => parseExpression("{ a: 1, b: { x: 1 y: 2 }, c: 3 }")).toThrow(/VF2110/);
         });
 
         it("should require comma when shorthand follows regular field", () => {
-            expect(() => parseExpression("{ x: 1 name }")).toThrow(ParserError);
-            expect(() => parseExpression("{ x: 1 name }")).toThrow(/Expected ',' between record fields/);
+            expect(() => parseExpression("{ x: 1 name }")).toThrow(VibefunDiagnostic);
+            expect(() => parseExpression("{ x: 1 name }")).toThrow(/VF2110/);
         });
 
         // Positive tests - should parse successfully with commas

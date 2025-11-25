@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 2 Complete)
+**Last Updated:** 2025-11-25 (Phase 3 Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -60,7 +60,7 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 2: Lexer Migration
-**Status:** ✅ Complete (Commit: c77efbb)
+**Status:** ✅ Complete (Commit: e7a06fb)
 
 - [x] Create `codes/lexer.ts` with VF1xxx definitions:
   - [x] VF1001 UnterminatedString
@@ -86,32 +86,54 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 3: Parser Migration
-**Status:** Not Started
+**Status:** ✅ Complete
 
-- [ ] Create `codes/parser.ts` with VF2xxx definitions:
-  - [ ] VF2001 UnexpectedToken
-  - [ ] VF2010 ExpectedDeclaration
-  - [ ] VF2011 ExpectedEquals
-  - [ ] VF2100 ExpectedExpression
-  - [ ] VF2101 ExpectedClosingBrace
-  - [ ] VF2102 ExpectedClosingParen
-  - [ ] VF2103 ExpectedClosingBracket
-  - [ ] VF2104 ExpectedClosingAngle (NEW - for generics)
-  - [ ] VF2105 ExpectedArrow (NEW - for function types)
-  - [ ] VF2200 ExpectedPattern
-  - [ ] VF2300 ExpectedTypeName
-  - [ ] VF2400 InvalidImportSpecifier (NEW)
-  - [ ] VF2401 MalformedExport (NEW)
-  - [ ] VF2402 ExpectedModulePath (NEW)
-  - [ ] VF2500 TooManyErrors
-- [ ] Register parser codes in registry
-- [ ] Refactor `parser-base.ts` error helper to use diagnostics
-- [ ] Migrate `parse-declarations.ts`
-- [ ] Migrate `parse-expressions.ts`
-- [ ] Migrate `parse-patterns.ts`
-- [ ] Migrate `parse-types.ts`
-- [ ] Update parser tests to expect new error format (use `expectDiagnostic()`)
-- [ ] Run `npm run verify` - all tests pass
+- [x] Create `codes/parser.ts` with VF2xxx definitions:
+  - [x] VF2000 ExpectedDeclarationKeyword
+  - [x] VF2001 UnexpectedKeyword
+  - [x] VF2002 ExpectedEquals
+  - [x] VF2003 MutableBindingMustUseRef
+  - [x] VF2004 MutableBindingMustUseSimplePattern
+  - [x] VF2005 AndRequiresLetRec
+  - [x] VF2006 ExpectedConstructorInVariant
+  - [x] VF2007 ExpectedSemicolonInExternalBlock
+  - [x] VF2100 ExpectedExpression
+  - [x] VF2101 UnexpectedToken
+  - [x] VF2102 ExpectedClosingParen
+  - [x] VF2103 ExpectedClosingBracket
+  - [x] VF2104 ExpectedClosingBrace
+  - [x] VF2105 ExpectedThen
+  - [x] VF2106 ExpectedArrow
+  - [x] VF2107 ExpectedStatementSeparator
+  - [x] VF2108 EmptySpread
+  - [x] VF2109 UnexpectedEmptyExpressionList
+  - [x] VF2110 ExpectedCommaOrSeparator
+  - [x] VF2111 RecordMixedSyntax
+  - [x] VF2112 OperatorSectionNotSupported
+  - [x] VF2113 UnexpectedReturnTypeAnnotation
+  - [x] VF2200 ExpectedPattern
+  - [x] VF2201 KeywordShorthandNotAllowed
+  - [x] VF2202 TypeAnnotatedRecordShorthand
+  - [x] VF2300 ExpectedTypeName
+  - [x] VF2301 ExpectedTypeExpression
+  - [x] VF2302 ExpectedTypeParameter
+  - [x] VF2303 ExpectedClosingAngle
+  - [x] VF2304 ExpectedColonInRecordType
+  - [x] VF2400 ExpectedImportSpecifier
+  - [x] VF2401 ExpectedExportSpecifier
+  - [x] VF2402 ExpectedFromKeyword
+  - [x] VF2403 ExpectedModulePath
+  - [x] VF2404 ExpectedAsAfterStar
+  - [x] VF2500 TooManyErrors
+  - [x] VF2501 ExpectedToken
+- [x] Register parser codes in registry
+- [x] Refactor `parser-base.ts` error helper to use diagnostics
+- [x] Migrate `parse-declarations.ts`
+- [x] Migrate `parse-expressions.ts` (all expression files)
+- [x] Migrate `parse-patterns.ts`
+- [x] Migrate `parse-types.ts`
+- [x] Update parser tests to expect new error format
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 4: Desugarer Migration
 **Status:** Not Started
@@ -408,7 +430,7 @@ Before starting Phase 1, verify:
 |-------|--------|-------|-------|
 | Phase 1: Infrastructure | ✅ Complete | 21/21 | Core diagnostics module + interpolate/registry/truncation |
 | Phase 2: Lexer Migration | ✅ Complete | 9/9 | 13 error codes (VF1001-VF1400) |
-| Phase 3: Parser Migration | Not Started | 0/9 | ~15 error codes (incl. import/export) |
+| Phase 3: Parser Migration | ✅ Complete | 9/9 | 37 error codes (VF2000-VF2501) |
 | Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
 | Phase 5a: TC Codes & Basic | Not Started | 0/12 | ~52 codes (incl. FFI), UnifyContext setup |
 | Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 20-21 errors |
@@ -417,6 +439,6 @@ Before starting Phase 1, verify:
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 2/10 Phases Complete (20%)**
-**Estimated Total Error Codes: ~92**
+**Overall: 3/10 Phases Complete (30%)**
+**Estimated Total Error Codes: ~113 (13 lexer + 37 parser + ~63 remaining)**
 **Estimated Test Updates: ~180-250 tests**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
-import { ParserError } from "../utils/index.js";
 import { Parser } from "./parser.js";
 
 describe("Semicolon Requirements", () => {
@@ -14,16 +14,16 @@ describe("Semicolon Requirements", () => {
 
     describe("Top-level declarations", () => {
         it("should require semicolons after let declarations", () => {
-            expect(() => parse("let x = 1")).toThrow(ParserError);
-            expect(() => parse("let x = 1\nlet y = 2")).toThrow(ParserError);
+            expect(() => parse("let x = 1")).toThrow(VibefunDiagnostic);
+            expect(() => parse("let x = 1\nlet y = 2")).toThrow(VibefunDiagnostic);
         });
 
         it("should require semicolons after type declarations", () => {
-            expect(() => parse("type Point = { x: Int, y: Int }")).toThrow(ParserError);
+            expect(() => parse("type Point = { x: Int, y: Int }")).toThrow(VibefunDiagnostic);
         });
 
         it("should require semicolons after external declarations", () => {
-            expect(() => parse('external log: (String) -> Unit = "console.log"')).toThrow(ParserError);
+            expect(() => parse('external log: (String) -> Unit = "console.log"')).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons at EOF", () => {
@@ -34,8 +34,8 @@ describe("Semicolon Requirements", () => {
 
     describe("Block expressions", () => {
         it("should require semicolons between statements", () => {
-            expect(() => parse("let x = { let y = 1\ny };")).toThrow(ParserError);
-            expect(() => parse("let x = { 1\n2 };")).toThrow(ParserError);
+            expect(() => parse("let x = { let y = 1\ny };")).toThrow(VibefunDiagnostic);
+            expect(() => parse("let x = { 1\n2 };")).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons in blocks", () => {
@@ -52,7 +52,7 @@ describe("Semicolon Requirements", () => {
         it("should require semicolons between external items", () => {
             expect(() =>
                 parse('external { log: (String) -> Unit = "console.log"\nerror: (String) -> Unit = "console.error" };'),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons in external blocks", () => {
@@ -73,7 +73,7 @@ describe("Semicolon Requirements", () => {
                         | None => 0
                     };
                 `),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons in match case blocks", () => {
@@ -108,7 +108,7 @@ describe("Semicolon Requirements", () => {
                 parse(`
                     let x = if true then { let y = 1\ny } else 0;
                 `),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons in if-then blocks", () => {
@@ -124,7 +124,7 @@ describe("Semicolon Requirements", () => {
                 parse(`
                     let x = if false then 1 else { let y = 2\ny };
                 `),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should handle if-then-else-if chains", () => {
@@ -144,7 +144,7 @@ describe("Semicolon Requirements", () => {
                 parse(`
                     let x = while true { let i = 0\ni };
                 `),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons in while body blocks", () => {
@@ -177,7 +177,7 @@ describe("Semicolon Requirements", () => {
                 parse(`
                     let f = (x) => { let y = x + 1\ny * 2 };
                 `),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should accept semicolons in lambda blocks", () => {
@@ -262,7 +262,7 @@ describe("Semicolon Requirements", () => {
                         b: 2
                     };
                 `),
-            ).toThrow(/Expected ',' between record fields/);
+            ).toThrow(/VF2110/);
         });
     });
 
@@ -305,7 +305,7 @@ describe("Semicolon Requirements", () => {
                         |> filter((x) => x > 0)
                         |> map((x) => x * 2)
                 `),
-            ).toThrow(ParserError);
+            ).toThrow(VibefunDiagnostic);
         });
 
         it("should allow binary operators for line continuation", () => {
@@ -384,30 +384,30 @@ describe("Semicolon Requirements", () => {
         it("should report errors for missing semicolons", () => {
             try {
                 parse("let x = 1\nlet y = 2");
-                expect.fail("Should have thrown ParserError");
+                expect.fail("Should have thrown VibefunDiagnostic");
             } catch (error) {
-                expect(error).toBeInstanceOf(ParserError);
-                expect((error as ParserError).message).toContain("Expected ';'");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                expect((error as VibefunDiagnostic).message).toContain("VF2107");
             }
         });
 
         it("should provide helpful error messages for blocks", () => {
             try {
                 parse("let x = { let y = 1\ny }");
-                expect.fail("Should have thrown ParserError");
+                expect.fail("Should have thrown VibefunDiagnostic");
             } catch (error) {
-                expect(error).toBeInstanceOf(ParserError);
-                expect((error as ParserError).message).toContain(";");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                expect((error as VibefunDiagnostic).message).toContain("VF2107");
             }
         });
 
         it("should provide helpful error messages for external blocks", () => {
             try {
                 parse('external { log: (String) -> Unit = "console.log"\nerror: (String) -> Unit = "console.error" }');
-                expect.fail("Should have thrown ParserError");
+                expect.fail("Should have thrown VibefunDiagnostic");
             } catch (error) {
-                expect(error).toBeInstanceOf(ParserError);
-                expect((error as ParserError).message).toContain(";");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                expect((error as VibefunDiagnostic).message).toContain("VF2007");
             }
         });
     });

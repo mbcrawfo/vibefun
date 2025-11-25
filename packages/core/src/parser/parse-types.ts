@@ -7,8 +7,6 @@
 import type { RecordTypeField, TypeExpr } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
-import { ParserError } from "../utils/index.js";
-
 /**
  * Parse a type expression (with union support)
  * Syntax: type ('|' type)*
@@ -32,14 +30,14 @@ export function parseTypeExpr(parser: ParserBase): TypeExpr {
     if (types.length === 1) {
         const type = types[0];
         if (!type) {
-            throw new ParserError("Internal error: empty types array", parser.peek().loc);
+            throw new Error("Internal error: empty types array");
         }
         return type;
     }
 
     const firstType = types[0];
     if (!firstType) {
-        throw new ParserError("Internal error: empty types array", parser.peek().loc);
+        throw new Error("Internal error: empty types array");
     }
 
     return {
@@ -137,7 +135,7 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
         if (types.length === 1) {
             const type = types[0];
             if (!type) {
-                throw new ParserError("Internal error: empty types array", parser.peek().loc);
+                throw new Error("Internal error: empty types array");
             }
             return type;
         }
@@ -310,9 +308,5 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
         }
     }
 
-    throw parser.error(
-        "Expected type expression",
-        startLoc,
-        "Expected a type (variable, constant, function type, record type, or parenthesized type)",
-    );
+    throw parser.error("VF2301", startLoc);
 }

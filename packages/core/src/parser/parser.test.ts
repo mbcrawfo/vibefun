@@ -4,8 +4,8 @@
 
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
-import { ParserError } from "../utils/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to create a parser from source code
@@ -225,7 +225,7 @@ describe("Parser - Core", () => {
             const parser = createParser("42");
             const expectFn = getPrivate(parser, "expect");
 
-            expect(() => expectFn("STRING_LITERAL")).toThrow(ParserError);
+            expect(() => expectFn("STRING_LITERAL")).toThrow(VibefunDiagnostic);
         });
 
         it("should use custom error message", () => {
@@ -233,12 +233,13 @@ describe("Parser - Core", () => {
             const expectFn = getPrivate(parser, "expect");
 
             try {
-                expectFn("LPAREN", "Expected opening parenthesis");
+                expectFn("LPAREN", "opening parenthesis");
                 // Should not reach here
                 expect(true).toBe(false);
             } catch (error) {
-                expect(error).toBeInstanceOf(ParserError);
-                expect((error as ParserError).message).toContain("Expected opening parenthesis");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                // The custom message is now the 'expected' parameter in VF2501
+                expect((error as VibefunDiagnostic).message).toContain("opening parenthesis");
             }
         });
 
@@ -257,31 +258,40 @@ describe("Parser - Core", () => {
     });
 
     describe("error handling", () => {
-        it("should create ParserError with location", () => {
+        it("should create VibefunDiagnostic with location", () => {
             const parser = createParser("42");
             const errorFn = getPrivate(parser, "error");
 
-            const error = errorFn("Test error", { file: "test.vf", line: 1, column: 1, offset: 0 });
+            const error = errorFn("VF2100", { file: "test.vf", line: 1, column: 1, offset: 0 });
 
-            expect(error).toBeInstanceOf(ParserError);
-            expect(error.message).toBe("Test error");
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            expect(error.code).toBe("VF2100");
             expect(error.location).toBeDefined();
         });
 
-        it("should create ParserError with help text", () => {
+        it("should create VibefunDiagnostic with interpolated params", () => {
             const parser = createParser("42");
             const errorFn = getPrivate(parser, "error");
 
-            const error = errorFn("Test error", { file: "test.vf", line: 1, column: 1, offset: 0 }, "Try this instead");
+            const error = errorFn(
+                "VF2101",
+                { file: "test.vf", line: 1, column: 1, offset: 0 },
+                {
+                    tokenType: "keyword",
+                    value: "then",
+                    hint: "Expected an expression",
+                },
+            );
 
-            expect(error.help).toBe("Try this instead");
+            expect(error.message).toContain("keyword");
+            expect(error.message).toContain("then");
         });
 
         it("should set hasError flag", () => {
             const parser = createParser("42");
             const errorFn = getPrivate(parser, "error");
 
-            errorFn("Test error", { file: "test.vf", line: 1, column: 1, offset: 0 });
+            errorFn("VF2100", { file: "test.vf", line: 1, column: 1, offset: 0 });
 
             expect(parser.hasError()).toBe(true);
         });

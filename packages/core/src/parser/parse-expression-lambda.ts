@@ -200,11 +200,9 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
 
         // Check if it's followed by RPAREN - that's a bare operator section
         if (nextToken.type === "RPAREN") {
-            throw parser.error(
-                "Operator sections are not supported",
-                operatorToken.loc,
-                "Use a lambda instead. For (+), write: (x, y) => x + y",
-            );
+            throw parser.error("VF2112", operatorToken.loc, {
+                hint: "Use a lambda instead. For (+), write: (x, y) -> x + y",
+            });
         }
 
         // Check for right operator sections like (- x) with leading whitespace
@@ -213,11 +211,9 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
             nextToken.hasLeadingWhitespace &&
             (nextToken.type === "IDENTIFIER" || nextToken.type === "INT_LITERAL" || nextToken.type === "FLOAT_LITERAL")
         ) {
-            throw parser.error(
-                "Operator sections are not supported",
-                operatorToken.loc,
-                `Use a lambda instead. For (${operatorToken.value} x), write: (x) => ${operatorToken.value}x`,
-            );
+            throw parser.error("VF2112", operatorToken.loc, {
+                hint: `Use a lambda instead. For (${operatorToken.value} x), write: (x) -> ${operatorToken.value}x`,
+            });
         }
 
         // If followed by an identifier or expression without leading whitespace,
@@ -287,11 +283,7 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
 
         // Otherwise, it's a unit literal (but we already consumed potential type annotation - that's an error)
         if (returnType !== undefined) {
-            throw parser.error(
-                "Unexpected return type annotation",
-                startLoc,
-                "Return type annotations are only valid for lambda expressions, expected '=>' after type",
-            );
+            throw parser.error("VF2113", startLoc);
         }
 
         return {
@@ -405,11 +397,9 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
 
         // Check for operator section: (expr op)
         if (isOperatorToken(parser)) {
-            throw parser.error(
-                "Operator sections are not supported",
-                parser.peek().loc,
-                `Use a lambda instead. For example: (x) => x ${parser.peek().value} ...`,
-            );
+            throw parser.error("VF2112", parser.peek().loc, {
+                hint: `Use a lambda instead. For example: (x) -> x ${parser.peek().value} ...`,
+            });
         }
 
         // Check for comma (potential tuple or multi-param lambda)
@@ -439,11 +429,9 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
 
         if (hasUnexpectedToken && parser.check("RPAREN")) {
             // Check if we have consumed some tokens (meaning we parsed part of an expr + op)
-            throw parser.error(
-                "Operator sections are not supported",
-                parser.peek().loc,
-                "Use a lambda instead. For example: (x) => x + ...",
-            );
+            throw parser.error("VF2112", parser.peek().loc, {
+                hint: "Use a lambda instead. For example: (x) -> x + ...",
+            });
         }
         throw error;
     }
@@ -457,7 +445,7 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
         // Single element: just grouping/precedence, NOT a tuple
         const expr = exprs[0];
         if (!expr) {
-            throw parser.error("Unexpected empty expression list", startLoc);
+            throw parser.error("VF2109", startLoc);
         }
         return expr;
     } else {

@@ -18,7 +18,7 @@ import type {
 } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
-import { ParserError } from "../utils/index.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 
 // Forward declarations for circular dependencies
 let parseExpression: (parser: ParserBase) => Expr;
@@ -135,7 +135,7 @@ export function parseDeclaration(parser: ParserBase): Declaration {
     while (parser.match("NEWLINE"));
 
     if (!parser.check("KEYWORD")) {
-        throw parser.error("Expected declaration keyword", parser.peek().loc);
+        throw parser.error("VF2000", parser.peek().loc);
     }
 
     const keyword = parser.peek().value as string;
@@ -150,7 +150,7 @@ export function parseDeclaration(parser: ParserBase): Declaration {
         case "import":
             return parseImportDecl(parser);
         default:
-            throw parser.error(`Unexpected keyword in declaration: ${keyword}`, parser.peek().loc);
+            throw parser.error("VF2001", parser.peek().loc, { keyword });
     }
 }
 
@@ -170,11 +170,7 @@ function validateMutableBinding(parser: ParserBase, value: Expr, pattern: Patter
 
     // Mutable bindings must use VarPattern (not destructuring)
     if (pattern.kind !== "VarPattern") {
-        throw parser.error(
-            "Mutable bindings can only use simple variable patterns",
-            pattern.loc,
-            "Destructuring patterns like { x, y } or [a, b] are not allowed with 'mut'. Use: let mut x = ref(value)",
-        );
+        throw parser.error("VF2004", pattern.loc);
     }
 
     // Check if value is a ref() call
@@ -193,11 +189,10 @@ function validateMutableBinding(parser: ParserBase, value: Expr, pattern: Patter
             valueHint = String(value.value);
         }
 
-        throw parser.error(
-            "Mutable bindings must use ref() syntax",
-            value.loc,
-            `Use: let mut ${patternName} = ref(${valueHint})`,
-        );
+        throw parser.error("VF2003", value.loc, {
+            name: patternName,
+            hint: valueHint,
+        });
     }
 }
 
@@ -249,11 +244,7 @@ function parseLetDecl(parser: ParserBase, exported: boolean): Declaration {
     if (parser.check("KEYWORD") && nextToken.type === "KEYWORD" && nextToken.keyword === "and") {
         // Must be recursive to use 'and'
         if (!recursive) {
-            throw new ParserError(
-                "The 'and' keyword can only be used with 'let rec' for mutually recursive functions",
-                parser.peek().loc,
-                "Add 'rec' before the first binding: 'let rec f = ... and g = ...'",
-            );
+            throwDiagnostic("VF2005", parser.peek().loc, {});
         }
 
         // Collect all bindings in the mutual recursion group
@@ -481,7 +472,7 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
                 loc: firstType.loc,
             });
         } else {
-            throw parser.error("Expected constructor in variant type", firstType.loc);
+            throw parser.error("VF2006", firstType.loc);
         }
 
         // Parse remaining constructors
@@ -512,7 +503,7 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
                     loc: constrType.loc,
                 });
             } else {
-                throw parser.error("Expected constructor in variant type", constrType.loc);
+                throw parser.error("VF2006", constrType.loc);
             }
         }
 
@@ -643,11 +634,7 @@ function parseExternalBlock(
         // Require semicolon after item (unless at closing brace)
         if (!parser.check("RBRACE")) {
             if (!parser.check("SEMICOLON")) {
-                throw parser.error(
-                    "Expected ';' after external declaration",
-                    parser.peek().loc,
-                    "External declarations in a block must end with semicolons",
-                );
+                throw parser.error("VF2007", parser.peek().loc);
             }
             parser.advance(); // Consume the semicolon
         }
@@ -765,7 +752,7 @@ function parseImportDecl(parser: ParserBase): Declaration {
                 (asToken.type === "IDENTIFIER" && asToken.value === "as")
             )
         ) {
-            throw parser.error("Expected 'as' after '*'", asToken.loc);
+            throw parser.error("VF2404", asToken.loc);
         }
         parser.advance(); // consume 'as'
 
@@ -828,7 +815,7 @@ function parseImportDecl(parser: ParserBase): Declaration {
 
         parser.expect("RBRACE", "Expected '}' after import items");
     } else {
-        throw parser.error("Expected '{' or '*' after 'import'", parser.peek().loc);
+        throw parser.error("VF2400", parser.peek().loc);
     }
 
     // Skip newlines before 'from'
@@ -839,7 +826,7 @@ function parseImportDecl(parser: ParserBase): Declaration {
     // Expect from
     parser.expect("KEYWORD", "Expected 'from' after import items");
     if (parser.peek(-1).value !== "from") {
-        throw parser.error("Expected 'from' keyword", parser.peek(-1).loc);
+        throw parser.error("VF2402", parser.peek(-1).loc);
     }
 
     // Parse module path
@@ -900,13 +887,13 @@ function parseReExportDecl(parser: ParserBase): Declaration {
 
         parser.expect("RBRACE", "Expected '}' after export items");
     } else {
-        throw parser.error("Expected '{' or '*' after 'export'", parser.peek().loc);
+        throw parser.error("VF2401", parser.peek().loc);
     }
 
     // Expect from
     parser.expect("KEYWORD", "Expected 'from' after export items");
     if (parser.peek(-1).value !== "from") {
-        throw parser.error("Expected 'from' keyword", parser.peek(-1).loc);
+        throw parser.error("VF2402", parser.peek(-1).loc);
     }
 
     // Parse module path

@@ -4,11 +4,11 @@
  * Provides core parser state and token consumption utilities.
  * All parsing modules build on this base class.
  */
-
+import type { InterpolationParams } from "../diagnostics/index.js";
 import type { Location } from "../types/index.js";
 import type { Token, TokenType } from "../types/token.js";
 
-import { ParserError } from "../utils/index.js";
+import { createDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
 
 /**
  * Base class for parser with state management and token utilities
@@ -30,7 +30,7 @@ export class ParserBase {
     protected inRecordContext: boolean = false;
 
     /** Multi-error collection */
-    protected errors: ParserError[] = [];
+    protected errors: VibefunDiagnostic[] = [];
 
     /** Maximum errors before stopping */
     protected readonly maxErrors = 10;
@@ -112,19 +112,23 @@ export class ParserBase {
     /**
      * Require a token of the given type, or throw an error
      * @param type - Required token type
-     * @param message - Error message if not found
+     * @param message - Error message if not found (used for context in error)
      * @returns The consumed token
-     * @throws ParserError if token doesn't match
+     * @throws VibefunDiagnostic if token doesn't match
      */
     public expect(type: TokenType, message?: string): Token {
         if (this.check(type)) {
             return this.advance();
         }
 
-        const actualType = this.peek().type;
-        const errorMessage = message || `Expected ${type}, but found ${actualType}`;
+        const actual = this.peek();
+        const actualType = actual.type;
+        const expected = message || type;
 
-        throw this.error(errorMessage, this.peek().loc);
+        throw this.error("VF2501", this.peek().loc, {
+            expected,
+            actual: actualType === "KEYWORD" ? `keyword '${actual.value}'` : actualType,
+        });
     }
 
     /**
@@ -135,7 +139,7 @@ export class ParserBase {
      *
      * @param context - Context description for error messages (e.g., "record type", "pattern")
      * @returns Object with field name string and location
-     * @throws ParserError if neither IDENTIFIER nor KEYWORD found
+     * @throws VibefunDiagnostic if neither IDENTIFIER nor KEYWORD found
      */
     public expectFieldName(context: string): { name: string; loc: Location } {
         const token = this.peek();
@@ -150,7 +154,10 @@ export class ParserBase {
             return { name: token.keyword, loc: token.loc };
         }
 
-        throw this.error(`Expected field name in ${context}`, token.loc, `Found ${token.type} instead`);
+        throw this.error("VF2501", token.loc, {
+            expected: `field name in ${context}`,
+            actual: token.type,
+        });
     }
 
     // =========================================================================
@@ -158,20 +165,20 @@ export class ParserBase {
     // =========================================================================
 
     /**
-     * Create a parser error
-     * @param message - Error message
+     * Create a parser error using a diagnostic code.
+     * @param code - The diagnostic code (e.g., "VF2100")
      * @param location - Location of the error
-     * @param help - Optional help text
-     * @returns ParserError
+     * @param params - Interpolation parameters for message and hint templates
+     * @returns VibefunDiagnostic
      */
-    public error(message: string, location: Location, help?: string): ParserError {
+    public error(code: string, location: Location, params: InterpolationParams = {}): VibefunDiagnostic {
         this.hadError = true;
-        const err = new ParserError(message, location, help);
+        const err = createDiagnostic(code, location, params);
         this.errors.push(err);
 
         if (this.errors.length >= this.maxErrors) {
             // Stop parsing after max errors
-            throw new Error(`Too many parse errors (${this.maxErrors}). Stopping.`);
+            throw createDiagnostic("VF2500", location, { count: String(this.maxErrors) });
         }
 
         return err;
@@ -181,7 +188,7 @@ export class ParserBase {
      * Get all collected parser errors
      * @returns Array of parser errors
      */
-    public getErrors(): ParserError[] {
+    public getErrors(): VibefunDiagnostic[] {
         return this.errors;
     }
 

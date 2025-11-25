@@ -7,8 +7,6 @@
 import type { Location, Pattern, RecordPatternField } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
-import { ParserError } from "../utils/index.js";
-
 // Forward declaration for circular dependency
 let parseTypeExpr: (parser: ParserBase) => import("../types/index.js").TypeExpr;
 
@@ -55,14 +53,14 @@ export function parsePattern(parser: ParserBase): Pattern {
     if (patterns.length === 1) {
         const pattern = patterns[0];
         if (!pattern) {
-            throw new ParserError("Internal error: empty patterns array", parser.peek().loc);
+            throw new Error("Internal error: empty patterns array");
         }
         return pattern;
     }
 
     const firstPattern = patterns[0];
     if (!firstPattern) {
-        throw new ParserError("Internal error: empty patterns array", parser.peek().loc);
+        throw new Error("Internal error: empty patterns array");
     }
 
     return {
@@ -186,7 +184,7 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
 
             const pattern = patterns[0];
             if (!pattern) {
-                throw new ParserError("Internal error: empty patterns array", parser.peek().loc);
+                throw new Error("Internal error: empty patterns array");
             }
 
             return {
@@ -212,7 +210,7 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
         if (patterns.length === 1) {
             const pattern = patterns[0];
             if (!pattern) {
-                throw new ParserError("Internal error: empty patterns array", parser.peek().loc);
+                throw new Error("Internal error: empty patterns array");
             }
             return pattern;
         }
@@ -244,11 +242,7 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
                         fieldName = pattern.name;
                         fieldPattern = pattern;
                     } else {
-                        throw new ParserError(
-                            "Type-annotated record shorthand must use variable pattern",
-                            pattern.loc,
-                            "Expected (fieldName: Type)",
-                        );
+                        throw parser.error("VF2202", pattern.loc);
                     }
 
                     fields.push({
@@ -274,11 +268,7 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
                         // Check if field is a keyword - can't use shorthand with keywords
                         const token = parser.peek(-1); // Get the field name token we just consumed
                         if (token.type === "KEYWORD") {
-                            throw parser.error(
-                                `Cannot use keyword '${fieldName}' in field shorthand`,
-                                fieldLoc,
-                                `Use explicit syntax: { ${fieldName}: pattern }`,
-                            );
+                            throw parser.error("VF2201", fieldLoc, { keyword: fieldName });
                         }
 
                         fields.push({
@@ -360,9 +350,5 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
         return listPattern;
     }
 
-    throw parser.error(
-        "Expected pattern",
-        startLoc,
-        "Expected a pattern (variable, wildcard, literal, constructor, record, or list)",
-    );
+    throw parser.error("VF2200", startLoc);
 }

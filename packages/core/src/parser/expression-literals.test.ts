@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ParserError } from "../utils/index.js";
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Expression Literals", () => {
@@ -247,17 +247,17 @@ describe("Parser - Expression Literals", () => {
         });
 
         it("should throw on unclosed parenthesis", () => {
-            expect(() => parseExpression("(42")).toThrow(ParserError);
+            expect(() => parseExpression("(42")).toThrow(VibefunDiagnostic);
         });
     });
 
     describe("error cases", () => {
         it("should throw on unexpected token", () => {
-            expect(() => parseExpression("+")).toThrow(ParserError);
+            expect(() => parseExpression("+")).toThrow(VibefunDiagnostic);
         });
 
         it("should throw on empty input", () => {
-            expect(() => parseExpression("")).toThrow(ParserError);
+            expect(() => parseExpression("")).toThrow(VibefunDiagnostic);
         });
 
         it("should provide helpful error message", () => {
@@ -266,9 +266,9 @@ describe("Parser - Expression Literals", () => {
                 // Should not reach here
                 expect(true).toBe(false);
             } catch (error) {
-                expect(error).toBeInstanceOf(ParserError);
-                expect((error as ParserError).message).toContain("Unexpected token");
-                expect((error as ParserError).help).toBeDefined();
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                expect((error as VibefunDiagnostic).code).toBe("VF2101");
+                expect((error as VibefunDiagnostic).hint).toBeDefined();
             }
         });
     });
