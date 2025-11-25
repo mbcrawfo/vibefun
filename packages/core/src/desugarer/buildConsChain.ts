@@ -6,7 +6,7 @@ import type { Expr, Location } from "../types/ast.js";
 import type { CoreExpr } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
-import { DesugarError } from "./DesugarError.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 
 /**
  * Build a simple Cons chain from regular elements
@@ -33,7 +33,7 @@ export function buildConsChain(
     for (let i = elements.length - 1; i >= 0; i--) {
         const elem = elements[i];
         if (!elem) {
-            throw new DesugarError(`List has undefined element at index ${i}`, loc);
+            throwDiagnostic("VF3101", loc, { index: String(i) });
         }
 
         result = {

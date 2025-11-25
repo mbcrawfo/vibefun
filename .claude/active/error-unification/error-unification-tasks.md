@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 3 Complete)
+**Last Updated:** 2025-11-25 (Phase 4 Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -136,21 +136,22 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 4: Desugarer Migration
-**Status:** Not Started
+**Status:** ✅ Complete
 
-- [ ] Create `codes/desugarer.ts` with VF3xxx definitions:
-  - [ ] VF3101 UndefinedListElement
+- [x] Create `codes/desugarer.ts` with VF3xxx definitions:
+  - [x] VF3101 UndefinedListElement
   - (Note: VF3001-VF3003, VF3100 are internal errors, remain plain Error)
   - (Note: desugarListWithConcats.ts errors are internal assertions, remain plain Error)
-- [ ] Register desugarer codes in registry
-- [ ] Add `source` parameter to `desugar()` entry point
-- [ ] Migrate `desugarer.ts` throw sites (keep internal errors as plain Error)
-- [ ] Migrate `desugarListPattern.ts`
-- [ ] Migrate `buildConsChain.ts`
-- [ ] Migrate `desugarListLiteral.ts`
-- [ ] Delete `DesugarError.ts`
-- [ ] Update desugarer tests (use `expectDiagnostic()`)
-- [ ] Run `npm run verify` - all tests pass
+- [x] Register desugarer codes in registry
+- [x] Add `source` parameter to `desugar()` entry point (skipped - not needed for current errors)
+- [x] Migrate `desugarer.ts` throw sites (keep internal errors as plain Error)
+- [x] Migrate `desugarListPattern.ts`
+- [x] Migrate `buildConsChain.ts`
+- [x] Migrate `curryLambda.ts` (internal errors, converted to plain Error)
+- [x] Migrate `desugarBlock.ts` (internal errors, converted to plain Error)
+- [x] Delete `DesugarError.ts` and `DesugarError.test.ts`
+- [x] Update desugarer tests (updated to expect plain Error for internal errors)
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 5a: Type Checker Codes & Basic Migration
 **Status:** Not Started
@@ -431,7 +432,7 @@ Before starting Phase 1, verify:
 | Phase 1: Infrastructure | ✅ Complete | 21/21 | Core diagnostics module + interpolate/registry/truncation |
 | Phase 2: Lexer Migration | ✅ Complete | 9/9 | 13 error codes (VF1001-VF1400) |
 | Phase 3: Parser Migration | ✅ Complete | 9/9 | 37 error codes (VF2000-VF2501) |
-| Phase 4: Desugarer Migration | Not Started | 0/10 | ~3 error codes (internal errors excluded) |
+| Phase 4: Desugarer Migration | ✅ Complete | 12/12 | 1 error code (VF3101), internal errors → plain Error |
 | Phase 5a: TC Codes & Basic | Not Started | 0/12 | ~52 codes (incl. FFI), UnifyContext setup |
 | Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 20-21 errors |
 | Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts, resolver.ts, environment.ts |
@@ -439,6 +440,6 @@ Before starting Phase 1, verify:
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 3/10 Phases Complete (30%)**
-**Estimated Total Error Codes: ~113 (13 lexer + 37 parser + ~63 remaining)**
+**Overall: 4/10 Phases Complete (40%)**
+**Estimated Total Error Codes: ~114 (13 lexer + 37 parser + 1 desugarer + ~63 remaining)**
 **Estimated Test Updates: ~180-250 tests**

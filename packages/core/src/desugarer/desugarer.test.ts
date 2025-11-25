@@ -27,7 +27,6 @@ import type {
 import { describe, expect, it } from "vitest";
 
 import { desugar, desugarModule, desugarPattern } from "./desugarer.js";
-import { DesugarError } from "./DesugarError.js";
 import { FreshVarGen } from "./FreshVarGen.js";
 
 // Helper to create test location
@@ -61,31 +60,6 @@ describe("FreshVarGen", () => {
         gen.fresh("tmp"); // $tmp1
         gen.reset();
         expect(gen.fresh("tmp")).toBe("$tmp0");
-    });
-});
-
-describe("DesugarError", () => {
-    it("should create error with location", () => {
-        const error = new DesugarError("Test error", testLoc);
-
-        expect(error.message).toBe("Test error");
-        expect(error.loc).toBe(testLoc);
-        expect(error.name).toBe("DesugarError");
-    });
-
-    it("should format error with location", () => {
-        const error = new DesugarError("Test error", testLoc);
-        const formatted = error.format();
-
-        expect(formatted).toContain("Error: Test error");
-        expect(formatted).toContain("test.vf:1:1");
-    });
-
-    it("should include hint in formatted output", () => {
-        const error = new DesugarError("Test error", testLoc, "Try this instead");
-        const formatted = error.format();
-
-        expect(formatted).toContain("Hint: Try this instead");
     });
 });
 

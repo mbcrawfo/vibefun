@@ -11,7 +11,6 @@ import type { FreshVarGen } from "./FreshVarGen.js";
 import { describe, expect, it } from "vitest";
 
 import { desugarBlock } from "./desugarBlock.js";
-import { DesugarError } from "./DesugarError.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -42,8 +41,9 @@ const mockGen = { fresh: () => "$tmp0", reset: () => {} } as FreshVarGen;
 
 describe("desugarBlock", () => {
     it("should throw on empty block", () => {
-        expect(() => desugarBlock([], testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(DesugarError);
-        expect(() => desugarBlock([], testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow("Empty block");
+        expect(() => desugarBlock([], testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(
+            "Empty block expression",
+        );
     });
 
     it("should desugar single expression block", () => {
@@ -87,7 +87,6 @@ describe("desugarBlock", () => {
             { kind: "IntLit", value: 2, loc: testLoc },
         ];
 
-        expect(() => desugarBlock(exprs, testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(DesugarError);
         expect(() => desugarBlock(exprs, testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(
             "Non-let expression in block",
         );

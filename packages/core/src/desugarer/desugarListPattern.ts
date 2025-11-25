@@ -6,7 +6,7 @@ import type { Location, Pattern } from "../types/ast.js";
 import type { CorePattern } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
-import { DesugarError } from "./DesugarError.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 
 export function desugarListPattern(
     elements: Pattern[],
@@ -49,7 +49,7 @@ export function desugarListPattern(
     for (let i = elements.length - 1; i >= 0; i--) {
         const element = elements[i];
         if (!element) {
-            throw new DesugarError(`List pattern has undefined element at index ${i}`, loc);
+            throwDiagnostic("VF3101", loc, { index: String(i) });
         }
 
         tailPattern = {

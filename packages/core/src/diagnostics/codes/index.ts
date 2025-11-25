@@ -1,8 +1,8 @@
-// export * from "./desugarer.js";
 // export * from "./typechecker.js";
 // export * from "./modules.js";
 // export * from "./codegen.js";
 
+import { registerDesugarerCodes } from "./desugarer.js";
 import { registerLexerCodes } from "./lexer.js";
 import { registerParserCodes } from "./parser.js";
 
@@ -25,6 +25,7 @@ import { registerParserCodes } from "./parser.js";
  */
 
 // Phase-specific code exports
+export * from "./desugarer.js";
 export * from "./lexer.js";
 export * from "./parser.js";
 
@@ -39,6 +40,7 @@ export function initializeDiagnosticCodes(): void {
     if (initialized) return;
     initialized = true;
 
+    registerDesugarerCodes();
     registerLexerCodes();
     registerParserCodes();
     // Additional phase registrations will be added as they are implemented
