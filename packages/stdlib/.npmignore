@@ -1,0 +1,15 @@
+# Exclude test files from published package
+**/*.test.js
+**/*.test.d.ts
+**/*.test.d.ts.map
+
+# Exclude source files
+src/
+
+# Exclude config files
+tsconfig*.json
+vitest.config.ts
+
+# Exclude development files
+*.log
+.DS_Store
