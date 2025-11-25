@@ -343,7 +343,7 @@ vibefun/
 ├── packages/
 │   ├── core/          # Compiler library (@vibefun/core)
 │   ├── cli/           # CLI tool (@vibefun/cli)
-│   └── stdlib/        # Standard library (@vibefun/stdlib)
+│   └── stdlib/        # Standard library (@vibefun/std)
 ├── docs/
 │   ├── spec/          # Language specification
 │   └── compiler-architecture/  # This documentation

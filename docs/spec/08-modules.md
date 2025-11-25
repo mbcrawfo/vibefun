@@ -46,7 +46,7 @@ import { helpers } from '../helpers';   // Parent directory
 import { types } from './shared/types'; // Subdirectory;
 
 // Package imports (no ./ or ../ prefix)
-import { Option, Result } from 'vibefun/std';
+import { Option, Result } from '@vibefun/std';
 import { map, filter } from '@myorg/functional-utils';
 ```
 
@@ -75,14 +75,14 @@ import { helper } from './utils';
 **3. For package imports:**
 
 Search in order:
-1. **Standard library**: `vibefun/*` paths resolve to built-in modules
+1. **Standard library**: `@vibefun/*` packages (e.g., `@vibefun/std`)
 2. **node_modules**: Search `node_modules/` in current and ancestor directories
 3. **Configured paths**: Check `vibefun.json` path mappings
 
 ```vibefun
 // Stdlib import
-import { Option } from 'vibefun/std';
-// Resolves to: <stdlib>/std.vf
+import { Option } from '@vibefun/std';
+// Resolves via node_modules to @vibefun/std package
 
 // Package import
 import { Button } from '@ui/components';

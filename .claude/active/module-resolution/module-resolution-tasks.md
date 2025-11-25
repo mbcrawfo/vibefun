@@ -56,10 +56,12 @@ This implementation consists of two major components:
   - [ ] Normalize paths (remove `.`, `..` segments)
   - [ ] Use Node.js `path` module for cross-platform support
 - [ ] Implement `resolveModulePath(basePath: string): string | null`
-  - [ ] Try exact file with `.vf` extension
+  - [ ] If path ends with `.vf`: try as-is (don't append `.vf.vf`)
+  - [ ] If path does NOT end with `.vf`: try with `.vf` extension
   - [ ] Try directory with `index.vf`
   - [ ] Return null if neither exists
   - [ ] File precedence over directory (if both exist)
+  - [ ] Both `./utils` and `./utils.vf` should resolve to same cached module
 - [ ] Implement symlink resolution
   - [ ] Use `fs.realpathSync()` to resolve symlinks
   - [ ] Detect circular symlinks (error)
@@ -82,6 +84,8 @@ This implementation consists of two major components:
 - [ ] Test directory with index.vf
 - [ ] Test missing file returns null
 - [ ] Test `.vf` extension added if missing
+- [ ] Test explicit `.vf` in import path (doesn't try `.vf.vf`)
+- [ ] Test `./utils` and `./utils.vf` resolve to same cached module
 - [ ] Test symlink resolution
 - [ ] Test symlink and original resolve to same path
 - [ ] Test circular symlink detection (error)
@@ -137,9 +141,16 @@ This implementation consists of two major components:
 - [ ] Parse to get `Module` AST
 - [ ] Handle parse errors gracefully
 
+### Entry Point Validation
+- [ ] Validate entry point exists before starting discovery
+- [ ] If entry point is directory, try resolving to `dir/index.vf`
+- [ ] Clear error message for missing entry point:
+      "Entry point not found: src/main.vf\n  Tried: src/main.vf, src/main/index.vf"
+- [ ] Entry point parse errors included in error collection
+
 ### Discovery Algorithm
 - [ ] Implement transitive closure discovery
-  - [ ] Start with entry point
+  - [ ] Start with entry point (after validation)
   - [ ] Parse entry point module
   - [ ] Extract all import statements
   - [ ] Resolve import paths to absolute paths
@@ -184,6 +195,9 @@ This implementation consists of two major components:
 - [ ] Test re-exports (discovered as dependencies)
 - [ ] Test empty modules (no imports/exports)
 - [ ] Test duplicate imports (same module imported multiple times in one file)
+- [ ] Test entry point doesn't exist (clear error)
+- [ ] Test entry point is directory with index.vf
+- [ ] Test entry point is directory without index.vf (error)
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -198,10 +212,16 @@ This implementation consists of two major components:
 ### Core Implementation
 - [ ] Create directory: `packages/core/src/module-resolver/`
 - [ ] Create file: `packages/core/src/module-resolver/module-graph.ts`
+- [ ] Define `DependencyEdge` type with import location
+  - [ ] `to: string` - target module path
+  - [ ] `isTypeOnly: boolean` - type-only import?
+  - [ ] `importLoc: Location` - source location of import statement (for warnings)
 - [ ] Implement `ModuleGraph` class
+  - [ ] Store edges as `Map<string, DependencyEdge[]>` (from → edges)
   - [ ] Add module: `addModule(path: string): void`
-  - [ ] Add dependency: `addDependency(from: string, to: string, isTypeOnly: boolean): void`
+  - [ ] Add dependency: `addDependency(from: string, to: string, isTypeOnly: boolean, loc: Location): void`
   - [ ] Handle dual imports: if edge exists, upgrade to value if new edge is value
+  - [ ] Get dependency edges: `getDependencyEdges(from: string): DependencyEdge[]`
   - [ ] Get dependencies: `getDependencies(path: string): string[]`
   - [ ] Get all modules: `getModules(): string[]`
   - [ ] Check for cycle: `hasCycle(): boolean`
@@ -216,11 +236,24 @@ This implementation consists of two major components:
   - [ ] Handle mixed imports (both type-only and value from same module)
   - [ ] Create edges in graph with correct type-only flag
   - [ ] Wildcard imports (`import * as`) treated as value imports
+  - [ ] Pass import Location to `addDependency()` for warning messages
+
+### Re-Export Name Conflict Detection
+- [ ] During graph construction, track exported names per module
+- [ ] For wildcard re-exports (`export * from`), collect all re-exported names
+- [ ] Detect name conflicts (same name re-exported from multiple sources)
+- [ ] Generate compile-time error for conflicts:
+      "Name conflict in re-exports: 'map' is exported from both './array' and './list'"
+- [ ] Test: wildcard re-export name conflict detected
+- [ ] Test: explicit re-exports with same name detected
+- [ ] Test: no conflict when same module re-exported via different paths
 
 ### Tests
+- [ ] Test `DependencyEdge` type stores location
 - [ ] Test `ModuleGraph` creation
-- [ ] Test adding modules and dependencies
+- [ ] Test adding modules and dependencies with location
 - [ ] Test dual import edge handling (type + value → value)
+- [ ] Test `getDependencyEdges()` returns edges with locations
 - [ ] Test dependency queries
 - [ ] Test graph with no cycles
 - [ ] Test graph with cycles
@@ -267,7 +300,13 @@ This implementation consists of two major components:
   - [ ] Given SCC, extract meaningful cycle path
   - [ ] Include all modules in SCC
   - [ ] Preserve order (A → B → C → A)
-  - [ ] Handle self-imports (1-node SCC with self-edge)
+  - [ ] **Sort modules in SCC alphabetically by absolute path** (deterministic order)
+  - [ ] Ensures reproducible builds (same input → same compilation order)
+- [ ] Implement self-import detection as ERROR
+  - [ ] Self-imports (A → A) create 1-node SCC with self-edge
+  - [ ] Detect self-import as **compile-time ERROR** (not warning)
+  - [ ] Generate clear error: "Module cannot import itself: [path]"
+  - [ ] Rationale: Self-imports serve no useful purpose and indicate a mistake
 - [ ] Implement type-only cycle detection
   - [ ] Check if ALL edges in cycle are type-only
   - [ ] If any edge is value import, cycle is problematic
@@ -281,9 +320,11 @@ This implementation consists of two major components:
 - [ ] Test type-only cycle (should be marked as such)
 - [ ] Test mixed cycle (some type, some value - should warn)
 - [ ] Test no cycles (empty result)
-- [ ] **Test self-import** (A → A)
+- [ ] **Test self-import** (A → A) - should be compile-time ERROR
+- [ ] Test self-import error message is clear
 - [ ] Test cycle path extraction accuracy
 - [ ] Test location tracking for imports in cycle
+- [ ] Test cyclic modules returned in deterministic (alphabetical) order
 - [ ] **Test re-exports in cycles** (A exports B, B exports C, C imports A)
 - [ ] Test Tarjan's algorithm finds all SCCs
 - [ ] Test SCC filtering (only actual cycles, not single nodes)
@@ -421,13 +462,34 @@ This implementation consists of two major components:
 - [ ] Verify O(V+E) complexity in practice
 - [ ] Profile memory usage for large graphs
 
-### Runtime Behavior Tests
-- [ ] Compile cyclic modules to JavaScript
-- [ ] **Run generated JS with Node.js**
-- [ ] Verify initialization order matches spec
-- [ ] Verify deferred initialization semantics
-- [ ] Verify type-only cycles work at runtime (no errors)
-- [ ] Verify module singleton semantics (initialized once)
+### Runtime Behavior Tests (DEFERRED - blocked on code generator)
+Instead of implementing runtime tests now, create a design doc:
+- [ ] Create `.claude/design/runtime-integration-tests.md`
+- [ ] Document test scenarios for when code generator is ready:
+  - [ ] Cyclic module initialization order
+  - [ ] Deferred initialization semantics
+  - [ ] Type-only cycles at runtime
+  - [ ] Module singleton semantics
+  - [ ] Error propagation during init
+- [ ] Define expected JavaScript output patterns
+- [ ] Define Node.js test harness approach
+- [ ] Mark as "blocked on code generator"
+
+### Test Infrastructure (Dual Approach)
+
+**Fixture-based tests (version controlled):**
+- [ ] Create `packages/core/src/module-loader/__fixtures__/` directory
+- [ ] Create `simple-import/` fixture - Basic A imports B
+- [ ] Create `diamond-dependency/` fixture - A → B,C → D
+- [ ] Create `type-only-cycle/` fixture - Safe circular type imports
+- [ ] Create `value-cycle/` fixture - Unsafe circular value imports
+
+**Temp directory tests (isolation for edge cases):**
+- [ ] Use Node.js `fs.mkdtempSync()` for test isolation
+- [ ] Create symlinks dynamically for symlink tests
+- [ ] Set permissions dynamically for permission tests
+- [ ] Clean up temp dirs after each test
+- [ ] Use for: symlink tests, permission tests, Unicode paths, case sensitivity
 
 ### Example Programs
 - [ ] Create `examples/module-resolution/` directory
@@ -612,6 +674,15 @@ This implementation consists of two major components:
   - [ ] Path resolution algorithm
   - [ ] Error collection strategy
 - [ ] Add examples to JSDoc where helpful
+
+### Package and Spec Updates
+- [ ] Rename `packages/stdlib` package.json name from `@vibefun/stdlib` to `@vibefun/std`
+- [ ] Update all internal imports across the monorepo that reference `@vibefun/stdlib`
+- [ ] Update spec `docs/spec/08-modules.md` examples to use `@vibefun/std`
+  - [ ] Update import examples throughout the file
+  - [ ] Update any references to stdlib package name
+- [ ] Verify module resolution: standard node_modules lookup for `@vibefun/*` (no special handling)
+- [ ] Update root package.json workspace references if needed
 
 ### Do NOT
 - [ ] ❌ Update root CLAUDE.md (per documentation rules)
