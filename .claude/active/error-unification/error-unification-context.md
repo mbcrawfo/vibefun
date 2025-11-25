@@ -1,6 +1,6 @@
 # Error Unification - Context Document
 
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-11-25 (Review Complete)
 
 ## Key Design Decisions
 
@@ -82,6 +82,60 @@ Pass `source: string` through the entire compilation pipeline.
 
 **Rationale:** All error messages should show source context with `^` pointer. This requires source to be available everywhere.
 
+### 11. UnifyContext Pattern for Unification (Resolved 2025-11-25)
+Pass a context object through unification that includes location.
+
+```typescript
+interface UnifyContext {
+    loc: Location;           // Source location for errors
+    source?: string;         // Optional source for formatting
+}
+
+function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution
+```
+
+**Rationale:**
+- Extensible for future needs (source, error collector, etc.)
+- Clear ownership of error context
+- Single point of change if context needs expansion
+
+### 12. Internal vs User-Facing Error Classification (Resolved 2025-11-25)
+Detailed classification of errors in unify.ts and patterns.ts.
+
+**unify.ts (17 total throws):**
+- 10 user-facing → VF4xxx codes
+- 7 internal assertions → remain plain Error
+
+**patterns.ts (11 total throws):**
+- 8 user-facing → VF4xxx codes
+- 3 internal assertions → remain plain Error
+
+**desugarListWithConcats.ts (2 throws):**
+- 0 user-facing (both are internal assertions) → remain plain Error
+
+### 13. Phase 5 Split (Resolved 2025-11-25)
+Split Phase 5 into three sub-phases for incremental progress.
+
+- **Phase 5a:** Define VF4xxx codes, create UnifyContext, basic typechecker.ts migration
+- **Phase 5b:** Add UnifyContext to unify() signature, migrate unify.ts and patterns.ts
+- **Phase 5c:** Migrate infer/*.ts files, delete old infrastructure
+
+### 14. Message Template Syntax (Resolved 2025-11-25)
+Use `{paramName}` syntax for message templates.
+
+```typescript
+messageTemplate: "Cannot unify {t1} with {t2}"
+```
+
+### 15. Utility Function Relocation (Resolved 2025-11-25)
+Move utilities from `errors.ts` to `typechecker/format.ts`.
+
+Functions to move:
+- `typeToString(type: Type): string`
+- `typeSchemeToString(scheme: TypeScheme): string`
+- `findSimilarStrings(target, candidates, maxDistance): string[]`
+- `levenshteinDistance(a, b): number`
+
 ## Critical Files
 
 ### Files to Create
@@ -93,9 +147,9 @@ Pass `source: string` through the entire compilation pipeline.
 | `packages/core/src/diagnostics/registry.test.ts` | Tests (side-by-side) |
 | `packages/core/src/diagnostics/factory.ts` | Error creation helpers |
 | `packages/core/src/diagnostics/factory.test.ts` | Tests (side-by-side) |
-| `packages/core/src/diagnostics/warning-collector.ts` | Warning accumulation (NEW) |
+| `packages/core/src/diagnostics/warning-collector.ts` | Warning accumulation |
 | `packages/core/src/diagnostics/warning-collector.test.ts` | Tests (side-by-side) |
-| `packages/core/src/diagnostics/test-helpers.ts` | Test utilities: expectDiagnostic(), expectWarning() (NEW) |
+| `packages/core/src/diagnostics/test-helpers.ts` | Test utilities: expectDiagnostic(), expectWarning() |
 | `packages/core/src/diagnostics/test-helpers.test.ts` | Tests (side-by-side) |
 | `packages/core/src/diagnostics/codes/lexer.ts` | VF1xxx definitions |
 | `packages/core/src/diagnostics/codes/parser.ts` | VF2xxx definitions |
@@ -103,6 +157,7 @@ Pass `source: string` through the entire compilation pipeline.
 | `packages/core/src/diagnostics/codes/typechecker.ts` | VF4xxx definitions (~45 codes) |
 | `packages/core/src/diagnostics/codes/modules.ts` | VF5xxx definitions |
 | `packages/core/src/diagnostics/index.ts` | Public API exports |
+| `packages/core/src/typechecker/format.ts` | Type formatting utilities (moved from errors.ts) |
 | `scripts/generate-error-docs.ts` | Documentation generator |
 
 ### Files to Modify
@@ -127,7 +182,7 @@ Pass `source: string` through the entire compilation pipeline.
 | File | When | Reason |
 |------|------|--------|
 | `packages/core/src/desugarer/DesugarError.ts` | Phase 4 | Replaced by unified diagnostics |
-| `packages/core/src/typechecker/errors.ts` | Phase 5 | DELETE factory functions entirely. Move `typeToString()` utilities elsewhere |
+| `packages/core/src/typechecker/errors.ts` | Phase 5c | Move utilities to `format.ts` first, then delete factory functions and TypeCheckerError class |
 | `packages/core/src/utils/error.ts` | Phase 8 | Old error classes replaced by VibefunDiagnostic |
 
 ### Files to Archive/Update

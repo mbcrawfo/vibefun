@@ -1,8 +1,8 @@
 # Unified Error and Warning System Plan
 
 **Created:** 2025-11-24
-**Last Updated:** 2025-11-25
-**Status:** Planning (Reviewed)
+**Last Updated:** 2025-11-25 (Review Complete)
+**Status:** Ready for Implementation
 **Branch:** error-unification
 
 ## Overview
@@ -57,9 +57,53 @@ These decisions were made during plan review (2025-11-25):
 ### 5. Plain Error Throws
 **Decision:** Convert user-facing plain `Error` throws to diagnostics.
 
-- `unify.ts` has 18+ plain `Error` throws → convert to VF4xxx
-- `desugarListWithConcats.ts` plain errors → convert to VF3xxx
+- `unify.ts` has 17 plain `Error` throws (10 user-facing, 7 internal) → convert user-facing to VF4xxx
+- `patterns.ts` has 11 plain `Error` throws (8 user-facing, 3 internal) → convert user-facing to VF4xxx
+- `desugarListWithConcats.ts` errors are internal assertions → remain plain `Error`
 - Leave internal assertion-style errors as plain `Error`
+
+### 6. Location Threading in Unification (Added 2025-11-25)
+**Decision:** Use UnifyContext pattern to thread location through unification.
+
+```typescript
+// New context type for unification
+interface UnifyContext {
+    loc: Location;           // Source location for errors
+    source?: string;         // Optional source for formatting
+}
+
+// Updated signature
+function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution
+
+// Usage in error throws
+throwDiagnostic("VF4020", ctx.loc, { t1: typeToString(t1), t2: typeToString(t2) });
+```
+
+**Benefits:**
+- Extensible for future needs (source, error collector, etc.)
+- Clear ownership of error context
+- Single point of change if context needs expansion
+
+### 7. Message Template Syntax (Added 2025-11-25)
+**Decision:** Use `{paramName}` syntax for message templates.
+
+```typescript
+messageTemplate: "Cannot unify {t1} with {t2}"
+// Interpolated with: { t1: "Int", t2: "String" }
+// Result: "Cannot unify Int with String"
+```
+
+### 8. Utility Function Relocation (Added 2025-11-25)
+**Decision:** Move utilities from `errors.ts` to `typechecker/format.ts`.
+
+Files to create:
+- `packages/core/src/typechecker/format.ts` - Type formatting utilities
+
+Functions to move:
+- `typeToString(type: Type): string`
+- `typeSchemeToString(scheme: TypeScheme): string`
+- `findSimilarStrings(target, candidates, maxDistance): string[]`
+- `levenshteinDistance(a, b): number`
 
 ## Error Code Ranges
 
@@ -316,26 +360,48 @@ Define parser error codes and migrate parser throw sites (~15 codes including ne
 
 ### Phase 4: Desugarer Migration
 
-Define desugarer error codes and migrate DesugarError usage (~5 codes).
+Define desugarer error codes and migrate DesugarError usage (~3 user-facing codes).
 
 **Migration targets:**
 - `desugarer.ts`, `desugarListPattern.ts`, `buildConsChain.ts`
-- `desugarListWithConcats.ts` - Convert plain `Error` throws to diagnostics
 - Delete `DesugarError.ts`
 
-### Phase 5: Type Checker Migration
+**Note:** `desugarListWithConcats.ts` errors are internal assertions and remain plain `Error`.
 
-**Full replacement approach** - Delete factory functions, replace all call sites with `createDiagnostic()`.
+### Phase 5a: Type Checker Codes & Basic Migration
+
+Define VF4xxx codes and set up infrastructure for type checker migration.
+
+**Key deliverables:**
+- Define ~45 VF4xxx codes in `codes/typechecker.ts`
+- Add `source` parameter to `typecheck()` entry point
+- Create `UnifyContext` type for location threading
+- Create `typechecker/format.ts` with `typeToString()` utilities
+- Migrate `typechecker.ts` factory calls to `throwDiagnostic()`
+- Keep `TypeCheckerError` temporarily (for `infer/*.ts`)
+
+### Phase 5b: Unification & Pattern Migration
+
+Migrate unify.ts and patterns.ts with the UnifyContext pattern.
 
 **Migration targets:**
-- `errors.ts` - DELETE factory functions, keep only `typeToString()` utilities
-- `typechecker.ts` - Add `source` parameter, use `createDiagnostic()`
-- `unify.ts` - Convert 18+ plain `Error` throws to VF4xxx diagnostics
-- `patterns.ts` - Convert 12+ throws to diagnostics
-- All `infer/*.ts` files - Replace factory calls
-- Delete `TypeCheckerError` class entirely
+- Add `UnifyContext` parameter to `unify()` signature
+- Update all `unify()` call sites (~15-20 changes)
+- Convert `unify.ts` user-facing errors (10 errors) to VF4xxx diagnostics
+- Convert `patterns.ts` user-facing errors (8 errors) to VF4xxx diagnostics
+- Leave internal assertion errors as plain `Error` (7 in unify.ts, 3 in patterns.ts)
 
-**Estimated codes:** ~45 (including unification errors)
+### Phase 5c: Inference Migration & Cleanup
+
+Complete the type checker migration and remove old infrastructure.
+
+**Migration targets:**
+- Migrate all `infer/*.ts` files to `throwDiagnostic()`
+- Delete `TypeCheckerError` class from `errors.ts`
+- Delete factory functions from `errors.ts`
+- Verify all call sites use new diagnostic pattern
+
+**Estimated total codes for Phase 5:** ~45 (including unification errors)
 
 ### Phase 6: Module System Integration
 
@@ -388,12 +454,14 @@ const warning = expectWarning(collector, "VF4900");
 expect(warning.message).toContain("Unreachable");
 ```
 
-**Key test files requiring updates:**
-- `packages/core/src/parser/parser-errors.test.ts` (299 lines - largest)
-- `packages/core/src/typechecker/errors.test.ts` (464 lines)
-- `packages/core/src/utils/error.test.ts` (103 lines)
-- `packages/core/src/desugarer/DesugarError.test.ts` (42 lines)
-- Lexer tests across multiple files (75+ assertions)
+**Key test files requiring updates (~85-95 tests total):**
+- `packages/core/src/parser/semicolon-required.test.ts` (54 assertions - largest)
+- `packages/core/src/parser/parser-errors.test.ts` (62 assertions)
+- `packages/core/src/typechecker/errors.test.ts` (52 assertions)
+- `packages/core/src/typechecker/unify.test.ts` (16 assertions)
+- `packages/core/src/utils/error.test.ts` (7 assertions)
+- `packages/core/src/desugarer/DesugarError.test.ts` (3 assertions)
+- Additional test files across 26 files with `toThrow` assertions
 
 ## Success Criteria
 
