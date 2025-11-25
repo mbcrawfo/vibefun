@@ -6,7 +6,7 @@
 
 import type { Lexer } from "./lexer.js";
 
-import { LexerError } from "../utils/index.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 
 /**
  * Skip whitespace and comments
@@ -102,6 +102,6 @@ function skipMultiLineComment(lexer: Lexer): void {
 
     // Check if comment was properly closed
     if (depth > 0) {
-        throw new LexerError("Unterminated multi-line comment", start, "Add closing */");
+        throwDiagnostic("VF1300", start);
     }
 }

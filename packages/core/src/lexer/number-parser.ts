@@ -7,7 +7,7 @@
 import type { Location, Token } from "../types/index.js";
 import type { Lexer } from "./lexer.js";
 
-import { LexerError } from "../utils/index.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 import { isDigit, isHexDigit } from "./character-utils.js";
 
 /**
@@ -55,11 +55,7 @@ function readDecimalNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: 
             // Skip underscore, but validate it's between digits
             const next = lexer.peek(1);
             if (!isDigit(next)) {
-                throw new LexerError(
-                    "Invalid number separator: underscore must be between digits",
-                    lexer.makeLocation(),
-                    "Remove trailing underscore or add more digits",
-                );
+                throwDiagnostic("VF1100", lexer.makeLocation());
             }
             lexer.advance(); // skip underscore
         } else {
@@ -78,11 +74,7 @@ function readDecimalNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: 
             if (char === "_") {
                 const next = lexer.peek(1);
                 if (!isDigit(next)) {
-                    throw new LexerError(
-                        "Invalid number separator: underscore must be between digits",
-                        lexer.makeLocation(),
-                        "Remove trailing underscore or add more digits",
-                    );
+                    throwDiagnostic("VF1100", lexer.makeLocation());
                 }
                 lexer.advance(); // skip underscore
             } else {
@@ -103,11 +95,7 @@ function readDecimalNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: 
 
         // Must have at least one digit after exponent
         if (!isDigit(lexer.peek())) {
-            throw new LexerError(
-                "Invalid scientific notation: expected digit after exponent",
-                lexer.makeLocation(),
-                "Add at least one digit after 'e' or 'E'",
-            );
+            throwDiagnostic("VF1104", lexer.makeLocation());
         }
 
         // Read exponent digits (with optional underscores)
@@ -116,11 +104,7 @@ function readDecimalNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: 
             if (char === "_") {
                 const next = lexer.peek(1);
                 if (!isDigit(next)) {
-                    throw new LexerError(
-                        "Invalid number separator: underscore must be between digits",
-                        lexer.makeLocation(),
-                        "Remove trailing underscore or add more digits",
-                    );
+                    throwDiagnostic("VF1100", lexer.makeLocation());
                 }
                 lexer.advance(); // skip underscore
             } else {
@@ -162,11 +146,7 @@ function readHexNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: bool
             // Skip underscore, but validate it's between hex digits
             const next = lexer.peek(1);
             if (!isHexDigit(next)) {
-                throw new LexerError(
-                    "Invalid number separator: underscore must be between hex digits",
-                    lexer.makeLocation(),
-                    "Remove trailing underscore or add more hex digits",
-                );
+                throwDiagnostic("VF1100", lexer.makeLocation());
             }
             lexer.advance(); // skip underscore
         } else {
@@ -176,11 +156,7 @@ function readHexNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: bool
 
     // Must have at least one hex digit
     if (value.length === 0) {
-        throw new LexerError(
-            "Invalid hex literal: expected at least one hex digit after 0x",
-            lexer.makeLocation(),
-            "Add hex digits (0-9, a-f, A-F) after 0x",
-        );
+        throwDiagnostic("VF1102", lexer.makeLocation());
     }
 
     return {
@@ -214,11 +190,7 @@ function readBinaryNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: b
             // Skip underscore, but validate it's between binary digits
             const next = lexer.peek(1);
             if (next !== "0" && next !== "1") {
-                throw new LexerError(
-                    "Invalid number separator: underscore must be between binary digits",
-                    lexer.makeLocation(),
-                    "Remove trailing underscore or add more binary digits",
-                );
+                throwDiagnostic("VF1100", lexer.makeLocation());
             }
             lexer.advance(); // skip underscore
         } else {
@@ -228,11 +200,7 @@ function readBinaryNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: b
 
     // Must have at least one binary digit
     if (value.length === 0) {
-        throw new LexerError(
-            "Invalid binary literal: expected at least one binary digit after 0b",
-            lexer.makeLocation(),
-            "Add binary digits (0 or 1) after 0b",
-        );
+        throwDiagnostic("VF1101", lexer.makeLocation());
     }
 
     return {

@@ -1,3 +1,11 @@
+// export * from "./parser.js";
+// export * from "./desugarer.js";
+// export * from "./typechecker.js";
+// export * from "./modules.js";
+// export * from "./codegen.js";
+
+import { registerLexerCodes } from "./lexer.js";
+
 /**
  * Aggregate exports for all diagnostic code definitions
  *
@@ -16,19 +24,23 @@
  * See codes/README.md for instructions on adding new error codes.
  */
 
-// Phase-specific code exports will be added as each phase is implemented:
-// export * from "./lexer.js";
-// export * from "./parser.js";
-// export * from "./desugarer.js";
-// export * from "./typechecker.js";
-// export * from "./modules.js";
-// export * from "./codegen.js";
+// Phase-specific code exports
+export * from "./lexer.js";
+
+let initialized = false;
 
 /**
  * Initialize all diagnostic codes by registering them with the global registry.
- * This function should be called once at application startup.
+ * This function is idempotent and can be called multiple times safely.
+ * It's called automatically when importing from diagnostics.
  */
 export function initializeDiagnosticCodes(): void {
-    // Registration will be added as each phase is implemented.
-    // The individual phase modules will call registry.registerAll() with their codes.
+    if (initialized) return;
+    initialized = true;
+
+    registerLexerCodes();
+    // Additional phase registrations will be added as they are implemented
 }
+
+// Auto-initialize when this module is imported
+initializeDiagnosticCodes();

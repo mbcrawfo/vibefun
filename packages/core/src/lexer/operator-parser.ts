@@ -7,7 +7,7 @@
 import type { Token } from "../types/index.js";
 import type { Lexer } from "./lexer.js";
 
-import { LexerError } from "../utils/index.js";
+import { throwDiagnostic } from "../diagnostics/index.js";
 
 /**
  * Read an operator or punctuation token using maximal munch algorithm
@@ -169,10 +169,6 @@ export function readOperatorOrPunctuation(lexer: Lexer, hadLeadingWhitespace: bo
             return { type: "OP_AMPERSAND", value: "&", loc: start, ...ws };
 
         default:
-            throw new LexerError(
-                `Unexpected character: '${char}'`,
-                start,
-                "This character is not valid in vibefun syntax",
-            );
+            throwDiagnostic("VF1400", start, { char: char ?? "EOF" });
     }
 }

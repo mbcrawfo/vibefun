@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { LexerError } from "../utils/index.js";
+import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Whitespace", () => {
@@ -275,23 +275,19 @@ describe("Lexer - Comment Error Cases", () => {
     it("should throw on unterminated multi-line comment", () => {
         const lexer = new Lexer("let /* comment", "test.vf");
 
-        expect(() => lexer.tokenize()).toThrow(LexerError);
-
-        // Create new lexer to test error message
-        const lexer2 = new Lexer("let /* unterminated", "test.vf");
-        expect(() => lexer2.tokenize()).toThrow("Unterminated");
+        expectDiagnostic(() => lexer.tokenize(), "VF1300");
     });
 
     it("should throw on unterminated nested comment", () => {
         const lexer = new Lexer("let /* outer /* inner */", "test.vf");
 
-        expect(() => lexer.tokenize()).toThrow(LexerError);
+        expectDiagnostic(() => lexer.tokenize(), "VF1300");
     });
 
     it("should throw on deeply unterminated nested comment", () => {
         const lexer = new Lexer("let /* 1 /* 2 /* 3 */ 2 */", "test.vf");
 
-        expect(() => lexer.tokenize()).toThrow(LexerError);
+        expectDiagnostic(() => lexer.tokenize(), "VF1300");
     });
 
     it("should include location in error for unterminated comment", () => {
@@ -301,10 +297,11 @@ describe("Lexer - Comment Error Cases", () => {
             lexer.tokenize();
             expect.fail("Should have thrown an error");
         } catch (error) {
-            expect(error).toBeInstanceOf(LexerError);
-            const lexerError = error as LexerError;
-            expect(lexerError.location).toBeDefined();
-            expect(lexerError.help).toBe("Add closing */");
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            const diagnostic = error as VibefunDiagnostic;
+            expect(diagnostic.code).toBe("VF1300");
+            expect(diagnostic.location).toBeDefined();
+            expect(diagnostic.hint).toBe("Add closing */");
         }
     });
 

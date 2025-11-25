@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { LexerError } from "../utils/index.js";
+import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Core Functionality", () => {
@@ -265,7 +265,7 @@ describe("Lexer - Core Functionality", () => {
         it("should throw error for unexpected characters", () => {
             const lexer = new Lexer("@#$", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(LexerError);
+            expectDiagnostic(() => lexer.tokenize(), "VF1400");
         });
 
         it("should include location in error message", () => {
@@ -275,9 +275,9 @@ describe("Lexer - Core Functionality", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location).toMatchObject({
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location).toMatchObject({
                     line: 2,
                     column: 3,
                 });
@@ -533,25 +533,25 @@ describe("Lexer - Error Recovery and Handling", () => {
         it("should stop tokenization on invalid character", () => {
             const lexer = new Lexer("let x = 42 @ y = 10", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/Unexpected character/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1400");
         });
 
         it("should stop tokenization on unterminated string", () => {
             const lexer = new Lexer('let x = "hello', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/Unterminated string/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1002");
         });
 
         it("should stop tokenization on invalid escape sequence", () => {
             const lexer = new Lexer('"hello\\q"', "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/Invalid escape sequence/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1010");
         });
 
         it("should stop tokenization on unterminated multi-line comment", () => {
             const lexer = new Lexer("let x = 42 /* comment", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/Unterminated multi-line comment/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1300");
         });
     });
 
@@ -563,10 +563,11 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("Unexpected character: '@'");
-                expect(lexerError.help).toContain("not valid in vibefun syntax");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.code).toBe("VF1400");
+                expect(diagnostic.message).toContain("@");
+                expect(diagnostic.hint).toContain("not valid");
             }
         });
 
@@ -577,9 +578,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("Unterminated string");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.code).toBe("VF1002");
             }
         });
 
@@ -590,10 +591,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("Invalid hex literal");
-                expect(lexerError.help).toContain("Add hex digits");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.code).toBe("VF1102");
+                expect(diagnostic.hint).toContain("hex digit");
             }
         });
 
@@ -604,10 +605,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("Invalid binary literal");
-                expect(lexerError.help).toContain("Add binary digits");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.code).toBe("VF1101");
+                expect(diagnostic.hint).toContain("binary digit");
             }
         });
 
@@ -618,10 +619,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("Invalid scientific notation");
-                expect(lexerError.help).toContain("Add at least one digit");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.code).toBe("VF1104");
+                expect(diagnostic.hint).toContain("digit");
             }
         });
 
@@ -632,10 +633,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("Unterminated multi-line comment");
-                expect(lexerError.help).toContain("Add closing */");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.code).toBe("VF1300");
+                expect(diagnostic.hint).toContain("*/");
             }
         });
     });
@@ -648,9 +649,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location).toMatchObject({
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location).toMatchObject({
                     file: "test.vf",
                     line: 1,
                     column: 9, // @ is at column 9
@@ -665,10 +666,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location?.file).toBe("test.vf");
-                expect(lexerError.location?.line).toBe(1);
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location?.file).toBe("test.vf");
+                expect(diagnostic.location?.line).toBe(1);
             }
         });
 
@@ -679,9 +680,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location).toMatchObject({
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location).toMatchObject({
                     line: 2, // @ is on line 2
                     column: 9,
                 });
@@ -695,10 +696,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
                 // Error should be reported at the start of the comment
-                expect(lexerError.location?.line).toBe(2);
+                expect(diagnostic.location?.line).toBe(2);
             }
         });
     });
@@ -711,9 +712,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location?.file).toBe("myfile.vf");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location?.file).toBe("myfile.vf");
             }
         });
 
@@ -724,9 +725,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location?.file).toBe("<input>");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location?.file).toBe("<input>");
             }
         });
     });
@@ -740,10 +741,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("@");
-                expect(lexerError.location?.column).toBe(1); // @ is first
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.message).toContain("@");
+                expect(diagnostic.location?.column).toBe(1); // @ is first
             }
         });
 
@@ -754,9 +755,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.message).toContain("@");
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.message).toContain("@");
             }
         });
     });
@@ -769,10 +770,10 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location?.column).toBe(1);
-                expect(lexerError.location?.offset).toBe(0);
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location?.column).toBe(1);
+                expect(diagnostic.location?.offset).toBe(0);
             }
         });
 
@@ -783,9 +784,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location?.column).toBe(4); // After 3 spaces
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location?.column).toBe(4); // After 3 spaces
             }
         });
 
@@ -796,9 +797,9 @@ describe("Lexer - Error Recovery and Handling", () => {
                 lexer.tokenize();
                 expect.fail("Should have thrown an error");
             } catch (error) {
-                expect(error).toBeInstanceOf(LexerError);
-                const lexerError = error as LexerError;
-                expect(lexerError.location?.line).toBe(2);
+                expect(error).toBeInstanceOf(VibefunDiagnostic);
+                const diagnostic = error as VibefunDiagnostic;
+                expect(diagnostic.location?.line).toBe(2);
             }
         });
     });

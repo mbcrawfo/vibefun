@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { LexerError } from "../utils/error.js";
+import { expectDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Decimal Integers", () => {
@@ -227,25 +227,21 @@ describe("Lexer - Scientific Notation", () => {
     });
 
     it("should throw error on scientific notation without exponent digits", () => {
-        const lexer1 = new Lexer("1e", "test.vf");
-        const lexer2 = new Lexer("1e", "test.vf");
+        const lexer = new Lexer("1e", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow(/expected digit after exponent/i);
+        expectDiagnostic(() => lexer.tokenize(), "VF1104");
     });
 
     it("should throw error on scientific notation with only sign", () => {
-        const lexer1 = new Lexer("1e+", "test.vf");
-        const lexer2 = new Lexer("1e+", "test.vf");
+        const lexer = new Lexer("1e+", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow(/expected digit after exponent/i);
+        expectDiagnostic(() => lexer.tokenize(), "VF1104");
     });
 
     it("should throw error on scientific notation with invalid character", () => {
         const lexer = new Lexer("1e+x", "test.vf");
 
-        expect(() => lexer.tokenize()).toThrow(LexerError);
+        expectDiagnostic(() => lexer.tokenize(), "VF1104");
     });
 
     it("should tokenize scientific notation with leading zeros in exponent", () => {
@@ -354,17 +350,15 @@ describe("Lexer - Hexadecimal Literals", () => {
     });
 
     it("should throw error on hex literal without digits", () => {
-        const lexer1 = new Lexer("0x", "test.vf");
-        const lexer2 = new Lexer("0x", "test.vf");
+        const lexer = new Lexer("0x", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow(/expected at least one hex digit/i);
+        expectDiagnostic(() => lexer.tokenize(), "VF1102");
     });
 
     it("should throw error on hex literal with invalid character", () => {
         const lexer = new Lexer("0xG", "test.vf");
 
-        expect(() => lexer.tokenize()).toThrow(LexerError);
+        expectDiagnostic(() => lexer.tokenize(), "VF1102");
     });
 
     it("should tokenize hex followed by operator", () => {
@@ -440,11 +434,9 @@ describe("Lexer - Binary Literals", () => {
     });
 
     it("should throw error on binary literal without digits", () => {
-        const lexer1 = new Lexer("0b", "test.vf");
-        const lexer2 = new Lexer("0b", "test.vf");
+        const lexer = new Lexer("0b", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow(/expected at least one binary digit/i);
+        expectDiagnostic(() => lexer.tokenize(), "VF1101");
     });
 
     it("should throw error on binary literal with invalid digit", () => {
@@ -647,19 +639,19 @@ describe("Lexer - Number Separators (Underscores)", () => {
         it("should throw error on integer ending with underscore", () => {
             const lexer = new Lexer("123_", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
 
         it("should throw error on integer with trailing underscore before operator", () => {
             const lexer = new Lexer("123_+", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
 
         it("should throw error on integer with consecutive underscores", () => {
             const lexer = new Lexer("1__000", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
     });
 
@@ -707,7 +699,7 @@ describe("Lexer - Number Separators (Underscores)", () => {
         it("should throw error on float with trailing underscore in fractional part", () => {
             const lexer = new Lexer("3.14_", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
     });
 
@@ -745,7 +737,7 @@ describe("Lexer - Number Separators (Underscores)", () => {
         it("should throw error on scientific notation with trailing underscore in exponent", () => {
             const lexer = new Lexer("1e10_", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
     });
 
@@ -783,7 +775,7 @@ describe("Lexer - Number Separators (Underscores)", () => {
         it("should throw error on hex with trailing underscore", () => {
             const lexer = new Lexer("0xFF_", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
 
         it("should allow underscore immediately after prefix", () => {
@@ -831,7 +823,7 @@ describe("Lexer - Number Separators (Underscores)", () => {
         it("should throw error on binary with trailing underscore", () => {
             const lexer = new Lexer("0b1010_", "test.vf");
 
-            expect(() => lexer.tokenize()).toThrow(/underscore must be between/);
+            expectDiagnostic(() => lexer.tokenize(), "VF1100");
         });
 
         it("should allow underscore immediately after prefix", () => {
