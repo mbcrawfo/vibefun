@@ -14,6 +14,8 @@
     "files": [
         "dist/**/*.js",
         "!dist/**/*.test.js",
+        "dist/**/*.js.map",
+        "!dist/**/*.test.js.map",
         "dist/**/*.d.ts",
         "!dist/**/*.test.d.ts",
         "dist/**/*.d.ts.map",

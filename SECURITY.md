@@ -16,7 +16,7 @@ We take the security of Vibefun seriously. If you discover a security vulnerabil
 
 Instead, please report security issues via GitHub's private vulnerability reporting feature:
 
-1. Go to the [Security tab](https://github.com/[owner]/vibefun/security/advisories/new)
+1. Go to the [Security tab](https://github.com/mbcrawfo/vibefun/security/advisories/new)
 2. Click "Report a vulnerability"
 3. Provide detailed information about the vulnerability
 
