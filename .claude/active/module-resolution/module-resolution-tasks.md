@@ -194,63 +194,63 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 1.6: Separate Compiler Config Module
+## Phase 1.6: Separate Compiler Config Module ✅ COMPLETE
 
 ### Create Config Module Structure
-- [ ] Create directory: `packages/core/src/config/`
-- [ ] Create file: `packages/core/src/config/types.ts`
-  - [ ] Move `PathMappings` type
-  - [ ] Move `VibefunCompilerOptions` type
-  - [ ] Move `VibefunConfig` type
-  - [ ] Move `ConfigLoadResult` type
-  - [ ] Add JSDoc documentation
-- [ ] Create file: `packages/core/src/config/config-loader.ts`
-  - [ ] Move `isFile()` helper function
-  - [ ] Move `findProjectRoot()` function
-  - [ ] Move `loadVibefunConfig()` function
-  - [ ] Move `loadConfigFromEntryPoint()` function
-  - [ ] Import types from `./types.js`
-  - [ ] Add JSDoc documentation
-- [ ] Create file: `packages/core/src/config/index.ts`
-  - [ ] Export all public functions
-  - [ ] Export all public types
+- [x] Create directory: `packages/core/src/config/`
+- [x] Create file: `packages/core/src/config/types.ts`
+  - [x] Move `PathMappings` type
+  - [x] Move `VibefunCompilerOptions` type
+  - [x] Move `VibefunConfig` type
+  - [x] Move `ConfigLoadResult` type
+  - [x] Add JSDoc documentation
+- [x] Create file: `packages/core/src/config/config-loader.ts`
+  - [x] Move `isFile()` helper function
+  - [x] Move `findProjectRoot()` function
+  - [x] Move `loadVibefunConfig()` function
+  - [x] Move `loadConfigFromEntryPoint()` function
+  - [x] Import types from `./types.js`
+  - [x] Add JSDoc documentation
+- [x] Create file: `packages/core/src/config/index.ts`
+  - [x] Export all public functions
+  - [x] Export all public types
 
 ### Refactor Module-Loader
-- [ ] Rename `module-loader/config-loader.ts` → `module-loader/path-mapping.ts`
-  - [ ] Remove moved types and functions
-  - [ ] Import config types from `../config/index.js`
-  - [ ] Keep `PathMappingResult` type
-  - [ ] Keep `applyPathMapping()` function
-  - [ ] Keep `getAllPathMappings()` function
-  - [ ] Keep `resolveMappedPath()` function
-  - [ ] Keep private helpers: `parsePattern()`, `matchPattern()`, `applyReplacement()`
-  - [ ] Update JSDoc module documentation
-- [ ] Update `module-loader/index.ts`
-  - [ ] Import from `./path-mapping.js` instead of `./config-loader.js`
-  - [ ] Re-export config types from `../config/index.js` (backwards compatibility)
+- [x] Rename `module-loader/config-loader.ts` → `module-loader/path-mapping.ts`
+  - [x] Remove moved types and functions
+  - [x] Import config types from `../config/index.js`
+  - [x] Keep `PathMappingResult` type
+  - [x] Keep `applyPathMapping()` function
+  - [x] Keep `getAllPathMappings()` function
+  - [x] Keep `resolveMappedPath()` function
+  - [x] Keep private helpers: `parsePattern()`, `matchPattern()`, `applyReplacement()`
+  - [x] Update JSDoc module documentation
+- [x] Update `module-loader/index.ts`
+  - [x] Import from `./path-mapping.js` instead of `./config-loader.js`
+  - [x] Re-export config types from `../config/index.js` (backwards compatibility)
 
 ### Move and Split Tests
-- [ ] Create `packages/core/src/config/config-loader.test.ts`
-  - [ ] Move tests for `findProjectRoot()`
-  - [ ] Move tests for `loadVibefunConfig()`
-  - [ ] Move tests for `loadConfigFromEntryPoint()`
-  - [ ] Update imports
-- [ ] Rename `module-loader/config-loader.test.ts` → `module-loader/path-mapping.test.ts`
-  - [ ] Keep tests for `applyPathMapping()`
-  - [ ] Keep tests for `getAllPathMappings()`
-  - [ ] Keep tests for `resolveMappedPath()`
-  - [ ] Update imports
+- [x] Create `packages/core/src/config/config-loader.test.ts`
+  - [x] Move tests for `findProjectRoot()`
+  - [x] Move tests for `loadVibefunConfig()`
+  - [x] Move tests for `loadConfigFromEntryPoint()`
+  - [x] Update imports
+- [x] Rename `module-loader/config-loader.test.ts` → `module-loader/path-mapping.test.ts`
+  - [x] Keep tests for `applyPathMapping()`
+  - [x] Keep tests for `getAllPathMappings()`
+  - [x] Keep tests for `resolveMappedPath()`
+  - [x] Update imports
 
 ### Update Core Package Exports
-- [ ] Update `packages/core/src/index.ts`
-  - [ ] Add config exports: `findProjectRoot`, `loadVibefunConfig`, `loadConfigFromEntryPoint`
-  - [ ] Add config type exports: `VibefunConfig`, `VibefunCompilerOptions`, `ConfigLoadResult`
+- [x] Update `packages/core/src/index.ts`
+  - [x] Add config exports: `findProjectRoot`, `loadVibefunConfig`, `loadConfigFromEntryPoint`
+  - [x] Add config type exports: `VibefunConfig`, `VibefunCompilerOptions`, `ConfigLoadResult`
 
 ### Phase 1.6 Quality Checks
-- [ ] Run `npm run verify`
-- [ ] Ensure all tests pass
-- [ ] Verify no circular dependencies
-- [ ] Verify backwards compatibility of module-loader exports
+- [x] Run `npm run verify`
+- [x] Ensure all tests pass (2914 tests passing)
+- [x] Verify no circular dependencies
+- [x] Verify backwards compatibility of module-loader exports
 
 ---
 
@@ -967,10 +967,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 4/18 (22%)
+**Phases Completed:** 5/18 (28%)
 **Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~115
-**Current Phase:** Phase 1.5c COMPLETE, ready for Phase 1.6
+**Tasks Completed:** ~135
+**Current Phase:** Phase 1.6 COMPLETE, ready for Phase 2
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -978,7 +978,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 1.5a**: Relative Path Resolution (symlinks, normalization, case sensitivity) ✅ COMPLETE
 - **Phase 1.5b**: Package Resolution (node_modules lookup) ✅ COMPLETE
 - **Phase 1.5c**: Config Loading (vibefun.json path mappings) ✅ COMPLETE
-- **Phase 1.6**: Separate Compiler Config Module (config types + loading to core/src/config/)
+- **Phase 1.6**: Separate Compiler Config Module (config types + loading to core/src/config/) ✅ COMPLETE
 - **Phase 2**: Module Loader (with error collection)
 - **Phase 3**: Module Graph + Import Conflict Detection
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
