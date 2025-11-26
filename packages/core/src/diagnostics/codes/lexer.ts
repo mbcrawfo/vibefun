@@ -287,6 +287,29 @@ export const VF1400: DiagnosticDefinition = {
 };
 
 // =============================================================================
+// VF1500-VF1599: Identifier/Keyword Errors
+// =============================================================================
+
+export const VF1500: DiagnosticDefinition = {
+    code: "VF1500",
+    title: "ReservedKeyword",
+    messageTemplate: "'{keyword}' is a reserved keyword for future language features",
+    severity: "error",
+    phase: "lexer",
+    category: "identifier",
+    hintTemplate: "Reserved keywords cannot be used as identifiers",
+    explanation:
+        "This identifier is reserved for future language features and cannot be used as a variable name, " +
+        "function name, or any other user-defined identifier. Choose a different name for your identifier.",
+    example: {
+        bad: "let class = 5",
+        good: "let myClass = 5",
+        description: "Used a different identifier name",
+    },
+    relatedCodes: ["VF1400"],
+};
+
+// =============================================================================
 // Registration
 // =============================================================================
 
@@ -309,6 +332,8 @@ const lexerCodes: readonly DiagnosticDefinition[] = [
     VF1300,
     // Operators/symbols
     VF1400,
+    // Identifiers/keywords
+    VF1500,
 ];
 
 /**

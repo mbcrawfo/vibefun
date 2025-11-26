@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { LexerError } from "../utils/error.js";
+import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Reserved Keywords", () => {
@@ -12,36 +12,25 @@ describe("Lexer - Reserved Keywords", () => {
 
     reservedKeywords.forEach((keyword) => {
         it(`should throw error for reserved keyword '${keyword}'`, () => {
-            const lexer1 = new Lexer(keyword, "test.vf");
-            const lexer2 = new Lexer(keyword, "test.vf");
+            const lexer = new Lexer(keyword, "test.vf");
 
-            expect(() => lexer1.tokenize()).toThrow(LexerError);
-            expect(() => lexer2.tokenize()).toThrow(`'${keyword}' is a reserved keyword for future language features`);
+            expectDiagnostic(() => lexer.tokenize(), "VF1500");
         });
 
         it(`should throw error for reserved keyword '${keyword}' in expression`, () => {
-            const lexer1 = new Lexer(`let ${keyword} = 42`, "test.vf");
-            const lexer2 = new Lexer(`let ${keyword} = 42`, "test.vf");
+            const lexer = new Lexer(`let ${keyword} = 42`, "test.vf");
 
-            expect(() => lexer1.tokenize()).toThrow(LexerError);
-            expect(() => lexer2.tokenize()).toThrow(`'${keyword}' is a reserved keyword for future language features`);
+            expectDiagnostic(() => lexer.tokenize(), "VF1500");
         });
     });
 
     it("should throw error with correct location information", () => {
         const lexer = new Lexer("let async = 5", "test.vf");
 
-        try {
-            lexer.tokenize();
-            expect.fail("Should have thrown an error");
-        } catch (error) {
-            expect(error).toBeInstanceOf(LexerError);
-            if (error instanceof LexerError && error.location) {
-                expect(error.location.file).toBe("test.vf");
-                expect(error.location.line).toBe(1);
-                expect(error.location.column).toBe(5); // 'async' starts at column 5
-            }
-        }
+        const diag = expectDiagnostic(() => lexer.tokenize(), "VF1500");
+        expect(diag.location.file).toBe("test.vf");
+        expect(diag.location.line).toBe(1);
+        expect(diag.location.column).toBe(5); // 'async' starts at column 5
     });
 
     it("should allow reserved keywords in string literals", () => {
@@ -79,35 +68,27 @@ let x = 42`;
     });
 
     it("should error on reserved keyword as function name", () => {
-        const lexer1 = new Lexer("let async = (x) => x", "test.vf");
-        const lexer2 = new Lexer("let async = (x) => x", "test.vf");
+        const lexer = new Lexer("let async = (x) => x", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow("'async' is a reserved keyword for future language features");
+        expectDiagnostic(() => lexer.tokenize(), "VF1500");
     });
 
     it("should error on reserved keyword as type name", () => {
-        const lexer1 = new Lexer("type trait = Int", "test.vf");
-        const lexer2 = new Lexer("type trait = Int", "test.vf");
+        const lexer = new Lexer("type trait = Int", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow("'trait' is a reserved keyword for future language features");
+        expectDiagnostic(() => lexer.tokenize(), "VF1500");
     });
 
     it("should error on reserved keyword as record field name", () => {
-        const lexer1 = new Lexer("{ async: 42 }", "test.vf");
-        const lexer2 = new Lexer("{ async: 42 }", "test.vf");
+        const lexer = new Lexer("{ async: 42 }", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow("'async' is a reserved keyword for future language features");
+        expectDiagnostic(() => lexer.tokenize(), "VF1500");
     });
 
     it("should error on first reserved keyword in sequence", () => {
-        const lexer1 = new Lexer("async await", "test.vf");
-        const lexer2 = new Lexer("async await", "test.vf");
+        const lexer = new Lexer("async await", "test.vf");
 
-        expect(() => lexer1.tokenize()).toThrow(LexerError);
-        expect(() => lexer2.tokenize()).toThrow("'async' is a reserved keyword for future language features");
+        expectDiagnostic(() => lexer.tokenize(), "VF1500");
     });
 
     it("should provide helpful hint in error", () => {
@@ -117,9 +98,9 @@ let x = 42`;
             lexer.tokenize();
             expect.fail("Should have thrown an error");
         } catch (error) {
-            expect(error).toBeInstanceOf(LexerError);
-            if (error instanceof LexerError) {
-                expect(error.help).toBe("Reserved keywords cannot be used as identifiers");
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            if (error instanceof VibefunDiagnostic) {
+                expect(error.hint).toBe("Reserved keywords cannot be used as identifiers");
             }
         }
     });

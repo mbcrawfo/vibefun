@@ -4,4 +4,7 @@ export { Lexer } from "./lexer/index.js";
 export type { Token, Keyword, Location } from "./types/index.js";
 export { Parser } from "./parser/index.js";
 export type { Module, Declaration, Expr, Pattern, TypeExpr, Literal } from "./types/index.js";
-export { VibefunError, LexerError, ParserError, TypeError as VibefunTypeError } from "./utils/index.js";
+
+// Unified diagnostic system
+export { VibefunDiagnostic, createDiagnostic, throwDiagnostic, WarningCollector } from "./diagnostics/index.js";
+export type { DiagnosticSeverity, DiagnosticPhase, Diagnostic } from "./diagnostics/index.js";

@@ -23,6 +23,7 @@ Errors during lexical analysis (tokenization)
 | [VF1104](#vf1104) | InvalidScientificNotation | **Error** |
 | [VF1300](#vf1300) | UnterminatedComment | **Error** |
 | [VF1400](#vf1400) | UnexpectedCharacter | **Error** |
+| [VF1500](#vf1500) | ReservedKeyword | **Error** |
 
 ---
 
@@ -538,4 +539,43 @@ let x = 5 * 3
 ### Hint
 
 > This character is not valid in vibefun syntax
+
+
+---
+
+## VF1500
+
+**ReservedKeyword** **Error**
+
+### Message
+
+> '{keyword}' is a reserved keyword for future language features
+
+### Explanation
+
+This identifier is reserved for future language features and cannot be used as a variable name, function name, or any other user-defined identifier. Choose a different name for your identifier.
+
+### Example
+
+**Problem:**
+
+```vibefun
+let class = 5
+```
+
+**Solution:**
+
+```vibefun
+let myClass = 5
+```
+
+*Used a different identifier name*
+
+### Hint
+
+> Reserved keywords cannot be used as identifiers
+
+### Related
+
+[VF1400](lexer.md#vf1400)
 

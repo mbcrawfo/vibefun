@@ -23,6 +23,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF1104](lexer.md#vf1104) | InvalidScientificNotation | Error | Scientific notation requires at least one digit after the exponent indicator (e or E) |
 | [VF1300](lexer.md#vf1300) | UnterminatedComment | Error | Multi-line comments starting with /* must be closed with */ |
 | [VF1400](lexer.md#vf1400) | UnexpectedCharacter | Error | The lexer encountered a character that is not part of the vibefun language syntax |
+| [VF1500](lexer.md#vf1500) | ReservedKeyword | Error | This identifier is reserved for future language features and cannot be used as a variable name, function name, or any other user-defined identifier |
 | [VF2000](parser.md#vf2000) | ExpectedDeclarationKeyword | Error | The parser expected to find a declaration keyword at this position |
 | [VF2001](parser.md#vf2001) | UnexpectedKeyword | Error | The parser found a keyword that cannot start a declaration |
 | [VF2002](parser.md#vf2002) | ExpectedEquals | Error | A declaration requires an '=' sign to separate the pattern or name from its value or type definition |
@@ -128,7 +129,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 
 ## Errors by Phase
 
-### [Lexer](lexer.md) (13 errors)
+### [Lexer](lexer.md) (14 errors)
 
 Errors during lexical analysis (tokenization)
 
@@ -150,6 +151,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 115
-- **Errors:** 112
+- **Total diagnostic codes:** 116
+- **Errors:** 113
 - **Warnings:** 3
