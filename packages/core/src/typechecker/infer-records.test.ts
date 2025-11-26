@@ -15,6 +15,7 @@ import type { InferenceContext } from "./infer/index.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { TypeError } from "../utils/error.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
@@ -156,7 +157,7 @@ describe("Type Inference - Records", () => {
             loc: testLoc,
         };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError); // Record field access is still TypeError
     });
 
     it("should reject accessing field on non-record", () => {
@@ -180,7 +181,7 @@ describe("Type Inference - Records", () => {
             loc: testLoc,
         };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError); // Record access on non-record is still TypeError
     });
 
     it("should infer type for record update", () => {
@@ -258,7 +259,7 @@ describe("Type Inference - Records", () => {
             loc: testLoc,
         };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(TypeError); // Record update non-existent field is still TypeError
     });
 
     it("should reject type mismatch in record update", () => {
@@ -292,7 +293,7 @@ describe("Type Inference - Records", () => {
             loc: testLoc,
         };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 });
 

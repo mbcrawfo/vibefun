@@ -10,7 +10,7 @@ import type { Type, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { TypeError } from "../../utils/error.js";
-import { constType, funType, primitiveTypes, typeToString } from "../types.js";
+import { constType, funType, primitiveTypes } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
 
@@ -237,24 +237,14 @@ function inferTypeAnnotation(
     const annotationType = convertTypeExpr(expr.typeExpr);
 
     // Unify inferred type with annotation
-    try {
-        const unifySubst = unify(exprResult.type, annotationType);
-        const finalSubst = composeSubst(unifySubst, exprResult.subst);
+    const unifyCtx = { loc: expr.loc };
+    const unifySubst = unify(exprResult.type, annotationType, unifyCtx);
+    const finalSubst = composeSubst(unifySubst, exprResult.subst);
 
-        // Return annotation type (after substitution)
-        const finalType = applySubst(finalSubst, annotationType);
+    // Return annotation type (after substitution)
+    const finalType = applySubst(finalSubst, annotationType);
 
-        return { type: finalType, subst: finalSubst };
-    } catch (error) {
-        if (error instanceof TypeError) {
-            throw error;
-        }
-        throw new TypeError(
-            `Type annotation mismatch`,
-            expr.loc,
-            `Expected ${typeToString(annotationType)}, but expression has type ${typeToString(exprResult.type)}`,
-        );
-    }
+    return { type: finalType, subst: finalSubst };
 }
 
 /**

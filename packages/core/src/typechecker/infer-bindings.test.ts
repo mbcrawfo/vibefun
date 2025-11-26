@@ -19,7 +19,7 @@ import type { Type, TypeEnv } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TypeError } from "../utils/error.js";
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
 import { constType, freshTypeVar, isTypeVar, primitiveTypes, resetTypeVarCounter } from "./types.js";
@@ -272,7 +272,7 @@ describe("Type Inference - RefAssign and Deref", () => {
         const strLit: CoreStringLit = { kind: "CoreStringLit", value: "hello", loc: testLoc };
         const expr: CoreBinOp = { kind: "CoreBinOp", op: "RefAssign", left: xVar, right: strLit, loc: testLoc };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 
     it("should reject dereference of non-reference types", () => {
@@ -291,7 +291,7 @@ describe("Type Inference - RefAssign and Deref", () => {
         const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
         const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "Deref", expr: xVar, loc: testLoc };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 });
 

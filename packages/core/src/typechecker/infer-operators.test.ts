@@ -7,7 +7,7 @@ import type { TypeEnv } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TypeError } from "../utils/error.js";
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
 import { primitiveTypes, resetTypeVarCounter } from "./types.js";
@@ -150,7 +150,7 @@ describe("Type Inference - Binary Operators", () => {
         const env = createTestEnv();
         const ctx = createContext(env);
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 });
 
@@ -190,6 +190,6 @@ describe("Type Inference - Unary Operators", () => {
         const env = createTestEnv();
         const ctx = createContext(env);
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 });

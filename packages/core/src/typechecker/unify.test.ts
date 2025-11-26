@@ -3,9 +3,11 @@
  */
 
 import type { Type } from "../types/environment.js";
+import type { UnifyContext } from "./unify.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import {
     appType,
     constType,
@@ -21,6 +23,11 @@ import {
     variantType,
 } from "./types.js";
 import { applySubst, composeSubst, emptySubst, occursIn, singleSubst, unify } from "./unify.js";
+
+// Test context for unification - provides a dummy location for error messages
+const testCtx: UnifyContext = {
+    loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+};
 
 describe("Empty Substitution", () => {
     it("should create an empty substitution", () => {
@@ -198,18 +205,18 @@ describe("Occurs Check", () => {
 
 describe("Unify Primitives", () => {
     it("should unify identical constant types", () => {
-        const subst = unify(primitiveTypes.Int, primitiveTypes.Int);
+        const subst = unify(primitiveTypes.Int, primitiveTypes.Int, testCtx);
         expect(subst.size).toBe(0);
     });
 
     it("should fail to unify different constant types", () => {
-        expect(() => unify(primitiveTypes.Int, primitiveTypes.String)).toThrow("Cannot unify");
+        expect(() => unify(primitiveTypes.Int, primitiveTypes.String, testCtx)).toThrow("Cannot unify");
     });
 
     it("should unify all primitive types with themselves", () => {
-        expect(() => unify(primitiveTypes.Float, primitiveTypes.Float)).not.toThrow();
-        expect(() => unify(primitiveTypes.Bool, primitiveTypes.Bool)).not.toThrow();
-        expect(() => unify(primitiveTypes.Unit, primitiveTypes.Unit)).not.toThrow();
+        expect(() => unify(primitiveTypes.Float, primitiveTypes.Float, testCtx)).not.toThrow();
+        expect(() => unify(primitiveTypes.Bool, primitiveTypes.Bool, testCtx)).not.toThrow();
+        expect(() => unify(primitiveTypes.Unit, primitiveTypes.Unit, testCtx)).not.toThrow();
     });
 });
 
@@ -219,22 +226,22 @@ describe("Unify Never Type", () => {
     });
 
     it("should unify Never with any type (bottom type)", () => {
-        const subst1 = unify(primitiveTypes.Never, primitiveTypes.Int);
+        const subst1 = unify(primitiveTypes.Never, primitiveTypes.Int, testCtx);
         expect(subst1.size).toBe(0);
 
-        const subst2 = unify(primitiveTypes.String, primitiveTypes.Never);
+        const subst2 = unify(primitiveTypes.String, primitiveTypes.Never, testCtx);
         expect(subst2.size).toBe(0);
     });
 
     it("should unify Never with function types", () => {
         const funcType = funType([primitiveTypes.Int], primitiveTypes.String);
-        const subst = unify(primitiveTypes.Never, funcType);
+        const subst = unify(primitiveTypes.Never, funcType, testCtx);
         expect(subst.size).toBe(0);
     });
 
     it("should unify Never with type variables", () => {
         const t = freshTypeVar();
-        const subst = unify(primitiveTypes.Never, t);
+        const subst = unify(primitiveTypes.Never, t, testCtx);
         // Should bind the type variable to Never
         expect(subst.size).toBe(1);
         const result = applySubst(subst, t);
@@ -249,14 +256,14 @@ describe("Unify Type Variables", () => {
 
     it("should unify type variable with constant type", () => {
         const t = freshTypeVar();
-        const subst = unify(t, primitiveTypes.Int);
+        const subst = unify(t, primitiveTypes.Int, testCtx);
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
     });
 
     it("should unify constant type with type variable (symmetric)", () => {
         const t = freshTypeVar();
-        const subst = unify(primitiveTypes.Int, t);
+        const subst = unify(primitiveTypes.Int, t, testCtx);
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
     });
@@ -264,21 +271,21 @@ describe("Unify Type Variables", () => {
     it("should unify two different type variables", () => {
         const t1 = freshTypeVar();
         freshTypeVar();
-        const subst = unify(t1, t1);
+        const subst = unify(t1, t1, testCtx);
         expect(subst.size).toBe(0);
         // Same variable unifies with itself
     });
 
     it("should unify type variable with itself (reflexive)", () => {
         const t = freshTypeVar();
-        const subst = unify(t, t);
+        const subst = unify(t, t, testCtx);
         expect(subst.size).toBe(0); // No substitution needed
     });
 
     it("should fail occurs check when unifying variable with type containing itself", () => {
         const t = freshTypeVar();
         const listOfT = appType(constType("List"), [t]);
-        expect(() => unify(t, listOfT)).toThrow("Occurs check");
+        expect(() => unify(t, listOfT, testCtx)).toThrow(VibefunDiagnostic);
     });
 });
 
@@ -290,7 +297,7 @@ describe("Unify Function Types", () => {
     it("should unify identical function types", () => {
         const f1 = funType([primitiveTypes.Int], primitiveTypes.String);
         const f2 = funType([primitiveTypes.Int], primitiveTypes.String);
-        const subst = unify(f1, f2);
+        const subst = unify(f1, f2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -299,7 +306,7 @@ describe("Unify Function Types", () => {
         const t2 = freshTypeVar();
         const f1 = funType([t1], primitiveTypes.String);
         const f2 = funType([primitiveTypes.Int], t2);
-        const subst = unify(f1, f2);
+        const subst = unify(f1, f2, testCtx);
 
         expect(subst.size).toBe(2);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -309,19 +316,19 @@ describe("Unify Function Types", () => {
     it("should fail to unify functions with different arity", () => {
         const f1 = funType([primitiveTypes.Int], primitiveTypes.String);
         const f2 = funType([primitiveTypes.Int, primitiveTypes.Bool], primitiveTypes.String);
-        expect(() => unify(f1, f2)).toThrow("different arity");
+        expect(() => unify(f1, f2, testCtx)).toThrow("different arity");
     });
 
     it("should fail to unify functions with incompatible parameter types", () => {
         const f1 = funType([primitiveTypes.Int], primitiveTypes.String);
         const f2 = funType([primitiveTypes.Bool], primitiveTypes.String);
-        expect(() => unify(f1, f2)).toThrow();
+        expect(() => unify(f1, f2, testCtx)).toThrow(VibefunDiagnostic);
     });
 
     it("should fail to unify functions with incompatible return types", () => {
         const f1 = funType([primitiveTypes.Int], primitiveTypes.String);
         const f2 = funType([primitiveTypes.Int], primitiveTypes.Bool);
-        expect(() => unify(f1, f2)).toThrow();
+        expect(() => unify(f1, f2, testCtx)).toThrow(VibefunDiagnostic);
     });
 });
 
@@ -333,7 +340,7 @@ describe("Unify Type Applications", () => {
     it("should unify identical type applications", () => {
         const list1 = appType(constType("List"), [primitiveTypes.Int]);
         const list2 = appType(constType("List"), [primitiveTypes.Int]);
-        const subst = unify(list1, list2);
+        const subst = unify(list1, list2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -341,7 +348,7 @@ describe("Unify Type Applications", () => {
         const t = freshTypeVar();
         const list1 = appType(constType("List"), [t]);
         const list2 = appType(constType("List"), [primitiveTypes.Int]);
-        const subst = unify(list1, list2);
+        const subst = unify(list1, list2, testCtx);
 
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -350,20 +357,20 @@ describe("Unify Type Applications", () => {
     it("should fail to unify different constructors", () => {
         const list = appType(constType("List"), [primitiveTypes.Int]);
         const option = appType(constType("Option"), [primitiveTypes.Int]);
-        expect(() => unify(list, option)).toThrow();
+        expect(() => unify(list, option, testCtx)).toThrow(VibefunDiagnostic);
     });
 
     it("should fail to unify different arity type applications", () => {
         const t1 = appType(constType("Either"), [primitiveTypes.Int, primitiveTypes.String]);
         const t2 = appType(constType("Either"), [primitiveTypes.Int]);
-        expect(() => unify(t1, t2)).toThrow("different arity");
+        expect(() => unify(t1, t2, testCtx)).toThrow("different arity");
     });
 
     it("should unify nested type applications", () => {
         const t = freshTypeVar();
         const nested1 = appType(constType("List"), [appType(constType("Option"), [t])]);
         const nested2 = appType(constType("List"), [appType(constType("Option"), [primitiveTypes.Int])]);
-        const subst = unify(nested1, nested2);
+        const subst = unify(nested1, nested2, testCtx);
 
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -378,7 +385,7 @@ describe("Unify Record Types", () => {
     it("should unify identical record types", () => {
         const r1 = recordType(new Map([["x", primitiveTypes.Int]]));
         const r2 = recordType(new Map([["x", primitiveTypes.Int]]));
-        const subst = unify(r1, r2);
+        const subst = unify(r1, r2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -386,7 +393,7 @@ describe("Unify Record Types", () => {
         const t = freshTypeVar();
         const r1 = recordType(new Map([["x", t]]));
         const r2 = recordType(new Map([["x", primitiveTypes.Int]]));
-        const subst = unify(r1, r2);
+        const subst = unify(r1, r2, testCtx);
 
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -402,7 +409,7 @@ describe("Unify Record Types", () => {
         const r2 = recordType(new Map([["x", primitiveTypes.Int]]));
 
         // r1 has more fields than r2 - should unify with width subtyping
-        const subst = unify(r1, r2);
+        const subst = unify(r1, r2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -421,7 +428,7 @@ describe("Unify Record Types", () => {
             ]),
         );
 
-        const subst = unify(r1, r2);
+        const subst = unify(r1, r2, testCtx);
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
     });
@@ -429,7 +436,7 @@ describe("Unify Record Types", () => {
     it("should fail to unify incompatible field types", () => {
         const r1 = recordType(new Map([["x", primitiveTypes.Int]]));
         const r2 = recordType(new Map([["x", primitiveTypes.String]]));
-        expect(() => unify(r1, r2)).toThrow();
+        expect(() => unify(r1, r2, testCtx)).toThrow(VibefunDiagnostic);
     });
 });
 
@@ -451,7 +458,7 @@ describe("Unify Variant Types", () => {
                 ["None", []],
             ]),
         );
-        const subst = unify(v1, v2);
+        const subst = unify(v1, v2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -469,7 +476,7 @@ describe("Unify Variant Types", () => {
                 ["None", []],
             ]),
         );
-        const subst = unify(v1, v2);
+        const subst = unify(v1, v2, testCtx);
 
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -478,7 +485,7 @@ describe("Unify Variant Types", () => {
     it("should fail to unify variants with different constructors", () => {
         const v1 = variantType(new Map([["Some", [primitiveTypes.Int]]]));
         const v2 = variantType(new Map([["Other", [primitiveTypes.Int]]]));
-        expect(() => unify(v1, v2)).toThrow("different constructors");
+        expect(() => unify(v1, v2, testCtx)).toThrow("different constructors");
     });
 
     it("should fail to unify variants with different number of constructors", () => {
@@ -489,13 +496,13 @@ describe("Unify Variant Types", () => {
             ]),
         );
         const v2 = variantType(new Map([["Some", [primitiveTypes.Int]]]));
-        expect(() => unify(v1, v2)).toThrow("different number of constructors");
+        expect(() => unify(v1, v2, testCtx)).toThrow("different number of constructors");
     });
 
     it("should fail to unify constructors with different arity", () => {
         const v1 = variantType(new Map([["Some", [primitiveTypes.Int, primitiveTypes.String]]]));
         const v2 = variantType(new Map([["Some", [primitiveTypes.Int]]]));
-        expect(() => unify(v1, v2)).toThrow("different arity");
+        expect(() => unify(v1, v2, testCtx)).toThrow("different arity");
     });
 });
 
@@ -507,7 +514,7 @@ describe("Unify Union Types", () => {
     it("should unify identical union types", () => {
         const u1 = unionType([primitiveTypes.Int, primitiveTypes.String]);
         const u2 = unionType([primitiveTypes.Int, primitiveTypes.String]);
-        const subst = unify(u1, u2);
+        const subst = unify(u1, u2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -515,7 +522,7 @@ describe("Unify Union Types", () => {
         const t = freshTypeVar();
         const u1 = unionType([t, primitiveTypes.String]);
         const u2 = unionType([primitiveTypes.Int, primitiveTypes.String]);
-        const subst = unify(u1, u2);
+        const subst = unify(u1, u2, testCtx);
 
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -524,7 +531,7 @@ describe("Unify Union Types", () => {
     it("should fail to unify unions with different number of types", () => {
         const u1 = unionType([primitiveTypes.Int, primitiveTypes.String]);
         const u2 = unionType([primitiveTypes.Int]);
-        expect(() => unify(u1, u2)).toThrow("different number of types");
+        expect(() => unify(u1, u2, testCtx)).toThrow("different number of types");
     });
 });
 
@@ -536,7 +543,7 @@ describe("Unify Ref Types", () => {
     it("should unify identical ref types", () => {
         const ref1 = refType(primitiveTypes.Int);
         const ref2 = refType(primitiveTypes.Int);
-        const subst = unify(ref1, ref2);
+        const subst = unify(ref1, ref2, testCtx);
         expect(subst.size).toBe(0);
     });
 
@@ -544,7 +551,7 @@ describe("Unify Ref Types", () => {
         const t = freshTypeVar();
         const ref1 = refType(t);
         const ref2 = refType(primitiveTypes.Int);
-        const subst = unify(ref1, ref2);
+        const subst = unify(ref1, ref2, testCtx);
 
         expect(subst.size).toBe(1);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -553,7 +560,7 @@ describe("Unify Ref Types", () => {
     it("should fail to unify different ref types", () => {
         const ref1 = refType(primitiveTypes.Int);
         const ref2 = refType(primitiveTypes.String);
-        expect(() => unify(ref1, ref2)).toThrow();
+        expect(() => unify(ref1, ref2, testCtx)).toThrow(VibefunDiagnostic);
     });
 });
 
@@ -569,7 +576,7 @@ describe("Complex Unification", () => {
         const type1 = funType([appType(constType("List"), [t1])], t2);
         const type2 = funType([appType(constType("List"), [primitiveTypes.Int])], primitiveTypes.String);
 
-        const subst = unify(type1, type2);
+        const subst = unify(type1, type2, testCtx);
 
         expect(subst.size).toBe(2);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -584,7 +591,7 @@ describe("Complex Unification", () => {
         const type1 = funType([t1, t2], t3);
         const type2 = funType([primitiveTypes.Int, primitiveTypes.String], primitiveTypes.Bool);
 
-        const subst = unify(type1, type2);
+        const subst = unify(type1, type2, testCtx);
 
         expect(subst.size).toBe(3);
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
@@ -601,7 +608,7 @@ describe("Complex Unification", () => {
         const type1 = funType([t1], funType([t2], t3));
         const type2 = funType([primitiveTypes.Int], funType([primitiveTypes.String], primitiveTypes.Bool));
 
-        const subst = unify(type1, type2);
+        const subst = unify(type1, type2, testCtx);
 
         expect(applySubst(subst, t1)).toEqual(primitiveTypes.Int);
         expect(applySubst(subst, t2)).toEqual(primitiveTypes.String);
@@ -618,7 +625,7 @@ describe("Level Updates During Unification", () => {
         const t1 = freshTypeVar(0);
         const t2 = freshTypeVar(5);
 
-        const subst = unify(t1, t2);
+        const subst = unify(t1, t2, testCtx);
         const result = subst.get(0);
 
         expect(result).toBeDefined();
@@ -633,7 +640,7 @@ describe("Level Updates During Unification", () => {
         const t2 = freshTypeVar(5);
         const listType = appType(constType("List"), [t2]);
 
-        const subst = unify(t1, listType);
+        const subst = unify(t1, listType, testCtx);
         const result = subst.get(0);
 
         expect(result).toBeDefined();

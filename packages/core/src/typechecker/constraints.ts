@@ -10,8 +10,6 @@ import type { Location } from "../types/ast.js";
 import type { Type, TypeScheme } from "../types/environment.js";
 import type { Substitution } from "./unify.js";
 
-import { TypeError } from "../utils/error.js";
-import { typeToString } from "./types.js";
 import { applySubst, composeSubst, emptySubst, unify } from "./unify.js";
 
 /**
@@ -81,20 +79,10 @@ export function solveConstraints(constraints: Constraint[]): Substitution {
                 const t1 = applySubst(subst, constraint.t1);
                 const t2 = applySubst(subst, constraint.t2);
 
-                // Try to unify
-                try {
-                    const newSubst = unify(t1, t2);
-                    subst = composeSubst(newSubst, subst);
-                } catch (error) {
-                    if (error instanceof TypeError) {
-                        throw error;
-                    }
-                    throw new TypeError(
-                        `Cannot unify types ${typeToString(t1)} and ${typeToString(t2)}`,
-                        constraint.loc,
-                        `Type mismatch in constraint solving`,
-                    );
-                }
+                // Unify the types
+                const unifyCtx = { loc: constraint.loc };
+                const newSubst = unify(t1, t2, unifyCtx);
+                subst = composeSubst(newSubst, subst);
                 break;
             }
 

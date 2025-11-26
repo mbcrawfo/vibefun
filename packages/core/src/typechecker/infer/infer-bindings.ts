@@ -119,20 +119,10 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
 
     // For recursive bindings, unify the inferred type with the temporary type variable
     if (expr.recursive && tempType) {
-        try {
-            const tempTypeSubst = applySubst(valueResult.subst, tempType);
-            const unifySubst = unify(tempTypeSubst, valueResult.type);
-            valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw error;
-            }
-            throw new TypeError(
-                `Type mismatch in recursive binding`,
-                expr.loc,
-                `The type of '${varName}' is inconsistent with its usage`,
-            );
-        }
+        const tempTypeSubst = applySubst(valueResult.subst, tempType);
+        const unifyCtx = { loc: expr.loc };
+        const unifySubst = unify(tempTypeSubst, valueResult.type, unifyCtx);
+        valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
     }
 
     // Generalize the type of the value
@@ -257,20 +247,10 @@ export function inferLetRecExpr(
             );
         }
 
-        try {
-            const tempTypeSubst = applySubst(currentSubst, tempType);
-            const unifySubst = unify(tempTypeSubst, inferredType);
-            currentSubst = composeSubst(unifySubst, currentSubst);
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw error;
-            }
-            throw new TypeError(
-                `Type mismatch in mutually recursive binding`,
-                binding.loc,
-                `The type of '${varName}' is inconsistent with its usage`,
-            );
-        }
+        const tempTypeSubst = applySubst(currentSubst, tempType);
+        const unifyCtx = { loc: binding.loc };
+        const unifySubst = unify(tempTypeSubst, inferredType, unifyCtx);
+        currentSubst = composeSubst(unifySubst, currentSubst);
     }
 
     // Step 5: Generalize all bindings together

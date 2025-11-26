@@ -5,7 +5,7 @@
  * Hindley-Milner type inference on a desugared CoreModule.
  */
 
-import type { Location, Module } from "../types/ast.js";
+import type { Module } from "../types/ast.js";
 import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
@@ -15,18 +15,8 @@ import { checkPattern } from "./patterns.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
 
-/**
- * Context for unification operations
- *
- * This context carries location and source information through unification
- * to enable accurate error reporting.
- */
-export interface UnifyContext {
-    /** Source location for error reporting */
-    readonly loc: Location;
-    /** Optional source code for error formatting */
-    readonly source?: string;
-}
+// Re-export UnifyContext for consumers
+export type { UnifyContext } from "./unify.js";
 
 /**
  * Options for type checking
@@ -124,7 +114,8 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 const result = inferExpr({ ...ctx, env: tempEnv }, decl.value);
 
                 // Unify placeholder with inferred type
-                const unifySubst = unify(applySubst(result.subst, placeholderType), result.type);
+                const unifyCtx = { loc: decl.loc };
+                const unifySubst = unify(applySubst(result.subst, placeholderType), result.type, unifyCtx);
                 const finalSubst = composeSubst(unifySubst, result.subst);
                 const finalType = applySubst(finalSubst, result.type);
 
@@ -217,7 +208,8 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                     const placeholder = placeholders.get(name);
                     if (placeholder) {
                         const placeholderApplied = applySubst(result.subst, placeholder);
-                        const unifySubst = unify(placeholderApplied, result.type);
+                        const unifyCtx = { loc: binding.loc };
+                        const unifySubst = unify(placeholderApplied, result.type, unifyCtx);
                         currentSubst = composeSubst(unifySubst, result.subst);
 
                         // Store the inferred type

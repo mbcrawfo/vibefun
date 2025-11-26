@@ -6,9 +6,24 @@
  * substituting type variables.
  */
 
+import type { Location } from "../types/ast.js";
 import type { Type } from "../types/environment.js";
 
+import { throwDiagnostic } from "../diagnostics/index.js";
+import { typeToString } from "./format.js";
 import { isAppType, isConstType, isFunType, isRecordType, isTypeVar, isUnionType, isVariantType } from "./types.js";
+
+/**
+ * Context for unification operations.
+ * Carries location and source information through unification
+ * to enable accurate error reporting.
+ */
+export interface UnifyContext {
+    /** Source location for error reporting */
+    readonly loc: Location;
+    /** Optional source code for error formatting */
+    readonly source?: string;
+}
 
 /**
  * Substitution maps type variable IDs to types
@@ -172,20 +187,21 @@ export function occursIn(id: number, type: Type): boolean {
  * Unify two types
  *
  * Attempts to find a substitution that makes the two types equal.
- * Throws an error if unification fails.
+ * Throws a diagnostic if unification fails.
  *
  * @param t1 - First type
  * @param t2 - Second type
+ * @param ctx - Unification context containing location for error reporting
  * @returns A substitution that unifies the types
- * @throws Error if types cannot be unified
+ * @throws VibefunDiagnostic if types cannot be unified
  */
-export function unify(t1: Type, t2: Type): Substitution {
+export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
     // Type variable unification (must come before Never check)
     if (isTypeVar(t1)) {
-        return unifyVar(t1.id, t1.level, t2);
+        return unifyVar(t1.id, t1.level, t2, ctx);
     }
     if (isTypeVar(t2)) {
-        return unifyVar(t2.id, t2.level, t1);
+        return unifyVar(t2.id, t2.level, t1, ctx);
     }
 
     // Handle Never type (bottom type) - unifies with anything
@@ -202,13 +218,16 @@ export function unify(t1: Type, t2: Type): Substitution {
         if (t1.name === t2.name) {
             return emptySubst();
         }
-        throw new Error(`Cannot unify ${t1.name} with ${t2.name}`);
+        throwDiagnostic("VF4020", ctx.loc, { t1: t1.name, t2: t2.name });
     }
 
     // Function type unification
     if (isFunType(t1) && isFunType(t2)) {
         if (t1.params.length !== t2.params.length) {
-            throw new Error(`Cannot unify functions with different arity: ${t1.params.length} vs ${t2.params.length}`);
+            throwDiagnostic("VF4021", ctx.loc, {
+                arity1: t1.params.length,
+                arity2: t2.params.length,
+            });
         }
 
         let subst = emptySubst();
@@ -218,34 +237,36 @@ export function unify(t1: Type, t2: Type): Substitution {
             const param1 = t1.params[i];
             const param2 = t2.params[i];
             if (!param1 || !param2) {
+                // Internal error - should never happen
                 throw new Error(`Missing parameter at index ${i}`);
             }
-            const paramSubst = unify(applySubst(subst, param1), applySubst(subst, param2));
+            const paramSubst = unify(applySubst(subst, param1), applySubst(subst, param2), ctx);
             subst = composeSubst(subst, paramSubst);
         }
 
         // Unify return types
-        const returnSubst = unify(applySubst(subst, t1.return), applySubst(subst, t2.return));
+        const returnSubst = unify(applySubst(subst, t1.return), applySubst(subst, t2.return), ctx);
         return composeSubst(subst, returnSubst);
     }
 
     // Type application unification (e.g., List<Int> with List<String>)
     if (isAppType(t1) && isAppType(t2)) {
         if (t1.args.length !== t2.args.length) {
-            throw new Error(`Cannot unify type applications with different arity`);
+            throwDiagnostic("VF4022", ctx.loc, {});
         }
 
         // Unify constructors
-        let subst = unify(t1.constructor, t2.constructor);
+        let subst = unify(t1.constructor, t2.constructor, ctx);
 
         // Unify arguments
         for (let i = 0; i < t1.args.length; i++) {
             const arg1 = t1.args[i];
             const arg2 = t2.args[i];
             if (!arg1 || !arg2) {
+                // Internal error - should never happen
                 throw new Error(`Missing argument at index ${i}`);
             }
-            const argSubst = unify(applySubst(subst, arg1), applySubst(subst, arg2));
+            const argSubst = unify(applySubst(subst, arg1), applySubst(subst, arg2), ctx);
             subst = composeSubst(subst, argSubst);
         }
 
@@ -254,18 +275,18 @@ export function unify(t1: Type, t2: Type): Substitution {
 
     // Record type unification (structural with width subtyping)
     if (isRecordType(t1) && isRecordType(t2)) {
-        return unifyRecords(t1, t2);
+        return unifyRecords(t1, t2, ctx);
     }
 
     // Variant type unification (nominal - must have same structure)
     if (isVariantType(t1) && isVariantType(t2)) {
-        return unifyVariants(t1, t2);
+        return unifyVariants(t1, t2, ctx);
     }
 
     // Union type unification
     if (isUnionType(t1) && isUnionType(t2)) {
         if (t1.types.length !== t2.types.length) {
-            throw new Error(`Cannot unify unions with different number of types`);
+            throwDiagnostic("VF4023", ctx.loc, {});
         }
 
         let subst = emptySubst();
@@ -273,9 +294,10 @@ export function unify(t1: Type, t2: Type): Substitution {
             const type1 = t1.types[i];
             const type2 = t2.types[i];
             if (!type1 || !type2) {
+                // Internal error - should never happen
                 throw new Error(`Missing type at index ${i}`);
             }
-            const typeSubst = unify(applySubst(subst, type1), applySubst(subst, type2));
+            const typeSubst = unify(applySubst(subst, type1), applySubst(subst, type2), ctx);
             subst = composeSubst(subst, typeSubst);
         }
 
@@ -285,9 +307,10 @@ export function unify(t1: Type, t2: Type): Substitution {
     // Tuple type unification
     if (t1.type === "Tuple" && t2.type === "Tuple") {
         if (t1.elements.length !== t2.elements.length) {
-            throw new Error(
-                `Cannot unify tuples with different number of elements: ${t1.elements.length} vs ${t2.elements.length}`,
-            );
+            throwDiagnostic("VF4026", ctx.loc, {
+                expected: t1.elements.length,
+                actual: t2.elements.length,
+            });
         }
 
         let subst = emptySubst();
@@ -295,9 +318,10 @@ export function unify(t1: Type, t2: Type): Substitution {
             const elem1 = t1.elements[i];
             const elem2 = t2.elements[i];
             if (!elem1 || !elem2) {
+                // Internal error - should never happen
                 throw new Error(`Missing element at index ${i}`);
             }
-            const elemSubst = unify(applySubst(subst, elem1), applySubst(subst, elem2));
+            const elemSubst = unify(applySubst(subst, elem1), applySubst(subst, elem2), ctx);
             subst = composeSubst(subst, elemSubst);
         }
 
@@ -305,7 +329,10 @@ export function unify(t1: Type, t2: Type): Substitution {
     }
 
     // No unification rule applies
-    throw new Error(`Cannot unify types: ${t1.type} with ${t2.type}`);
+    throwDiagnostic("VF4024", ctx.loc, {
+        type1: typeToString(t1),
+        type2: typeToString(t2),
+    });
 }
 
 /**
@@ -314,9 +341,10 @@ export function unify(t1: Type, t2: Type): Substitution {
  * @param id - Type variable ID
  * @param level - Type variable level
  * @param type - Type to unify with
+ * @param ctx - Unification context for error reporting
  * @returns A substitution
  */
-function unifyVar(id: number, level: number, type: Type): Substitution {
+function unifyVar(id: number, level: number, type: Type, ctx: UnifyContext): Substitution {
     // Check if unifying with the same variable
     if (isTypeVar(type) && type.id === id) {
         return emptySubst();
@@ -324,7 +352,10 @@ function unifyVar(id: number, level: number, type: Type): Substitution {
 
     // Occurs check - prevent infinite types
     if (occursIn(id, type)) {
-        throw new Error(`Occurs check: cannot construct infinite type (type variable ${id} occurs in ${type.type})`);
+        throwDiagnostic("VF4300", ctx.loc, {
+            typeVar: `'${String.fromCharCode(97 + (id % 26))}`,
+            type: typeToString(type),
+        });
     }
 
     // Update level of type variables in the type to prevent escape
@@ -408,9 +439,10 @@ function updateLevels(type: Type, maxLevel: number): Type {
  *
  * @param r1 - First record type
  * @param r2 - Second record type
+ * @param ctx - Unification context for error reporting
  * @returns A substitution that unifies the records
  */
-function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record" }): Substitution {
+function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record" }, ctx: UnifyContext): Substitution {
     // Width subtyping: allow extra fields
     // Find common fields that must unify
     const commonFields = Array.from(r1.fields.keys()).filter((f) => r2.fields.has(f));
@@ -422,9 +454,10 @@ function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record"
         const fieldType1 = r1.fields.get(field);
         const fieldType2 = r2.fields.get(field);
         if (!fieldType1 || !fieldType2) {
+            // Internal error - should never happen
             throw new Error(`Missing field type for ${field}`);
         }
-        const fieldSubst = unify(applySubst(subst, fieldType1), applySubst(subst, fieldType2));
+        const fieldSubst = unify(applySubst(subst, fieldType1), applySubst(subst, fieldType2), ctx);
         subst = composeSubst(subst, fieldSubst);
     }
 
@@ -440,20 +473,29 @@ function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record"
  *
  * @param v1 - First variant type
  * @param v2 - Second variant type
+ * @param ctx - Unification context for error reporting
  * @returns A substitution that unifies the variants
  */
-function unifyVariants(v1: Type & { type: "Variant" }, v2: Type & { type: "Variant" }): Substitution {
+function unifyVariants(
+    v1: Type & { type: "Variant" },
+    v2: Type & { type: "Variant" },
+    ctx: UnifyContext,
+): Substitution {
     // Nominal typing: constructors must match exactly
     const constructors1 = Array.from(v1.constructors.keys()).sort();
     const constructors2 = Array.from(v2.constructors.keys()).sort();
 
     if (constructors1.length !== constructors2.length) {
-        throw new Error(`Cannot unify variants with different number of constructors`);
+        throwDiagnostic("VF4025", ctx.loc, {
+            message: "variants have different number of constructors",
+        });
     }
 
     for (let i = 0; i < constructors1.length; i++) {
         if (constructors1[i] !== constructors2[i]) {
-            throw new Error(`Cannot unify variants with different constructors`);
+            throwDiagnostic("VF4025", ctx.loc, {
+                message: "variants have different constructors",
+            });
         }
     }
 
@@ -465,20 +507,24 @@ function unifyVariants(v1: Type & { type: "Variant" }, v2: Type & { type: "Varia
         const params2 = v2.constructors.get(constructor);
 
         if (!params1 || !params2) {
+            // Internal error - should never happen
             throw new Error(`Missing constructor ${constructor}`);
         }
 
         if (params1.length !== params2.length) {
-            throw new Error(`Constructor ${constructor} has different arity in variants`);
+            throwDiagnostic("VF4025", ctx.loc, {
+                message: `constructor ${constructor} has different arity in variants`,
+            });
         }
 
         for (let i = 0; i < params1.length; i++) {
             const param1 = params1[i];
             const param2 = params2[i];
             if (!param1 || !param2) {
+                // Internal error - should never happen
                 throw new Error(`Missing parameter at index ${i} in constructor ${constructor}`);
             }
-            const paramSubst = unify(applySubst(subst, param1), applySubst(subst, param2));
+            const paramSubst = unify(applySubst(subst, param1), applySubst(subst, param2), ctx);
             subst = composeSubst(subst, paramSubst);
         }
     }

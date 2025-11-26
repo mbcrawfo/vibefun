@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 5a Complete)
+**Last Updated:** 2025-11-25 (Phase 5b Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -223,45 +223,45 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 5b: Unification & Pattern Migration
-**Status:** Not Started
+**Status:** ✅ Complete (Commit: f86c606)
 
 **Goal:** Migrate unify.ts and patterns.ts with the UnifyContext pattern.
 
-- [ ] Add `UnifyContext` parameter to `unify()` signature
-- [ ] Update all `unify()` call sites (~15-20 changes):
-  - [ ] `typechecker.ts`
-  - [ ] `infer/*.ts` files
-  - [ ] `constraints.ts`
-  - [ ] `patterns.ts`
-- [ ] Convert `unify.ts` user-facing errors (10 errors) to VF4xxx diagnostics:
-  - [ ] VF4020 CannotUnify (line 205)
-  - [ ] VF4021 FunctionArityMismatch (line 211)
-  - [ ] VF4022 TypeApplicationArityMismatch (line 235)
-  - [ ] VF4023 UnionArityMismatch (line 268)
-  - [ ] VF4024 IncompatibleTypes (line 308)
-  - [ ] VF4025 VariantUnificationError (lines 451, 456, 472)
-  - [ ] VF4300 InfiniteType/OccursCheck (line 327)
-  - [ ] Tuple arity mismatch (line 288)
-- [ ] Leave internal assertion errors as plain `Error` (7 errors):
-  - [ ] "Missing parameter at index" (lines 221, 479)
-  - [ ] "Missing argument at index" (line 246)
-  - [ ] "Missing type at index" (line 276)
-  - [ ] "Missing element at index" (line 298)
-  - [ ] "Missing field type" (line 425)
-  - [ ] "Missing constructor" (line 468)
-- [ ] Convert `patterns.ts` user-facing errors (10-11 errors) to VF4xxx diagnostics:
-  - [ ] VF4102 UndefinedConstructor (line 163)
-  - [ ] VF4600 NotValueBinding (line 167)
-  - [ ] VF4200 ConstructorArity (lines 183, 202)
-  - [ ] VF4402 DuplicateBinding (lines 229, 279)
-  - [ ] VF4500 NonRecordAccess (line 257)
-  - [ ] VF4501 MissingRecordField (line 270)
-- [ ] Leave internal errors as plain `Error` (3 errors):
-  - [ ] "Unknown pattern kind" (line 81)
-  - [ ] "Unknown literal type" (line 135)
-  - [ ] "Missing argument pattern" (line 220)
-- [ ] Update relevant tests
-- [ ] Run `npm run verify` - all tests pass
+- [x] Add `UnifyContext` parameter to `unify()` signature
+- [x] Update all `unify()` call sites (~15-20 changes):
+  - [x] `typechecker.ts`
+  - [x] `infer/*.ts` files
+  - [x] `constraints.ts`
+  - [x] `patterns.ts`
+- [x] Convert `unify.ts` user-facing errors (10 errors) to VF4xxx diagnostics:
+  - [x] VF4020 CannotUnify (line 205)
+  - [x] VF4021 FunctionArityMismatch (line 211)
+  - [x] VF4022 TypeApplicationArityMismatch (line 235)
+  - [x] VF4023 UnionArityMismatch (line 268)
+  - [x] VF4024 IncompatibleTypes (line 308)
+  - [x] VF4025 VariantUnificationError (lines 451, 456, 472)
+  - [x] VF4300 InfiniteType/OccursCheck (line 327)
+  - [x] VF4026 TupleArityMismatch (line 288)
+- [x] Leave internal assertion errors as plain `Error` (7 errors):
+  - [x] "Missing parameter at index" (lines 221, 479)
+  - [x] "Missing argument at index" (line 246)
+  - [x] "Missing type at index" (line 276)
+  - [x] "Missing element at index" (line 298)
+  - [x] "Missing field type" (line 425)
+  - [x] "Missing constructor" (line 468)
+- [x] Convert `patterns.ts` user-facing errors (10-11 errors) to VF4xxx diagnostics:
+  - [x] VF4102 UndefinedConstructor (line 163)
+  - [x] VF4600 NotValueBinding (line 167)
+  - [x] VF4200 ConstructorArity (lines 183, 202)
+  - [x] VF4402 DuplicateBinding (lines 229, 279)
+  - [x] VF4500 NonRecordAccess (line 257)
+  - [x] VF4501 MissingRecordField (line 270)
+- [x] Leave internal errors as plain `Error` (3 errors):
+  - [x] "Unknown pattern kind" (line 81)
+  - [x] "Unknown literal type" (line 135)
+  - [x] "Missing argument pattern" (line 220)
+- [x] Update relevant tests
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 5c: Inference Migration & Cleanup
 **Status:** Not Started
@@ -431,12 +431,12 @@ Before starting Phase 1, verify:
 | Phase 3: Parser Migration | ✅ Complete | 9/9 | 37 error codes (VF2000-VF2501) |
 | Phase 4: Desugarer Migration | ✅ Complete | 12/12 | 1 error code (VF3101), internal errors → plain Error |
 | Phase 5a: TC Codes & Basic | ✅ Complete | 23/23 | 53 codes (VF4xxx + VF5102), resolver/environment migrated |
-| Phase 5b: Unify/Patterns | Not Started | 0/10 | ~20 call site updates, 20-21 errors |
+| Phase 5b: Unify/Patterns | ✅ Complete | 10/10 | ~20 call site updates, 20-21 errors |
 | Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts |
 | Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 5/10 Phases Complete (50%)**
+**Overall: 6/10 Phases Complete (60%)**
 **Estimated Total Error Codes: ~114 (13 lexer + 37 parser + 1 desugarer + 53 typechecker + remaining)**
 **Estimated Test Updates: ~180-250 tests**

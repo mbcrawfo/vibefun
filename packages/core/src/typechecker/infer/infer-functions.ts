@@ -9,7 +9,7 @@ import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { TypeError } from "../../utils/error.js";
-import { freshTypeVar, funType, typeToString } from "../types.js";
+import { freshTypeVar, funType } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
 // Import inferExpr - will be set via dependency injection
@@ -110,22 +110,12 @@ export function inferApp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
     const actualFuncType = applySubst(currentSubst, funcResult.type);
 
     // Unify function type with expected type
-    try {
-        const unifySubst = unify(actualFuncType, expectedFuncType);
-        const finalSubst = composeSubst(unifySubst, currentSubst);
+    const unifyCtx = { loc: expr.loc };
+    const unifySubst = unify(actualFuncType, expectedFuncType, unifyCtx);
+    const finalSubst = composeSubst(unifySubst, currentSubst);
 
-        // Apply substitution to result type
-        const finalResultType = applySubst(finalSubst, resultType);
+    // Apply substitution to result type
+    const finalResultType = applySubst(finalSubst, resultType);
 
-        return { type: finalResultType, subst: finalSubst };
-    } catch (error) {
-        if (error instanceof TypeError) {
-            throw error;
-        }
-        throw new TypeError(
-            `Type error in function application`,
-            expr.loc,
-            `Expected function type, got ${typeToString(actualFuncType)}`,
-        );
-    }
+    return { type: finalResultType, subst: finalSubst };
 }
