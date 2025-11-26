@@ -103,6 +103,8 @@ This implementation consists of two major components:
 - [ ] Test very long paths
 - [ ] Test case sensitivity warning (VF5901)
 - [ ] Test side-effect-only import creates value edge
+- [ ] Test import from current directory: `import { x } from '.'`
+- [ ] Test import from parent directory: `import { x } from '..'`
 
 ### Phase 1.5a Quality Checks
 - [ ] Run `npm run verify`
@@ -379,6 +381,12 @@ This implementation consists of two major components:
 - [ ] Test building graph from module map
 - [ ] Test self-imports (A → A)
 - [ ] Test edge type-only flag correct for each case
+- [ ] Test aliased import: `import { x as y } from './mod'` (alias irrelevant to graph)
+- [ ] Test type aliased import: `import { type T as U } from './mod'`
+- [ ] Test wildcard import: `import * as Ns from './mod'` (value edge)
+- [ ] Test re-export with alias: `export { x as y } from './mod'`
+- [ ] Test empty import list: `import { } from './mod'` (valid, creates dependency edge)
+- [ ] Test type-only re-export: `export type { T } from './mod'`
 
 ### [NEW] Import Conflict Tests
 - [ ] Test duplicate import from different modules → error
@@ -546,9 +554,8 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 7: Comprehensive Testing
+## Phase 7a: Path Resolution Edge Case Tests
 
-### Path Resolution Edge Case Tests
 - [ ] **Test symlinks** (same module via symlink and real path)
 - [ ] **Test circular symlinks** (should error)
 - [ ] **Test case sensitivity** (cross-platform behavior)
@@ -560,7 +567,10 @@ This implementation consists of two major components:
 - [ ] Test trailing slash (`./foo/` → `./foo/index.vf`)
 - [ ] Test current directory (`./.` → `./index.vf`)
 
-### Error Handling Tests
+---
+
+## Phase 7b: Error Handling Tests
+
 - [ ] **Test missing imports** (file doesn't exist)
 - [ ] **Test parse errors during loading** (malformed .vf files)
 - [ ] **Test permission errors** (unreadable files)
@@ -568,7 +578,10 @@ This implementation consists of two major components:
 - [ ] **Test error collection** (multiple errors reported together)
 - [ ] **Test typo suggestions** (suggest similar filenames)
 
-### Cycle Detection Tests (Beyond Basic)
+---
+
+## Phase 7c: Cycle Detection Edge Case Tests
+
 - [ ] **Test self-imports** (A → A)
 - [ ] Test long cycles (10+ modules in cycle)
 - [ ] **Test multiple independent cycles** (all detected, not just first)
@@ -577,12 +590,24 @@ This implementation consists of two major components:
 - [ ] Test type-only cycle doesn't warn
 - [ ] Test value cycle does warn
 
-### Performance Tests
+---
+
+## Phase 7d: Performance Tests
+
 - [ ] **Test 1000-module graph** (cycle detection speed)
 - [ ] **Test wide imports** (one module imports 100 modules)
 - [ ] **Test deep hierarchies** (100 levels of imports)
 - [ ] Verify O(V+E) complexity in practice
 - [ ] Profile memory usage for large graphs
+
+---
+
+## Phase 7e: Misc Edge Cases and Test Infrastructure
+
+### Additional Edge Cases (from audit)
+- [ ] Test URL import: `import { x } from 'https://...'` (should error)
+- [ ] Test nested package import: `import { x } from '@foo/bar/deep/nested'`
+- [ ] Test import from non-.vf file (should error)
 
 ### Runtime Behavior Tests (DEFERRED - blocked on code generator)
 Instead of implementing runtime tests now, create a design doc:
@@ -656,53 +681,73 @@ Instead of implementing runtime tests now, create a design doc:
 
 ---
 
-## Phase 7.5: Integration Testing
+## Phase 7.5a: Desugarer Integration (UNBLOCKED)
 
-### Type Checker Integration
-- [ ] Test forward references in cycles
-  - [ ] Module A uses type from Module B
-  - [ ] Module B uses type from Module A
-  - [ ] Type checker handles gracefully
-- [ ] Test type-only cycles don't cause type errors
-- [ ] Test value cycles with proper type checking
-- [ ] Verify types resolved across modules in correct order
-- [ ] Test type checking respects compilation order
+The desugarer exists and is fully functional. These tests can be implemented.
 
-### Code Generator Integration
-- [ ] Test module initialization order in generated JavaScript
-- [ ] Verify generated JS handles cycles correctly
-- [ ] Test initialization happens in dependency order (where possible)
-- [ ] Verify runtime behavior matches spec
-  - [ ] Modules initialized exactly once
-  - [ ] Dependencies fully initialized before dependents
-  - [ ] Cycles work with deferred initialization
-- [ ] Run generated JavaScript with Node.js (integration test)
-
-### Desugarer Integration
 - [ ] Verify desugaring happens in dependency order
 - [ ] Test sugar in cyclic modules handled correctly
 - [ ] Ensure desugared ASTs maintain module structure
 - [ ] Verify transformations don't break module graph
 - [ ] Test all desugaring features work across modules
 
-### End-to-End Compilation Tests
-- [ ] Compile complete multi-module programs from .vf to .js
-- [ ] Run generated JavaScript with Node.js
-- [ ] Verify output correctness
-- [ ] Test example programs from docs compile and run
-- [ ] Verify warnings appear but don't halt compilation
-- [ ] Test programs with and without circular dependencies
+### Quality Checks
+- [ ] Run `npm run verify`
 
-### Test Cases
-- [ ] Multi-file program with no cycles (should compile cleanly)
-- [ ] Multi-file program with type-only cycles (compile with no warnings)
-- [ ] Multi-file program with value cycles (compile with warnings)
-- [ ] Complex program using all module features
-- [ ] Program with shared dependencies (diamond pattern)
-- [ ] Program demonstrating safe circular dependency patterns
-- [ ] Program demonstrating unsafe circular dependency patterns
+---
 
-### Success Criteria
+## Phase 7.5b: Type Checker Integration (BLOCKED - needs TC multi-module support)
+
+The type checker exists but only handles single modules. Multi-module type checking
+requires extending the type checker first.
+
+- [ ] ⏸️ Test forward references in cycles
+  - [ ] Module A uses type from Module B
+  - [ ] Module B uses type from Module A
+  - [ ] Type checker handles gracefully
+- [ ] ⏸️ Test type-only cycles don't cause type errors
+- [ ] ⏸️ Test value cycles with proper type checking
+- [ ] ⏸️ Verify types resolved across modules in correct order
+- [ ] ⏸️ Test type checking respects compilation order
+
+---
+
+## Phase 7.5c: Code Generator Integration (BLOCKED - no code generator exists)
+
+The code generator does not exist yet. These tests are completely blocked.
+
+- [ ] ⏸️ Test module initialization order in generated JavaScript
+- [ ] ⏸️ Verify generated JS handles cycles correctly
+- [ ] ⏸️ Test initialization happens in dependency order (where possible)
+- [ ] ⏸️ Verify runtime behavior matches spec
+  - [ ] Modules initialized exactly once
+  - [ ] Dependencies fully initialized before dependents
+  - [ ] Cycles work with deferred initialization
+- [ ] ⏸️ Run generated JavaScript with Node.js (integration test)
+
+---
+
+## Phase 7.5d: End-to-End Tests (BLOCKED - requires code generator)
+
+End-to-end compilation tests are blocked until code generator is implemented.
+
+- [ ] ⏸️ Compile complete multi-module programs from .vf to .js
+- [ ] ⏸️ Run generated JavaScript with Node.js
+- [ ] ⏸️ Verify output correctness
+- [ ] ⏸️ Test example programs from docs compile and run
+- [ ] ⏸️ Verify warnings appear but don't halt compilation
+- [ ] ⏸️ Test programs with and without circular dependencies
+
+### Test Cases (BLOCKED)
+- [ ] ⏸️ Multi-file program with no cycles (should compile cleanly)
+- [ ] ⏸️ Multi-file program with type-only cycles (compile with no warnings)
+- [ ] ⏸️ Multi-file program with value cycles (compile with warnings)
+- [ ] ⏸️ Complex program using all module features
+- [ ] ⏸️ Program with shared dependencies (diamond pattern)
+- [ ] ⏸️ Program demonstrating safe circular dependency patterns
+- [ ] ⏸️ Program demonstrating unsafe circular dependency patterns
+
+### Success Criteria (for when unblocked)
 - [ ] Module resolution integrates seamlessly with existing phases
 - [ ] No regressions in existing tests
 - [ ] End-to-end compilation works for multi-file programs
@@ -821,6 +866,10 @@ Instead of implementing runtime tests now, create a design doc:
   - [ ] Update any references to stdlib package name
 - [ ] Verify module resolution: standard node_modules lookup for `@vibefun/*` (no special handling)
 - [ ] Update root package.json workspace references if needed
+- [ ] **[NEW from audit]** Update `docs/spec/08-modules.md` lines 77-80 for path mapping precedence
+  - [ ] Change from: "node_modules before path mappings" (current spec)
+  - [ ] To: "path mappings before node_modules" (TypeScript behavior, matches plan Decision 27)
+- [ ] **[NEW from audit]** Add note to spec that self-imports are compile-time errors
 
 ### Do NOT
 - [ ] ❌ Update root CLAUDE.md (per documentation rules)
@@ -852,11 +901,11 @@ Instead of implementing runtime tests now, create a design doc:
 
 ## Progress Summary
 
-**Phases Completed:** 0/11 (0%)
-**Estimated Tasks:** ~260 (expanded after 2025-11-25 audit)
+**Phases Completed:** 0/17 (0%)
+**Estimated Tasks:** ~280 (expanded after third audit)
 **Tasks Completed:** 0
 **Current Phase:** Not started
-**Blockers:** None
+**Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
 - **Phase 1**: Diagnostic System Verification (codes VF5004, VF5005)
@@ -868,8 +917,15 @@ Instead of implementing runtime tests now, create a design doc:
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
 - **Phase 5**: Warning Generation (VF5900 + VF5901)
 - **Phase 6**: Module Resolver API
-- **Phase 7**: Comprehensive Testing (extensive edge cases)
-- **Phase 7.5**: Integration Testing (type checker, code gen, desugarer)
+- **Phase 7a**: Path Resolution Edge Case Tests
+- **Phase 7b**: Error Handling Tests
+- **Phase 7c**: Cycle Detection Edge Case Tests
+- **Phase 7d**: Performance Tests
+- **Phase 7e**: Misc Edge Cases and Test Infrastructure
+- **Phase 7.5a**: Desugarer Integration ✅ UNBLOCKED
+- **Phase 7.5b**: Type Checker Integration ⏸️ BLOCKED (needs TC multi-module support)
+- **Phase 7.5c**: Code Generator Integration ⏸️ BLOCKED (no code generator exists)
+- **Phase 7.5d**: End-to-End Tests ⏸️ BLOCKED (requires code generator)
 - **Phase 8**: Documentation (5 docs including vibefun.json guide)
 
 **Scope Expansion Summary (Original):**
@@ -889,10 +945,19 @@ Instead of implementing runtime tests now, create a design doc:
 - vibefun.json configuration guide
 - ~50 additional tasks from audit findings
 
-**Scope Changes (2025-11-25 Audit):**
+**Scope Changes (2025-11-25 First Audit):**
 - **Split Phase 1.5** into 1.5a (relative), 1.5b (packages), 1.5c (config) for incremental delivery
 - **Re-export conflict detection** moved to type checker (matches TypeScript)
 - **Path mapping precedence** clarified: vibefun.json checked before node_modules (TypeScript behavior)
 - **Side-effect-only imports** explicitly create value dependency edges
 - **Trailing slash imports** (`./foo/`) try only `./foo/index.vf`
 - Spec update needed: `docs/spec/08-modules.md` lines 77-80 (path mapping order)
+
+**Scope Changes (2025-11-25 Second Audit):**
+- **Split Phase 7** into 7a-7e sub-phases for better manageability
+- **Split Phase 7.5** into blocked/unblocked sections:
+  - 7.5a (Desugarer) can proceed - desugarer exists and is complete
+  - 7.5b-d blocked on type checker multi-module support and code generator
+- **Added missing test cases**: aliased imports, wildcard imports, empty imports, etc.
+- **Added Decision 30**: Self-import spec addition
+- **Added spec update tasks**: Path mapping order fix, self-import documentation
