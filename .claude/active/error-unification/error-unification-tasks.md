@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 5b Complete)
+**Last Updated:** 2025-11-25 (Phase 5c Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -264,48 +264,39 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 5c: Inference Migration & Cleanup
-**Status:** Not Started
+**Status:** ✅ Complete
 
 **Goal:** Complete the type checker migration and remove old infrastructure.
 
-- [ ] Migrate all `infer/*.ts` files to `throwDiagnostic()`:
-  - [ ] `infer-primitives.ts`
-  - [ ] `infer-operators.ts`
-  - [ ] `infer-functions.ts`
-  - [ ] `infer-structures.ts`
-  - [ ] `infer-patterns.ts`
-  - [ ] `infer-records.ts`
-  - [ ] `infer-variants.ts`
-- [ ] Migrate `resolver.ts` (4 throws):
-  - [ ] VF4100 "Undefined function"
-  - [ ] VF4201 "No matching signature"
-  - [ ] VF4205 "Ambiguous call"
-  - [ ] Leave internal error as plain Error
-- [ ] Migrate `environment.ts` (5 throws):
-  - [ ] VF5102 "Duplicate declaration"
-  - [ ] VF4801 "Inconsistent JavaScript names"
-  - [ ] VF4802 "Inconsistent module imports"
-  - [ ] VF4803 "Must have function type"
-  - [ ] Leave internal error as plain Error
-- [ ] Migrate `constraints.ts` if applicable
-- [ ] Delete `TypeCheckerError` class from `errors.ts`
-- [ ] Delete factory functions from `errors.ts`:
-  - [ ] `createTypeMismatchError()`
-  - [ ] `createUndefinedVariableError()`
-  - [ ] `createNonExhaustiveError()`
-  - [ ] `createOccursCheckError()`
-  - [ ] `createOverloadError()`
-  - [ ] `createUndefinedTypeError()`
-  - [ ] `createMissingFieldError()`
-  - [ ] `createNonRecordAccessError()`
-  - [ ] `createUndefinedConstructorError()`
-  - [ ] `createConstructorArityError()`
-  - [ ] `createValueRestrictionError()`
-  - [ ] `createEscapeError()`
-  - [ ] `createInvalidGuardError()`
-- [ ] Update typechecker tests (use `expectDiagnostic()`)
-- [ ] Verify all call sites use new diagnostic pattern
-- [ ] Run `npm run verify` - all tests pass
+- [x] Migrate all `infer/*.ts` files to `throwDiagnostic()`:
+  - [x] `infer-primitives.ts` (VF4017, VF4100, VF4804)
+  - [x] `infer-bindings.ts` (VF4017, internal errors → plain Error)
+  - [x] `infer-functions.ts` (VF4017)
+  - [x] `infer-structures.ts` (VF4500, VF4501, VF4102, VF4804, VF4200, VF4400, VF4404)
+- [x] Added new diagnostic codes:
+  - [x] VF4017 NotImplemented (for not-yet-implemented features)
+  - [x] VF4404 EmptyMatch
+  - [x] VF4804 FFIOverloadNotSupported
+- [x] Delete `TypeCheckerError` class from `errors.ts`
+- [x] Delete factory functions from `errors.ts`:
+  - [x] `createTypeMismatchError()`
+  - [x] `createUndefinedVariableError()`
+  - [x] `createNonExhaustiveError()`
+  - [x] `createOccursCheckError()`
+  - [x] `createOverloadError()`
+  - [x] `createUndefinedTypeError()`
+  - [x] `createMissingFieldError()`
+  - [x] `createNonRecordAccessError()`
+  - [x] `createUndefinedConstructorError()`
+  - [x] `createConstructorArityError()`
+  - [x] `createValueRestrictionError()`
+  - [x] `createEscapeError()`
+  - [x] `createInvalidGuardError()`
+- [x] Delete `errors.test.ts` (tested removed functions)
+- [x] Update typechecker tests to use VibefunDiagnostic:
+  - [x] `infer-primitives.test.ts`
+  - [x] `infer-records.test.ts`
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 6: Module System Integration
 **Status:** Not Started
@@ -398,8 +389,8 @@
   - [ ] Delete `CompilationError` class
   - [ ] Delete `RuntimeError` class
   - [ ] Delete `VibefunError` base class (replaced by `VibefunDiagnostic`)
-- [ ] Verify `TypeCheckerError` deleted (should be done in Phase 5)
-- [ ] Verify `DesugarError.ts` deleted (should be done in Phase 4)
+- [x] Verify `TypeCheckerError` deleted (done in Phase 5c)
+- [x] Verify `DesugarError.ts` deleted (done in Phase 4)
 - [ ] Update all imports across codebase to use new diagnostics
 - [ ] Update CLI `compile()` to thread source through pipeline
 - [ ] Update CLI error handling:
@@ -417,9 +408,9 @@
 
 Before starting Phase 1, verify:
 
-- [ ] Audit `unify.ts` for all plain `Error` throws - map user-facing ones to VF4xxx
-- [ ] Audit `patterns.ts` for all throws - map user-facing ones to VF4xxx
-- [ ] Verify VF2400-2499 import/export codes cover all parser cases
+- [x] Audit `unify.ts` for all plain `Error` throws - map user-facing ones to VF4xxx
+- [x] Audit `patterns.ts` for all throws - map user-facing ones to VF4xxx
+- [x] Verify VF2400-2499 import/export codes cover all parser cases
 - [ ] Understand source threading requirements through CLI
 
 ## Overall Progress
@@ -432,11 +423,11 @@ Before starting Phase 1, verify:
 | Phase 4: Desugarer Migration | ✅ Complete | 12/12 | 1 error code (VF3101), internal errors → plain Error |
 | Phase 5a: TC Codes & Basic | ✅ Complete | 23/23 | 53 codes (VF4xxx + VF5102), resolver/environment migrated |
 | Phase 5b: Unify/Patterns | ✅ Complete | 10/10 | ~20 call site updates, 20-21 errors |
-| Phase 5c: Inference Cleanup | Not Started | 0/18 | Migrate infer/*.ts |
+| Phase 5c: Inference Cleanup | ✅ Complete | 18/18 | Migrate infer/*.ts, delete TypeCheckerError |
 | Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 6/10 Phases Complete (60%)**
-**Estimated Total Error Codes: ~114 (13 lexer + 37 parser + 1 desugarer + 53 typechecker + remaining)**
+**Overall: 7/10 Phases Complete (70%)**
+**Estimated Total Error Codes: ~117 (13 lexer + 37 parser + 1 desugarer + 56 typechecker + remaining)**
 **Estimated Test Updates: ~180-250 tests**

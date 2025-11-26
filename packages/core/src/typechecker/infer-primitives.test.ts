@@ -21,7 +21,6 @@ import type { TypeEnv } from "../types/environment.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
-import { TypeError } from "../utils/error.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
 import { primitiveTypes, resetTypeVarCounter, typeToString } from "./types.js";
@@ -149,8 +148,13 @@ describe("Type Inference - Variables", () => {
         const env = createTestEnv();
         const ctx = createContext(env);
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
-        expect(() => inferExpr(ctx, expr)).toThrow(/Undefined variable/);
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+        try {
+            inferExpr(ctx, expr);
+        } catch (e) {
+            expect(e).toBeInstanceOf(VibefunDiagnostic);
+            expect((e as VibefunDiagnostic).code).toBe("VF4100");
+        }
     });
 });
 

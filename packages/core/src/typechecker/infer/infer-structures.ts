@@ -8,9 +8,10 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { TypeError } from "../../utils/error.js";
+import { throwDiagnostic } from "../../diagnostics/index.js";
+import { typeToString } from "../format.js";
 import { checkExhaustiveness, checkPattern } from "../patterns.js";
-import { freshTypeVar, primitiveTypes, typeToString } from "../types.js";
+import { freshTypeVar, primitiveTypes } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
 
@@ -110,22 +111,19 @@ export function inferRecordAccess(
 
     // Check that it's a record type
     if (recordType.type !== "Record") {
-        throw new TypeError(
-            `Cannot access field '${expr.field}' on non-record type`,
-            expr.loc,
-            `Expected a record type, but got ${typeToString(recordType)}`,
-        );
+        throwDiagnostic("VF4500", expr.loc, {
+            actual: typeToString(recordType),
+        });
     }
 
     // Look up the field
     const fieldType = recordType.fields.get(expr.field);
     if (!fieldType) {
-        const availableFields = Array.from(recordType.fields.keys()).join(", ");
-        throw new TypeError(
-            `Record does not have field '${expr.field}'`,
-            expr.loc,
-            `Available fields: ${availableFields || "(none)"}`,
-        );
+        const availableFields = Array.from(recordType.fields.keys()).join(", ") || "(none)";
+        throwDiagnostic("VF4501", expr.loc, {
+            field: expr.field,
+            availableFields,
+        });
     }
 
     return { type: fieldType, subst: currentSubst };
@@ -151,11 +149,9 @@ export function inferRecordUpdate(
 
     // Check that it's a record type
     if (recordType.type !== "Record") {
-        throw new TypeError(
-            `Cannot update fields on non-record type`,
-            expr.loc,
-            `Expected a record type, but got ${typeToString(recordType)}`,
-        );
+        throwDiagnostic("VF4500", expr.loc, {
+            actual: typeToString(recordType),
+        });
     }
 
     // Create a new field map with updates
@@ -167,12 +163,11 @@ export function inferRecordUpdate(
             // Handle explicit field update
             // Check that the field exists in the original record
             if (!recordType.fields.has(update.name)) {
-                const availableFields = Array.from(recordType.fields.keys()).join(", ");
-                throw new TypeError(
-                    `Cannot update non-existent field '${update.name}'`,
-                    update.loc,
-                    `Available fields: ${availableFields || "(none)"}`,
-                );
+                const availableFields = Array.from(recordType.fields.keys()).join(", ") || "(none)";
+                throwDiagnostic("VF4501", update.loc, {
+                    field: update.name,
+                    availableFields,
+                });
             }
 
             // Infer the type of the update value
@@ -202,11 +197,9 @@ export function inferRecordUpdate(
             // The spread expression should be a record type
             const spreadType = applySubst(currentCtx.subst, spreadResult.type);
             if (spreadType.type !== "Record") {
-                throw new TypeError(
-                    `Cannot spread non-record type in record update`,
-                    update.loc,
-                    `Expected a record type, but got ${typeToString(spreadType)}`,
-                );
+                throwDiagnostic("VF4500", update.loc, {
+                    actual: typeToString(spreadType),
+                });
             }
 
             // Merge fields from the spread expression into the new fields map
@@ -240,11 +233,7 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     const binding = ctx.env.values.get(expr.constructor);
 
     if (!binding) {
-        throw new TypeError(
-            `Undefined variant constructor '${expr.constructor}'`,
-            expr.loc,
-            `Constructor '${expr.constructor}' is not in scope`,
-        );
+        throwDiagnostic("VF4102", expr.loc, { name: expr.constructor });
     }
 
     // Get the constructor's type scheme
@@ -252,11 +241,7 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     if (binding.kind === "Value" || binding.kind === "External") {
         scheme = binding.scheme;
     } else {
-        throw new TypeError(
-            `Overloaded external '${expr.constructor}' not supported as variant constructor`,
-            expr.loc,
-            `Variant constructors cannot be overloaded`,
-        );
+        throwDiagnostic("VF4804", expr.loc, { name: expr.constructor });
     }
 
     // Instantiate the type scheme
@@ -268,22 +253,22 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
 
         // Check that the number of arguments matches
         if (expr.args.length !== constructorType.params.length) {
-            throw new TypeError(
-                `Constructor '${expr.constructor}' expects ${constructorType.params.length} arguments, but got ${expr.args.length}`,
-                expr.loc,
-                `Argument count mismatch`,
-            );
+            throwDiagnostic("VF4200", expr.loc, {
+                name: expr.constructor,
+                expected: constructorType.params.length,
+                actual: expr.args.length,
+            });
         }
     } else {
         // Constructor takes no arguments (e.g., None, Nil)
 
         // Check that we're not trying to pass arguments
         if (expr.args.length > 0) {
-            throw new TypeError(
-                `Constructor '${expr.constructor}' expects no arguments, but got ${expr.args.length}`,
-                expr.loc,
-                `Cannot apply arguments to nullary constructor`,
-            );
+            throwDiagnostic("VF4200", expr.loc, {
+                name: expr.constructor,
+                expected: 0,
+                actual: expr.args.length,
+            });
         }
 
         // Return the constructor type directly
@@ -414,12 +399,14 @@ export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     const patterns = expr.cases.map((c) => c.pattern);
     const missingCases = checkExhaustiveness(currentCtx.env, patterns, scrutineeType);
     if (missingCases.length > 0) {
-        throw new TypeError(`Non-exhaustive pattern match`, expr.loc, `Missing cases: ${missingCases.join(", ")}`);
+        throwDiagnostic("VF4400", expr.loc, {
+            missing: missingCases.join(", "),
+        });
     }
 
     // Return unified result type
     if (resultType === null) {
-        throw new TypeError(`Match expression has no cases`, expr.loc, `Add at least one match case`);
+        throwDiagnostic("VF4404", expr.loc, {});
     }
 
     return {

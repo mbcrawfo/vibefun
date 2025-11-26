@@ -329,6 +329,25 @@ export const VF4016: DiagnosticDefinition = {
     relatedCodes: ["VF4015"],
 };
 
+export const VF4017: DiagnosticDefinition = {
+    code: "VF4017",
+    title: "NotImplemented",
+    messageTemplate: "{feature} not yet implemented",
+    severity: "error",
+    phase: "typechecker",
+    category: "mismatch",
+    hintTemplate: "{hint}",
+    explanation:
+        "This feature has not yet been implemented in the type checker. " +
+        "It may be added in a future release of Vibefun.",
+    example: {
+        bad: "let (a, b) = expr  // pattern matching in let bindings",
+        good: "match expr with\n| (a, b) -> ...",
+        description: "Used match expression instead",
+    },
+    relatedCodes: [],
+};
+
 // =============================================================================
 // VF4020-VF4029: Unification Errors
 // =============================================================================
@@ -784,6 +803,25 @@ export const VF4403: DiagnosticDefinition = {
     relatedCodes: ["VF4402"],
 };
 
+export const VF4404: DiagnosticDefinition = {
+    code: "VF4404",
+    title: "EmptyMatch",
+    messageTemplate: "Match expression has no cases",
+    severity: "error",
+    phase: "typechecker",
+    category: "pattern",
+    hintTemplate: "Add at least one match case",
+    explanation:
+        "A match expression must have at least one case to handle. Empty match expressions " +
+        "are not allowed because they cannot produce a value.",
+    example: {
+        bad: "match x with",
+        good: "match x with\n| _ -> defaultValue",
+        description: "Added a pattern case",
+    },
+    relatedCodes: ["VF4400"],
+};
+
 // =============================================================================
 // VF4500-VF4599: Record Errors
 // =============================================================================
@@ -1028,6 +1066,25 @@ export const VF4803: DiagnosticDefinition = {
     relatedCodes: ["VF4800"],
 };
 
+export const VF4804: DiagnosticDefinition = {
+    code: "VF4804",
+    title: "FFIOverloadNotSupported",
+    messageTemplate: "Overloaded external '{name}' not yet supported in this context",
+    severity: "error",
+    phase: "typechecker",
+    category: "ffi",
+    hintTemplate: "Overloaded externals require explicit overload resolution",
+    explanation:
+        "Overloaded external functions cannot be used as first-class values or in certain contexts. " +
+        "You must call them directly with the appropriate arguments for overload resolution.",
+    example: {
+        bad: "let f = overloadedExternal  // cannot use as value",
+        good: "let result = overloadedExternal(arg)",
+        description: "Called directly instead of using as value",
+    },
+    relatedCodes: ["VF4800", "VF4205"],
+};
+
 // =============================================================================
 // VF4900-VF4999: Type Warnings
 // =============================================================================
@@ -1096,6 +1153,7 @@ const typecheckerCodes: readonly DiagnosticDefinition[] = [
     VF4014,
     VF4015,
     VF4016,
+    VF4017,
     // Unification (VF4020-VF4029)
     VF4020,
     VF4021,
@@ -1124,6 +1182,7 @@ const typecheckerCodes: readonly DiagnosticDefinition[] = [
     VF4401,
     VF4402,
     VF4403,
+    VF4404,
     // Records (VF4500-VF4599)
     VF4500,
     VF4501,
@@ -1140,6 +1199,7 @@ const typecheckerCodes: readonly DiagnosticDefinition[] = [
     VF4801,
     VF4802,
     VF4803,
+    VF4804,
     // Warnings (VF4900-VF4999)
     VF4900,
     // Module system (VF5102 - lives here for convenience)
