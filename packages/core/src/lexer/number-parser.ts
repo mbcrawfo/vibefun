@@ -16,7 +16,7 @@ import { isDigit, isHexDigit } from "./character-utils.js";
  * @param lexer - The lexer instance
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns A token (INT_LITERAL or FLOAT_LITERAL)
- * @throws {LexerError} If number format is invalid
+ * @throws {VibefunDiagnostic} If number format is invalid
  */
 export function readNumber(lexer: Lexer, hadLeadingWhitespace: boolean): Token {
     const start = lexer.makeLocation();
@@ -42,7 +42,7 @@ export function readNumber(lexer: Lexer, hadLeadingWhitespace: boolean): Token {
  * @param start - The starting location of the number
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns INT_LITERAL or FLOAT_LITERAL token
- * @throws {LexerError} If number format is invalid
+ * @throws {VibefunDiagnostic} If number format is invalid
  */
 function readDecimalNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: boolean): Token {
     let value = "";
@@ -130,7 +130,7 @@ function readDecimalNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: 
  * @param start - The starting location of the number
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns INT_LITERAL token
- * @throws {LexerError} If hex format is invalid
+ * @throws {VibefunDiagnostic} If hex format is invalid
  */
 function readHexNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: boolean): Token {
     // Skip '0x' or '0X'
@@ -174,7 +174,7 @@ function readHexNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: bool
  * @param start - The starting location of the number
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns INT_LITERAL token
- * @throws {LexerError} If binary format is invalid
+ * @throws {VibefunDiagnostic} If binary format is invalid
  */
 function readBinaryNumber(lexer: Lexer, start: Location, hadLeadingWhitespace: boolean): Token {
     // Skip '0b' or '0B'

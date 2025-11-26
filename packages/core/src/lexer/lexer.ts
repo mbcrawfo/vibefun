@@ -159,7 +159,7 @@ export class Lexer {
     /**
      * Tokenize the entire source code
      * @returns Array of tokens representing the source code
-     * @throws {LexerError} If an invalid token is encountered
+     * @throws {VibefunDiagnostic} If an invalid token is encountered
      */
     tokenize(): Token[] {
         const tokens: Token[] = [];

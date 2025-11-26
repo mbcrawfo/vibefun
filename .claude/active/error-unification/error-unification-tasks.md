@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 7 Complete)
+**Last Updated:** 2025-11-25 (Audit Complete - JSDoc Cleanup)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -432,3 +432,30 @@ Before starting Phase 1, verify:
 **Overall: 10/10 Phases Complete (100%)**
 **Total Error Codes: ~116 (14 lexer + 37 parser + 1 desugarer + 56 typechecker + 8 modules)**
 **All tests passing: 2768 tests**
+
+## Post-Implementation Cleanup (Audit)
+
+Performed during feature audit:
+
+- [x] Update JSDoc `@throws` comments to reference `VibefunDiagnostic` instead of old error types:
+  - [x] `string-parser.ts` - 7 instances
+  - [x] `number-parser.ts` - 3 instances
+  - [x] `operator-parser.ts` - 1 instance
+  - [x] `comment-handler.ts` - 1 instance
+  - [x] `lexer.ts` - 1 instance
+  - [x] `parse-declarations.ts` - 1 instance
+  - [x] `parser.ts` - 1 instance
+  - [x] `infer-primitives.ts` - 2 instances
+  - [x] `infer-bindings.ts` - 1 instance
+  - [x] `resolver.ts` - 2 instances
+  - [x] `environment.ts` - 1 instance
+  - [x] `constraints.ts` - 1 instance
+- [x] Update test description in `parser.test.ts` ("ParserError" → "VibefunDiagnostic")
+- [x] Update error name check in `parse-expression-lambda.ts` ("ParserError" → "VibefunDiagnostic")
+- [x] Verify all 2768 tests pass
+- [x] Delete backward compatibility files:
+  - [x] `utils/error.ts` - removed (was just a re-export)
+  - [x] `typechecker/errors.ts` - removed (was just re-exporting from format.ts)
+  - [x] Updated `utils/index.ts` - removed export
+  - [x] Updated `typechecker/index.ts` - removed export
+- [x] Final verification - all 2768 tests pass

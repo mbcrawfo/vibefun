@@ -67,7 +67,7 @@ export function instanceConstraint(scheme: TypeScheme, type: Type, loc: Location
  *
  * @param constraints - List of constraints to solve
  * @returns The substitution that satisfies all constraints
- * @throws {TypeError} If constraints cannot be satisfied
+ * @throws {VibefunDiagnostic} If constraints cannot be satisfied
  */
 export function solveConstraints(constraints: Constraint[]): Substitution {
     let subst = emptySubst();
