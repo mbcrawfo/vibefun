@@ -148,43 +148,48 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 1.5c: Config Loading
+## Phase 1.5c: Config Loading ✅ COMPLETE
 
 ### Config Implementation
-- [ ] Create file: `packages/core/src/module-loader/config-loader.ts`
-- [ ] Define `VibefunConfig` type
-  - [ ] `compilerOptions?.paths?: Record<string, string[]>`
-- [ ] Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
-  - [ ] Find vibefun.json (walk up from entry point)
-  - [ ] Parse JSON with error handling
-  - [ ] Return null if not found (not an error)
-  - [ ] Return clear error for invalid JSON
-- [ ] Implement `applyPathMapping(importPath: string, config: VibefunConfig, projectRoot: string): string | null`
-  - [ ] Match import against path patterns
-  - [ ] Support wildcards (`@/*` → `./src/*`)
-  - [ ] **Check path mappings BEFORE node_modules** (TypeScript behavior)
-  - [ ] Try each mapping target in order
-  - [ ] Return resolved path or null
-- [ ] Implement `findProjectRoot(entryPoint: string): string`
-  - [ ] Walk up from entry point
-  - [ ] Look for vibefun.json or package.json
-  - [ ] Return directory containing config
+- [x] Create file: `packages/core/src/module-loader/config-loader.ts`
+- [x] Define `VibefunConfig` type
+  - [x] `compilerOptions?.paths?: Record<string, string[]>`
+- [x] Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
+  - [x] Find vibefun.json (walk up from entry point)
+  - [x] Parse JSON with error handling
+  - [x] Return null if not found (not an error)
+  - [x] Return clear error for invalid JSON
+- [x] Implement `applyPathMapping(importPath: string, config: VibefunConfig, projectRoot: string): string | null`
+  - [x] Match import against path patterns
+  - [x] Support wildcards (`@/*` → `./src/*`)
+  - [x] **Check path mappings BEFORE node_modules** (TypeScript behavior)
+  - [x] Try each mapping target in order
+  - [x] Return resolved path or null
+- [x] Implement `findProjectRoot(entryPoint: string): string`
+  - [x] Walk up from entry point
+  - [x] Look for vibefun.json or package.json
+  - [x] Return directory containing config
+- [x] Implement additional helpers:
+  - [x] `loadConfigFromEntryPoint()` - convenience function
+  - [x] `getAllPathMappings()` - for error messages
+  - [x] `resolveMappedPath()` - resolve relative paths
 
 ### Phase 1.5c Tests
-- [ ] Test loading vibefun.json from project root
-- [ ] Test path mapping `@/*` → `./src/*`
-- [ ] Test path mapping with multiple targets (fallback)
-- [ ] Test path mapping precedence over node_modules
-- [ ] Test missing vibefun.json (returns null, not error)
-- [ ] Test invalid JSON (clear error message)
-- [ ] Test finding project root (walk up from entry point)
-- [ ] Test nested project (vibefun.json in subdirectory)
+- [x] Test loading vibefun.json from project root
+- [x] Test path mapping `@/*` → `./src/*`
+- [x] Test path mapping with multiple targets (fallback)
+- [x] Test path mapping precedence over node_modules
+- [x] Test missing vibefun.json (returns null, not error)
+- [x] Test invalid JSON (clear error message)
+- [x] Test finding project root (walk up from entry point)
+- [x] Test nested project (vibefun.json in subdirectory)
+- [x] Test edge cases (Unicode, spaces in paths, null entries, etc.)
 
 ### Phase 1.5c Quality Checks
-- [ ] Run `npm run verify`
-- [ ] Ensure 90%+ test coverage
-- [ ] Add JSDoc comments
-- [ ] No `any` types
+- [x] Run `npm run verify`
+- [x] Ensure 90%+ test coverage (48 tests passing)
+- [x] Add JSDoc comments
+- [x] No `any` types
 
 ---
 
@@ -901,17 +906,17 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 3/17 (18%)
+**Phases Completed:** 4/17 (24%)
 **Estimated Tasks:** ~280 (expanded after third audit)
-**Tasks Completed:** ~70
-**Current Phase:** Phase 1.5b COMPLETE, ready for Phase 1.5c
+**Tasks Completed:** ~115
+**Current Phase:** Phase 1.5c COMPLETE, ready for Phase 2
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
 - **Phase 1**: Diagnostic System Verification (codes VF5004, VF5005) ✅ COMPLETE
 - **Phase 1.5a**: Relative Path Resolution (symlinks, normalization, case sensitivity) ✅ COMPLETE
 - **Phase 1.5b**: Package Resolution (node_modules lookup) ✅ COMPLETE
-- **Phase 1.5c**: Config Loading (vibefun.json path mappings)
+- **Phase 1.5c**: Config Loading (vibefun.json path mappings) ✅ COMPLETE
 - **Phase 2**: Module Loader (with error collection)
 - **Phase 3**: Module Graph + Import Conflict Detection
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
