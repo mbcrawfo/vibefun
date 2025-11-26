@@ -6,6 +6,10 @@
  * @module module-loader
  */
 
+// Module loading
+export { ModuleLoader, loadModules } from "./module-loader.js";
+export type { ModuleLoadResult, ModuleLoaderOptions } from "./module-loader.js";
+
 // Path resolution
 export {
     fileExists,

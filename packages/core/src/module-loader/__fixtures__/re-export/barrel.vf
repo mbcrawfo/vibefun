@@ -1,0 +1,2 @@
+// barrel.vf - Re-exports from helper
+export { helper } from "./helper";

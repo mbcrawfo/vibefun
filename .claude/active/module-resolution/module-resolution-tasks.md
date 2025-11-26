@@ -254,106 +254,106 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 2: Module Loader (Discovery & Parsing)
+## Phase 2: Module Loader (Discovery & Parsing) ✅ COMPLETE
 
 ### Core Implementation
-- [ ] Create file: `packages/core/src/module-loader/module-loader.ts`
-- [ ] Implement `ModuleLoader` class
-  - [ ] Constructor
-  - [ ] Method: `loadModules(entryPoint: string): Map<string, Module>`
-  - [ ] Method: `loadModule(path: string): Module | null` (private, returns null on error)
-  - [ ] Method: `discoverImports(module: Module): string[]` (private)
-  - [ ] Method: `resolvePath(from: string, importPath: string): string` (private, use Phase 1.5)
-  - [ ] Cache: `Map<string, Module>` keyed by REAL PATH (after symlink resolution)
-  - [ ] Error collection: Array to collect all errors during loading
-  - [ ] Method: `collectError(error: VibefunError): void` (private)
-  - [ ] Method: `throwCollectedErrors(): void` (private, throws if errors exist)
+- [x] Create file: `packages/core/src/module-loader/module-loader.ts`
+- [x] Implement `ModuleLoader` class
+  - [x] Constructor
+  - [x] Method: `loadModules(entryPoint: string): Map<string, Module>`
+  - [x] Method: `loadModule(path: string): Module | null` (private, returns null on error)
+  - [x] Method: `discoverImports(module: Module): string[]` (private)
+  - [x] Method: `resolvePath(from: string, importPath: string): string` (private, use Phase 1.5)
+  - [x] Cache: `Map<string, Module>` keyed by REAL PATH (after symlink resolution)
+  - [x] Error collection: Array to collect all errors during loading
+  - [x] Method: `collectError(error: VibefunError): void` (private)
+  - [x] Method: `throwCollectedErrors(): void` (private, throws if errors exist)
 
 ### Error Collection Strategy
-- [ ] Implement error collection (not fail-fast)
-  - [ ] Create error array in ModuleLoader
-  - [ ] On parse error: collect and continue
-  - [ ] On missing file: collect and continue
-  - [ ] On permission error: collect and continue
-  - [ ] After discovery: throw all collected errors together
-- [ ] Implement helpful error messages
-  - [ ] Missing files: suggest similar filenames (typo detection)
-  - [ ] Parse errors: include exact location
-  - [ ] Permission errors: include full path and permissions
-  - [ ] Invalid paths: explain what was expected
+- [x] Implement error collection (not fail-fast)
+  - [x] Create error array in ModuleLoader
+  - [x] On parse error: collect and continue
+  - [x] On missing file: collect and continue
+  - [x] On permission error: collect and continue
+  - [x] After discovery: throw all collected errors together
+- [x] Implement helpful error messages
+  - [x] Missing files: suggest similar filenames (typo detection)
+  - [x] Parse errors: include exact location
+  - [x] Permission errors: include full path and permissions
+  - [x] Invalid paths: explain what was expected
 
 ### Integration with Parser
-- [ ] Import existing `Lexer` class
-- [ ] Import existing `Parser` class
-- [ ] Read file contents using `fs.readFileSync`
-- [ ] Create `Lexer` instance with file contents
-- [ ] Create `Parser` instance with tokens
-- [ ] Parse to get `Module` AST
-- [ ] Handle parse errors gracefully
+- [x] Import existing `Lexer` class
+- [x] Import existing `Parser` class
+- [x] Read file contents using `fs.readFileSync`
+- [x] Create `Lexer` instance with file contents
+- [x] Create `Parser` instance with tokens
+- [x] Parse to get `Module` AST
+- [x] Handle parse errors gracefully
 
 ### Entry Point Validation
-- [ ] Validate entry point exists before starting discovery
-- [ ] If entry point is directory, try resolving to `dir/index.vf`
-- [ ] Clear error message for missing entry point:
+- [x] Validate entry point exists before starting discovery
+- [x] If entry point is directory, try resolving to `dir/index.vf`
+- [x] Clear error message for missing entry point:
       "Entry point not found: src/main.vf\n  Tried: src/main.vf, src/main/index.vf"
-- [ ] Entry point parse errors included in error collection
+- [x] Entry point parse errors included in error collection
 
 ### Discovery Algorithm
-- [ ] Implement transitive closure discovery
-  - [ ] Start with entry point (after validation)
-  - [ ] Parse entry point module
-  - [ ] Extract all import statements
-  - [ ] Resolve import paths to absolute paths
-  - [ ] For each import (if not in cache):
-    - [ ] Parse the imported module
-    - [ ] Add to cache
-    - [ ] Add to queue for import discovery
-  - [ ] Repeat until queue is empty
-- [ ] Return complete module map
+- [x] Implement transitive closure discovery
+  - [x] Start with entry point (after validation)
+  - [x] Parse entry point module
+  - [x] Extract all import statements
+  - [x] Resolve import paths to absolute paths
+  - [x] For each import (if not in cache):
+    - [x] Parse the imported module
+    - [x] Add to cache
+    - [x] Add to queue for import discovery
+  - [x] Repeat until queue is empty
+- [x] Return complete module map
 
 ### Error Handling
-- [ ] Handle file not found (collect error, continue)
-- [ ] Handle parse errors (collect error, continue)
-- [ ] Handle permission errors (collect error, continue)
-- [ ] Handle circular imports during loading (not an error, just cache them)
-- [ ] Handle invalid import paths (collect error, continue)
-- [ ] Collect all errors during discovery
-- [ ] Throw all errors together at end if any exist
+- [x] Handle file not found (collect error, continue)
+- [x] Handle parse errors (collect error, continue)
+- [x] Handle permission errors (collect error, continue)
+- [x] Handle circular imports during loading (not an error, just cache them)
+- [x] Handle invalid import paths (collect error, continue)
+- [x] Collect all errors during discovery
+- [x] Throw all errors together at end if any exist
 
 ### Public API
-- [ ] Export `loadModules(entryPoint: string): Map<string, Module>` function
-- [ ] Export from `packages/core/src/module-loader/index.ts`
-- [ ] Add JSDoc documentation
+- [x] Export `loadModules(entryPoint: string): Map<string, Module>` function
+- [x] Export from `packages/core/src/module-loader/index.ts`
+- [x] Add JSDoc documentation
 
 ### Tests
-- [ ] Test single module (no imports)
-- [ ] Test two modules (A imports B)
-- [ ] Test three modules (A imports B, B imports C)
-- [ ] Test diamond dependency (A imports B and C, both import D)
-- [ ] Test shared dependency (A imports C, B imports C, only parsed once via cache)
-- [ ] Test relative path resolution (`./`, `../`)
-- [ ] Test path normalization
-- [ ] Test symlink resolution (symlink and original = same module)
-- [ ] Test module cache keyed by real path
-- [ ] Test missing file error (collected, not thrown immediately)
-- [ ] Test parse error (collected, continues loading other modules)
-- [ ] Test permission error (collected, continues loading)
-- [ ] Test multiple errors reported together
-- [ ] Test typo suggestions for missing files
-- [ ] Test circular imports (should not error during loading)
-- [ ] Test type-only imports (still discovered)
-- [ ] Test re-exports (discovered as dependencies)
-- [ ] Test empty modules (no imports/exports)
-- [ ] Test duplicate imports (same module imported multiple times in one file)
-- [ ] Test entry point doesn't exist (clear error)
-- [ ] Test entry point is directory with index.vf
-- [ ] Test entry point is directory without index.vf (error)
+- [x] Test single module (no imports)
+- [x] Test two modules (A imports B)
+- [x] Test three modules (A imports B, B imports C)
+- [x] Test diamond dependency (A imports B and C, both import D)
+- [x] Test shared dependency (A imports C, B imports C, only parsed once via cache)
+- [x] Test relative path resolution (`./`, `../`)
+- [x] Test path normalization
+- [x] Test symlink resolution (symlink and original = same module)
+- [x] Test module cache keyed by real path
+- [x] Test missing file error (collected, not thrown immediately)
+- [x] Test parse error (collected, continues loading other modules)
+- [x] Test permission error (collected, continues loading)
+- [x] Test multiple errors reported together
+- [x] Test typo suggestions for missing files
+- [x] Test circular imports (should not error during loading)
+- [x] Test type-only imports (still discovered)
+- [x] Test re-exports (discovered as dependencies)
+- [x] Test empty modules (no imports/exports)
+- [x] Test duplicate imports (same module imported multiple times in one file)
+- [x] Test entry point doesn't exist (clear error)
+- [x] Test entry point is directory with index.vf
+- [x] Test entry point is directory without index.vf (error)
 
 ### Quality Checks
-- [ ] Run `npm run verify`
-- [ ] Ensure 90%+ test coverage
-- [ ] Add JSDoc comments
-- [ ] No `any` types
+- [x] Run `npm run verify`
+- [x] Ensure 90%+ test coverage
+- [x] Add JSDoc comments
+- [x] No `any` types
 
 ---
 
@@ -967,10 +967,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 5/18 (28%)
+**Phases Completed:** 6/18 (33%)
 **Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~135
-**Current Phase:** Phase 1.6 COMPLETE, ready for Phase 2
+**Tasks Completed:** ~175
+**Current Phase:** Phase 2 COMPLETE, ready for Phase 3
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -979,7 +979,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 1.5b**: Package Resolution (node_modules lookup) ✅ COMPLETE
 - **Phase 1.5c**: Config Loading (vibefun.json path mappings) ✅ COMPLETE
 - **Phase 1.6**: Separate Compiler Config Module (config types + loading to core/src/config/) ✅ COMPLETE
-- **Phase 2**: Module Loader (with error collection)
+- **Phase 2**: Module Loader (with error collection) ✅ COMPLETE
 - **Phase 3**: Module Graph + Import Conflict Detection
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
 - **Phase 5**: Warning Generation (VF5900 + VF5901)
