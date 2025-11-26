@@ -19,3 +19,19 @@ export type { PathResolutionResult, PathResolverOptions } from "./path-resolver.
 
 export { getNodeModulesSearchPaths, parsePackageImportPath, resolvePackageImport } from "./package-resolver.js";
 export type { PackageResolutionResult } from "./package-resolver.js";
+
+export {
+    applyPathMapping,
+    findProjectRoot,
+    getAllPathMappings,
+    loadConfigFromEntryPoint,
+    loadVibefunConfig,
+    resolveMappedPath,
+} from "./config-loader.js";
+export type {
+    ConfigLoadResult,
+    PathMappingResult,
+    PathMappings,
+    VibefunCompilerOptions,
+    VibefunConfig,
+} from "./config-loader.js";
