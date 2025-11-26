@@ -16,3 +16,6 @@ export {
     resolveModulePath,
 } from "./path-resolver.js";
 export type { PathResolutionResult, PathResolverOptions } from "./path-resolver.js";
+
+export { getNodeModulesSearchPaths, parsePackageImportPath, resolvePackageImport } from "./package-resolver.js";
+export type { PackageResolutionResult } from "./package-resolver.js";

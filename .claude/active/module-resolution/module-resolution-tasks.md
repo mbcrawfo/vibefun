@@ -114,37 +114,37 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 1.5b: Package Resolution
+## Phase 1.5b: Package Resolution ✅ COMPLETE
 
 ### Package Import Resolution
-- [ ] Create file: `packages/core/src/module-loader/package-resolver.ts`
-- [ ] Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
-  - [ ] Detect package imports (no `./` or `../` prefix)
-  - [ ] Support scoped packages (`@org/package`)
-  - [ ] Search node_modules in current directory
-  - [ ] Search node_modules in ancestor directories
-  - [ ] Try `<package>.vf` and `<package>/index.vf`
-  - [ ] Return null if not found
-- [ ] Implement node_modules search algorithm
-  - [ ] Start from importing file's directory
-  - [ ] Walk up directory tree
-  - [ ] Check each `node_modules/` directory
-  - [ ] Stop at filesystem root
+- [x] Create file: `packages/core/src/module-loader/package-resolver.ts`
+- [x] Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
+  - [x] Detect package imports (no `./` or `../` prefix)
+  - [x] Support scoped packages (`@org/package`)
+  - [x] Search node_modules in current directory
+  - [x] Search node_modules in ancestor directories
+  - [x] Try `<package>.vf` and `<package>/index.vf`
+  - [x] Return null if not found
+- [x] Implement node_modules search algorithm
+  - [x] Start from importing file's directory
+  - [x] Walk up directory tree
+  - [x] Check each `node_modules/` directory
+  - [x] Stop at filesystem root
 
 ### Phase 1.5b Tests
-- [ ] Test `@vibefun/std` resolves via node_modules
-- [ ] Test `@org/package` scoped package resolution
-- [ ] Test node_modules search up directory tree
-- [ ] Test package not found returns null
-- [ ] Test package with `.vf` file
-- [ ] Test package with `index.vf` directory
-- [ ] Test package precedence (file over directory)
+- [x] Test `@vibefun/std` resolves via node_modules
+- [x] Test `@org/package` scoped package resolution
+- [x] Test node_modules search up directory tree
+- [x] Test package not found returns null
+- [x] Test package with `.vf` file
+- [x] Test package with `index.vf` directory
+- [x] Test package precedence (file over directory)
 
 ### Phase 1.5b Quality Checks
-- [ ] Run `npm run verify`
-- [ ] Ensure 90%+ test coverage
-- [ ] Add JSDoc comments
-- [ ] No `any` types
+- [x] Run `npm run verify`
+- [x] Ensure 90%+ test coverage (33 tests passing)
+- [x] Add JSDoc comments
+- [x] No `any` types
 
 ---
 
@@ -901,16 +901,16 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 2/17 (12%)
+**Phases Completed:** 3/17 (18%)
 **Estimated Tasks:** ~280 (expanded after third audit)
-**Tasks Completed:** ~50
-**Current Phase:** Phase 1.5a COMPLETE, ready for Phase 1.5b
+**Tasks Completed:** ~70
+**Current Phase:** Phase 1.5b COMPLETE, ready for Phase 1.5c
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
 - **Phase 1**: Diagnostic System Verification (codes VF5004, VF5005) ✅ COMPLETE
 - **Phase 1.5a**: Relative Path Resolution (symlinks, normalization, case sensitivity) ✅ COMPLETE
-- **Phase 1.5b**: Package Resolution (node_modules lookup)
+- **Phase 1.5b**: Package Resolution (node_modules lookup) ✅ COMPLETE
 - **Phase 1.5c**: Config Loading (vibefun.json path mappings)
 - **Phase 2**: Module Loader (with error collection)
 - **Phase 3**: Module Graph + Import Conflict Detection
