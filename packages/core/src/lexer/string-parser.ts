@@ -16,7 +16,7 @@ import { isHexDigit } from "./character-utils.js";
  * @param lexer - The lexer instance
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns STRING_LITERAL token
- * @throws {LexerError} If string is unterminated or has invalid escape sequences
+ * @throws {VibefunDiagnostic} If string is unterminated or has invalid escape sequences
  */
 export function readString(lexer: Lexer, hadLeadingWhitespace: boolean): Token {
     const start = lexer.makeLocation();
@@ -36,7 +36,7 @@ export function readString(lexer: Lexer, hadLeadingWhitespace: boolean): Token {
  * @param start - The starting location of the string
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns STRING_LITERAL token
- * @throws {LexerError} If string is unterminated or contains newline
+ * @throws {VibefunDiagnostic} If string is unterminated or contains newline
  */
 function readSingleLineString(lexer: Lexer, start: Location, hadLeadingWhitespace: boolean): Token {
     lexer.advance(); // consume opening "
@@ -79,7 +79,7 @@ function readSingleLineString(lexer: Lexer, start: Location, hadLeadingWhitespac
  * @param start - The starting location of the string
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns STRING_LITERAL token
- * @throws {LexerError} If string is unterminated
+ * @throws {VibefunDiagnostic} If string is unterminated
  */
 function readMultiLineString(lexer: Lexer, start: Location, hadLeadingWhitespace: boolean): Token {
     // Consume opening """
@@ -122,7 +122,7 @@ function readMultiLineString(lexer: Lexer, start: Location, hadLeadingWhitespace
  * Handles: \n, \t, \r, \", \', \\, \xHH, \uXXXX, \u{XXXXXX}
  * @param lexer - The lexer instance
  * @returns The unescaped character(s)
- * @throws {LexerError} If escape sequence is invalid
+ * @throws {VibefunDiagnostic} If escape sequence is invalid
  */
 function readEscapeSequence(lexer: Lexer): string {
     lexer.advance(); // consume '\'
@@ -164,7 +164,7 @@ function readEscapeSequence(lexer: Lexer): string {
  * Expects exactly 2 hex digits
  * @param lexer - The lexer instance
  * @returns The character represented by the hex code
- * @throws {LexerError} If format is invalid
+ * @throws {VibefunDiagnostic} If format is invalid
  */
 function readHexEscape(lexer: Lexer): string {
     lexer.advance(); // consume 'x'
@@ -186,7 +186,7 @@ function readHexEscape(lexer: Lexer): string {
  * Long form: 1-6 hex digits in braces
  * @param lexer - The lexer instance
  * @returns The character represented by the unicode codepoint
- * @throws {LexerError} If format is invalid or codepoint is out of range
+ * @throws {VibefunDiagnostic} If format is invalid or codepoint is out of range
  */
 function readUnicodeEscape(lexer: Lexer): string {
     lexer.advance(); // consume 'u'

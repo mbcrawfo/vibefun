@@ -424,8 +424,8 @@ export function parseLambdaOrParen(parser: ParserBase, startLoc: Location): Expr
     } catch (error) {
         // If we got "Unexpected token" and the token is RPAREN,
         // and the previous token was an operator, it's likely an operator section
-        const isParserError = error instanceof Error && error.name === "ParserError";
-        const hasUnexpectedToken = isParserError && (error as Error).message.includes("Unexpected token");
+        const isVibefunDiagnostic = error instanceof Error && error.name === "VibefunDiagnostic";
+        const hasUnexpectedToken = isVibefunDiagnostic && (error as Error).message.includes("Unexpected token");
 
         if (hasUnexpectedToken && parser.check("RPAREN")) {
             // Check if we have consumed some tokens (meaning we parsed part of an expr + op)

@@ -161,7 +161,7 @@ export function parseDeclaration(parser: ParserBase): Declaration {
  * @param value - The value expression being assigned
  * @param pattern - The pattern being bound
  * @param mutable - Whether this is a mutable binding
- * @throws {ParserError} If mutable binding doesn't use ref() syntax or uses non-VarPattern
+ * @throws {VibefunDiagnostic} If mutable binding doesn't use ref() syntax or uses non-VarPattern
  */
 function validateMutableBinding(parser: ParserBase, value: Expr, pattern: Pattern, mutable: boolean): void {
     if (!mutable) {

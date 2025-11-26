@@ -70,7 +70,7 @@ function skipSingleLineComment(lexer: Lexer): void {
  * Skip a multi-line comment with nesting support
  * Handles nested comments (slash-star ... star-slash) by tracking depth
  * @param lexer - The lexer instance
- * @throws {LexerError} If comment is unterminated
+ * @throws {VibefunDiagnostic} If comment is unterminated
  */
 function skipMultiLineComment(lexer: Lexer): void {
     const start = lexer.makeLocation();

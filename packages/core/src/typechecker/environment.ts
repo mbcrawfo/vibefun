@@ -23,7 +23,7 @@ import { getBuiltinEnv } from "./builtins.js";
  *
  * @param module - The parsed module
  * @returns The type environment with built-ins and module declarations
- * @throws {TypeError} If overload declarations are invalid
+ * @throws {VibefunDiagnostic} If overload declarations are invalid
  */
 export function buildEnvironment(module: Module): TypeEnv {
     const env = emptyEnv();

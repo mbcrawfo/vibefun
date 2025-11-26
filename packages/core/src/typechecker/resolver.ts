@@ -49,7 +49,7 @@ export type ResolutionResult =
  * @param args - The argument expressions at the call site
  * @param callLoc - Location of the function call (for error reporting)
  * @returns The resolution result
- * @throws {TypeError} If resolution fails
+ * @throws {VibefunDiagnostic} If resolution fails
  */
 export function resolveCall(
     env: TypeEnv,
@@ -91,7 +91,7 @@ export function resolveCall(
  * @param args - Argument expressions
  * @param callLoc - Call site location
  * @returns Resolution result with selected overload
- * @throws {TypeError} If resolution fails
+ * @throws {VibefunDiagnostic} If resolution fails
  */
 function resolveOverload(
     name: string,

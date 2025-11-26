@@ -51,7 +51,7 @@ export class Parser extends ParserBase {
     /**
      * Parse a complete module
      * @returns Module AST node
-     * @throws ParserError if any parsing errors occurred
+     * @throws {VibefunDiagnostic} if any parsing errors occurred
      */
     parse(): Module {
         const module = this.parseModule();

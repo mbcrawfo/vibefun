@@ -221,7 +221,7 @@ describe("Parser - Core", () => {
             expect(token.value).toBe(42);
         });
 
-        it("should throw ParserError if token does not match", () => {
+        it("should throw VibefunDiagnostic if token does not match", () => {
             const parser = createParser("42");
             const expectFn = getPrivate(parser, "expect");
 

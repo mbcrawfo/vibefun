@@ -31,7 +31,7 @@ import { throwDiagnostic } from "../diagnostics/index.js";
  * @param lexer - The lexer instance
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns A token representing the operator or punctuation
- * @throws {LexerError} If an unrecognized character is encountered
+ * @throws {VibefunDiagnostic} If an unrecognized character is encountered
  *
  * @example
  * // ">=" is tokenized as GTE (not GT + EQUALS)

@@ -97,7 +97,7 @@ export function setInferenceFunctions(fns: {
  * @param ctx - The inference context
  * @param expr - The expression to infer the type of
  * @returns The inferred type and updated substitution
- * @throws {TypeError} If type inference fails
+ * @throws {VibefunDiagnostic} If type inference fails
  */
 export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
     switch (expr.kind) {
@@ -188,7 +188,7 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
  * @param name - The variable name
  * @param loc - Source location for error reporting
  * @returns The inferred type and updated substitution
- * @throws {TypeError} If the variable is not found
+ * @throws {VibefunDiagnostic} If the variable is not found
  */
 function inferVar(
     ctx: InferenceContext,

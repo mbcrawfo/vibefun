@@ -162,7 +162,7 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
  * @param ctx - The inference context
  * @param expr - The mutually recursive let expression
  * @returns The inferred type and updated substitution
- * @throws {TypeError} If type inference fails
+ * @throws {VibefunDiagnostic} If type inference fails
  */
 export function inferLetRecExpr(
     ctx: InferenceContext,
