@@ -26,7 +26,7 @@ The system consists of two separate components following the **separation of con
 8. **[NEW]** Resolve package imports via node_modules (`@vibefun/std`, `@org/package`)
 9. **[NEW]** Support vibefun.json path mappings (`@/*: ./src/*`)
 10. **[NEW]** Detect import conflicts (duplicate imports, shadowing) as compile-time errors
-11. **[NEW]** Emit case sensitivity warnings for cross-platform safety (W002)
+11. **[NEW]** Emit case sensitivity warnings for cross-platform safety (VF5901)
 
 ## Architecture: Separation of Concerns
 
@@ -76,7 +76,7 @@ const modules = loadModules('src/main.vf');
 const resolution = resolveModules(modules);
 // => ModuleResolution {
 //   compilationOrder: ['/abs/path/src/file3.vf', '/abs/path/src/file1.vf', ...],
-//   warnings: [VibefunWarning { ... }],
+//   warnings: [VibefunDiagnostic { ... }],
 //   graph: ModuleGraph { ... }
 // }
 ```
@@ -98,25 +98,39 @@ const resolution = resolveModules(modules);
 
 ## Implementation Phases
 
-### Phase 1: Warning Infrastructure
+### Phase 1: Diagnostic System Verification
 
-**Goal:** Create warning system parallel to existing error system with warning codes
+**Goal:** Verify existing diagnostic infrastructure meets module resolution needs
+
+**Background:** The unified diagnostic system already exists in `packages/core/src/diagnostics/`:
+- `VibefunDiagnostic` class handles both errors and warnings via `severity` property
+- `WarningCollector` class for accumulating non-fatal warnings
+- `DiagnosticRegistry` for all VFxxxx codes
+- Factory functions: `throwDiagnostic()` and `createDiagnostic()`
+- Test helpers: `expectDiagnostic()`, `expectWarning()`
+
+**Existing Module Codes (in `codes/modules.ts`):**
+- VF5000: ModuleNotFound
+- VF5001: ImportNotExported
+- VF5002: DuplicateImport
+- VF5003: ImportShadowed
+- VF5100: DuplicateExport
+- VF5101: ReexportConflict
+- VF5900: CircularDependency (warning)
+- VF5901: CaseSensitivityMismatch (warning)
 
 **Deliverables:**
-- `packages/core/src/utils/warning.ts` with `VibefunWarning` class
-- `CompilerDiagnostics` type: `{ errors: VibefunError[], warnings: VibefunWarning[] }`
-- Warning formatting and display (reuse error infrastructure)
-- **Warning code system**: Each warning has a unique code (W001, W002, etc.)
-- **Warning code registry**: Central registry mapping codes to warning types
-- Export from `packages/core/src/utils/index.ts`
-- Tests for warning creation, formatting, and code handling
+- Verify VF5900 (CircularDependency) message template supports cycle path formatting
+- Verify VF5901 (CaseSensitivityMismatch) message template supports path comparison
+- Add VF5004 (SelfImport) for self-import error detection
+- Add VF5005 (EntryPointNotFound) for entry point validation
+- Review diagnostic README for usage patterns
 
 **Design:**
-- Similar API to `VibefunError` (location, message, help text)
-- **Add code property**: `VibefunWarning` includes `code: string` field
-- Warnings don't halt compilation (unlike errors)
-- Formatted output distinguishes warnings from errors
-- Warning codes enable easier documentation lookups and tool integration
+- Use `createDiagnostic("VF5900", loc, { cycle: "..." })` for warnings
+- Use `throwDiagnostic("VF5000", loc, { path: "..." })` for errors
+- Accumulate warnings in `WarningCollector`
+- Format with `diagnostic.format(source)`
 
 ### Phase 1.5: Path Resolution Utilities
 
@@ -134,7 +148,7 @@ const resolution = resolveModules(modules);
 - **[NEW]** Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
 - **[NEW]** Create `packages/core/src/module-loader/config-loader.ts`
 - **[NEW]** Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
-- **[NEW]** Implement case sensitivity checking with W002 warning
+- **[NEW]** Implement case sensitivity checking with VF5901 warning
 - Tests for all edge cases
 
 **Design:**
@@ -220,18 +234,19 @@ export function applyPathMapping(
    - Try each mapping in order until one resolves
 3. If no mapping matches, fall back to package/relative resolution
 
-**[NEW] Case Sensitivity Warning (W002):**
+**[NEW] Case Sensitivity Warning (VF5901):**
 - When file is found via case-insensitive match but case differs:
   ```
-  Warning [W002]: Import path case doesn't match file
-    at src/main.vf:1:1:
-      import { x } from './Utils';
-    File is: src/utils.vf
-
-  This may cause errors on case-sensitive file systems (Linux).
+  warning[VF5901]: Module path './Utils' has different casing than on disk: './utils'
+    --> src/main.vf:1:1
+     |
+   1 | import { x } from './Utils';
+     |                   ^^^^^^^^
+     |
+   = hint: Use the exact casing as the file on disk
   ```
 - Check actual filename case after resolution using `fs.readdirSync()`
-- Emit warning if import case differs from file case
+- Use `createDiagnostic("VF5901", loc, { actual: importPath, expected: realPath })`
 
 ### Phase 2: Module Loader (Discovery & Parsing)
 
@@ -410,7 +425,7 @@ export * from './a';  // Cycle!
 
 **Behavior:**
 - Re-exports create dependency edges (detected as cycle)
-- Warn with W001 but don't infinite loop
+- Warn with VF5900 but don't infinite loop
 - Each module resolved once (break cycle at second visit)
 - Mark edge as "re-export" for cycle message clarity
 
@@ -479,49 +494,45 @@ type Cycle = {
 
 ### Phase 5: Warning Generation
 
-**Goal:** Generate spec-compliant, helpful warning messages with codes
+**Goal:** Generate spec-compliant, helpful warning messages using unified diagnostic system
 
 **Deliverables:**
 - Warning message generation per `docs/spec/08-modules.md:221-233`
-- **Warning code W001** for circular dependencies
-- Include cycle path visualization
-- Provide actionable suggestions
-- Link to documentation
+- **Use VF5900** for circular dependencies
+- Include cycle path visualization in message template parameters
+- Provide actionable suggestions in hint template
 - **Snapshot tests** for warning format regression prevention
 - Tests for message formatting
 
-**Warning Format:**
+**Warning Format (using VibefunDiagnostic.format()):**
 ```
-Warning [W001]: Circular dependency detected
-  Module cycle: src/moduleA.vf → src/moduleB.vf → src/moduleA.vf
+warning[VF5900]: Circular dependency detected: src/moduleA.vf → src/moduleB.vf → src/moduleA.vf
+  --> src/moduleA.vf:1:1
+   |
+ 1 | import { functionB } from './moduleB';
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+ = hint: Consider restructuring modules to break the cycle
+```
 
-  at src/moduleA.vf:1:1:
-    import { functionB } from './moduleB';
-
-  This can cause runtime errors if modules call imported functions
-  during initialization.
-
-  Suggestions:
-  - Use lazy evaluation (wrap in functions)
-  - Break cycle by extracting shared code to new module
-  - Use dependency injection patterns
-
-  See: docs/compiler/warning-codes.md#w001
+**Implementation:**
+```typescript
+const warning = createDiagnostic("VF5900", importLoc, {
+  cycle: "src/moduleA.vf → src/moduleB.vf → src/moduleA.vf"
+});
+warningCollector.add(warning);
 ```
 
 **Key Points:**
-- **Include warning code [W001]** in message
-- Show complete cycle path with arrows
-- Include source locations for imports
-- Explain the danger (runtime errors)
-- Provide concrete suggestions
-- Link to warning code documentation
+- Use `createDiagnostic("VF5900", ...)` for circular dependency warnings
+- Use `createDiagnostic("VF5901", ...)` for case sensitivity warnings
+- Cycle path passed as template parameter `{cycle}`
+- `VibefunDiagnostic.format(source)` handles source context display
 - **Snapshot tests** ensure format doesn't regress
 
-**Warning Codes:**
-- `W001`: Circular dependency (value cycle)
-- **[NEW]** `W002`: Case sensitivity mismatch (cross-platform safety)
-- Future codes: W003, W004, etc. for other warnings
+**Module Warning Codes:**
+- `VF5900`: Circular dependency (value cycle)
+- `VF5901`: Case sensitivity mismatch (cross-platform safety)
 
 ### Phase 6: Module Resolver API
 
@@ -548,10 +559,10 @@ export function loadAndResolveModules(
 ): ModuleResolution;
 
 type ModuleResolution = {
-  compilationOrder: string[]    // Topologically sorted module paths
-  warnings: VibefunWarning[]    // Circular dependency warnings
-  graph: ModuleGraph            // Dependency graph (for debugging/tooling)
-  modules: Map<string, Module>  // All loaded modules
+  compilationOrder: string[]       // Topologically sorted module paths
+  warnings: VibefunDiagnostic[]    // Circular dependency warnings (via WarningCollector)
+  graph: ModuleGraph               // Dependency graph (for debugging/tooling)
+  modules: Map<string, Module>     // All loaded modules
 };
 ```
 
@@ -579,7 +590,7 @@ const resolution = resolveModules(modules);  // Pure, no I/O
 **Unit Tests for Each Component:**
 - `ModuleGraph`: add modules, add dependencies, query graph
 - `CircularDependencyDetector`: various cycle patterns with Tarjan's
-- `VibefunWarning`: formatting, location tracking, code handling
+- Warning generation: use `expectWarning()` for VF5900/VF5901 validation
 - Path resolution: relative to absolute, normalization, symlinks
 - Module loader: discovery, caching, error collection
 
@@ -597,7 +608,7 @@ const resolution = resolveModules(modules);  // Pure, no I/O
 **Path Resolution Edge Cases:**
 - **Symlinks** (same module via symlink and real path)
 - **Circular symlinks** (should error)
-- **Case sensitivity** (cross-platform testing, W002 warning)
+- **Case sensitivity** (cross-platform testing, VF5901 warning)
 - Path normalization (`./a/../b` → `./b`)
 - **Empty modules** (modules with no imports/exports)
 - **Unicode in file paths** (non-ASCII characters)
@@ -729,16 +740,13 @@ Instead of implementing runtime tests now, create a design doc:
 **Deliverables:**
 
 **1. Error and Warning Code Documentation:**
-- Create `docs/compiler/error-codes.md`
-  - Document all error codes with examples
-  - Include fixes and explanations for each
-  - Make it easy to search by code
-- Create `docs/compiler/warning-codes.md`
-  - **W001: Circular dependency (value cycle)**
-  - Include cycle visualization examples
-  - Provide refactoring patterns to fix cycles
-  - Explain when cycles are acceptable
-  - Link to detailed guide
+- Note: Documentation is auto-generated from `DiagnosticDefinition` objects
+- Run `npm run docs:errors` to generate from registry
+- Verify generated docs for module codes (VF5xxx) are complete:
+  - **VF5900: Circular dependency (value cycle)**
+  - **VF5901: Case sensitivity mismatch**
+  - VF5000-VF5005: Import/entry point errors
+  - VF5100-VF5101: Export errors
 
 **2. User Guide - Module Resolution:**
 - Create `docs/guides/module-resolution.md`
@@ -820,7 +828,9 @@ Instead of implementing runtime tests now, create a design doc:
 
 ## Dependencies
 
-- Existing error infrastructure (`packages/core/src/utils/error.ts`)
+- Existing diagnostic infrastructure (`packages/core/src/diagnostics/`)
+  - `VibefunDiagnostic` class, `WarningCollector`, factory functions
+  - Module codes already defined: VF5000-VF5101, VF5900-VF5901
 - AST types (`Module`, `ImportDecl`, `ReExportDecl`)
 - Parser producing valid `Module` nodes
 
@@ -842,7 +852,8 @@ Not included per project guidelines.
 ## References
 
 - Language Spec: `docs/spec/08-modules.md`
-- Existing Error System: `packages/core/src/utils/error.ts`
+- Diagnostic System: `packages/core/src/diagnostics/` (README.md for usage guide)
+- Module Codes: `packages/core/src/diagnostics/codes/modules.ts`
 - Parser Architecture: `packages/core/src/parser/CLAUDE.md`
 - AST Types: `packages/core/src/types/ast.ts`
 
@@ -856,7 +867,7 @@ This plan was audited and the following scope expansions were approved:
 |-----------|-------------|-------|
 | Package imports | node_modules lookup for `@vibefun/std`, `@org/package` | 1.5 |
 | Path mappings | vibefun.json `compilerOptions.paths` support | 1.5 |
-| Case sensitivity | W002 warning for cross-platform safety | 1.5, 5 |
+| Case sensitivity | VF5901 warning for cross-platform safety | 1.5, 5 |
 | Import conflicts | Duplicate imports and shadowing as compile errors | 3 |
 | Circular re-exports | Detect and warn, don't infinite loop | 3, 4 |
 

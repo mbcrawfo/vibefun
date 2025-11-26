@@ -12,37 +12,41 @@ This implementation consists of two major components:
 
 **Scope Change:** Expanded from 8 to 9 phases with comprehensive edge case coverage, integration testing, and user documentation. Approximately 2x original scope for production-ready implementation.
 
-## Phase 1: Warning Infrastructure
+## Phase 1: Diagnostic System Verification
 
-### Setup
-- [ ] Create `packages/core/src/utils/warning.ts`
-- [ ] Implement `VibefunWarning` class
-  - [ ] Constructor: `(code: string, message, location?, help?)`
-  - [ ] Property: `code: string` - warning code (W001, W002, etc.)
-  - [ ] Method: `format(source: string): string`
-  - [ ] Support location highlighting (reuse error code)
-  - [ ] Include warning code in formatted output
-- [ ] Create `CompilerDiagnostics` type
-  - [ ] `{ errors: VibefunError[], warnings: VibefunWarning[] }`
-- [ ] Create warning code registry
-  - [ ] `WarningCode` enum or const object
-  - [ ] `W001: "circular-dependency"` mapping
-  - [ ] Helper function to get warning by code
-- [ ] Export from `packages/core/src/utils/index.ts`
+### Existing Infrastructure Review
+- [ ] Read `packages/core/src/diagnostics/README.md` for usage patterns
+- [ ] Read `packages/core/src/diagnostics/codes/README.md` for adding codes
+- [ ] Review existing module codes in `packages/core/src/diagnostics/codes/modules.ts`
+- [ ] Understand `WarningCollector` API
+
+### Verify Existing Codes
+- [ ] Verify VF5900 (CircularDependency) message template supports cycle path formatting
+- [ ] Verify VF5901 (CaseSensitivityMismatch) supports path comparison parameters
+- [ ] Verify VF5000-VF5003 (import errors) have appropriate messages
+- [ ] Verify VF5100-VF5101 (export errors) have appropriate messages
+
+### Add Missing Codes
+- [ ] Add VF5004 (SelfImport) for self-import error detection
+  - [ ] `messageTemplate`: "Module cannot import itself: '{path}'"
+  - [ ] `severity`: "error"
+  - [ ] Include explanation and example
+- [ ] Add VF5005 (EntryPointNotFound) for entry point validation
+  - [ ] `messageTemplate`: "Entry point not found: '{path}'"
+  - [ ] `hintTemplate`: "Tried: {triedPaths}"
+  - [ ] Include explanation and example
+- [ ] Register new codes in `registerModulesCodes()`
 
 ### Tests
-- [ ] Test warning creation with code
-- [ ] Test warning formatting with location
-- [ ] Test warning formatting without location
-- [ ] Test help text display
-- [ ] Test warning code in formatted output
-- [ ] Test CompilerDiagnostics type usage
-- [ ] Test warning code registry
+- [ ] Test `createDiagnostic("VF5900", ...)` creates warning correctly
+- [ ] Test `throwDiagnostic("VF5004", ...)` throws error correctly
+- [ ] Test `WarningCollector.add()` and `getWarnings()`
+- [ ] Test `expectWarning()` helper works with VF5900
 
 ### Quality Checks
 - [ ] Run `npm run verify`
-- [ ] Ensure no `any` types
-- [ ] Add JSDoc comments
+- [ ] Run `npm run docs:errors` to regenerate documentation
+- [ ] Verify new codes appear in generated docs
 
 ---
 
@@ -115,12 +119,10 @@ This implementation consists of two major components:
 - [ ] Implement case sensitivity checking
   - [ ] After resolving file, get actual filename from directory listing
   - [ ] Compare import path case with actual file case
-  - [ ] If different, return warning info
-- [ ] Define W002 warning
-  - [ ] Add to warning code registry
-  - [ ] Format: "Import path case doesn't match file"
-  - [ ] Include import path and actual file path
-  - [ ] Explain cross-platform implications
+  - [ ] If different, return warning info for VF5901
+- [ ] Use existing VF5901 code (CaseSensitivityMismatch)
+  - [ ] Create warning with `createDiagnostic("VF5901", loc, { actual, expected })`
+  - [ ] Verify message template: "Module path '{actual}' has different casing than on disk: '{expected}'"
 
 ### Tests
 - [ ] Test relative path resolution (`./`, `../`)
@@ -161,10 +163,10 @@ This implementation consists of two major components:
 - [ ] Test nested project (vibefun.json in subdirectory)
 
 ### [NEW] Case Sensitivity Tests
-- [ ] Test case mismatch on case-insensitive FS → returns warning info
+- [ ] Test case mismatch on case-insensitive FS → returns VF5901 warning info
 - [ ] Test exact case match → no warning
-- [ ] Test directory case mismatch → returns warning info
-- [ ] Test warning message format (W002)
+- [ ] Test directory case mismatch → returns VF5901 warning info
+- [ ] Test `createDiagnostic("VF5901", ...)` message format
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -455,60 +457,28 @@ This implementation consists of two major components:
 
 ### Core Implementation
 - [ ] Create file: `packages/core/src/module-resolver/warning-generator.ts`
-- [ ] Implement `generateCircularDependencyWarning(cycle: Cycle): VibefunWarning`
-  - [ ] **Use warning code W001**
+- [ ] Implement `generateCircularDependencyWarning(cycle: Cycle, warningCollector: WarningCollector): void`
+  - [ ] Use `createDiagnostic("VF5900", loc, { cycle: cyclePathString })`
   - [ ] Format cycle path with arrows (A → B → C → A)
-  - [ ] Include source locations for each import
-  - [ ] Add explanation of danger
-  - [ ] Provide actionable suggestions
-  - [ ] Link to warning code documentation
+  - [ ] Add warning to collector
+- [ ] Implement `generateCaseSensitivityWarning(importPath: string, actualPath: string, loc: Location, warningCollector: WarningCollector): void`
+  - [ ] Use `createDiagnostic("VF5901", loc, { actual: importPath, expected: actualPath })`
+  - [ ] Add warning to collector
 - [ ] Follow spec format (docs/spec/08-modules.md:221-233)
-  - [ ] "Warning [W001]: Circular dependency detected"
-  - [ ] Show cycle path
-  - [ ] Show import locations
-  - [ ] Explain runtime error risk
-  - [ ] Suggest solutions (lazy eval, extract module, DI)
-  - [ ] Link to `docs/compiler/warning-codes.md#w001`
-- [ ] Define warning code constants
-  - [ ] `W001 = "circular-dependency"`
-  - [ ] **[NEW]** `W002 = "case-sensitivity-mismatch"`
-
-### [NEW] Case Sensitivity Warning (W002)
-- [ ] Implement `generateCaseSensitivityWarning(importPath: string, actualPath: string, loc: Location): VibefunWarning`
-  - [ ] Format import path and actual file path
-  - [ ] Include source location
-  - [ ] Explain cross-platform implications
-  - [ ] Link to warning code documentation
-- [ ] Warning format:
-  ```
-  Warning [W002]: Import path case doesn't match file
-    at src/main.vf:1:1:
-      import { x } from './Utils';
-    File is: src/utils.vf
-
-  This may cause errors on case-sensitive file systems (Linux).
-  See: docs/compiler/warning-codes.md#w002
-  ```
+  - [ ] VibefunDiagnostic.format() handles source context display
+  - [ ] Cycle path in message template parameter
+  - [ ] Hint template provides suggestions
 
 ### Tests
-- [ ] Test warning message format
-- [ ] **Test warning code W001 included**
+- [ ] Test `createDiagnostic("VF5900", ...)` creates correct warning
 - [ ] Test cycle path formatting (2 modules)
 - [ ] Test cycle path formatting (3+ modules)
 - [ ] Test long cycle formatting (10+ modules)
-- [ ] Test location display
-- [ ] Test suggestion text
-- [ ] Test documentation link
-- [ ] Verify matches spec examples
-- [ ] **Snapshot test for warning format** (prevent regressions)
-
-### [NEW] W002 Tests
-- [ ] Test W002 warning message format
-- [ ] Test warning code W002 included
-- [ ] Test import path and actual path shown correctly
-- [ ] Test cross-platform explanation included
-- [ ] Test documentation link
-- [ ] **Snapshot test for W002 format**
+- [ ] Test `VibefunDiagnostic.format(source)` output
+- [ ] Use `expectWarning(collector, "VF5900")` to verify
+- [ ] Use `expectWarning(collector, "VF5901")` for case sensitivity
+- [ ] **Snapshot test for VF5900 format** (prevent regressions)
+- [ ] **Snapshot test for VF5901 format** (prevent regressions)
 
 ### Quality Checks
 - [ ] Run `npm run verify`
@@ -532,7 +502,7 @@ This implementation consists of two major components:
   - [ ] Return combined result
 - [ ] Define `ModuleResolution` type
   - [ ] `compilationOrder: string[]`
-  - [ ] `warnings: VibefunWarning[]`
+  - [ ] `warnings: VibefunDiagnostic[]`
   - [ ] `graph: ModuleGraph`
   - [ ] `modules: Map<string, Module>`
 - [ ] Export public API from `packages/core/src/module-resolver/index.ts`
@@ -737,22 +707,14 @@ Instead of implementing runtime tests now, create a design doc:
 ## Phase 8: Documentation
 
 ### Error and Warning Code Documentation
-- [ ] Create directory: `docs/compiler/`
-- [ ] Create `docs/compiler/error-codes.md`
-  - [ ] Document all error codes with examples
-  - [ ] Include fixes and explanations for each
-  - [ ] Make it searchable by code
-  - [ ] Format: Code, Description, Example, How to Fix
-- [ ] Create `docs/compiler/warning-codes.md`
-  - [ ] **W001: Circular dependency (value cycle)**
-  - [ ] Include cycle visualization examples
-  - [ ] Provide refactoring patterns to fix cycles
-  - [ ] Explain when cycles are acceptable (type-only)
-  - [ ] Link to detailed fixing guide
-  - [ ] **[NEW]** **W002: Case sensitivity mismatch**
-  - [ ] Explain cross-platform implications
-  - [ ] Show how to fix (rename import to match file)
-  - [ ] Format: Code, Description, Example, Suggestions, See Also
+- [ ] Documentation is auto-generated from `DiagnosticDefinition` objects
+- [ ] Run `npm run docs:errors` to generate documentation
+- [ ] Verify generated docs include module codes:
+  - [ ] VF5000-VF5005: Import errors
+  - [ ] VF5100-VF5101: Export errors
+  - [ ] VF5900: CircularDependency (warning)
+  - [ ] VF5901: CaseSensitivityMismatch (warning)
+- [ ] Ensure `explanation` and `example` fields in DiagnosticDefinition are complete
 
 ### User Guide - Module Resolution
 - [ ] Create directory: `docs/guides/`
@@ -767,7 +729,7 @@ Instead of implementing runtime tests now, create a design doc:
   - [ ] **[NEW]** node_modules search algorithm
   - [ ] Symlink handling (resolved to real paths)
   - [ ] Cross-platform considerations (Windows vs Unix)
-  - [ ] **[NEW]** Case sensitivity warnings (W002)
+  - [ ] **[NEW]** Case sensitivity warnings (VF5901)
   - [ ] Troubleshooting common issues
     - [ ] Module not found
     - [ ] Ambiguous imports
@@ -890,7 +852,7 @@ Instead of implementing runtime tests now, create a design doc:
 - **Phase 2**: Module Loader (with error collection)
 - **Phase 3**: Module Graph + **Import Conflict Detection** (expanded)
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
-- **Phase 5**: Warning Generation (W001 + **W002 case sensitivity**)
+- **Phase 5**: Warning Generation (VF5900 + **VF5901 case sensitivity**)
 - **Phase 6**: Module Resolver API
 - **Phase 7**: Comprehensive Testing (extensive edge cases)
 - **Phase 7.5**: Integration Testing (type checker, code gen, desugarer)
@@ -900,7 +862,7 @@ Instead of implementing runtime tests now, create a design doc:
 - Added symlink resolution and cross-platform path handling
 - Added error collection (collect all, not fail-fast)
 - Changed to Tarjan's SCC (detect ALL cycles, not just first)
-- Added warning code system (W001, W002, etc.)
+- Using existing diagnostic code system (VF5xxx)
 - Added integration testing phase
 - Added 4 user-facing documentation files
 
@@ -909,6 +871,6 @@ Instead of implementing runtime tests now, create a design doc:
 - **[NEW]** vibefun.json path mappings support
 - **[NEW]** Import conflict detection (duplicates, shadowing → errors)
 - **[NEW]** Circular re-export handling
-- **[NEW]** Case sensitivity warning (W002)
+- **[NEW]** Case sensitivity warning (VF5901)
 - **[NEW]** vibefun.json configuration guide
 - Approximately ~50 additional tasks from audit findings
