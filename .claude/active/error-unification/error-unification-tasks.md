@@ -264,7 +264,7 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 5c: Inference Migration & Cleanup
-**Status:** ✅ Complete
+**Status:** ✅ Complete (Commit: 0ebec96)
 
 **Goal:** Complete the type checker migration and remove old infrastructure.
 
