@@ -121,6 +121,8 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF5001](modules.md#vf5001) | ImportNotExported | Error | The import statement tries to import a name that is not exported from the target module |
 | [VF5002](modules.md#vf5002) | DuplicateImport | Error | The same name is imported multiple times |
 | [VF5003](modules.md#vf5003) | ImportShadowed | Error | An import is shadowed by a local declaration with the same name |
+| [VF5004](modules.md#vf5004) | SelfImport | Error | A module is importing itself, either directly or via a path that resolves to the same file |
+| [VF5005](modules.md#vf5005) | EntryPointNotFound | Error | The specified entry point file could not be found |
 | [VF5100](modules.md#vf5100) | DuplicateExport | Error | The same name is exported multiple times from this module |
 | [VF5101](modules.md#vf5101) | ReexportConflict | Error | A re-export statement introduces a name that conflicts with an existing export |
 | [VF5102](typechecker.md#vf5102) | DuplicateDeclaration | Error | The same name is declared multiple times |
@@ -145,12 +147,12 @@ Errors during desugaring (syntax transformation)
 
 Errors during type checking and inference
 
-### [Module System](modules.md) (6 errors, 2 warnings)
+### [Module System](modules.md) (8 errors, 2 warnings)
 
 Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 116
-- **Errors:** 113
+- **Total diagnostic codes:** 118
+- **Errors:** 115
 - **Warnings:** 3
