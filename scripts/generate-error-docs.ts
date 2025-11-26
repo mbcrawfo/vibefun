@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env -S node --experimental-strip-types
 /**
  * Generate error documentation from diagnostic code definitions
  *
@@ -8,19 +8,19 @@
  * with code definitions.
  *
  * Usage:
- *   npx tsx scripts/generate-error-docs.ts         # Generate docs
- *   npx tsx scripts/generate-error-docs.ts --check # Check if docs are up to date
+ *   npm run docs:errors         # Generate docs
+ *   npm run docs:errors:check   # Check if docs are up to date (CI)
  *
  * The --check flag is used in CI to fail the build if docs are stale.
  */
+// Import the diagnostic system from built package
+import type { DiagnosticDefinition, DiagnosticPhase } from "../packages/core/dist/diagnostics/diagnostic.js";
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// Import the diagnostic system
-import type { DiagnosticDefinition, DiagnosticPhase } from "../packages/core/src/diagnostics/diagnostic.js";
-import { initializeDiagnosticCodes } from "../packages/core/src/diagnostics/codes/index.js";
-import { registry } from "../packages/core/src/diagnostics/registry.js";
+import { initializeDiagnosticCodes } from "../packages/core/dist/diagnostics/codes/index.js";
+import { registry } from "../packages/core/dist/diagnostics/registry.js";
 
 // Initialize all diagnostic codes
 initializeDiagnosticCodes();
@@ -78,14 +78,6 @@ const GENERATED_HEADER = `<!-- THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY
 `;
 
 /**
- * Escape markdown special characters in code blocks
- */
-function escapeMarkdown(text: string): string {
-    // Don't escape inside code blocks, just ensure proper formatting
-    return text;
-}
-
-/**
  * Format a code example as a markdown code block
  */
 function formatCodeBlock(code: string): string {
@@ -111,7 +103,7 @@ function generateIndex(): string {
     lines.push("");
     lines.push(
         "This reference documents all diagnostic codes (errors and warnings) that the Vibefun compiler can produce. " +
-            "Each code has a unique identifier (VFxxxx) that can be used to quickly find documentation."
+            "Each code has a unique identifier (VFxxxx) that can be used to quickly find documentation.",
     );
     lines.push("");
 
@@ -121,13 +113,17 @@ function generateIndex(): string {
     lines.push("| Code | Name | Severity | Description |");
     lines.push("|------|------|----------|-------------|");
 
-    const allCodes = registry.all().sort((a, b) => a.code.localeCompare(b.code));
+    const allCodes = [...registry.all()].sort((a: DiagnosticDefinition, b: DiagnosticDefinition) =>
+        a.code.localeCompare(b.code),
+    );
 
     for (const def of allCodes) {
         const severity = def.severity === "error" ? "Error" : "Warning";
         // Extract first sentence of explanation as description
         const description = def.explanation.split(".")[0] ?? def.messageTemplate;
-        lines.push(`| [${def.code}](${phaseToFilename(def.phase)}#${def.code.toLowerCase()}) | ${def.title} | ${severity} | ${description} |`);
+        lines.push(
+            `| [${def.code}](${phaseToFilename(def.phase)}#${def.code.toLowerCase()}) | ${def.title} | ${severity} | ${description} |`,
+        );
     }
 
     lines.push("");
@@ -164,8 +160,8 @@ function generateIndex(): string {
     lines.push("## Statistics");
     lines.push("");
     const totalCodes = allCodes.length;
-    const totalErrors = allCodes.filter((c) => c.severity === "error").length;
-    const totalWarnings = allCodes.filter((c) => c.severity === "warning").length;
+    const totalErrors = allCodes.filter((c: DiagnosticDefinition) => c.severity === "error").length;
+    const totalWarnings = allCodes.filter((c: DiagnosticDefinition) => c.severity === "warning").length;
     lines.push(`- **Total diagnostic codes:** ${totalCodes}`);
     lines.push(`- **Errors:** ${totalErrors}`);
     lines.push(`- **Warnings:** ${totalWarnings}`);
@@ -185,7 +181,9 @@ function phaseToFilename(phase: DiagnosticPhase): string {
  * Generate documentation for a single phase
  */
 function generatePhaseDoc(phase: DiagnosticPhase): string {
-    const codes = registry.byPhase(phase).sort((a, b) => a.code.localeCompare(b.code));
+    const codes = [...registry.byPhase(phase)].sort((a: DiagnosticDefinition, b: DiagnosticDefinition) =>
+        a.code.localeCompare(b.code),
+    );
     if (codes.length === 0) return "";
 
     const info = PHASE_INFO[phase];
