@@ -713,6 +713,23 @@ import './module';  // Creates value edge to './module'
 **Alternative Considered:** Trailing slash same as no trailing slash
 **Rejected Because:** Loses explicit intent, potential for confusion
 
+### 30. Self-Import Spec Addition (NEW - from 2025-11-25 audit)
+
+**Decision:** Add self-import as explicit error to language spec
+
+**Rationale:**
+- Self-imports are treated as errors in the plan (Decision 15) but not explicitly documented in spec
+- Should document to avoid surprise for users
+- Aligns with "no legitimate use case" reasoning from Decision 15
+- Error message: "Module cannot import itself: [path]"
+
+**Action Required:**
+- Add note to `docs/spec/08-modules.md` that self-imports are compile-time errors
+- Task added to Phase 8
+
+**Alternative Considered:** Only document in error message
+**Rejected Because:** Spec should be authoritative; users shouldn't have to trigger error to learn behavior
+
 ## Implementation Patterns
 
 ### Parser Dependency Injection Pattern
