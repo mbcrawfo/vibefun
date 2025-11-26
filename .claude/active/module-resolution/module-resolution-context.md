@@ -13,23 +13,25 @@
   - Lines 221-233: Compiler warning format and requirements
 
 ### Existing Infrastructure
-- `packages/core/src/utils/error.ts` - Error system (template for warnings)
+- `packages/core/src/diagnostics/` - Unified diagnostic system (errors and warnings)
+  - `diagnostic.ts` - `VibefunDiagnostic` class
+  - `factory.ts` - `throwDiagnostic()`, `createDiagnostic()`
+  - `warning-collector.ts` - `WarningCollector` class
+  - `codes/modules.ts` - VF5xxx codes (VF5000-VF5101 errors, VF5900-VF5901 warnings)
 - `packages/core/src/types/ast.ts:365-369` - `Module` AST type
 - `packages/core/src/types/ast.ts:323-329` - Import/export declaration types
 - `packages/core/src/types/ast.ts:352-356` - `ImportItem` type
 
 ### New Files (To Be Created)
-- `packages/core/src/utils/warning.ts` - Warning system (Phase 1)
 - `packages/core/src/module-loader/path-resolver.ts` - Path resolution utilities (Phase 1.5)
 - `packages/core/src/module-loader/module-loader.ts` - Module discovery and loading (Phase 2)
 - `packages/core/src/module-resolver/module-graph.ts` - Dependency graph (Phase 3)
 - `packages/core/src/module-resolver/cycle-detector.ts` - Tarjan's SCC algorithm (Phase 4)
-- `packages/core/src/module-resolver/warning-generator.ts` - Warning formatting (Phase 5)
+- `packages/core/src/module-resolver/warning-generator.ts` - Warning formatting using VF5900/VF5901 (Phase 5)
 - `packages/core/src/module-resolver/index.ts` - Public API (Phase 6)
-- `docs/compiler/error-codes.md` - Error code documentation (Phase 8)
-- `docs/compiler/warning-codes.md` - Warning code documentation (Phase 8)
 - `docs/guides/module-resolution.md` - User guide for module resolution (Phase 8)
 - `docs/guides/fixing-circular-dependencies.md` - User guide for fixing cycles (Phase 8)
+- Note: Error/warning documentation is auto-generated via `npm run docs:errors`
 - **[NEW]** `packages/core/src/module-loader/package-resolver.ts` - node_modules resolution (Phase 1.5)
 - **[NEW]** `packages/core/src/module-loader/config-loader.ts` - vibefun.json parsing (Phase 1.5)
 - **[NEW]** `docs/guides/vibefun-json.md` - Config file documentation (Phase 8)
@@ -50,7 +52,8 @@
 
 ### What Doesn't Exist
 - ❌ Module resolution system (greenfield implementation)
-- ❌ Warning infrastructure (only errors exist)
+- ✅ Warning infrastructure exists (`VibefunDiagnostic` with `severity: "warning"`, `WarningCollector`)
+- ✅ Module diagnostic codes exist (VF5000-VF5101, VF5900-VF5901)
 - ❌ Multi-file compilation support
 - ❌ Module graph construction
 - ❌ Circular dependency detection
@@ -122,16 +125,24 @@ it('should discover transitive imports', () => {
 
 ### 2. Warning System Design
 
-**Decision:** Create `VibefunWarning` class parallel to `VibefunError`
+**Decision:** Use unified `VibefunDiagnostic` class with `severity: "warning"`
+
+**Background:** The unified diagnostic system already exists:
+- `VibefunDiagnostic` class handles both errors and warnings
+- `severity: "error" | "warning"` distinguishes behavior
+- `WarningCollector` accumulates warnings without halting compilation
+- Factory: `createDiagnostic("VF5900", loc, params)` for warnings
+- Factory: `throwDiagnostic("VF5000", loc, params)` for errors
 
 **Rationale:**
-- Reuse existing error formatting infrastructure
-- Warnings don't halt compilation (key difference from errors)
-- Consistent API for diagnostics
-- Easy to extend in future (linting warnings, deprecation warnings, etc.)
+- Single class simplifies codebase and testing
+- Consistent formatting via `diagnostic.format(source)`
+- VFxxxx codes enable documentation lookup
+- WarningCollector allows collecting all warnings before reporting
 
-**Alternative Considered:** Warnings as a subclass of errors
-**Rejected Because:** Semantically different - errors halt compilation, warnings don't
+**Module Warning Codes:**
+- VF5900: CircularDependency
+- VF5901: CaseSensitivityMismatch
 
 ### 3. Module Graph Representation
 
@@ -308,26 +319,31 @@ For `import "./foo"`:
 **Alternative Considered:** Simple DFS with back-edge detection
 **Rejected Because:** Only finds one cycle, requires multiple passes for all cycles
 
-### 13. Warning Code System (NEW)
+### 13. Warning Code System (UPDATED)
 
-**Decision:** All warnings have unique codes (W001, W002, etc.)
+**Decision:** All warnings use VF5xxx codes (unified with error codes)
+
+**Background:** The unified diagnostic system uses VFxxxx codes for all diagnostics:
+- VF1xxx: Lexer
+- VF2xxx: Parser
+- VF3xxx: Desugarer
+- VF4xxx: Type Checker
+- VF5xxx: Modules (VF5000-VF5899 errors, VF5900-VF5999 warnings)
+
+**Module Warning Codes:**
+- `VF5900`: CircularDependency - "Circular dependency detected: {cycle}"
+- `VF5901`: CaseSensitivityMismatch - "Module path '{actual}' has different casing than on disk: '{expected}'"
 
 **Rationale:**
-- Easier documentation lookups ("what is W001?")
-- Tool integration (parsers can recognize codes)
-- Enables warning suppression by code (future)
-- Matches error code systems (TypeScript, Rust, etc.)
-- Professional, polished developer experience
+- Unified code system (no separate W-prefix)
+- Consistent with all compiler phases
+- Documentation auto-generated from DiagnosticDefinition
+- `npm run docs:errors` generates docs for all codes
 
 **Implementation:**
-- `VibefunWarning` class includes `code: string` property
-- Warning registry maps codes to types
-- `W001`: Circular dependency (value cycle)
-- Future: W002, W003, etc.
-- Documentation in `docs/compiler/warning-codes.md`
-
-**Alternative Considered:** No warning codes
-**Rejected Because:** Harder to document, search, and reference
+- Codes defined in `packages/core/src/diagnostics/codes/modules.ts`
+- Create with `createDiagnostic("VF5900", loc, { cycle: "..." })`
+- Accumulate in `WarningCollector`
 
 ### 14. Dual Import Edge Handling (NEW)
 
@@ -562,7 +578,7 @@ Error: Duplicate import of 'x'
 **Alternative Considered:** Module system validates exports exist
 **Rejected Because:** Duplicates type checker work, couples graph analysis to semantics
 
-### 24. Case Sensitivity Warning W002 (NEW - from 2025-11-24 audit)
+### 24. Case Sensitivity Warning VF5901 (NEW - from 2025-11-24 audit)
 
 **Decision:** Warn when import path case doesn't match actual file case
 
@@ -575,16 +591,18 @@ Error: Duplicate import of 'x'
 **Implementation:**
 - After resolving file, check actual filename case using `fs.readdirSync()`
 - Compare import path case with actual file case
-- If different, emit W002 warning
+- If different, use `createDiagnostic("VF5901", loc, { actual: importPath, expected: realPath })`
+- Add to WarningCollector
 
-**Warning Format:**
+**Warning Format (via VibefunDiagnostic.format()):**
 ```
-Warning [W002]: Import path case doesn't match file
-  at src/main.vf:1:1:
-    import { x } from './Utils';
-  File is: src/utils.vf
-
-This may cause errors on case-sensitive file systems (Linux).
+warning[VF5901]: Module path './Utils' has different casing than on disk: './utils'
+  --> src/main.vf:1:1
+   |
+ 1 | import { x } from './Utils';
+   |                   ^^^^^^^^^
+   |
+ = hint: Use the exact casing as the file on disk
 ```
 
 **Alternative Considered:** Make case mismatch an error
@@ -644,25 +662,26 @@ class ParserBase {
 
 **Lesson:** This pattern could be useful if module resolver needs to be split into multiple files.
 
-### Error Infrastructure Pattern
+### Diagnostic Infrastructure Pattern
 
-Errors support rich formatting with location information:
+Diagnostics support rich formatting with location information:
 
 ```typescript
-class VibefunError extends Error {
-  constructor(
-    message: string,
-    public location?: SourceLocation,
-    public help?: string
-  ) { }
+// Use factory functions (in packages/core/src/diagnostics/factory.ts)
 
-  format(source: string): string {
-    // Returns formatted error with source context
-  }
-}
+// For errors (throws immediately)
+throwDiagnostic("VF5000", loc, { path: "./missing.vf" });
+
+// For warnings (accumulate in collector)
+const warning = createDiagnostic("VF5900", loc, { cycle: "A → B → A" });
+warningCollector.add(warning);
+
+// Format for display
+const output = diagnostic.format(source);
 ```
 
-**Lesson:** Warnings should follow same pattern for consistency.
+**Key Pattern:** Use `createDiagnostic()` for warnings, `throwDiagnostic()` for errors.
+Both use the same `VibefunDiagnostic` class and `DiagnosticDefinition` registry.
 
 ## Open Questions
 
@@ -708,7 +727,7 @@ let result = dangerousFunction(); // Called during init!
 ### Unit Tests
 - `ModuleGraph`: add modules, add dependencies, query graph
 - `CircularDependencyDetector`: various cycle patterns
-- `VibefunWarning`: formatting, location tracking
+- Warning generation: use `createDiagnostic("VF5900", ...)` with `expectWarning()` tests
 - Path resolution: relative to absolute conversion
 
 ### Integration Tests
