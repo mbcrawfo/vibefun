@@ -1,9 +1,10 @@
 # Module Resolution Tasks
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-11-26
 **Audit:** 2025-11-24 - Scope expanded per audit findings
 **Audit:** 2025-11-25 - Phase 1.5 split into sub-phases, re-export conflict moved to type checker
+**Audit:** 2025-11-26 - Added Phase 1.6 to separate compiler config from module-loader
 
 ## Overview
 
@@ -190,6 +191,66 @@ This implementation consists of two major components:
 - [x] Ensure 90%+ test coverage (48 tests passing)
 - [x] Add JSDoc comments
 - [x] No `any` types
+
+---
+
+## Phase 1.6: Separate Compiler Config Module
+
+### Create Config Module Structure
+- [ ] Create directory: `packages/core/src/config/`
+- [ ] Create file: `packages/core/src/config/types.ts`
+  - [ ] Move `PathMappings` type
+  - [ ] Move `VibefunCompilerOptions` type
+  - [ ] Move `VibefunConfig` type
+  - [ ] Move `ConfigLoadResult` type
+  - [ ] Add JSDoc documentation
+- [ ] Create file: `packages/core/src/config/config-loader.ts`
+  - [ ] Move `isFile()` helper function
+  - [ ] Move `findProjectRoot()` function
+  - [ ] Move `loadVibefunConfig()` function
+  - [ ] Move `loadConfigFromEntryPoint()` function
+  - [ ] Import types from `./types.js`
+  - [ ] Add JSDoc documentation
+- [ ] Create file: `packages/core/src/config/index.ts`
+  - [ ] Export all public functions
+  - [ ] Export all public types
+
+### Refactor Module-Loader
+- [ ] Rename `module-loader/config-loader.ts` → `module-loader/path-mapping.ts`
+  - [ ] Remove moved types and functions
+  - [ ] Import config types from `../config/index.js`
+  - [ ] Keep `PathMappingResult` type
+  - [ ] Keep `applyPathMapping()` function
+  - [ ] Keep `getAllPathMappings()` function
+  - [ ] Keep `resolveMappedPath()` function
+  - [ ] Keep private helpers: `parsePattern()`, `matchPattern()`, `applyReplacement()`
+  - [ ] Update JSDoc module documentation
+- [ ] Update `module-loader/index.ts`
+  - [ ] Import from `./path-mapping.js` instead of `./config-loader.js`
+  - [ ] Re-export config types from `../config/index.js` (backwards compatibility)
+
+### Move and Split Tests
+- [ ] Create `packages/core/src/config/config-loader.test.ts`
+  - [ ] Move tests for `findProjectRoot()`
+  - [ ] Move tests for `loadVibefunConfig()`
+  - [ ] Move tests for `loadConfigFromEntryPoint()`
+  - [ ] Update imports
+- [ ] Rename `module-loader/config-loader.test.ts` → `module-loader/path-mapping.test.ts`
+  - [ ] Keep tests for `applyPathMapping()`
+  - [ ] Keep tests for `getAllPathMappings()`
+  - [ ] Keep tests for `resolveMappedPath()`
+  - [ ] Update imports
+
+### Update Core Package Exports
+- [ ] Update `packages/core/src/index.ts`
+  - [ ] Add config exports: `findProjectRoot`, `loadVibefunConfig`, `loadConfigFromEntryPoint`
+  - [ ] Add config type exports: `VibefunConfig`, `VibefunCompilerOptions`, `ConfigLoadResult`
+
+### Phase 1.6 Quality Checks
+- [ ] Run `npm run verify`
+- [ ] Ensure all tests pass
+- [ ] Verify no circular dependencies
+- [ ] Verify backwards compatibility of module-loader exports
 
 ---
 
@@ -906,10 +967,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 4/17 (24%)
-**Estimated Tasks:** ~280 (expanded after third audit)
+**Phases Completed:** 4/18 (22%)
+**Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
 **Tasks Completed:** ~115
-**Current Phase:** Phase 1.5c COMPLETE, ready for Phase 2
+**Current Phase:** Phase 1.5c COMPLETE, ready for Phase 1.6
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -917,6 +978,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 1.5a**: Relative Path Resolution (symlinks, normalization, case sensitivity) ✅ COMPLETE
 - **Phase 1.5b**: Package Resolution (node_modules lookup) ✅ COMPLETE
 - **Phase 1.5c**: Config Loading (vibefun.json path mappings) ✅ COMPLETE
+- **Phase 1.6**: Separate Compiler Config Module (config types + loading to core/src/config/)
 - **Phase 2**: Module Loader (with error collection)
 - **Phase 3**: Module Graph + Import Conflict Detection
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
@@ -966,3 +1028,13 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Added missing test cases**: aliased imports, wildcard imports, empty imports, etc.
 - **Added Decision 30**: Self-import spec addition
 - **Added spec update tasks**: Path mapping order fix, self-import documentation
+
+**Scope Changes (2025-11-26 Config Separation):**
+- **Added Phase 1.6**: Separate Compiler Config Module
+  - Extract config types and loading functions to `core/src/config/`
+  - Enables type checker, code generator, CLI to use config without depending on module-loader
+  - Path mapping interpretation stays in module-loader (module-resolution specific)
+- **Added Decision 31**: Config module separation rationale
+- **File changes**: `module-loader/config-loader.ts` → `module-loader/path-mapping.ts`
+- **New files**: `config/types.ts`, `config/config-loader.ts`, `config/index.ts`
+- ~20 additional tasks for Phase 1.6

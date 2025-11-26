@@ -1,10 +1,11 @@
 # Module Resolution System Implementation Plan
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-25
-**Status:** Planning (Second audit amendments integrated)
+**Last Updated:** 2025-11-26
+**Status:** Planning (Phase 1.6 added)
 **Audit:** 2025-11-24 - Scope expanded per audit findings
 **Audit:** 2025-11-25 - Phase 1.5 split, re-export conflict moved to type checker
+**Audit:** 2025-11-26 - Added Phase 1.6 to separate compiler config from module-loader
 **Branch:** module-resolution
 
 ## Overview
@@ -277,6 +278,43 @@ export function applyPathMapping(
 - Check actual filename case after resolution using `fs.readdirSync()`
 - Use `createDiagnostic("VF5901", loc, { actual: importPath, expected: realPath })`
 
+### Phase 1.6: Separate Compiler Config Module
+
+**Goal:** Extract compiler configuration into a reusable top-level module
+
+**Rationale:** Compiler config is used by module resolution now, but will be needed by:
+- Type checker (for strict mode, target settings)
+- Code generator (for output settings)
+- CLI (for project configuration)
+- Future language server
+
+Separating config from module-loader ensures other compiler phases can access configuration without depending on module-loader.
+
+**Deliverables:**
+- Create `packages/core/src/config/` directory
+- Create `packages/core/src/config/types.ts` with config types
+- Create `packages/core/src/config/config-loader.ts` with loading functions
+- Create `packages/core/src/config/index.ts` with public exports
+- Refactor `module-loader/config-loader.ts` → `module-loader/path-mapping.ts`
+- Update module-loader exports
+- Move tests appropriately
+- Export config module from core package
+
+**Config Module Contents:**
+- Types: `VibefunConfig`, `VibefunCompilerOptions`, `ConfigLoadResult`, `PathMappings`
+- Functions: `findProjectRoot()`, `loadVibefunConfig()`, `loadConfigFromEntryPoint()`
+
+**Module-Loader Retains (in path-mapping.ts):**
+- Types: `PathMappingResult`
+- Functions: `applyPathMapping()`, `getAllPathMappings()`, `resolveMappedPath()`
+
+**Design:**
+```typescript
+// packages/core/src/config/index.ts
+export { findProjectRoot, loadVibefunConfig, loadConfigFromEntryPoint } from "./config-loader.js";
+export type { VibefunConfig, VibefunCompilerOptions, ConfigLoadResult, PathMappings } from "./types.js";
+```
+
 ### Phase 2: Module Loader (Discovery & Parsing)
 
 **Goal:** Discover and parse all modules transitively with comprehensive error collection
@@ -286,7 +324,7 @@ export function applyPathMapping(
 - `ModuleLoader` class with module discovery logic
 - **Module cache keyed by real path** (after symlink resolution)
 - **Error collection** (collect all errors, report together)
-- Path resolution integration (use Phase 1.5 utilities)
+- Path resolution integration (use Phase 1.5 path resolution and Phase 1.6 config module)
 - Integration with existing lexer and parser
 - **Helpful error messages** (typo suggestions, clear locations)
 - Tests for module discovery, caching, and error handling

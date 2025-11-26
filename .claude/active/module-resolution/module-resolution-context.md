@@ -1,9 +1,10 @@
 # Module Resolution Context
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-11-26
 **Audit:** 2025-11-24 - Scope expanded per audit findings
 **Audit:** 2025-11-25 - Added decisions 26-29 from second audit
+**Audit:** 2025-11-26 - Added Decision 31 (Phase 1.6 config module separation)
 
 ## Key Files
 
@@ -33,8 +34,11 @@
 - `docs/guides/module-resolution.md` - User guide for module resolution (Phase 8)
 - `docs/guides/fixing-circular-dependencies.md` - User guide for fixing cycles (Phase 8)
 - Note: Error/warning documentation is auto-generated via `npm run docs:errors`
-- **[NEW]** `packages/core/src/module-loader/package-resolver.ts` - node_modules resolution (Phase 1.5)
-- **[NEW]** `packages/core/src/module-loader/config-loader.ts` - vibefun.json parsing (Phase 1.5)
+- **[NEW]** `packages/core/src/module-loader/package-resolver.ts` - node_modules resolution (Phase 1.5b)
+- **[NEW]** `packages/core/src/module-loader/path-mapping.ts` - Path mapping utilities (Phase 1.6, refactored from config-loader.ts)
+- **[NEW]** `packages/core/src/config/types.ts` - Config type definitions (Phase 1.6)
+- **[NEW]** `packages/core/src/config/config-loader.ts` - Config loading functions (Phase 1.6)
+- **[NEW]** `packages/core/src/config/index.ts` - Config module public exports (Phase 1.6)
 - **[NEW]** `docs/guides/vibefun-json.md` - Config file documentation (Phase 8)
 
 ### Parser Architecture
@@ -729,6 +733,32 @@ import './module';  // Creates value edge to './module'
 
 **Alternative Considered:** Only document in error message
 **Rejected Because:** Spec should be authoritative; users shouldn't have to trigger error to learn behavior
+
+### 31. Config Module Separation (NEW - Phase 1.6)
+
+**Decision:** Extract compiler config loading into `core/src/config/` module
+
+**Rationale:**
+- Compiler config is a general facility used across compiler phases
+- Module loader shouldn't own config loading
+- Enables type checker, code generator, CLI to access config without depending on module-loader
+- Cleaner separation of concerns
+
+**What Moves to Config:**
+- Config types: `VibefunConfig`, `VibefunCompilerOptions`, `ConfigLoadResult`, `PathMappings`
+- Loading functions: `findProjectRoot()`, `loadVibefunConfig()`, `loadConfigFromEntryPoint()`
+
+**What Stays in Module-Loader:**
+- Path mapping interpretation: `applyPathMapping()`, `getAllPathMappings()`, `resolveMappedPath()`
+- Type: `PathMappingResult`
+
+**Rationale for Split:**
+- Path mapping is module-resolution-specific (interprets config for import paths)
+- Config module should load config, not interpret domain-specific sections
+- Other phases will interpret their own config sections (target, strict, etc.)
+
+**Alternative Considered:** Move path mapping to config module
+**Rejected Because:** Path mapping is only used by module resolution; config module should be a simple loader
 
 ## Implementation Patterns
 
