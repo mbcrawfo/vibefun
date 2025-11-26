@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 5c Complete)
+**Last Updated:** 2025-11-25 (Phase 6 Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -299,21 +299,21 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 6: Module System Integration
-**Status:** Not Started
+**Status:** ✅ Complete (Commit: 600938f)
 
-- [ ] Create `codes/modules.ts` with VF5xxx definitions:
-  - [ ] VF5000 ModuleNotFound
-  - [ ] VF5001 ImportNotExported
-  - [ ] VF5002 DuplicateImport
-  - [ ] VF5003 ImportShadowed
-  - [ ] VF5100 DuplicateExport
-  - [ ] VF5101 ReexportConflict
-  - [ ] VF5900 CircularDependency (warning)
-  - [ ] VF5901 CaseSensitivityMismatch (warning)
-- [ ] Register module codes in registry
-- [ ] Update module-resolution plan to reference new codes
+- [x] Create `codes/modules.ts` with VF5xxx definitions:
+  - [x] VF5000 ModuleNotFound
+  - [x] VF5001 ImportNotExported
+  - [x] VF5002 DuplicateImport
+  - [x] VF5003 ImportShadowed
+  - [x] VF5100 DuplicateExport
+  - [x] VF5101 ReexportConflict
+  - [x] VF5900 CircularDependency (warning)
+  - [x] VF5901 CaseSensitivityMismatch (warning)
+- [x] Register module codes in registry
+- [ ] Update module-resolution plan to reference new codes (deferred - module resolution not yet implemented)
 - [ ] (Module resolver implementation uses these codes when built)
-- [ ] Run `npm run verify` - all tests pass
+- [x] Run `npm run verify` - all tests pass
 
 ## Phase 7: Documentation Generation
 **Status:** Not Started
@@ -424,10 +424,10 @@ Before starting Phase 1, verify:
 | Phase 5a: TC Codes & Basic | ✅ Complete | 23/23 | 53 codes (VF4xxx + VF5102), resolver/environment migrated |
 | Phase 5b: Unify/Patterns | ✅ Complete | 10/10 | ~20 call site updates, 20-21 errors |
 | Phase 5c: Inference Cleanup | ✅ Complete | 18/18 | Migrate infer/*.ts, delete TypeCheckerError |
-| Phase 6: Module System | Not Started | 0/5 | ~8 error codes (placeholder) |
+| Phase 6: Module System | ✅ Complete | 4/6 | 8 codes (VF5000-VF5901), 2 tasks deferred |
 | Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 7/10 Phases Complete (70%)**
-**Estimated Total Error Codes: ~117 (13 lexer + 37 parser + 1 desugarer + 56 typechecker + remaining)**
+**Overall: 8/10 Phases Complete (80%)**
+**Total Error Codes: ~115 (13 lexer + 37 parser + 1 desugarer + 56 typechecker + 8 modules)**
 **Estimated Test Updates: ~180-250 tests**
