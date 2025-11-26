@@ -95,6 +95,45 @@ export const VF5003: DiagnosticDefinition = {
     relatedCodes: ["VF5002"],
 };
 
+export const VF5004: DiagnosticDefinition = {
+    code: "VF5004",
+    title: "SelfImport",
+    messageTemplate: "Module cannot import itself: '{path}'",
+    severity: "error",
+    phase: "modules",
+    category: "import",
+    hintTemplate: "Remove the self-import or fix the import path",
+    explanation:
+        "A module is importing itself, either directly or via a path that resolves to the same file. " +
+        "Self-imports serve no useful purpose and typically indicate a mistake in the import path.",
+    example: {
+        bad: '// utils.vf\nimport { helper } from "./utils"',
+        good: "// utils.vf\n// No self-import needed - just use helper directly",
+        description: "Removed the unnecessary self-import",
+    },
+    relatedCodes: ["VF5000", "VF5900"],
+};
+
+export const VF5005: DiagnosticDefinition = {
+    code: "VF5005",
+    title: "EntryPointNotFound",
+    messageTemplate: "Entry point not found: '{path}'",
+    severity: "error",
+    phase: "modules",
+    category: "import",
+    hintTemplate: "Tried: {triedPaths}",
+    explanation:
+        "The specified entry point file could not be found. " +
+        "This error occurs when starting compilation and the main file doesn't exist. " +
+        "Check that the path is correct and the file exists.",
+    example: {
+        bad: "vibefun compile src/mian.vf",
+        good: "vibefun compile src/main.vf",
+        description: 'Fixed typo in entry point path: "mian.vf" → "main.vf"',
+    },
+    relatedCodes: ["VF5000"],
+};
+
 // =============================================================================
 // VF5100-VF5199: Export Validation Errors
 // =============================================================================
@@ -193,6 +232,8 @@ const modulesCodes: readonly DiagnosticDefinition[] = [
     VF5001,
     VF5002,
     VF5003,
+    VF5004,
+    VF5005,
     // Export validation
     VF5100,
     VF5101,

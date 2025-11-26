@@ -14,6 +14,8 @@ Errors during module resolution and import/export handling
 | [VF5001](#vf5001) | ImportNotExported | **Error** |
 | [VF5002](#vf5002) | DuplicateImport | **Error** |
 | [VF5003](#vf5003) | ImportShadowed | **Error** |
+| [VF5004](#vf5004) | SelfImport | **Error** |
+| [VF5005](#vf5005) | EntryPointNotFound | **Error** |
 | [VF5100](#vf5100) | DuplicateExport | **Error** |
 | [VF5101](#vf5101) | ReexportConflict | **Error** |
 | [VF5900](#vf5900) | CircularDependency | **Warning** |
@@ -177,6 +179,86 @@ let foo = 1
 ### Related
 
 [VF5002](modules.md#vf5002)
+
+
+---
+
+## VF5004
+
+**SelfImport** **Error**
+
+### Message
+
+> Module cannot import itself: '{path}'
+
+### Explanation
+
+A module is importing itself, either directly or via a path that resolves to the same file. Self-imports serve no useful purpose and typically indicate a mistake in the import path.
+
+### Example
+
+**Problem:**
+
+```vibefun
+// utils.vf
+import { helper } from "./utils"
+```
+
+**Solution:**
+
+```vibefun
+// utils.vf
+// No self-import needed - just use helper directly
+```
+
+*Removed the unnecessary self-import*
+
+### Hint
+
+> Remove the self-import or fix the import path
+
+### Related
+
+[VF5000](modules.md#vf5000), [VF5900](modules.md#vf5900)
+
+
+---
+
+## VF5005
+
+**EntryPointNotFound** **Error**
+
+### Message
+
+> Entry point not found: '{path}'
+
+### Explanation
+
+The specified entry point file could not be found. This error occurs when starting compilation and the main file doesn't exist. Check that the path is correct and the file exists.
+
+### Example
+
+**Problem:**
+
+```vibefun
+vibefun compile src/mian.vf
+```
+
+**Solution:**
+
+```vibefun
+vibefun compile src/main.vf
+```
+
+*Fixed typo in entry point path: "mian.vf" → "main.vf"*
+
+### Hint
+
+> Tried: {triedPaths}
+
+### Related
+
+[VF5000](modules.md#vf5000)
 
 
 ---
