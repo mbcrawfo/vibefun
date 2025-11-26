@@ -17,7 +17,9 @@
         "format": "prettier --write \"packages/*/src/**/*.ts\"",
         "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
         "verify": "npm run build && npm run check && npm run lint && npm run test && npm run format:check",
-        "clean": "npm run clean --workspaces --if-present"
+        "clean": "npm run clean --workspaces --if-present",
+        "docs:errors": "npx tsx scripts/generate-error-docs.ts",
+        "docs:errors:check": "npx tsx scripts/generate-error-docs.ts --check"
     },
     "keywords": [
         "functional-programming",

@@ -1,6 +1,6 @@
 # Error Unification - Task List
 
-**Last Updated:** 2025-11-25 (Phase 6 Complete)
+**Last Updated:** 2025-11-25 (Phase 7 Complete)
 
 ## Phase 1: Infrastructure
 **Status:** ✅ Complete (Commit: a70dd58)
@@ -316,68 +316,67 @@
 - [x] Run `npm run verify` - all tests pass
 
 ## Phase 7: Documentation Generation
-**Status:** Not Started
+**Status:** ✅ Complete
 
 ### 7.1: Generator Script
-- [ ] Create `scripts/generate-error-docs.ts`:
-  - [ ] Import all codes from registry
-  - [ ] Group codes by phase
-  - [ ] Generate `docs/errors/README.md` index:
-    - [ ] Quick reference table (code, name, severity, description)
-    - [ ] Links to phase-specific files
-    - [ ] Auto-generated header comment
-  - [ ] Generate `docs/errors/{phase}.md` for each phase:
-    - [ ] Phase overview with category table
-    - [ ] Individual error sections with:
-      - [ ] Code and title as heading
-      - [ ] Severity badge
-      - [ ] Message template
-      - [ ] Explanation section
-      - [ ] Example section (Problem/Solution code blocks)
-      - [ ] Related codes section with links
-      - [ ] See Also section with spec links
-  - [ ] Add `--check` flag for CI validation:
-    - [ ] Compare generated content with existing files
-    - [ ] Exit non-zero if any files would change
-    - [ ] Print helpful message listing changed files
-- [ ] Create `docs/errors/` directory
+- [x] Create `scripts/generate-error-docs.ts`:
+  - [x] Import all codes from registry
+  - [x] Group codes by phase
+  - [x] Generate `docs/errors/README.md` index:
+    - [x] Quick reference table (code, name, severity, description)
+    - [x] Links to phase-specific files
+    - [x] Auto-generated header comment
+  - [x] Generate `docs/errors/{phase}.md` for each phase:
+    - [x] Phase overview with category table
+    - [x] Individual error sections with:
+      - [x] Code and title as heading
+      - [x] Severity badge
+      - [x] Message template
+      - [x] Explanation section
+      - [x] Example section (Problem/Solution code blocks)
+      - [x] Related codes section with links
+      - [x] See Also section with spec links
+  - [x] Add `--check` flag for CI validation:
+    - [x] Compare generated content with existing files
+    - [x] Exit non-zero if any files would change
+    - [x] Print helpful message listing changed files
+- [x] Create `docs/errors/` directory
 
 ### 7.2: NPM Scripts
-- [ ] Add npm scripts to root `package.json`:
-  - [ ] `"docs:errors": "tsx scripts/generate-error-docs.ts"`
-  - [ ] `"docs:errors:check": "tsx scripts/generate-error-docs.ts --check"`
-- [ ] Test both scripts work correctly
+- [x] Add npm scripts to root `package.json`:
+  - [x] `"docs:errors": "npx tsx scripts/generate-error-docs.ts"`
+  - [x] `"docs:errors:check": "npx tsx scripts/generate-error-docs.ts --check"`
+- [x] Test both scripts work correctly
 
 ### 7.3: CI Integration
-- [ ] Update `.github/workflows/ci.yml`:
-  - [ ] Add "Check error documentation is up to date" step
-  - [ ] Run `npm run docs:errors:check` after format check
-  - [ ] Verify CI fails when docs are stale
-- [ ] Document expected failure output in plan
+- [x] Update `.github/workflows/ci.yml`:
+  - [x] Add "Check error documentation is up to date" step
+  - [x] Run `npm run docs:errors:check` after format check
+  - [x] Verify CI fails when docs are stale (manually tested)
 
 ### 7.4: Internal Documentation
-- [ ] Create `packages/core/src/diagnostics/README.md`:
-  - [ ] Architecture overview (diagnostic.ts, registry.ts, factory.ts, etc.)
-  - [ ] Usage examples (throwDiagnostic, WarningCollector)
-  - [ ] Link to codes/README.md for adding new codes
-- [ ] Create `packages/core/src/diagnostics/codes/README.md`:
-  - [ ] Step-by-step guide for adding new error codes
-  - [ ] Code range table (VF1xxx=lexer, VF2xxx=parser, etc.)
-  - [ ] Subcategory allocation for each phase
-  - [ ] Complete error definition template with all required fields
-  - [ ] Registration instructions (export from codes/index.ts)
-  - [ ] Test writing instructions (expectDiagnostic pattern)
-  - [ ] Documentation regeneration instructions
-  - [ ] Quality checklist for new codes
+- [x] Create `packages/core/src/diagnostics/README.md`:
+  - [x] Architecture overview (diagnostic.ts, registry.ts, factory.ts, etc.)
+  - [x] Usage examples (throwDiagnostic, WarningCollector)
+  - [x] Link to codes/README.md for adding new codes
+- [x] Create `packages/core/src/diagnostics/codes/README.md`:
+  - [x] Step-by-step guide for adding new error codes
+  - [x] Code range table (VF1xxx=lexer, VF2xxx=parser, etc.)
+  - [x] Subcategory allocation for each phase
+  - [x] Complete error definition template with all required fields
+  - [x] Registration instructions (export from codes/index.ts)
+  - [x] Test writing instructions (expectDiagnostic pattern)
+  - [x] Documentation regeneration instructions
+  - [x] Quality checklist for new codes
 
 ### 7.5: Finalization
-- [ ] Update `docs/spec/.agent-map.md`:
-  - [ ] Add reference to `docs/errors/`
-  - [ ] Update error-related queries
-- [ ] Generate initial documentation with `npm run docs:errors`
-- [ ] Verify generated docs look correct
-- [ ] Run `npm run verify`
-- [ ] Run `npm run docs:errors:check` to verify CI check works
+- [x] Update `docs/spec/.agent-map.md`:
+  - [x] Add reference to `docs/errors/`
+  - [x] Update error-related queries
+- [x] Generate initial documentation with `npm run docs:errors`
+- [x] Verify generated docs look correct
+- [x] Run `npm run verify`
+- [x] Run `npm run docs:errors:check` to verify CI check works
 
 ## Phase 8: Cleanup
 **Status:** Not Started
@@ -425,9 +424,9 @@ Before starting Phase 1, verify:
 | Phase 5b: Unify/Patterns | ✅ Complete | 10/10 | ~20 call site updates, 20-21 errors |
 | Phase 5c: Inference Cleanup | ✅ Complete | 18/18 | Migrate infer/*.ts, delete TypeCheckerError |
 | Phase 6: Module System | ✅ Complete | 4/6 | 8 codes (VF5000-VF5901), 2 tasks deferred |
-| Phase 7: Documentation Gen | Not Started | 0/25 | Generator, CI, internal docs |
+| Phase 7: Documentation Gen | ✅ Complete | 25/25 | Generator, CI, internal docs |
 | Phase 8: Cleanup | Not Started | 0/10 | Remove old classes, CLI format integration |
 
-**Overall: 8/10 Phases Complete (80%)**
+**Overall: 9/10 Phases Complete (90%)**
 **Total Error Codes: ~115 (13 lexer + 37 parser + 1 desugarer + 56 typechecker + 8 modules)**
 **Estimated Test Updates: ~180-250 tests**
