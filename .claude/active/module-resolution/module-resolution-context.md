@@ -1,8 +1,9 @@
 # Module Resolution Context
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-24
+**Last Updated:** 2025-11-25
 **Audit:** 2025-11-24 - Scope expanded per audit findings
+**Audit:** 2025-11-25 - Added decisions 26-29 from second audit
 
 ## Key Files
 
@@ -635,6 +636,82 @@ export * from './a';  // Creates edge b → a, detected as cycle
 
 **Alternative Considered:** Don't track re-exports in graph
 **Rejected Because:** Misses important cycles, incorrect compilation order
+
+### 26. Re-Export Name Conflict Detection Location (NEW - from 2025-11-25 audit)
+
+**Decision:** Re-export name conflict detection is the **type checker's** responsibility, not the module system's
+
+**Rationale:**
+- Matches TypeScript approach - proven at scale
+- Type checker already builds export environment for type checking
+- Avoids duplicating export resolution logic
+- Cleaner separation of concerns
+
+**Module System Responsibility:**
+- Track that `export *` creates a dependency edge
+- Don't track or resolve exported names
+
+**Type Checker Responsibility:**
+- When building module export environment:
+  1. Collect direct exports
+  2. Expand wildcard re-exports recursively
+  3. Detect conflicts (same name from different sources)
+  4. Emit VF5101 (ReexportConflict) error
+
+**Alternative Considered:** Module system detects re-export conflicts during graph construction
+**Rejected Because:** Would duplicate type checker's export resolution work
+
+### 27. Path Mapping Precedence (NEW - from 2025-11-25 audit)
+
+**Decision:** vibefun.json path mappings take precedence over node_modules (TypeScript behavior)
+
+**Rationale:**
+- Matches TypeScript's resolution behavior
+- User-defined aliases should override package names
+- Better developer experience (explicit config wins)
+- TypeScript docs confirm: "if the baseUrl is defined, it gets prepended to all bare imports, and its resolution will take precedence over node_modules"
+
+**Resolution Order:**
+1. Check vibefun.json path mappings first (if configured)
+2. Search node_modules in current and ancestor directories
+
+**Spec Update Required:** `docs/spec/08-modules.md` lines 77-80 need to be updated to match this order.
+
+**Alternative Considered:** Follow spec literally (node_modules before path mappings)
+**Rejected Because:** Contradicts TypeScript behavior, worse developer experience
+
+### 28. Side-Effect-Only Imports (NEW - from 2025-11-25 audit)
+
+**Decision:** Side-effect imports (`import './module'`) create value dependency edges
+
+**Rationale:**
+- Module must be loaded even without named bindings
+- Creates runtime dependency (side effects must execute)
+- Not type-only (actually runs code at module initialization)
+
+**Implementation:**
+```typescript
+import './module';  // Creates value edge to './module'
+```
+- Module is discovered and loaded like any other import
+- No imported names tracked (empty bindings list)
+- Dependency edge exists for compilation order
+
+### 29. Trailing Slash Import Behavior (NEW - from 2025-11-25 audit)
+
+**Decision:** Trailing slash imports are explicit directory references
+
+**Rationale:**
+- `./foo/` explicitly requests directory, not file
+- No ambiguity about intent
+- Consistent with URL semantics
+
+**Implementation:**
+- `./foo/` → try ONLY `./foo/index.vf`
+- `./foo` → try `./foo.vf` first, then `./foo/index.vf`
+
+**Alternative Considered:** Trailing slash same as no trailing slash
+**Rejected Because:** Loses explicit intent, potential for confusion
 
 ## Implementation Patterns
 

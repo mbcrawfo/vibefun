@@ -1,9 +1,10 @@
 # Module Resolution System Implementation Plan
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-24
-**Status:** Planning (Audit amendments integrated)
+**Last Updated:** 2025-11-25
+**Status:** Planning (Second audit amendments integrated)
 **Audit:** 2025-11-24 - Scope expanded per audit findings
+**Audit:** 2025-11-25 - Phase 1.5 split, re-export conflict moved to type checker
 **Branch:** module-resolution
 
 ## Overview
@@ -132,9 +133,9 @@ const resolution = resolveModules(modules);
 - Accumulate warnings in `WarningCollector`
 - Format with `diagnostic.format(source)`
 
-### Phase 1.5: Path Resolution Utilities
+### Phase 1.5a: Relative Path Resolution
 
-**Goal:** Build robust, cross-platform path resolution with symlink support, package resolution, and config loading
+**Goal:** Build robust, cross-platform relative path resolution with symlink support
 
 **Deliverables:**
 - Create `packages/core/src/module-loader/path-resolver.ts`
@@ -144,12 +145,30 @@ const resolution = resolveModules(modules);
 - Implement path normalization (handle `..`, `.`, trailing slashes)
 - Handle cross-platform paths (Windows `\` vs Unix `/`, drive letters)
 - Detect and error on circular symlinks
-- **[NEW]** Create `packages/core/src/module-loader/package-resolver.ts`
-- **[NEW]** Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
-- **[NEW]** Create `packages/core/src/module-loader/config-loader.ts`
-- **[NEW]** Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
-- **[NEW]** Implement case sensitivity checking with VF5901 warning
+- Implement case sensitivity checking with VF5901 warning
+- Handle side-effect-only imports (`import './module'` with no bindings)
 - Tests for all edge cases
+
+### Phase 1.5b: Package Resolution
+
+**Goal:** Implement node_modules lookup for package imports
+
+**Deliverables:**
+- Create `packages/core/src/module-loader/package-resolver.ts`
+- Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
+- Support scoped packages (`@org/package`)
+- Search node_modules in current and ancestor directories
+- Tests for package resolution edge cases
+
+### Phase 1.5c: Config Loading
+
+**Goal:** Support vibefun.json path mappings
+
+**Deliverables:**
+- Create `packages/core/src/module-loader/config-loader.ts`
+- Implement `loadVibefunConfig(projectRoot: string): VibefunConfig | null`
+- Implement `applyPathMapping()` for path alias resolution
+- Tests for config loading and path mapping
 
 **Design:**
 ```typescript
@@ -175,9 +194,17 @@ export function resolveModulePath(
 2. If both file and directory exist, file takes precedence
 3. Resolve symlinks using `fs.realpathSync()` (canonical path)
 4. Normalize paths: `./a/../b` → `./b`
-5. Handle trailing slashes: `./foo/` → try `./foo/index.vf`
+5. **Trailing slashes**: `./foo/` → try ONLY `./foo/index.vf` (explicit directory reference)
 6. Handle current directory: `./.` → try `./index.vf`
-7. Both `./utils` and `./utils.vf` should resolve to same cached module
+7. Both `./utils` and `./utils.vf` should resolve to same cached module (normalize BEFORE cache lookup)
+
+**Side-Effect-Only Imports:**
+```typescript
+import './module';  // No named bindings, just for side effects
+```
+- Creates a **value dependency edge** (not type-only)
+- Module is discovered and loaded like any other import
+- No imported names to track, but dependency relationship exists
 
 **Symlink Handling:**
 - All paths resolved to real paths using `fs.realpathSync()`
@@ -200,15 +227,17 @@ export function resolvePackageImport(
 ): string | null;          // Returns absolute path or null if not found
 ```
 
-**Package Resolution Algorithm:**
-1. Determine if import is a package (doesn't start with `./ ` or `../`)
-2. Check vibefun.json path mappings first (if configured)
+**Package Resolution Algorithm (TypeScript-style precedence):**
+1. Determine if import is a package (doesn't start with `./` or `../`)
+2. **Check vibefun.json path mappings first** (if configured) - matches TypeScript behavior
 3. Search node_modules in current and ancestor directories:
    - `<dir>/node_modules/<package>.vf`
    - `<dir>/node_modules/<package>/index.vf`
    - `<parent>/node_modules/...` (continue up tree)
 4. Support scoped packages: `@org/package` → `node_modules/@org/package`
 5. Return null if not found (error handled by caller)
+
+**Note:** This order (path mappings before node_modules) matches TypeScript's behavior. The spec `docs/spec/08-modules.md` lines 77-80 should be updated to reflect this.
 
 **[NEW] vibefun.json Path Mappings:**
 ```typescript
@@ -366,16 +395,25 @@ export * from "./other"      // Creates dependency edge
 - Edge tracked as value import (conservative approach)
 - Necessary for detecting cycles through re-exports
 
-**Re-Export Name Conflict Detection:**
+**Re-Export Name Conflict Detection (TYPE CHECKER RESPONSIBILITY):**
 Per spec (08-modules.md:540-549), wildcard re-export name conflicts are compile-time errors:
 ```typescript
 export * from './array';  // exports `map`
 export * from './list';   // also exports `map` - ERROR!
 ```
-- During graph construction, track exported names per module
-- For wildcard re-exports, collect all re-exported names
-- Detect name conflicts (same name from multiple sources)
-- Generate compile-time error: "Name conflict in re-exports: 'map' is exported from both './array' and './list'"
+
+**[2025-11-25 UPDATE]:** This detection is deferred to the **type checker**, not the module system. Rationale:
+- Matches TypeScript's approach (proven at scale)
+- Type checker already builds export environment for type checking
+- Avoids duplicating export resolution logic
+- Cleaner separation of concerns
+
+**Module System:** Just track that `export *` creates a dependency edge
+**Type Checker:** When building module export environment:
+1. Collect direct exports
+2. Expand wildcard re-exports recursively
+3. Detect conflicts (same name from different sources)
+4. Emit VF5101 (ReexportConflict) error
 
 **[NEW] Import Conflict Detection:**
 Detect duplicate imports and import/local shadowing as compile-time errors:

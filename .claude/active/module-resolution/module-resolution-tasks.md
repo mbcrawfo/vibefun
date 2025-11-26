@@ -1,8 +1,9 @@
 # Module Resolution Tasks
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-24
+**Last Updated:** 2025-11-25
 **Audit:** 2025-11-24 - Scope expanded per audit findings
+**Audit:** 2025-11-25 - Phase 1.5 split into sub-phases, re-export conflict moved to type checker
 
 ## Overview
 
@@ -10,7 +11,7 @@ This implementation consists of two major components:
 1. **Module Loader**: Discovers and parses all modules transitively from entry point (with path resolution, symlink handling, error collection)
 2. **Module Resolver**: Analyzes dependency graph using Tarjan's SCC, detects ALL cycles, emits warnings with codes
 
-**Scope Change:** Expanded from 8 to 9 phases with comprehensive edge case coverage, integration testing, and user documentation. Approximately 2x original scope for production-ready implementation.
+**Scope Change:** Expanded from 8 to 9 phases with comprehensive edge case coverage, integration testing, and user documentation. Phase 1.5 split into 1.5a/1.5b/1.5c for incremental delivery.
 
 ## Phase 1: Diagnostic System Verification
 
@@ -50,7 +51,7 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 1.5: Path Resolution Utilities
+## Phase 1.5a: Relative Path Resolution
 
 ### Core Implementation
 - [ ] Create directory: `packages/core/src/module-loader/`
@@ -66,13 +67,13 @@ This implementation consists of two major components:
   - [ ] Try directory with `index.vf`
   - [ ] Return null if neither exists
   - [ ] File precedence over directory (if both exist)
-  - [ ] Both `./utils` and `./utils.vf` should resolve to same cached module
+  - [ ] Both `./utils` and `./utils.vf` should resolve to same cached module (normalize BEFORE cache lookup)
 - [ ] Implement symlink resolution
   - [ ] Use `fs.realpathSync()` to resolve symlinks
   - [ ] Detect circular symlinks (error)
   - [ ] Return canonical real paths
 - [ ] Handle path normalization edge cases
-  - [ ] Trailing slashes: `./foo/` → try `./foo/index.vf`
+  - [ ] **Trailing slashes**: `./foo/` → try ONLY `./foo/index.vf` (explicit directory)
   - [ ] Current directory: `./.` → try `./index.vf`
   - [ ] Complex relative: `./a/../b` → normalize to `./b`
   - [ ] Going outside project: `../../../../../../file`
@@ -80,8 +81,40 @@ This implementation consists of two major components:
   - [ ] Windows: `\` separators, drive letters (`C:\`)
   - [ ] Unix: `/` separators
   - [ ] Use `path.sep`, `path.normalize`, `path.resolve`
+- [ ] **Side-effect-only imports**: `import './module'` creates value dependency edge
+- [ ] **Case sensitivity checking**: Detect case mismatch for VF5901 warning
 
-### [NEW] Package Import Resolution
+### Phase 1.5a Tests
+- [ ] Test relative path resolution (`./`, `../`)
+- [ ] Test absolute path passthrough
+- [ ] Test path normalization (`.`, `..` removal)
+- [ ] Test file precedence over directory
+- [ ] Test directory with index.vf
+- [ ] Test missing file returns null
+- [ ] Test `.vf` extension added if missing
+- [ ] Test explicit `.vf` in import path (doesn't try `.vf.vf`)
+- [ ] Test `./utils` and `./utils.vf` resolve to same cached module
+- [ ] Test symlink resolution
+- [ ] Test symlink and original resolve to same path
+- [ ] Test circular symlink detection (error)
+- [ ] Test trailing slash handling (`./foo/` → only `./foo/index.vf`)
+- [ ] Test current directory resolution
+- [ ] Test Unicode in paths
+- [ ] Test very long paths
+- [ ] Test case sensitivity warning (VF5901)
+- [ ] Test side-effect-only import creates value edge
+
+### Phase 1.5a Quality Checks
+- [ ] Run `npm run verify`
+- [ ] Ensure 90%+ test coverage
+- [ ] Add JSDoc comments
+- [ ] No `any` types
+
+---
+
+## Phase 1.5b: Package Resolution
+
+### Package Import Resolution
 - [ ] Create file: `packages/core/src/module-loader/package-resolver.ts`
 - [ ] Implement `resolvePackageImport(importPath: string, fromDir: string): string | null`
   - [ ] Detect package imports (no `./` or `../` prefix)
@@ -96,7 +129,26 @@ This implementation consists of two major components:
   - [ ] Check each `node_modules/` directory
   - [ ] Stop at filesystem root
 
-### [NEW] vibefun.json Config Loading
+### Phase 1.5b Tests
+- [ ] Test `@vibefun/std` resolves via node_modules
+- [ ] Test `@org/package` scoped package resolution
+- [ ] Test node_modules search up directory tree
+- [ ] Test package not found returns null
+- [ ] Test package with `.vf` file
+- [ ] Test package with `index.vf` directory
+- [ ] Test package precedence (file over directory)
+
+### Phase 1.5b Quality Checks
+- [ ] Run `npm run verify`
+- [ ] Ensure 90%+ test coverage
+- [ ] Add JSDoc comments
+- [ ] No `any` types
+
+---
+
+## Phase 1.5c: Config Loading
+
+### Config Implementation
 - [ ] Create file: `packages/core/src/module-loader/config-loader.ts`
 - [ ] Define `VibefunConfig` type
   - [ ] `compilerOptions?.paths?: Record<string, string[]>`
@@ -108,6 +160,7 @@ This implementation consists of two major components:
 - [ ] Implement `applyPathMapping(importPath: string, config: VibefunConfig, projectRoot: string): string | null`
   - [ ] Match import against path patterns
   - [ ] Support wildcards (`@/*` → `./src/*`)
+  - [ ] **Check path mappings BEFORE node_modules** (TypeScript behavior)
   - [ ] Try each mapping target in order
   - [ ] Return resolved path or null
 - [ ] Implement `findProjectRoot(entryPoint: string): string`
@@ -115,60 +168,17 @@ This implementation consists of two major components:
   - [ ] Look for vibefun.json or package.json
   - [ ] Return directory containing config
 
-### [NEW] Case Sensitivity Warning
-- [ ] Implement case sensitivity checking
-  - [ ] After resolving file, get actual filename from directory listing
-  - [ ] Compare import path case with actual file case
-  - [ ] If different, return warning info for VF5901
-- [ ] Use existing VF5901 code (CaseSensitivityMismatch)
-  - [ ] Create warning with `createDiagnostic("VF5901", loc, { actual, expected })`
-  - [ ] Verify message template: "Module path '{actual}' has different casing than on disk: '{expected}'"
-
-### Tests
-- [ ] Test relative path resolution (`./`, `../`)
-- [ ] Test absolute path passthrough
-- [ ] Test path normalization (`.`, `..` removal)
-- [ ] Test file precedence over directory
-- [ ] Test directory with index.vf
-- [ ] Test missing file returns null
-- [ ] Test `.vf` extension added if missing
-- [ ] Test explicit `.vf` in import path (doesn't try `.vf.vf`)
-- [ ] Test `./utils` and `./utils.vf` resolve to same cached module
-- [ ] Test symlink resolution
-- [ ] Test symlink and original resolve to same path
-- [ ] Test circular symlink detection (error)
-- [ ] Test trailing slash handling
-- [ ] Test current directory resolution
-- [ ] Test Unicode in paths
-- [ ] Test very long paths
-- [ ] Test Windows paths (if on Windows)
-- [ ] Test cross-platform path separators
-
-### [NEW] Package Resolution Tests
-- [ ] Test `@vibefun/std` resolves via node_modules
-- [ ] Test `@org/package` scoped package resolution
-- [ ] Test node_modules search up directory tree
-- [ ] Test package not found returns null
-- [ ] Test package with `.vf` file
-- [ ] Test package with `index.vf` directory
-- [ ] Test package precedence (file over directory)
-
-### [NEW] Config Loading Tests
+### Phase 1.5c Tests
 - [ ] Test loading vibefun.json from project root
 - [ ] Test path mapping `@/*` → `./src/*`
 - [ ] Test path mapping with multiple targets (fallback)
+- [ ] Test path mapping precedence over node_modules
 - [ ] Test missing vibefun.json (returns null, not error)
 - [ ] Test invalid JSON (clear error message)
 - [ ] Test finding project root (walk up from entry point)
 - [ ] Test nested project (vibefun.json in subdirectory)
 
-### [NEW] Case Sensitivity Tests
-- [ ] Test case mismatch on case-insensitive FS → returns VF5901 warning info
-- [ ] Test exact case match → no warning
-- [ ] Test directory case mismatch → returns VF5901 warning info
-- [ ] Test `createDiagnostic("VF5901", ...)` message format
-
-### Quality Checks
+### Phase 1.5c Quality Checks
 - [ ] Run `npm run verify`
 - [ ] Ensure 90%+ test coverage
 - [ ] Add JSDoc comments
@@ -310,15 +320,17 @@ This implementation consists of two major components:
   - [ ] Wildcard imports (`import * as`) treated as value imports
   - [ ] Pass import Location to `addDependency()` for warning messages
 
-### Re-Export Name Conflict Detection
-- [ ] During graph construction, track exported names per module
-- [ ] For wildcard re-exports (`export * from`), collect all re-exported names
-- [ ] Detect name conflicts (same name re-exported from multiple sources)
-- [ ] Generate compile-time error for conflicts:
-      "Name conflict in re-exports: 'map' is exported from both './array' and './list'"
-- [ ] Test: wildcard re-export name conflict detected
-- [ ] Test: explicit re-exports with same name detected
-- [ ] Test: no conflict when same module re-exported via different paths
+### Re-Export Dependency Tracking
+**Note [2025-11-25]:** Re-export NAME CONFLICT detection is deferred to the **type checker** (matches TypeScript approach). Module system only tracks dependency edges.
+
+- [ ] Track that `export *` and `export { x } from` create dependency edges
+- [ ] Re-export edges are VALUE edges (conservative approach)
+- [ ] No export name tracking here - type checker handles that
+
+**Type Checker Responsibility (future work):**
+- Expand wildcard re-exports recursively when building export environment
+- Detect name conflicts (same name from different sources)
+- Emit VF5101 (ReexportConflict) error
 
 ### [NEW] Import Conflict Detection
 - [ ] Track imported names per module during graph construction
@@ -840,23 +852,25 @@ Instead of implementing runtime tests now, create a design doc:
 
 ## Progress Summary
 
-**Phases Completed:** 0/9 (0%)
-**Estimated Tasks:** ~250 (expanded from ~200 after 2025-11-24 audit)
+**Phases Completed:** 0/11 (0%)
+**Estimated Tasks:** ~260 (expanded after 2025-11-25 audit)
 **Tasks Completed:** 0
 **Current Phase:** Not started
 **Blockers:** None
 
 **Major Components:**
-- **Phase 1**: Warning Infrastructure (with codes)
-- **Phase 1.5**: Path Resolution + **Package Resolution** + **Config Loading** (expanded)
+- **Phase 1**: Diagnostic System Verification (codes VF5004, VF5005)
+- **Phase 1.5a**: Relative Path Resolution (symlinks, normalization, case sensitivity)
+- **Phase 1.5b**: Package Resolution (node_modules lookup)
+- **Phase 1.5c**: Config Loading (vibefun.json path mappings)
 - **Phase 2**: Module Loader (with error collection)
-- **Phase 3**: Module Graph + **Import Conflict Detection** (expanded)
+- **Phase 3**: Module Graph + Import Conflict Detection
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
-- **Phase 5**: Warning Generation (VF5900 + **VF5901 case sensitivity**)
+- **Phase 5**: Warning Generation (VF5900 + VF5901)
 - **Phase 6**: Module Resolver API
 - **Phase 7**: Comprehensive Testing (extensive edge cases)
 - **Phase 7.5**: Integration Testing (type checker, code gen, desugarer)
-- **Phase 8**: Documentation (**5 docs** including vibefun.json guide)
+- **Phase 8**: Documentation (5 docs including vibefun.json guide)
 
 **Scope Expansion Summary (Original):**
 - Added symlink resolution and cross-platform path handling
@@ -867,10 +881,18 @@ Instead of implementing runtime tests now, create a design doc:
 - Added 4 user-facing documentation files
 
 **Scope Expansion Summary (2025-11-24 Audit):**
-- **[NEW]** Package import resolution (node_modules lookup)
-- **[NEW]** vibefun.json path mappings support
-- **[NEW]** Import conflict detection (duplicates, shadowing → errors)
-- **[NEW]** Circular re-export handling
-- **[NEW]** Case sensitivity warning (VF5901)
-- **[NEW]** vibefun.json configuration guide
-- Approximately ~50 additional tasks from audit findings
+- Package import resolution (node_modules lookup)
+- vibefun.json path mappings support
+- Import conflict detection (duplicates, shadowing → errors)
+- Circular re-export handling
+- Case sensitivity warning (VF5901)
+- vibefun.json configuration guide
+- ~50 additional tasks from audit findings
+
+**Scope Changes (2025-11-25 Audit):**
+- **Split Phase 1.5** into 1.5a (relative), 1.5b (packages), 1.5c (config) for incremental delivery
+- **Re-export conflict detection** moved to type checker (matches TypeScript)
+- **Path mapping precedence** clarified: vibefun.json checked before node_modules (TypeScript behavior)
+- **Side-effect-only imports** explicitly create value dependency edges
+- **Trailing slash imports** (`./foo/`) try only `./foo/index.vf`
+- Spec update needed: `docs/spec/08-modules.md` lines 77-80 (path mapping order)
