@@ -1,9 +1,8 @@
-// export * from "./typechecker.js";
-// export * from "./modules.js";
 // export * from "./codegen.js";
 
 import { registerDesugarerCodes } from "./desugarer.js";
 import { registerLexerCodes } from "./lexer.js";
+import { registerModulesCodes } from "./modules.js";
 import { registerParserCodes } from "./parser.js";
 import { registerTypecheckerCodes } from "./typechecker.js";
 
@@ -28,6 +27,7 @@ import { registerTypecheckerCodes } from "./typechecker.js";
 // Phase-specific code exports
 export * from "./desugarer.js";
 export * from "./lexer.js";
+export * from "./modules.js";
 export * from "./parser.js";
 export * from "./typechecker.js";
 
@@ -44,6 +44,7 @@ export function initializeDiagnosticCodes(): void {
 
     registerDesugarerCodes();
     registerLexerCodes();
+    registerModulesCodes();
     registerParserCodes();
     registerTypecheckerCodes();
 }
