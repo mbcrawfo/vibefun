@@ -18,7 +18,7 @@ if [[ "$CMD" =~ eslint ]]; then
 fi
 
 if [[ "$CMD" =~ prettier ]]; then
-    echo "Use \`npm run format:check\` instead of \`npx prettier\`" >&2
+    echo "Use \`npm run format\` instead of \`npx prettier\`" >&2
 fi
 
 if [[ "$CMD" =~ vitest ]]; then
