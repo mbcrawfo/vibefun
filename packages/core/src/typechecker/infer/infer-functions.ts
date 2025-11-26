@@ -8,7 +8,7 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { TypeError } from "../../utils/error.js";
+import { throwDiagnostic } from "../../diagnostics/index.js";
 import { freshTypeVar, funType } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
@@ -42,11 +42,10 @@ export function inferLambda(ctx: InferenceContext, expr: Extract<CoreExpr, { kin
     // Add parameter to environment
     // Currently only variable patterns are supported in lambda parameters
     if (expr.param.kind !== "CoreVarPattern") {
-        throw new TypeError(
-            `Pattern matching in lambda parameters not yet supported`,
-            expr.loc,
-            `Only simple variable patterns are currently supported`,
-        );
+        throwDiagnostic("VF4017", expr.loc, {
+            feature: "Pattern matching in lambda parameters",
+            hint: "Only simple variable patterns are currently supported",
+        });
     }
 
     const paramName = expr.param.name;

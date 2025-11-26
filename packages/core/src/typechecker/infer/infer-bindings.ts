@@ -9,7 +9,7 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { TypeError } from "../../utils/error.js";
+import { throwDiagnostic } from "../../diagnostics/index.js";
 import { freeTypeVarsAtLevel, freshTypeVar, isSyntacticValue } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
@@ -69,22 +69,20 @@ export function generalize(ctx: InferenceContext, type: Type, expr: CoreExpr): T
 export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>): InferResult {
     // Currently only variable patterns are supported in let-bindings
     if (expr.pattern.kind !== "CoreVarPattern") {
-        throw new TypeError(
-            `Pattern matching in let-bindings not yet supported`,
-            expr.loc,
-            `Only simple variable patterns are currently supported`,
-        );
+        throwDiagnostic("VF4017", expr.loc, {
+            feature: "Pattern matching in let-bindings",
+            hint: "Only simple variable patterns are currently supported",
+        });
     }
 
     const varName = expr.pattern.name;
 
     // Mutable let-bindings are not supported yet
     if (expr.mutable) {
-        throw new TypeError(
-            `Mutable let-bindings not yet supported`,
-            expr.loc,
-            `Use Ref<T> types for mutable values instead`,
-        );
+        throwDiagnostic("VF4017", expr.loc, {
+            feature: "Mutable let-bindings",
+            hint: "Use Ref<T> types for mutable values instead",
+        });
     }
 
     // Create new context with increased level for generalization
@@ -173,22 +171,20 @@ export function inferLetRecExpr(
     // For simplicity, only handle variable patterns
     for (const binding of expr.bindings) {
         if (binding.pattern.kind !== "CoreVarPattern") {
-            throw new TypeError(
-                `Pattern matching in mutually recursive bindings not yet supported`,
-                binding.loc,
-                `Only simple variable patterns are supported in mutually recursive bindings`,
-            );
+            throwDiagnostic("VF4017", binding.loc, {
+                feature: "Pattern matching in mutually recursive bindings",
+                hint: "Only simple variable patterns are supported in mutually recursive bindings",
+            });
         }
     }
 
     // Mutable bindings are not supported yet
     for (const binding of expr.bindings) {
         if (binding.mutable) {
-            throw new TypeError(
-                `Mutable bindings in mutually recursive groups not yet supported`,
-                binding.loc,
-                `Use Ref<T> types for mutable values instead`,
-            );
+            throwDiagnostic("VF4017", binding.loc, {
+                feature: "Mutable bindings in mutually recursive groups",
+                hint: "Use Ref<T> types for mutable values instead",
+            });
         }
     }
 
@@ -240,11 +236,7 @@ export function inferLetRecExpr(
         const inferredType = inferredTypes.get(varName);
 
         if (!tempType || !inferredType) {
-            throw new TypeError(
-                `Internal error: missing type for '${varName}'`,
-                binding.loc,
-                `This is a compiler bug.`,
-            );
+            throw new Error(`Internal error: missing type for '${varName}'`);
         }
 
         const tempTypeSubst = applySubst(currentSubst, tempType);
@@ -266,11 +258,7 @@ export function inferLetRecExpr(
         const inferredType = inferredTypes.get(varName);
 
         if (!inferredType) {
-            throw new TypeError(
-                `Internal error: missing inferred type for '${varName}'`,
-                binding.loc,
-                `This is a compiler bug.`,
-            );
+            throw new Error(`Internal error: missing inferred type for '${varName}'`);
         }
 
         const scheme = generalize(valueCtxForGeneralize, inferredType, binding.value);
@@ -288,11 +276,7 @@ export function inferLetRecExpr(
         const scheme = generalizedSchemes.get(varName);
 
         if (!scheme) {
-            throw new TypeError(
-                `Internal error: missing scheme for '${varName}'`,
-                binding.loc,
-                `This is a compiler bug.`,
-            );
+            throw new Error(`Internal error: missing scheme for '${varName}'`);
         }
 
         finalEnv.values.set(varName, {

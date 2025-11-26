@@ -9,7 +9,7 @@ import type { CoreExpr, CoreTypeExpr } from "../../types/core-ast.js";
 import type { Type, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { TypeError } from "../../utils/error.js";
+import { throwDiagnostic } from "../../diagnostics/index.js";
 import { constType, funType, primitiveTypes } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
@@ -172,7 +172,10 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
 
         // Tuple expressions (placeholder)
         case "CoreTuple":
-            throw new TypeError("Tuple type inference not yet implemented", expr.loc);
+            throwDiagnostic("VF4017", expr.loc, {
+                feature: "Tuple type inference",
+                hint: "Use pattern matching in a match expression instead",
+            });
     }
 }
 
@@ -195,7 +198,7 @@ function inferVar(
     const binding = ctx.env.values.get(name);
 
     if (!binding) {
-        throw new TypeError(`Undefined variable '${name}'`, loc, `Variable '${name}' is not in scope`);
+        throwDiagnostic("VF4100", loc, { name });
     }
 
     // Get the type scheme based on binding kind
@@ -204,11 +207,7 @@ function inferVar(
         scheme = binding.scheme;
     } else {
         // ExternalOverload case - not yet supported
-        throw new TypeError(
-            `Overloaded external '${name}' not yet supported`,
-            loc,
-            `Overload resolution is planned for a future release`,
-        );
+        throwDiagnostic("VF4804", loc, { name });
     }
 
     // Instantiate the type scheme
@@ -292,11 +291,10 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
         case "CoreTypeVar":
             // Type variables in type expressions are not supported yet
             // These would require generics/parametric types in user-defined types
-            throw new TypeError(
-                `Type variables are not yet supported in type annotations`,
-                typeExpr.loc,
-                `Type variable '${typeExpr.name}' cannot be used here`,
-            );
+            throwDiagnostic("VF4017", typeExpr.loc, {
+                feature: "Type variables in type annotations",
+                hint: `Type variable '${typeExpr.name}' cannot be used here`,
+            });
 
         case "CoreRecordType": {
             // Convert record type: { field1: Type1, field2: Type2 }
@@ -313,11 +311,10 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
         case "CoreVariantType":
             // Variant types in annotations are not fully supported
             // Users should reference named types instead
-            throw new TypeError(
-                `Inline variant types are not supported in type annotations`,
-                typeExpr.loc,
-                `Define a named variant type with 'type' declaration instead`,
-            );
+            throwDiagnostic("VF4017", typeExpr.loc, {
+                feature: "Inline variant types in type annotations",
+                hint: "Define a named variant type with 'type' declaration instead",
+            });
 
         case "CoreUnionType": {
             // Convert union type: Type1 | Type2 | Type3
