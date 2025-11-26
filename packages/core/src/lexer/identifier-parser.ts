@@ -7,8 +7,8 @@
 import type { Token } from "../types/index.js";
 import type { Lexer } from "./lexer.js";
 
+import { throwDiagnostic } from "../diagnostics/index.js";
 import { isBoolLiteral, isKeyword, isReservedKeyword } from "../types/token.js";
-import { LexerError } from "../utils/index.js";
 import { isIdentifierContinue } from "./character-utils.js";
 
 /**
@@ -17,7 +17,7 @@ import { isIdentifierContinue } from "./character-utils.js";
  * @param lexer - The lexer instance
  * @param hadLeadingWhitespace - Whether whitespace preceded this token
  * @returns A token (KEYWORD, BOOL_LITERAL, or IDENTIFIER)
- * @throws {LexerError} If identifier is a reserved keyword
+ * @throws {VibefunDiagnostic} If identifier is a reserved keyword
  */
 export function readIdentifier(lexer: Lexer, hadLeadingWhitespace: boolean): Token {
     const start = lexer.makeLocation();
@@ -34,11 +34,7 @@ export function readIdentifier(lexer: Lexer, hadLeadingWhitespace: boolean): Tok
 
     // Check if it's a reserved keyword (error if true)
     if (isReservedKeyword(value)) {
-        throw new LexerError(
-            `'${value}' is a reserved keyword for future language features`,
-            start,
-            "Reserved keywords cannot be used as identifiers",
-        );
+        throwDiagnostic("VF1500", start, { keyword: value });
     }
 
     // Check if it's a keyword

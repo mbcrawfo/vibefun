@@ -19,12 +19,12 @@ This document specifies how the Vibefun type checker reports errors, including m
 
 ## Error Message Format
 
-Vibefun uses TypeScript-style concise error messages focused on what's wrong and how to fix it.
+Vibefun uses a unified diagnostic system with VFxxxx error codes for all compiler phases.
 
 ### Standard Format
 
 ```
-error[VF0001]: Type mismatch
+error[VF4001]: Type mismatch
   --> src/example.vf:10:15
    |
 10 | let result = compute() + "hello"
@@ -40,7 +40,7 @@ error[VF0001]: Type mismatch
 
 | Component | Required | Description |
 |-----------|----------|-------------|
-| Error code | Yes | Unique identifier (VF0001-VF0299) |
+| Error code | Yes | Unique identifier (VF1xxx-VF5xxx by phase) |
 | Brief message | Yes | One-line description of the error |
 | Location | Yes | File path, line number, column number |
 | Source context | Yes | Relevant source line(s) with caret indicator |
@@ -50,12 +50,24 @@ error[VF0001]: Type mismatch
 
 ### Error Codes
 
-All type errors have a unique 4-digit code in the format `VF0000`. Error codes enable:
-- Documentation lookup via `--explain VF0001`
+All diagnostics (errors and warnings) have a unique 4-digit code in the format `VFxxxx`, organized by compiler phase:
+
+| Range | Phase |
+|-------|-------|
+| VF1xxx | Lexer errors |
+| VF2xxx | Parser errors |
+| VF3xxx | Desugarer errors |
+| VF4xxx | Type checker errors |
+| VF5xxx | Module system errors |
+
+Each phase reserves codes ending in 900-999 for warnings (e.g., VF4900-VF4999 for type system warnings).
+
+Error codes enable:
+- Documentation lookup (see `docs/errors/` for auto-generated documentation)
 - Programmatic error handling in tooling
 - Consistent error identification across versions
 
-See [Error Catalog](./error-catalog.md) for the complete list of error codes.
+See the [Error Documentation](../../errors/README.md) for the complete list of error codes with explanations and examples.
 
 ## Type Display Conventions
 
@@ -119,10 +131,10 @@ Error types have special unification behavior:
 ### Example
 
 ```vibefun
-let x = unknownVar      // VF0050: Undefined variable 'unknownVar'
+let x = unknownVar      // VF4100: Undefined variable 'unknownVar'
 let y = x + 1           // No error: error type + Int = error type
 let z = y * 2           // No error: error type * Int = error type
-let w = 10 / valid      // VF0050: Undefined variable 'valid' (independent)
+let w = 10 / valid      // VF4100: Undefined variable 'valid' (independent)
 ```
 
 Only two errors are reported because `y` and `z` errors would be derived from the `x` error.
@@ -175,6 +187,6 @@ The error reporting system is designed for IDE integration:
 
 ## Related Documentation
 
-- [Error Catalog](./error-catalog.md) - Complete list of error codes with examples
+- [Error Documentation](../../errors/README.md) - Complete list of error codes with examples (auto-generated)
 - [Type Inference](./type-inference.md) - How types are inferred
 - [Pattern Matching Exhaustiveness](../05-pattern-matching/exhaustiveness.md) - Pattern matching errors
