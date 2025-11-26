@@ -1,0 +1,3 @@
+// main.vf - Single module with no imports
+let x = 42;
+let y = x + 1;

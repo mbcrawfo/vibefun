@@ -1,0 +1,5 @@
+// main.vf - Imports both a.vf and b.vf
+import { fromA } from "./a";
+import { fromB } from "./b";
+
+let result = fromA + fromB;

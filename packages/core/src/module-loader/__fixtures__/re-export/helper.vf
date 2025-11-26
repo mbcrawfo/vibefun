@@ -1,0 +1,2 @@
+// helper.vf - Helper function
+export let helper = (x: Int) => x + 1;

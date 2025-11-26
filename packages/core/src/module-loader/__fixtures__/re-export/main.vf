@@ -1,0 +1,4 @@
+// main.vf - Imports from barrel file
+import { helper } from "./barrel";
+
+let result = helper(10);

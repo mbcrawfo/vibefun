@@ -1,0 +1,2 @@
+// shared.vf - Shared dependency (should only be loaded once)
+export let shared = 10;

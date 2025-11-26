@@ -1,0 +1,4 @@
+// main.vf - Entry point that imports helper
+import { helper } from "./helper";
+
+let result = helper(42);

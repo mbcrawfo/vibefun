@@ -1,0 +1,4 @@
+// b.vf - Also imports shared
+import { shared } from "./shared";
+
+export let fromB = shared + 2;

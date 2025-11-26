@@ -1,0 +1,4 @@
+// b.vf - Part of circular dependency
+import { a } from "./a";
+
+export let b = 2;

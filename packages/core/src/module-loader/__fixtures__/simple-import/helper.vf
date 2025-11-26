@@ -1,0 +1,2 @@
+// helper.vf - A simple helper module
+export let helper = (x: Int) => x * 2;
