@@ -12,14 +12,14 @@
         "test": "npm run test --workspaces --if-present",
         "test:watch": "npm run test:watch --workspaces --if-present",
         "test:coverage": "npm run test:coverage --workspaces --if-present",
-        "lint": "eslint packages/*/src/**/*.ts",
-        "lint:fix": "eslint packages/*/src/**/*.ts --fix",
-        "format": "prettier --write \"packages/*/src/**/*.ts\"",
-        "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
+        "lint": "eslint packages/*/src/**/*.ts scripts/**/*.ts",
+        "lint:fix": "eslint packages/*/src/**/*.ts scripts/**/*.ts --fix",
+        "format": "prettier --write \"packages/*/src/**/*.ts\" \"scripts/**/*.ts\"",
+        "format:check": "prettier --check \"packages/*/src/**/*.ts\" \"scripts/**/*.ts\"",
         "verify": "npm run build && npm run check && npm run lint && npm run test && npm run format:check",
         "clean": "npm run clean --workspaces --if-present",
-        "docs:errors": "npx tsx scripts/generate-error-docs.ts",
-        "docs:errors:check": "npx tsx scripts/generate-error-docs.ts --check"
+        "docs:errors": "node --experimental-strip-types scripts/generate-error-docs.ts",
+        "docs:errors:check": "node --experimental-strip-types scripts/generate-error-docs.ts --check"
     },
     "keywords": [
         "functional-programming",
