@@ -8,8 +8,7 @@ import type { CoreBinaryOp, CoreExpr, CoreUnary } from "../../types/core-ast.js"
 import type { Type } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { TypeError } from "../../utils/error.js";
-import { appType, constType, freshTypeVar, primitiveTypes, typeToString } from "../types.js";
+import { appType, constType, freshTypeVar, primitiveTypes } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
 // Import inferExpr - will be set via dependency injection
@@ -48,65 +47,47 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
 
     // Special handling for RefAssign: (Ref<T>, T) -> Unit
     if (expr.op === "RefAssign") {
-        try {
-            // Left operand must be Ref<T>
-            const elemType = freshTypeVar(ctx.level);
-            const refType = appType(constType("Ref"), [elemType]);
+        const unifyCtx = { loc: expr.loc };
 
-            // Unify left with Ref<T>
-            const leftUnify = unify(leftType, refType);
-            const subst1 = composeSubst(leftUnify, currentSubst);
+        // Left operand must be Ref<T>
+        const elemType = freshTypeVar(ctx.level);
+        const refType = appType(constType("Ref"), [elemType]);
 
-            // Apply substitution to get the actual element type
-            const actualElemType = applySubst(subst1, elemType);
-            const rightTypeSubst = applySubst(subst1, rightType);
+        // Unify left with Ref<T>
+        const leftUnify = unify(leftType, refType, unifyCtx);
+        const subst1 = composeSubst(leftUnify, currentSubst);
 
-            // Unify right with T
-            const rightUnify = unify(rightTypeSubst, actualElemType);
-            const finalSubst = composeSubst(rightUnify, subst1);
+        // Apply substitution to get the actual element type
+        const actualElemType = applySubst(subst1, elemType);
+        const rightTypeSubst = applySubst(subst1, rightType);
 
-            // Result is Unit
-            return { type: primitiveTypes.Unit, subst: finalSubst };
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw error;
-            }
-            throw new TypeError(
-                `Type error in reference assignment`,
-                expr.loc,
-                `Expected (Ref<T>, T) -> Unit, but got ${typeToString(leftType)} := ${typeToString(rightType)}`,
-            );
-        }
+        // Unify right with T
+        const rightUnify = unify(rightTypeSubst, actualElemType, unifyCtx);
+        const finalSubst = composeSubst(rightUnify, subst1);
+
+        // Result is Unit
+        return { type: primitiveTypes.Unit, subst: finalSubst };
     }
 
     // Determine expected types and result type based on operator
     const { paramType, resultType } = getBinOpTypes(expr.op);
 
     // Unify operand types with expected parameter type
-    try {
-        const leftUnify = unify(leftType, paramType);
-        const subst1 = composeSubst(leftUnify, currentSubst);
+    const unifyCtx = { loc: expr.loc };
 
-        const rightTypeSubst = applySubst(subst1, rightType);
-        const paramTypeSubst = applySubst(subst1, paramType);
+    const leftUnify = unify(leftType, paramType, unifyCtx);
+    const subst1 = composeSubst(leftUnify, currentSubst);
 
-        const rightUnify = unify(rightTypeSubst, paramTypeSubst);
-        const finalSubst = composeSubst(rightUnify, subst1);
+    const rightTypeSubst = applySubst(subst1, rightType);
+    const paramTypeSubst = applySubst(subst1, paramType);
 
-        // Apply substitution to result type
-        const finalResultType = applySubst(finalSubst, resultType);
+    const rightUnify = unify(rightTypeSubst, paramTypeSubst, unifyCtx);
+    const finalSubst = composeSubst(rightUnify, subst1);
 
-        return { type: finalResultType, subst: finalSubst };
-    } catch (error) {
-        if (error instanceof TypeError) {
-            throw error;
-        }
-        throw new TypeError(
-            `Type error in binary operation ${expr.op}`,
-            expr.loc,
-            `Cannot apply ${expr.op} to types ${typeToString(leftType)} and ${typeToString(rightType)}`,
-        );
-    }
+    // Apply substitution to result type
+    const finalResultType = applySubst(finalSubst, resultType);
+
+    return { type: finalResultType, subst: finalSubst };
 }
 
 /**
@@ -190,52 +171,33 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
 
     // Special handling for Deref: Ref<T> -> T
     if (expr.op === "Deref") {
-        try {
-            // Operand must be Ref<T>
-            const elemType = freshTypeVar(ctx.level);
-            const refType = appType(constType("Ref"), [elemType]);
+        const unifyCtx = { loc: expr.expr.loc };
 
-            // Unify operand with Ref<T>
-            const unifySubst = unify(operandResult.type, refType);
-            const finalSubst = composeSubst(unifySubst, operandResult.subst);
+        // Operand must be Ref<T>
+        const elemType = freshTypeVar(ctx.level);
+        const refType = appType(constType("Ref"), [elemType]);
 
-            // Apply substitution to get the actual element type
-            const resultType = applySubst(finalSubst, elemType);
+        // Unify operand with Ref<T>
+        const unifySubst = unify(operandResult.type, refType, unifyCtx);
+        const finalSubst = composeSubst(unifySubst, operandResult.subst);
 
-            return { type: resultType, subst: finalSubst };
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw error;
-            }
-            throw new TypeError(
-                `Type error in dereference`,
-                expr.expr.loc,
-                `Expected Ref<T>, but got ${typeToString(operandResult.type)}`,
-            );
-        }
+        // Apply substitution to get the actual element type
+        const resultType = applySubst(finalSubst, elemType);
+
+        return { type: resultType, subst: finalSubst };
     }
 
     const { paramType, resultType } = getUnaryOpTypes(expr.op);
 
     // Unify operand type with expected parameter type
-    try {
-        const unifySubst = unify(operandResult.type, paramType);
-        const finalSubst = composeSubst(unifySubst, operandResult.subst);
+    const unifyCtx = { loc: expr.expr.loc };
+    const unifySubst = unify(operandResult.type, paramType, unifyCtx);
+    const finalSubst = composeSubst(unifySubst, operandResult.subst);
 
-        // Apply substitution to result type
-        const finalResultType = applySubst(finalSubst, resultType);
+    // Apply substitution to result type
+    const finalResultType = applySubst(finalSubst, resultType);
 
-        return { type: finalResultType, subst: finalSubst };
-    } catch (error) {
-        if (error instanceof TypeError) {
-            throw error;
-        }
-        throw new TypeError(
-            `Type error in unary operation ${expr.op}`,
-            expr.expr.loc,
-            `Cannot apply ${expr.op} to type ${typeToString(operandResult.type)}`,
-        );
-    }
+    return { type: finalResultType, subst: finalSubst };
 }
 
 /**

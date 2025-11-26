@@ -20,6 +20,7 @@ import type { TypeEnv } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { TypeError } from "../utils/error.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
@@ -310,8 +311,8 @@ describe("Type Inference - Type Annotations", () => {
         const env = createTestEnv();
         const ctx = createContext(env);
 
-        expect(() => inferExpr(ctx, expr)).toThrow(TypeError);
-        expect(() => inferExpr(ctx, expr)).toThrow(/Type annotation mismatch/);
+        // Type annotation mismatch now throws VibefunDiagnostic when unification fails
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 });
 

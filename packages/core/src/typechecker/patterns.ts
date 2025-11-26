@@ -16,8 +16,10 @@ import type {
     CoreWildcardPattern,
 } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
-import type { Substitution } from "./unify.js";
+import type { Substitution, UnifyContext } from "./unify.js";
 
+import { throwDiagnostic } from "../diagnostics/index.js";
+import { typeToString } from "./format.js";
 import { instantiate } from "./infer/index.js";
 import { primitiveTypes } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
@@ -42,6 +44,7 @@ export type PatternCheckResult = {
  * @param expectedType - Type the pattern is expected to match
  * @param subst - Current substitution
  * @param level - Current type variable level for instantiation
+ * @param ctx - Unification context for error reporting
  * @returns Pattern check result with type, bindings, and updated substitution
  */
 export function checkPattern(
@@ -50,7 +53,11 @@ export function checkPattern(
     expectedType: Type,
     subst: Substitution,
     level: number,
+    ctx?: UnifyContext,
 ): PatternCheckResult {
+    // Create context from pattern location if not provided
+    const effectiveCtx: UnifyContext = ctx ?? { loc: pattern.loc };
+
     switch (pattern.kind) {
         case "CoreWildcardPattern":
             return checkWildcardPattern(pattern, expectedType, subst);
@@ -59,13 +66,13 @@ export function checkPattern(
             return checkVarPattern(pattern, expectedType, subst);
 
         case "CoreLiteralPattern":
-            return checkLiteralPattern(pattern, expectedType, subst);
+            return checkLiteralPattern(pattern, expectedType, subst, effectiveCtx);
 
         case "CoreVariantPattern":
-            return checkVariantPattern(env, pattern, expectedType, subst, level);
+            return checkVariantPattern(env, pattern, expectedType, subst, level, effectiveCtx);
 
         case "CoreRecordPattern":
-            return checkRecordPattern(env, pattern, expectedType, subst, level);
+            return checkRecordPattern(env, pattern, expectedType, subst, level, effectiveCtx);
 
         case "CoreTuplePattern":
             // Placeholder: Tuple pattern type checking not yet implemented
@@ -78,6 +85,7 @@ export function checkPattern(
 
         default: {
             const _exhaustive: never = pattern;
+            // Internal error - keep as plain Error
             throw new Error(`Unknown pattern kind: ${(_exhaustive as CorePattern).kind}`);
         }
     }
@@ -118,7 +126,12 @@ function checkVarPattern(pattern: CoreVarPattern, expectedType: Type, subst: Sub
  * Check literal pattern (42, "hello", true, false, ())
  * Matches exact literal value
  */
-function checkLiteralPattern(pattern: CoreLiteralPattern, expectedType: Type, subst: Substitution): PatternCheckResult {
+function checkLiteralPattern(
+    pattern: CoreLiteralPattern,
+    expectedType: Type,
+    subst: Substitution,
+    ctx: UnifyContext,
+): PatternCheckResult {
     // Determine literal type
     const literalType: Type =
         typeof pattern.literal === "number"
@@ -132,11 +145,12 @@ function checkLiteralPattern(pattern: CoreLiteralPattern, expectedType: Type, su
                 : pattern.literal === null
                   ? primitiveTypes.Unit
                   : (() => {
+                        // Internal error - keep as plain Error
                         throw new Error(`Unknown literal type: ${typeof pattern.literal}`);
                     })();
 
     // Unify literal type with expected type
-    const unifySubst = unify(literalType, applySubst(subst, expectedType));
+    const unifySubst = unify(literalType, applySubst(subst, expectedType), ctx);
     const newSubst = composeSubst(unifySubst, subst);
 
     return {
@@ -156,15 +170,19 @@ function checkVariantPattern(
     expectedType: Type,
     subst: Substitution,
     level: number,
+    ctx: UnifyContext,
 ): PatternCheckResult {
     // Look up constructor in environment
     const binding = env.values.get(pattern.constructor);
     if (!binding) {
-        throw new Error(`Undefined constructor: ${pattern.constructor}`);
+        throwDiagnostic("VF4102", pattern.loc, { name: pattern.constructor });
     }
 
     if (binding.kind !== "Value" && binding.kind !== "External") {
-        throw new Error(`${pattern.constructor} is not a value binding`);
+        throwDiagnostic("VF4600", pattern.loc, {
+            name: pattern.constructor,
+            constructors: "Expected constructor, got type binding",
+        });
     }
 
     // Get constructor type scheme and instantiate it with fresh type variables
@@ -180,11 +198,15 @@ function checkVariantPattern(
     // If nullary constructor (None, Nil)
     if (constructorType.type !== "Fun") {
         if (pattern.args.length > 0) {
-            throw new Error(`Constructor ${pattern.constructor} expects no arguments, got ${pattern.args.length}`);
+            throwDiagnostic("VF4200", pattern.loc, {
+                name: pattern.constructor,
+                expected: 0,
+                actual: pattern.args.length,
+            });
         }
 
         // Unify constructor type with expected type
-        const unifySubst = unify(constructorType, applySubst(subst, expectedType));
+        const unifySubst = unify(constructorType, applySubst(subst, expectedType), ctx);
         const newSubst = composeSubst(unifySubst, subst);
 
         return {
@@ -199,14 +221,20 @@ function checkVariantPattern(
 
     // Verify argument count
     if (pattern.args.length !== funType.params.length) {
-        throw new Error(
-            `Constructor ${pattern.constructor} expects ${funType.params.length} arguments, got ${pattern.args.length}`,
-        );
+        throwDiagnostic("VF4200", pattern.loc, {
+            name: pattern.constructor,
+            expected: funType.params.length,
+            actual: pattern.args.length,
+        });
     }
 
     // Unify return type with expected type to get type variable bindings
     let currentSubst = subst;
-    const returnUnifySubst = unify(applySubst(currentSubst, funType.return), applySubst(currentSubst, expectedType));
+    const returnUnifySubst = unify(
+        applySubst(currentSubst, funType.return),
+        applySubst(currentSubst, expectedType),
+        ctx,
+    );
     currentSubst = composeSubst(returnUnifySubst, currentSubst);
 
     // Check each argument pattern against parameter type
@@ -217,16 +245,25 @@ function checkVariantPattern(
         const paramType = funType.params[i];
 
         if (!argPattern || !paramType) {
+            // Internal error - should never happen
             throw new Error(`Missing argument pattern or parameter type at index ${i}`);
         }
 
-        const argResult = checkPattern(env, argPattern, applySubst(currentSubst, paramType), currentSubst, level);
+        const argCtx: UnifyContext = { loc: argPattern.loc };
+        const argResult = checkPattern(
+            env,
+            argPattern,
+            applySubst(currentSubst, paramType),
+            currentSubst,
+            level,
+            argCtx,
+        );
         currentSubst = argResult.subst;
 
         // Collect bindings from argument patterns
         for (const [name, type] of argResult.bindings) {
             if (allBindings.has(name)) {
-                throw new Error(`Duplicate pattern variable: ${name}`);
+                throwDiagnostic("VF4402", argPattern.loc, { name });
             }
             allBindings.set(name, type);
         }
@@ -249,14 +286,15 @@ function checkRecordPattern(
     expectedType: Type,
     subst: Substitution,
     level: number,
+    _ctx: UnifyContext,
 ): PatternCheckResult {
     // Expected type should be a record
     const appliedExpected = applySubst(subst, expectedType);
 
     if (appliedExpected.type !== "Record") {
-        throw new Error(
-            `Pattern expects record type, but got ${appliedExpected.type === "Var" ? "type variable" : appliedExpected.type}`,
-        );
+        throwDiagnostic("VF4500", pattern.loc, {
+            actual: appliedExpected.type === "Var" ? "type variable" : typeToString(appliedExpected),
+        });
     }
 
     const recordType = appliedExpected;
@@ -267,16 +305,21 @@ function checkRecordPattern(
     for (const field of pattern.fields) {
         const fieldType = recordType.fields.get(field.name);
         if (!fieldType) {
-            throw new Error(`Field ${field.name} not found in record type`);
+            const availableFields = Array.from(recordType.fields.keys()).join(", ");
+            throwDiagnostic("VF4501", field.pattern.loc, {
+                field: field.name,
+                availableFields: availableFields || "(none)",
+            });
         }
 
-        const fieldResult = checkPattern(env, field.pattern, fieldType, currentSubst, level);
+        const fieldCtx: UnifyContext = { loc: field.pattern.loc };
+        const fieldResult = checkPattern(env, field.pattern, fieldType, currentSubst, level, fieldCtx);
         currentSubst = fieldResult.subst;
 
         // Collect bindings from field patterns
         for (const [name, type] of fieldResult.bindings) {
             if (allBindings.has(name)) {
-                throw new Error(`Duplicate pattern variable: ${name}`);
+                throwDiagnostic("VF4402", field.pattern.loc, { name });
             }
             allBindings.set(name, type);
         }

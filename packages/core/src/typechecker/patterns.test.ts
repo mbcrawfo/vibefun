@@ -437,7 +437,7 @@ describe("Pattern Checking", () => {
 
             expect(() => {
                 checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
-            }).toThrow("expects record type");
+            }).toThrow("VF4500");
         });
     });
 

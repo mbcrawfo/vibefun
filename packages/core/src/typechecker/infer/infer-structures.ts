@@ -99,7 +99,8 @@ export function inferRecordAccess(
         };
 
         // Unify the type variable with the record constraint
-        const unifySubst = unify(recordType, recordConstraint);
+        const unifyCtx = { loc: expr.loc };
+        const unifySubst = unify(recordType, recordConstraint, unifyCtx);
         currentSubst = composeSubst(unifySubst, currentSubst);
         recordType = applySubst(currentSubst, recordType);
 
@@ -187,19 +188,9 @@ export function inferRecordUpdate(
             const actualType = updateResult.type;
 
             // Unify the update value type with the field type
-            try {
-                const unifySubst = unify(actualType, expectedType);
-                currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
-            } catch (error) {
-                if (error instanceof TypeError) {
-                    throw error;
-                }
-                throw new TypeError(
-                    `Type mismatch in record update for field '${update.name}'`,
-                    update.loc,
-                    `Expected ${typeToString(expectedType)}, but got ${typeToString(actualType)}`,
-                );
-            }
+            const unifyCtx = { loc: update.loc };
+            const unifySubst = unify(actualType, expectedType, unifyCtx);
+            currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
 
             // Update the field in the new map
             newFields.set(update.name, applySubst(currentCtx.subst, actualType));
@@ -317,19 +308,9 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
         const expectedTypeSubst = applySubst(currentCtx.subst, expectedType);
 
         // Unify argument type with expected type
-        try {
-            const unifySubst = unify(argResult.type, expectedTypeSubst);
-            currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw error;
-            }
-            throw new TypeError(
-                `Type mismatch in argument ${i + 1} to constructor '${expr.constructor}'`,
-                arg.loc,
-                `Expected ${typeToString(expectedTypeSubst)}, but got ${typeToString(argResult.type)}`,
-            );
-        }
+        const unifyCtx = { loc: arg.loc };
+        const unifySubst = unify(argResult.type, expectedTypeSubst, unifyCtx);
+        currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
     }
 
     // Return the constructor's return type
@@ -394,7 +375,12 @@ export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
             currentCtx = { ...currentCtx, subst: guardResult.subst };
 
             // Unify guard type with Bool
-            const guardUnifySubst = unify(applySubst(guardResult.subst, guardResult.type), primitiveTypes.Bool);
+            const guardCtxForUnify = { loc: matchCase.guard.loc };
+            const guardUnifySubst = unify(
+                applySubst(guardResult.subst, guardResult.type),
+                primitiveTypes.Bool,
+                guardCtxForUnify,
+            );
             currentCtx.subst = composeSubst(guardUnifySubst, currentCtx.subst);
         }
 
@@ -410,9 +396,11 @@ export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
         if (resultType === null) {
             resultType = bodyResult.type;
         } else {
+            const bodyUnifyCtx = { loc: matchCase.body.loc };
             const unifySubst = unify(
                 applySubst(currentCtx.subst, resultType),
                 applySubst(currentCtx.subst, bodyResult.type),
+                bodyUnifyCtx,
             );
             currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
             resultType = applySubst(currentCtx.subst, resultType);
