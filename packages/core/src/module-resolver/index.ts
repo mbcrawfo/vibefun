@@ -12,8 +12,41 @@
  * This separation allows the resolver to be tested without file I/O and
  * enables alternative loading strategies (in-memory, virtual filesystem).
  *
+ * ## Quick Start
+ *
+ * ```typescript
+ * import { loadAndResolveModules } from '@vibefun/core';
+ *
+ * // Load and resolve all modules from entry point
+ * const resolution = loadAndResolveModules('src/main.vf');
+ *
+ * // Check for errors
+ * if (resolution.errors.length > 0) {
+ *     for (const error of resolution.errors) {
+ *         console.error(error.format());
+ *     }
+ * }
+ *
+ * // Compile modules in topological order
+ * for (const modulePath of resolution.compilationOrder) {
+ *     const module = resolution.modules.get(modulePath);
+ *     // ... compile module
+ * }
+ * ```
+ *
  * @module module-resolver
  */
+
+// Main API - most users only need these
+export {
+    formatErrors,
+    formatWarnings,
+    hasErrors,
+    hasWarnings,
+    loadAndResolveModules,
+    resolveModules,
+} from "./resolver.js";
+export type { ModuleResolution, ModuleResolverOptions } from "./resolver.js";
 
 // Module Graph
 export { ModuleGraph } from "./module-graph.js";
