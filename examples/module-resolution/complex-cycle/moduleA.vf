@@ -1,0 +1,10 @@
+// Complex cycle example with 3 modules: A -> B -> C -> A
+// Demonstrates how to detect and fix multi-module cycles
+
+import { processC } from "./moduleC";
+
+export let dataA = "DataFromA";
+export let processA = (input: String) => "A(" & input & ")";
+
+// This creates a 3-way cycle
+export let chainProcess = (input: String) => processA(processC(input));

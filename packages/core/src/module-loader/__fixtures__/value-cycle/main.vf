@@ -1,0 +1,6 @@
+// Entry point for value cycle fixture
+import { fromA } from "./moduleA";
+import { fromB, useA } from "./moduleB";
+
+let a = fromA();
+let b = fromB();

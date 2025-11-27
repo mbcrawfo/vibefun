@@ -1,0 +1,6 @@
+// Value cycle: A imports value from B, B imports value from A
+// This SHOULD trigger a circular dependency warning (VF5900)
+
+import { fromB } from "./moduleB";
+
+export let fromA = () => fromB();

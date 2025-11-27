@@ -1,0 +1,14 @@
+// moduleB using lazy evaluation pattern
+// Import the getter function instead of the value
+import { getMessage } from "./moduleA";
+
+export let PREFIX = "[INFO]";
+
+// Provide a getter for our value too
+export let getPrefix = () => PREFIX;
+
+// Safe: formatMessage is called after init, getMessage() works
+export let formatMessage = (msg: String) => PREFIX & " " & msg;
+
+// Safe: This function will work correctly when called after init
+export let formatDefault = () => formatMessage(getMessage());

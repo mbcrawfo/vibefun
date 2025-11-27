@@ -1,0 +1,12 @@
+// moduleB also imports from moduleA, creating a cycle
+import { MESSAGE } from "./moduleA";
+
+export let PREFIX = "[INFO]";
+
+// This function uses a value from moduleA
+export let formatMessage = (msg: String) => PREFIX & " " & msg;
+
+// This demonstrates why the cycle is problematic:
+// When moduleB loads, it tries to access MESSAGE from moduleA,
+// but moduleA might not be fully initialized yet.
+export let defaultMessage = formatMessage(MESSAGE);

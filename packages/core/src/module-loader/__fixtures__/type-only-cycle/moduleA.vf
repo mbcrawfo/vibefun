@@ -1,0 +1,7 @@
+// Type-only cycle: A imports type from B, B imports type from A
+// This should NOT trigger a circular dependency warning
+
+import type { TypeB } from "./moduleB";
+
+export type TypeA = { wrapped: TypeB };
+export let createA = () => 42;

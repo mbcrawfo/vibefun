@@ -1,0 +1,5 @@
+// Value cycle: B imports value from A
+import { fromA } from "./moduleA";
+
+export let fromB = () => 42;
+export let useA = () => fromA();

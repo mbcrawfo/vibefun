@@ -1,0 +1,14 @@
+// Lazy evaluation pattern to safely handle circular dependencies
+// By wrapping value access in functions, we defer evaluation until
+// the modules are fully initialized.
+
+// Instead of importing a value directly, we import a getter function
+import { getPrefix } from "./moduleB";
+
+export let MESSAGE = "Hello";
+
+// getValue is safe to call after initialization
+export let getMessage = () => MESSAGE;
+
+// Use the getter function instead of the value directly
+export let greet = (name: String) => getPrefix() & " " & MESSAGE & ", " & name;

@@ -1,0 +1,5 @@
+// Type-only cycle: B imports type from A
+import type { TypeA } from "./moduleA";
+
+export type TypeB = { data: TypeA };
+export let createB = () => "test";
