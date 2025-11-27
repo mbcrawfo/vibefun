@@ -1,7 +1,7 @@
 # Module Resolution Tasks
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-26 (Phase 7a complete)
+**Last Updated:** 2025-11-26 (Phase 7b complete)
 **Audit:** 2025-11-24 - Scope expanded per audit findings
 **Audit:** 2025-11-25 - Phase 1.5 split into sub-phases, re-export conflict moved to type checker
 **Audit:** 2025-11-26 - Added Phase 1.6 to separate compiler config from module-loader
@@ -663,14 +663,14 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 7b: Error Handling Tests
+## Phase 7b: Error Handling Tests ✅ COMPLETE
 
-- [ ] **Test missing imports** (file doesn't exist)
-- [ ] **Test parse errors during loading** (malformed .vf files)
-- [ ] **Test permission errors** (unreadable files)
-- [ ] **Test malformed paths** (invalid path syntax)
-- [ ] **Test error collection** (multiple errors reported together)
-- [ ] **Test typo suggestions** (suggest similar filenames)
+- [x] **Test missing imports** (file doesn't exist) - module-loader.test.ts:233-245
+- [x] **Test parse errors during loading** (malformed .vf files) - module-loader.test.ts:261-266
+- [x] **Test permission errors** (unreadable files) - module-loader.test.ts:268-294
+- [x] **Test malformed paths** (invalid path syntax) - module-loader.test.ts:296-301
+- [x] **Test error collection** (multiple errors reported together) - module-loader.test.ts:365-421
+- [x] **Test typo suggestions** (suggest similar filenames) - module-loader.test.ts:304-362
 
 ---
 
@@ -995,10 +995,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 10/18 (56%)
+**Phases Completed:** 11/18 (61%)
 **Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~240
-**Current Phase:** Phase 7a COMPLETE, ready for Phase 7b
+**Tasks Completed:** ~250
+**Current Phase:** Phase 7b COMPLETE, ready for Phase 7c
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -1013,7 +1013,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 5**: Warning Generation (VF5900 + VF5901 + VF5004) ✅ COMPLETE
 - **Phase 6**: Module Resolver API ✅ COMPLETE
 - **Phase 7a**: Path Resolution Edge Case Tests ✅ COMPLETE
-- **Phase 7b**: Error Handling Tests
+- **Phase 7b**: Error Handling Tests ✅ COMPLETE
 - **Phase 7c**: Cycle Detection Edge Case Tests
 - **Phase 7d**: Performance Tests
 - **Phase 7e**: Misc Edge Cases and Test Infrastructure
