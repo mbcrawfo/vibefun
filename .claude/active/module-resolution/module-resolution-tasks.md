@@ -477,65 +477,69 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 4: Circular Dependency Detection
+## Phase 4: Circular Dependency Detection ✅ COMPLETE
 
 ### Core Implementation
-- [ ] Create file: `packages/core/src/module-resolver/cycle-detector.ts`
-- [ ] Implement `CircularDependencyDetector` class
-  - [ ] Method: `detectCycles(graph: ModuleGraph): Cycle[]`
-  - [ ] **Tarjan's SCC algorithm** (not simple DFS)
-  - [ ] Track index, lowlink, and stack for each node
-  - [ ] Find all strongly connected components
-  - [ ] Filter SCCs to actual cycles (2+ nodes OR self-edge)
-  - [ ] Extract complete cycle paths for each SCC
-- [ ] Define `Cycle` type
-  - [ ] `path: string[]` - modules in cycle
-  - [ ] `isTypeOnly: boolean` - all edges type-only?
-  - [ ] `locations: SourceLocation[]` - import locations
-- [ ] Implement Tarjan's algorithm
-  - [ ] Initialize index counter and stack
-  - [ ] For each node, run strongConnect if not visited
-  - [ ] Track lowlink values to find SCC roots
-  - [ ] Pop stack when SCC found
-  - [ ] Return all SCCs as cycles
-- [ ] Implement cycle path extraction
-  - [ ] Given SCC, extract meaningful cycle path
-  - [ ] Include all modules in SCC
-  - [ ] Preserve order (A → B → C → A)
-  - [ ] **Sort modules in SCC alphabetically by absolute path** (deterministic order)
-  - [ ] Ensures reproducible builds (same input → same compilation order)
-- [ ] Implement self-import detection as ERROR
-  - [ ] Self-imports (A → A) create 1-node SCC with self-edge
-  - [ ] Detect self-import as **compile-time ERROR** (not warning)
-  - [ ] Generate clear error: "Module cannot import itself: [path]"
-  - [ ] Rationale: Self-imports serve no useful purpose and indicate a mistake
-- [ ] Implement type-only cycle detection
-  - [ ] Check if ALL edges in cycle are type-only
-  - [ ] If any edge is value import, cycle is problematic
-  - [ ] Query graph for edge type-only status
+- [x] Create file: `packages/core/src/module-resolver/cycle-detector.ts`
+- [x] Implement `CircularDependencyDetector` class
+  - [x] Method: `detectCycles(graph: ModuleGraph): CycleDetectionResult`
+  - [x] **Tarjan's SCC algorithm** (not simple DFS)
+  - [x] Track index, lowlink, and stack for each node
+  - [x] Find all strongly connected components
+  - [x] Filter SCCs to actual cycles (2+ nodes OR self-edge)
+  - [x] Extract complete cycle paths for each SCC
+- [x] Define `Cycle` type
+  - [x] `path: string[]` - modules in cycle
+  - [x] `isTypeOnly: boolean` - all edges type-only?
+  - [x] `locations: Location[]` - import locations
+- [x] Implement Tarjan's algorithm
+  - [x] Initialize index counter and stack
+  - [x] For each node, run strongConnect if not visited
+  - [x] Track lowlink values to find SCC roots
+  - [x] Pop stack when SCC found
+  - [x] Return all SCCs as cycles
+- [x] Implement cycle path extraction
+  - [x] Given SCC, extract meaningful cycle path
+  - [x] Include all modules in SCC
+  - [x] Preserve order (A → B → C → A)
+  - [x] **Sort modules in SCC alphabetically by absolute path** (deterministic order)
+  - [x] Ensures reproducible builds (same input → same compilation order)
+- [x] Implement self-import detection as ERROR
+  - [x] Self-imports (A → A) create 1-node SCC with self-edge
+  - [x] Detect self-import as **compile-time ERROR** (not warning)
+  - [x] SelfImport type with modulePath and location
+  - [x] Rationale: Self-imports serve no useful purpose and indicate a mistake
+- [x] Implement type-only cycle detection
+  - [x] Check if ALL edges in cycle are type-only
+  - [x] If any edge is value import, cycle is problematic
+  - [x] Query graph for edge type-only status
 
 ### Tests
-- [ ] Test simple cycle detection (A → B → A)
-- [ ] Test complex cycle (A → B → C → A)
-- [ ] Test long cycle (10+ modules in cycle)
-- [ ] **Test multiple independent cycles** (both detected)
-- [ ] Test type-only cycle (should be marked as such)
-- [ ] Test mixed cycle (some type, some value - should warn)
-- [ ] Test no cycles (empty result)
-- [ ] **Test self-import** (A → A) - should be compile-time ERROR
-- [ ] Test self-import error message is clear
-- [ ] Test cycle path extraction accuracy
-- [ ] Test location tracking for imports in cycle
-- [ ] Test cyclic modules returned in deterministic (alphabetical) order
-- [ ] **Test re-exports in cycles** (A exports B, B exports C, C imports A)
-- [ ] Test Tarjan's algorithm finds all SCCs
-- [ ] Test SCC filtering (only actual cycles, not single nodes)
-- [ ] Verify O(V+E) performance on large graph
+- [x] Test simple cycle detection (A → B → A)
+- [x] Test complex cycle (A → B → C → A)
+- [x] Test long cycle (10+ modules in cycle)
+- [x] **Test multiple independent cycles** (both detected)
+- [x] Test type-only cycle (should be marked as such)
+- [x] Test mixed cycle (some type, some value - should warn)
+- [x] Test no cycles (empty result)
+- [x] **Test self-import** (A → A) - returned as SelfImport
+- [x] Test self-import type-only variant
+- [x] Test cycle path extraction accuracy
+- [x] Test location tracking for imports in cycle
+- [x] Test cyclic modules returned in deterministic (alphabetical) order
+- [x] **Test re-exports in cycles** (A exports B, B exports C, C imports A)
+- [x] Test Tarjan's algorithm finds all SCCs
+- [x] Test SCC filtering (only actual cycles, not single nodes)
+- [x] Verify O(V+E) performance on large graph (1000 modules)
+- [x] Test disconnected components
+- [x] Test overlapping cycles (figure-8 pattern)
+- [x] Test nested cycles
+- [x] Test wide graph (one module imports 100)
 
 ### Quality Checks
-- [ ] Run `npm run verify`
-- [ ] Ensure 90%+ test coverage
-- [ ] Add JSDoc comments
+- [x] Run `npm run verify`
+- [x] Ensure 90%+ test coverage (39 tests)
+- [x] Add JSDoc comments
 
 ---
 
@@ -967,10 +971,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 6/18 (33%)
+**Phases Completed:** 7/18 (39%)
 **Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~175
-**Current Phase:** Phase 2 COMPLETE, ready for Phase 3
+**Tasks Completed:** ~200
+**Current Phase:** Phase 4 COMPLETE, ready for Phase 5
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -980,8 +984,8 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 1.5c**: Config Loading (vibefun.json path mappings) ✅ COMPLETE
 - **Phase 1.6**: Separate Compiler Config Module (config types + loading to core/src/config/) ✅ COMPLETE
 - **Phase 2**: Module Loader (with error collection) ✅ COMPLETE
-- **Phase 3**: Module Graph + Import Conflict Detection
-- **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles)
+- **Phase 3**: Module Graph + Import Conflict Detection ✅ COMPLETE
+- **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles) ✅ COMPLETE
 - **Phase 5**: Warning Generation (VF5900 + VF5901)
 - **Phase 6**: Module Resolver API
 - **Phase 7a**: Path Resolution Edge Case Tests

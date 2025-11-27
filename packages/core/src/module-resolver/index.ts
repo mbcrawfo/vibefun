@@ -22,3 +22,7 @@ export type { DependencyEdge, TopologicalSortResult } from "./module-graph.js";
 // Module Graph Builder
 export { buildModuleGraph, ModuleGraphBuilder } from "./module-graph-builder.js";
 export type { ModuleGraphBuildResult } from "./module-graph-builder.js";
+
+// Cycle Detector
+export { CircularDependencyDetector, detectCycles, formatCyclePath, formatCyclePathShort } from "./cycle-detector.js";
+export type { Cycle, CycleDetectionResult, SelfImport } from "./cycle-detector.js";
