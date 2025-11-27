@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`warning format snapshots > should format VF5004 correctly > VF5004-self-import 1`] = `
+"error[VF5004]: Module cannot import itself: 'utils.vf'
+  --> /src/utils.vf:5:1
+  = hint: Remove the self-import or fix the import path"
+`;
+
+exports[`warning format snapshots > should format VF5900 correctly > VF5900-circular-dependency 1`] = `
+"warning[VF5900]: Circular dependency detected: moduleA.vf → moduleB.vf → moduleC.vf → moduleA.vf
+  --> /src/moduleA.vf:1:1
+  = hint: Consider restructuring modules to break the cycle"
+`;
+
+exports[`warning format snapshots > should format VF5901 correctly > VF5901-case-sensitivity 1`] = `
+"warning[VF5901]: Module path 'Utils' has different casing than on disk: 'utils.vf'
+  --> /src/main.vf:1:20
+  = hint: Use the exact casing as the file on disk"
+`;
+
+exports[`warning format snapshots > should format long cycle correctly > VF5900-long-cycle 1`] = `
+"warning[VF5900]: Circular dependency detected: alpha.vf → beta.vf → gamma.vf → delta.vf → epsilon.vf → alpha.vf
+  --> /src/alpha.vf:1:1
+  = hint: Consider restructuring modules to break the cycle"
+`;

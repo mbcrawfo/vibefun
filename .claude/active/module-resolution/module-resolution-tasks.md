@@ -1,7 +1,7 @@
 # Module Resolution Tasks
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-26
+**Last Updated:** 2025-11-26 (Phase 5 complete)
 **Audit:** 2025-11-24 - Scope expanded per audit findings
 **Audit:** 2025-11-25 - Phase 1.5 split into sub-phases, re-export conflict moved to type checker
 **Audit:** 2025-11-26 - Added Phase 1.6 to separate compiler config from module-loader
@@ -543,37 +543,49 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 5: Warning Generation
+## Phase 5: Warning Generation ✅ COMPLETE
 
 ### Core Implementation
-- [ ] Create file: `packages/core/src/module-resolver/warning-generator.ts`
-- [ ] Implement `generateCircularDependencyWarning(cycle: Cycle, warningCollector: WarningCollector): void`
-  - [ ] Use `createDiagnostic("VF5900", loc, { cycle: cyclePathString })`
-  - [ ] Format cycle path with arrows (A → B → C → A)
-  - [ ] Add warning to collector
-- [ ] Implement `generateCaseSensitivityWarning(importPath: string, actualPath: string, loc: Location, warningCollector: WarningCollector): void`
-  - [ ] Use `createDiagnostic("VF5901", loc, { actual: importPath, expected: actualPath })`
-  - [ ] Add warning to collector
-- [ ] Follow spec format (docs/spec/08-modules.md:221-233)
-  - [ ] VibefunDiagnostic.format() handles source context display
-  - [ ] Cycle path in message template parameter
-  - [ ] Hint template provides suggestions
+- [x] Create file: `packages/core/src/module-resolver/warning-generator.ts`
+- [x] Implement `generateCircularDependencyWarning(cycle: Cycle): VibefunDiagnostic`
+  - [x] Use `createDiagnostic("VF5900", loc, { cycle: cyclePathString })`
+  - [x] Format cycle path with arrows (A → B → C → A)
+  - [x] Return VibefunDiagnostic
+- [x] Implement `generateCircularDependencyWarnings(cycles: Cycle[], collector: WarningCollector): void`
+  - [x] Generate warnings for value cycles only
+  - [x] Skip type-only cycles
+- [x] Implement `generateCaseSensitivityWarning(importPath: string, actualPath: string, loc: Location): VibefunDiagnostic`
+  - [x] Use `createDiagnostic("VF5901", loc, { actual: importPath, expected: actualPath })`
+  - [x] Extract basenames for cleaner display
+- [x] Implement `generateSelfImportError(selfImport: SelfImport): VibefunDiagnostic`
+  - [x] Use `createDiagnostic("VF5004", loc, { path: modulePath })`
+- [x] Implement `generateWarningsFromCycles(cycles: Cycle[], selfImports: SelfImport[]): WarningGenerationResult`
+  - [x] Combined function for generating all warnings and errors from cycle detection
+- [x] Follow spec format (docs/spec/08-modules.md:221-233)
+  - [x] VibefunDiagnostic.format() handles source context display
+  - [x] Cycle path in message template parameter
+  - [x] Hint template provides suggestions
+- [x] Export from `packages/core/src/module-resolver/index.ts`
 
 ### Tests
-- [ ] Test `createDiagnostic("VF5900", ...)` creates correct warning
-- [ ] Test cycle path formatting (2 modules)
-- [ ] Test cycle path formatting (3+ modules)
-- [ ] Test long cycle formatting (10+ modules)
-- [ ] Test `VibefunDiagnostic.format(source)` output
-- [ ] Use `expectWarning(collector, "VF5900")` to verify
-- [ ] Use `expectWarning(collector, "VF5901")` for case sensitivity
-- [ ] **Snapshot test for VF5900 format** (prevent regressions)
-- [ ] **Snapshot test for VF5901 format** (prevent regressions)
+- [x] Test `createDiagnostic("VF5900", ...)` creates correct warning
+- [x] Test cycle path formatting (2 modules)
+- [x] Test cycle path formatting (3+ modules)
+- [x] Test long cycle formatting (10+ modules)
+- [x] Test `VibefunDiagnostic.format()` output
+- [x] Test `generateCircularDependencyWarnings` adds to collector
+- [x] Test `generateCaseSensitivityWarning` for VF5901
+- [x] Test `generateSelfImportError` for VF5004
+- [x] Test `generateWarningsFromCycles` combined function
+- [x] **Snapshot test for VF5900 format** (prevent regressions)
+- [x] **Snapshot test for VF5901 format** (prevent regressions)
+- [x] **Snapshot test for VF5004 format** (prevent regressions)
+- [x] Integration test with WarningCollector
 
 ### Quality Checks
-- [ ] Run `npm run verify`
-- [ ] Ensure 90%+ test coverage
-- [ ] Add JSDoc comments
+- [x] Run `npm run verify`
+- [x] Ensure 90%+ test coverage (35 tests)
+- [x] Add JSDoc comments
 
 ---
 
@@ -971,10 +983,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 7/18 (39%)
+**Phases Completed:** 8/18 (44%)
 **Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~200
-**Current Phase:** Phase 4 COMPLETE, ready for Phase 5
+**Tasks Completed:** ~215
+**Current Phase:** Phase 5 COMPLETE, ready for Phase 6
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -986,7 +998,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 2**: Module Loader (with error collection) ✅ COMPLETE
 - **Phase 3**: Module Graph + Import Conflict Detection ✅ COMPLETE
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles) ✅ COMPLETE
-- **Phase 5**: Warning Generation (VF5900 + VF5901)
+- **Phase 5**: Warning Generation (VF5900 + VF5901 + VF5004) ✅ COMPLETE
 - **Phase 6**: Module Resolver API
 - **Phase 7a**: Path Resolution Edge Case Tests
 - **Phase 7b**: Error Handling Tests
