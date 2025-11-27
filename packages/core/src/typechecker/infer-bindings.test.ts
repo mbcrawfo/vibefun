@@ -448,3 +448,398 @@ describe("Type Inference - Unsafe Blocks", () => {
         expect(result.type).toEqual(primitiveTypes.Int);
     });
 });
+
+describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should infer type for mutually recursive functions with termination", () => {
+        // let rec f = x => x + 1 and g = x => f(x) + 1 in f(1)
+        // A simple non-cyclic mutual recursion that terminates
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        // f = x => x + 1
+        const fParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xVar1: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const one1: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const fBody: CoreBinOp = { kind: "CoreBinOp", op: "Add", left: xVar1, right: one1, loc: testLoc };
+        const fValue: CoreLambda = { kind: "CoreLambda", param: fParam, body: fBody, loc: testLoc };
+
+        // g = x => f(x) + 1
+        const gParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const fVar: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const xVar2: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const fCall: CoreApp = { kind: "CoreApp", func: fVar, args: [xVar2], loc: testLoc };
+        const one2: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const gBody: CoreBinOp = { kind: "CoreBinOp", op: "Add", left: fCall, right: one2, loc: testLoc };
+        const gValue: CoreLambda = { kind: "CoreLambda", param: gParam, body: gBody, loc: testLoc };
+
+        // body: f(1)
+        const fVar2: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const bodyApp: CoreApp = { kind: "CoreApp", func: fVar2, args: [intLit], loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                    value: fValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "CoreVarPattern", name: "g", loc: testLoc },
+                    value: gValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
+            body: bodyApp,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // f(1) should have type Int
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+
+    it("should infer type for mutually recursive functions with concrete types", () => {
+        // let rec f = x => x + 1 and g = x => f(x) in g(10)
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        // f = x => x + 1
+        const fParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xVar1: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const one: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const fBody: CoreBinOp = { kind: "CoreBinOp", op: "Add", left: xVar1, right: one, loc: testLoc };
+        const fValue: CoreLambda = { kind: "CoreLambda", param: fParam, body: fBody, loc: testLoc };
+
+        // g = x => f(x)
+        const gParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const fVar: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const xVar2: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const gBody: CoreApp = { kind: "CoreApp", func: fVar, args: [xVar2], loc: testLoc };
+        const gValue: CoreLambda = { kind: "CoreLambda", param: gParam, body: gBody, loc: testLoc };
+
+        // body: g(10)
+        const gVar: CoreVar = { kind: "CoreVar", name: "g", loc: testLoc };
+        const ten: CoreIntLit = { kind: "CoreIntLit", value: 10, loc: testLoc };
+        const bodyApp: CoreApp = { kind: "CoreApp", func: gVar, args: [ten], loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                    value: fValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "CoreVarPattern", name: "g", loc: testLoc },
+                    value: gValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
+            body: bodyApp,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // g(10) should have type Int
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+
+    it("should infer type for single binding in let rec expr", () => {
+        // let rec f = x => f(x) in f(42)
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const param: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const fVar: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const recCall: CoreApp = { kind: "CoreApp", func: fVar, args: [xVar], loc: testLoc };
+        const fValue: CoreLambda = { kind: "CoreLambda", param, body: recCall, loc: testLoc };
+
+        const fVar2: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const bodyApp: CoreApp = { kind: "CoreApp", func: fVar2, args: [intLit], loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                    value: fValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
+            body: bodyApp,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // Should type check
+        expect(result.type.type).toBe("Var");
+    });
+
+    it("should reject non-variable patterns in let rec expr bindings", () => {
+        // Pattern matching in let rec bindings is not supported
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const tuplePattern: import("../types/core-ast.js").CoreTuplePattern = {
+            kind: "CoreTuplePattern",
+            elements: [
+                { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                { kind: "CoreVarPattern", name: "b", loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: tuplePattern,
+                    value: intLit,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
+            body: xVar,
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("should reject mutable bindings in let rec expr", () => {
+        // Mutable bindings in let rec are not supported
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    value: intLit,
+                    mutable: true, // Not allowed
+                    loc: testLoc,
+                },
+            ],
+            body: xVar,
+            loc: testLoc,
+        };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+});
+
+describe("Type Inference - Let-Binding Error Cases", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should reject mutable let-bindings", () => {
+        // let mutable x = 42 in x (not supported)
+        const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const body: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern,
+            value,
+            body,
+            mutable: true, // Not supported
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("should reject non-variable patterns in let-bindings", () => {
+        // let (a, b) = (1, 2) in a (pattern matching not supported yet)
+        const tuplePattern: import("../types/core-ast.js").CoreTuplePattern = {
+            kind: "CoreTuplePattern",
+            elements: [
+                { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                { kind: "CoreVarPattern", name: "b", loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const intLit1: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const intLit2: CoreIntLit = { kind: "CoreIntLit", value: 2, loc: testLoc };
+        const tuple: import("../types/core-ast.js").CoreTuple = {
+            kind: "CoreTuple",
+            elements: [intLit1, intLit2],
+            loc: testLoc,
+        };
+
+        const aVar: CoreVar = { kind: "CoreVar", name: "a", loc: testLoc };
+
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern: tuplePattern,
+            value: tuple,
+            body: aVar,
+            mutable: false,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("should handle shadowing in let-bindings", () => {
+        // let x = 42 in let x = "hello" in x
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const pattern1: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const value1: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+
+        const pattern2: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const value2: CoreStringLit = { kind: "CoreStringLit", value: "hello", loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+
+        const innerLet: CoreLet = {
+            kind: "CoreLet",
+            pattern: pattern2,
+            value: value2,
+            body: xVar,
+            mutable: false,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern: pattern1,
+            value: value1,
+            body: innerLet,
+            mutable: false,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // Inner x shadows outer x, so result should be String
+        expect(result.type).toEqual(primitiveTypes.String);
+    });
+});
+
+describe("Type Inference - Generalization Edge Cases", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("should generalize lambda expressions (syntactic values)", () => {
+        // let f = x => x in f
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const param: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const lambda: CoreLambda = { kind: "CoreLambda", param, body: xVar, loc: testLoc };
+
+        const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "f", loc: testLoc };
+        const fVar: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern,
+            value: lambda,
+            body: fVar,
+            mutable: false,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // f should be a function type
+        expect(result.type.type).toBe("Fun");
+    });
+
+    it("should not generalize function applications", () => {
+        // let y = (x => x)(42) in y
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const param: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const lambda: CoreLambda = { kind: "CoreLambda", param, body: xVar, loc: testLoc };
+
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const app: CoreApp = { kind: "CoreApp", func: lambda, args: [intLit], loc: testLoc };
+
+        const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "y", loc: testLoc };
+        const yVar: CoreVar = { kind: "CoreVar", name: "y", loc: testLoc };
+
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern,
+            value: app,
+            body: yVar,
+            mutable: false,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // y should have type Int (monomorphic)
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+
+    it("should generalize literal values", () => {
+        // let x = 42 in x
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern,
+            value: intLit,
+            body: xVar,
+            mutable: false,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const result = inferExpr(ctx, expr);
+
+        // x should have type Int
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+});

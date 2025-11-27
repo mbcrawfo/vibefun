@@ -418,4 +418,557 @@ describe("InlineExpansionPass", () => {
             }
         });
     });
+
+    describe("countUses - various expression types", () => {
+        it("should count uses in CoreLetRecExpr (not shadowed)", () => {
+            // let x = 1 in let rec f = x in f
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreLetRecExpr",
+                    bindings: [
+                        {
+                            pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                            value: { kind: "CoreVar", name: "x", loc: testLoc },
+                            mutable: false,
+                            loc: testLoc,
+                        },
+                    ],
+                    body: { kind: "CoreVar", name: "f", loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is used once in let rec binding, should inline
+            expect(result.kind).toBe("CoreLetRecExpr");
+        });
+
+        it("should handle shadowing in CoreLetRecExpr", () => {
+            // let x = 1 in let rec x = 5 in x
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreLetRecExpr",
+                    bindings: [
+                        {
+                            pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                            value: { kind: "CoreIntLit", value: 5, loc: testLoc },
+                            mutable: false,
+                            loc: testLoc,
+                        },
+                    ],
+                    body: { kind: "CoreVar", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is shadowed by let rec, so outer x is unused - should inline to body
+            expect(result.kind).toBe("CoreLetRecExpr");
+        });
+
+        it("should count uses in CoreApp", () => {
+            // let x = f in x(1, 2)
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreVar", name: "f", loc: testLoc },
+                body: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "x", loc: testLoc },
+                    args: [
+                        { kind: "CoreIntLit", value: 1, loc: testLoc },
+                        { kind: "CoreIntLit", value: 2, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is a variable (trivial), should inline
+            expect(result.kind).toBe("CoreApp");
+            if (result.kind === "CoreApp") {
+                expect(result.func).toEqual({ kind: "CoreVar", name: "f", loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreMatch cases", () => {
+            // let x = 1 in match y { _ => x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreMatch",
+                    expr: { kind: "CoreVar", name: "y", loc: testLoc },
+                    cases: [
+                        {
+                            pattern: { kind: "CoreWildcardPattern", loc: testLoc },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is used once, should inline
+            expect(result.kind).toBe("CoreMatch");
+            if (result.kind === "CoreMatch" && result.cases[0]) {
+                expect(result.cases[0].body).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreMatch with guards", () => {
+            // let x = 1 in match y { z when x > 0 => z }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreMatch",
+                    expr: { kind: "CoreVar", name: "y", loc: testLoc },
+                    cases: [
+                        {
+                            pattern: { kind: "CoreVarPattern", name: "z", loc: testLoc },
+                            guard: {
+                                kind: "CoreBinOp",
+                                op: "GreaterThan",
+                                left: { kind: "CoreVar", name: "x", loc: testLoc },
+                                right: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                                loc: testLoc,
+                            },
+                            body: { kind: "CoreVar", name: "z", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is used in guard, should inline
+            expect(result.kind).toBe("CoreMatch");
+        });
+
+        it("should handle shadowing in CoreMatch pattern", () => {
+            // let x = 1 in match y { x => x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreMatch",
+                    expr: { kind: "CoreVar", name: "y", loc: testLoc },
+                    cases: [
+                        {
+                            pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x in match body is shadowed by pattern, so outer x is unused
+            expect(result.kind).toBe("CoreMatch");
+        });
+
+        it("should count uses in CoreRecord", () => {
+            // let x = 1 in { a: x, b: 2 }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreRecord",
+                    fields: [
+                        { kind: "Field", name: "a", value: { kind: "CoreVar", name: "x", loc: testLoc }, loc: testLoc },
+                        {
+                            kind: "Field",
+                            name: "b",
+                            value: { kind: "CoreIntLit", value: 2, loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is used once, should inline
+            expect(result.kind).toBe("CoreRecord");
+            if (result.kind === "CoreRecord" && result.fields[0]?.kind === "Field") {
+                expect(result.fields[0].value).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreRecord spread", () => {
+            // let x = r in { ...x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreVar", name: "r", loc: testLoc },
+                body: {
+                    kind: "CoreRecord",
+                    fields: [{ kind: "Spread", expr: { kind: "CoreVar", name: "x", loc: testLoc }, loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is trivial (variable), should inline
+            expect(result.kind).toBe("CoreRecord");
+            if (result.kind === "CoreRecord" && result.fields[0]?.kind === "Spread") {
+                expect(result.fields[0].expr).toEqual({ kind: "CoreVar", name: "r", loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreRecordAccess", () => {
+            // let x = r in x.field
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreVar", name: "r", loc: testLoc },
+                body: {
+                    kind: "CoreRecordAccess",
+                    record: { kind: "CoreVar", name: "x", loc: testLoc },
+                    field: "field",
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is trivial, should inline
+            expect(result.kind).toBe("CoreRecordAccess");
+            if (result.kind === "CoreRecordAccess") {
+                expect(result.record).toEqual({ kind: "CoreVar", name: "r", loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreRecordUpdate with field", () => {
+            // let x = 1 in { r | a: x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreRecordUpdate",
+                    record: { kind: "CoreVar", name: "r", loc: testLoc },
+                    updates: [
+                        { kind: "Field", name: "a", value: { kind: "CoreVar", name: "x", loc: testLoc }, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreRecordUpdate");
+        });
+
+        it("should count uses in CoreRecordUpdate with spread", () => {
+            // let x = other in { r | ...x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreVar", name: "other", loc: testLoc },
+                body: {
+                    kind: "CoreRecordUpdate",
+                    record: { kind: "CoreVar", name: "r", loc: testLoc },
+                    updates: [{ kind: "Spread", expr: { kind: "CoreVar", name: "x", loc: testLoc }, loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreRecordUpdate");
+        });
+
+        it("should count uses in CoreVariant", () => {
+            // let x = 1 in Some(x)
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreVariant",
+                    constructor: "Some",
+                    args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreVariant");
+            if (result.kind === "CoreVariant") {
+                expect(result.args[0]).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreBinOp", () => {
+            // let x = 1 in x + 2
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreBinOp",
+                    op: "Add",
+                    left: { kind: "CoreVar", name: "x", loc: testLoc },
+                    right: { kind: "CoreIntLit", value: 2, loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreBinOp");
+            if (result.kind === "CoreBinOp") {
+                expect(result.left).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreUnaryOp", () => {
+            // let x = true in !x
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreBoolLit", value: true, loc: testLoc },
+                body: {
+                    kind: "CoreUnaryOp",
+                    op: "LogicalNot",
+                    expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreUnaryOp");
+            if (result.kind === "CoreUnaryOp") {
+                expect(result.expr).toEqual({ kind: "CoreBoolLit", value: true, loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreTypeAnnotation", () => {
+            // let x = 1 in (x : Int)
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreTypeAnnotation",
+                    expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                    typeExpr: { kind: "CoreTypeConst", name: "Int", loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreTypeAnnotation");
+            if (result.kind === "CoreTypeAnnotation") {
+                expect(result.expr).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+
+        it("should count uses in CoreUnsafe", () => {
+            // let x = 1 in unsafe { x }
+            // The outer let is still inlined (x is trivial), but the inner x is replaced
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreUnsafe",
+                    expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is trivial (int literal), so it's inlined into the unsafe block body
+            expect(result.kind).toBe("CoreUnsafe");
+            if (result.kind === "CoreUnsafe") {
+                expect(result.expr).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+    });
+
+    describe("getPatternVars - various patterns", () => {
+        it("should handle variant pattern in match", () => {
+            // let x = 1 in match opt { Some(x) => x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreMatch",
+                    expr: { kind: "CoreVar", name: "opt", loc: testLoc },
+                    cases: [
+                        {
+                            pattern: {
+                                kind: "CoreVariantPattern",
+                                constructor: "Some",
+                                args: [{ kind: "CoreVarPattern", name: "x", loc: testLoc }],
+                                loc: testLoc,
+                            },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is shadowed by variant pattern, so outer x is unused
+            expect(result.kind).toBe("CoreMatch");
+        });
+
+        it("should handle record pattern in match", () => {
+            // let x = 1 in match r { { x } => x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreMatch",
+                    expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                    cases: [
+                        {
+                            pattern: {
+                                kind: "CoreRecordPattern",
+                                fields: [
+                                    {
+                                        name: "x",
+                                        pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // x is shadowed by record pattern, so outer x is unused
+            expect(result.kind).toBe("CoreMatch");
+        });
+
+        it("should handle literal pattern (no bindings)", () => {
+            // let x = 1 in match n { 0 => x }
+            const expr: CoreExpr = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                body: {
+                    kind: "CoreMatch",
+                    expr: { kind: "CoreVar", name: "n", loc: testLoc },
+                    cases: [
+                        {
+                            pattern: {
+                                kind: "CoreLiteralPattern",
+                                literal: 0,
+                                loc: testLoc,
+                            },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+            // Literal pattern doesn't bind x, so x should be inlined
+            expect(result.kind).toBe("CoreMatch");
+            if (result.kind === "CoreMatch" && result.cases[0]) {
+                expect(result.cases[0].body).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            }
+        });
+    });
+
+    describe("canApply", () => {
+        it("should return true for expressions without unsafe", () => {
+            const expr: CoreExpr = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            expect(pass.canApply(expr)).toBe(true);
+        });
+
+        it("should return false for expressions containing unsafe", () => {
+            const expr: CoreExpr = {
+                kind: "CoreUnsafe",
+                expr: { kind: "CoreIntLit", value: 42, loc: testLoc },
+                loc: testLoc,
+            };
+            expect(pass.canApply(expr)).toBe(false);
+        });
+    });
 });
