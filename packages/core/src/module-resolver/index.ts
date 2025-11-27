@@ -26,3 +26,15 @@ export type { ModuleGraphBuildResult } from "./module-graph-builder.js";
 // Cycle Detector
 export { CircularDependencyDetector, detectCycles, formatCyclePath, formatCyclePathShort } from "./cycle-detector.js";
 export type { Cycle, CycleDetectionResult, SelfImport } from "./cycle-detector.js";
+
+// Warning Generator
+export {
+    formatCycleForWarning,
+    generateCircularDependencyWarning,
+    generateCircularDependencyWarnings,
+    generateSelfImportError,
+    generateSelfImportErrors,
+    generateCaseSensitivityWarning,
+    generateWarningsFromCycles,
+} from "./warning-generator.js";
+export type { WarningGenerationResult } from "./warning-generator.js";
