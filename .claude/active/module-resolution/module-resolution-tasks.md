@@ -1,7 +1,7 @@
 # Module Resolution Tasks
 
 **Created:** 2025-11-23
-**Last Updated:** 2025-11-26 (Phase 6 complete)
+**Last Updated:** 2025-11-26 (Phase 7a complete)
 **Audit:** 2025-11-24 - Scope expanded per audit findings
 **Audit:** 2025-11-25 - Phase 1.5 split into sub-phases, re-export conflict moved to type checker
 **Audit:** 2025-11-26 - Added Phase 1.6 to separate compiler config from module-loader
@@ -648,18 +648,18 @@ This implementation consists of two major components:
 
 ---
 
-## Phase 7a: Path Resolution Edge Case Tests
+## Phase 7a: Path Resolution Edge Case Tests ✅ COMPLETE
 
-- [ ] **Test symlinks** (same module via symlink and real path)
-- [ ] **Test circular symlinks** (should error)
-- [ ] **Test case sensitivity** (cross-platform behavior)
-- [ ] Test path normalization (`./a/../b` → `./b`)
-- [ ] **Test empty modules** (no imports/exports)
-- [ ] **Test Unicode in file paths** (non-ASCII characters)
-- [ ] **Test very deep import chains** (100+ levels, no stack overflow)
-- [ ] **Test index file precedence** (`foo.vf` vs `foo/index.vf`)
-- [ ] Test trailing slash (`./foo/` → `./foo/index.vf`)
-- [ ] Test current directory (`./.` → `./index.vf`)
+- [x] **Test symlinks** (same module via symlink and real path) - path-resolver.test.ts:348-364
+- [x] **Test circular symlinks** (should error) - path-resolver.test.ts:396-406
+- [x] **Test case sensitivity** (cross-platform behavior) - path-resolver.test.ts:408-451
+- [x] Test path normalization (`./a/../b` → `./b`) - path-resolver.test.ts:235-258
+- [x] **Test empty modules** (no imports/exports) - module-loader.test.ts:305-313
+- [x] **Test Unicode in file paths** (non-ASCII characters) - path-resolver.test.ts:542-552
+- [x] **Test very deep import chains** (100+ levels, no stack overflow) - module-loader.test.ts:329-350
+- [x] **Test index file precedence** (`foo.vf` vs `foo/index.vf`) - path-resolver.test.ts:194-207, module-loader.test.ts:215-229
+- [x] Test trailing slash (`./foo/` → `./foo/index.vf`) - path-resolver.test.ts:209-232
+- [x] Test current directory (`./.` → `./index.vf`) - path-resolver.test.ts:125-134
 
 ---
 
@@ -995,10 +995,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 9/18 (50%)
+**Phases Completed:** 10/18 (56%)
 **Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~230
-**Current Phase:** Phase 6 COMPLETE, ready for Phase 7a
+**Tasks Completed:** ~240
+**Current Phase:** Phase 7a COMPLETE, ready for Phase 7b
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -1012,7 +1012,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 4**: Cycle Detection (Tarjan's SCC for all cycles) ✅ COMPLETE
 - **Phase 5**: Warning Generation (VF5900 + VF5901 + VF5004) ✅ COMPLETE
 - **Phase 6**: Module Resolver API ✅ COMPLETE
-- **Phase 7a**: Path Resolution Edge Case Tests
+- **Phase 7a**: Path Resolution Edge Case Tests ✅ COMPLETE
 - **Phase 7b**: Error Handling Tests
 - **Phase 7c**: Cycle Detection Edge Case Tests
 - **Phase 7d**: Performance Tests

@@ -325,6 +325,29 @@ describe("ModuleLoader - edge cases", () => {
 
             expect(result.modules.size).toBe(5);
         });
+
+        it("should handle very deep import chains (100+ levels) without stack overflow", () => {
+            // Create a deep chain of 150 modules
+            const depth = 150;
+
+            // Create the entry module
+            writeVfFile(tempDir, "module_000.vf", 'import { x } from "./module_001";\nexport let y = x;');
+
+            // Create intermediate modules
+            for (let i = 1; i < depth - 1; i++) {
+                const current = `module_${String(i).padStart(3, "0")}.vf`;
+                const next = `module_${String(i + 1).padStart(3, "0")}`;
+                writeVfFile(tempDir, current, `import { x } from "./${next}";\nexport let x = 1;`);
+            }
+
+            // Create the leaf module (no imports)
+            writeVfFile(tempDir, `module_${String(depth - 1).padStart(3, "0")}.vf`, "export let x = 1;");
+
+            // This should complete without stack overflow
+            const result = loadModules(path.join(tempDir, "module_000.vf"));
+
+            expect(result.modules.size).toBe(depth);
+        });
     });
 
     describe("mixed imports", () => {
