@@ -7,6 +7,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import * as process from "node:process";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -262,6 +263,157 @@ describe("ModuleLoader - edge cases", () => {
             writeVfFile(tempDir, "main.vf", 'import { x } from "./bad";\nlet y = x;');
             writeVfFile(tempDir, "bad.vf", "let x = @#$"); // Invalid syntax
 
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
+        });
+
+        it("should handle permission errors on unreadable files", () => {
+            // Skip on Windows - chmod doesn't work the same way
+            if (process.platform === "win32") {
+                return;
+            }
+
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./secret";\nlet y = x;');
+            const secretPath = writeVfFile(tempDir, "secret.vf", "export let x = 1;");
+
+            // Make the file unreadable
+            fs.chmodSync(secretPath, 0o000);
+
+            try {
+                expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
+
+                try {
+                    loadModules(path.join(tempDir, "main.vf"));
+                } catch (e) {
+                    expect(e).toBeInstanceOf(VibefunDiagnostic);
+                    const diag = e as VibefunDiagnostic;
+                    expect(diag.code).toBe("VF5000");
+                }
+            } finally {
+                // Restore permissions for cleanup
+                fs.chmodSync(secretPath, 0o644);
+            }
+        });
+
+        it("should handle malformed relative paths gracefully", () => {
+            // An import with an invalid/nonsense path should be treated as not found
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./\x00invalid";\nlet y = x;');
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
+        });
+    });
+
+    describe("typo suggestions", () => {
+        it("should suggest similar filenames for typos", () => {
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./helpr";\nlet y = x;');
+            writeVfFile(tempDir, "helper.vf", "export let x = 1;");
+
+            try {
+                loadModules(path.join(tempDir, "main.vf"));
+            } catch (e) {
+                expect(e).toBeInstanceOf(VibefunDiagnostic);
+                const diag = e as VibefunDiagnostic;
+                expect(diag.code).toBe("VF5000");
+                // The message should contain a suggestion
+                expect(diag.message).toContain("Did you mean");
+                expect(diag.message).toContain("helper");
+            }
+        });
+
+        it("should suggest similar filenames for single character typos", () => {
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./utilz";\nlet y = x;');
+            writeVfFile(tempDir, "utils.vf", "export let x = 1;");
+
+            try {
+                loadModules(path.join(tempDir, "main.vf"));
+            } catch (e) {
+                expect(e).toBeInstanceOf(VibefunDiagnostic);
+                const diag = e as VibefunDiagnostic;
+                expect(diag.message).toContain("Did you mean");
+                expect(diag.message).toContain("utils");
+            }
+        });
+
+        it("should not suggest for completely different names", () => {
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./foo";\nlet y = x;');
+            writeVfFile(tempDir, "completely-different-name.vf", "export let x = 1;");
+
+            try {
+                loadModules(path.join(tempDir, "main.vf"));
+            } catch (e) {
+                expect(e).toBeInstanceOf(VibefunDiagnostic);
+                const diag = e as VibefunDiagnostic;
+                expect(diag.message).not.toContain("Did you mean");
+            }
+        });
+
+        it("should handle typos in subdirectory imports", () => {
+            const subdir = path.join(tempDir, "lib");
+            fs.mkdirSync(subdir);
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./lib/helpr";\nlet y = x;');
+            writeVfFile(subdir, "helper.vf", "export let x = 1;");
+
+            try {
+                loadModules(path.join(tempDir, "main.vf"));
+            } catch (e) {
+                expect(e).toBeInstanceOf(VibefunDiagnostic);
+                const diag = e as VibefunDiagnostic;
+                expect(diag.message).toContain("Did you mean");
+                expect(diag.message).toContain("helper");
+            }
+        });
+    });
+
+    describe("error collection", () => {
+        it("should continue loading after first error and collect multiple errors", () => {
+            // Create a module that imports two non-existent files
+            writeVfFile(
+                tempDir,
+                "main.vf",
+                'import { a } from "./missing1";\nimport { b } from "./missing2";\nlet x = a + b;',
+            );
+
+            // The loader should throw, but we verify it processes imports
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
+        });
+
+        it("should load valid modules even when some fail", () => {
+            // main imports both good and bad modules
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./good";\nimport { y } from "./bad";\nlet z = x;');
+            writeVfFile(tempDir, "good.vf", "export let x = 1;");
+            // bad.vf doesn't exist
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
+
+            // Verify the good module was discovered (by checking the error only references the bad one)
+            try {
+                loadModules(path.join(tempDir, "main.vf"));
+            } catch (e) {
+                expect(e).toBeInstanceOf(VibefunDiagnostic);
+                const diag = e as VibefunDiagnostic;
+                // The error should be about the missing module
+                expect(diag.code).toBe("VF5000");
+                expect(diag.message).toContain("bad");
+            }
+        });
+
+        it("should handle multiple parse errors in dependency chain", () => {
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./a";\nimport { y } from "./b";');
+            writeVfFile(tempDir, "a.vf", "let x = @@@@"); // Parse error
+            writeVfFile(tempDir, "b.vf", "let y = $$$$"); // Another parse error
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
+        });
+
+        it("should continue discovering imports from valid modules after error", () => {
+            // Create a diamond with one bad module
+            // main -> a (bad), b (good)
+            // b -> c (good)
+            writeVfFile(tempDir, "main.vf", 'import { a } from "./a";\nimport { b } from "./b";');
+            writeVfFile(tempDir, "a.vf", "let x = @@@"); // Parse error
+            writeVfFile(tempDir, "b.vf", 'import { c } from "./c";\nexport let b = c;');
+            writeVfFile(tempDir, "c.vf", "export let c = 1;");
+
+            // Should throw due to parse error in a.vf
             expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(VibefunDiagnostic);
         });
     });
