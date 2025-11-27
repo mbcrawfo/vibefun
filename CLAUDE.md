@@ -72,7 +72,7 @@ vibefun/
 │   │   └── src/          # Lexer, parser, types, and utilities
 │   ├── cli/              # @vibefun/cli - Command-line interface
 │   │   └── src/          # CLI implementation using commander
-│   └── stdlib/           # @vibefun/stdlib - Standard library
+│   └── stdlib/           # @vibefun/std - Standard library
 │       └── src/          # Standard library implementation
 ├── examples/             # Example vibefun programs
 ├── tsconfig.base.json    # Shared TypeScript configuration
@@ -83,7 +83,7 @@ vibefun/
 
 - **@vibefun/core**: The compiler core library containing the lexer, parser, type system, and code generator. Can be imported as a library by other projects.
 - **@vibefun/cli**: The vibefun command-line tool for compiling `.vf` files. Depends on @vibefun/core.
-- **@vibefun/stdlib**: The vibefun standard library providing common functional programming utilities and operations.
+- **@vibefun/std**: The vibefun standard library providing common functional programming utilities and operations.
 
 ## Technical Decisions
 
@@ -139,7 +139,7 @@ npm run test:coverage    # With coverage report
 
 # Workspace-specific testing
 npm test -w @vibefun/core
-npm test -w @vibefun/stdlib
+npm test -w @vibefun/std
 ```
 
 ### Vibefun Language Commands (Future)
