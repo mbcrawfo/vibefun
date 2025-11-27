@@ -602,3 +602,145 @@ describe("loadModules function", () => {
         expect(result.modules.size).toBe(1);
     });
 });
+
+// =============================================================================
+// Tests: Edge Cases (Phase 7e)
+// =============================================================================
+
+describe("edge cases", () => {
+    let tempDir: string;
+
+    beforeEach(() => {
+        tempDir = createTempDir();
+    });
+
+    afterEach(() => {
+        removeTempDir(tempDir);
+    });
+
+    describe("URL imports", () => {
+        it("should error on URL import with https", () => {
+            writeVfFile(tempDir, "main.vf", 'import { x } from "https://example.com/mod.vf";');
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow();
+        });
+
+        it("should error on URL import with http", () => {
+            writeVfFile(tempDir, "main.vf", 'import { x } from "http://example.com/mod.vf";');
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow();
+        });
+
+        it("should error on URL-like import without protocol", () => {
+            // This is actually a valid package import path (will fail as "module not found")
+            writeVfFile(tempDir, "main.vf", 'import { x } from "example.com/mod";');
+
+            // Should fail with module not found, not treated specially
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow();
+        });
+    });
+
+    describe("nested package imports", () => {
+        it("should resolve nested package import @foo/bar/deep/nested", () => {
+            // Create a node_modules structure with nested subpath
+            const nodeModules = path.join(tempDir, "node_modules", "@foo", "bar");
+            fs.mkdirSync(nodeModules, { recursive: true });
+
+            // Create the nested subpath structure
+            const deepDir = path.join(nodeModules, "deep");
+            fs.mkdirSync(deepDir, { recursive: true });
+
+            // Create the nested module
+            fs.writeFileSync(path.join(deepDir, "nested.vf"), "export let x = 42;");
+
+            // Create the main file
+            writeVfFile(tempDir, "main.vf", 'import { x } from "@foo/bar/deep/nested";');
+
+            const result = loadModules(path.join(tempDir, "main.vf"));
+
+            expect(result.modules.size).toBe(2);
+        });
+
+        it("should resolve unscoped nested package import lodash/fp/add", () => {
+            // Create a node_modules structure
+            const nodeModules = path.join(tempDir, "node_modules", "lodash", "fp");
+            fs.mkdirSync(nodeModules, { recursive: true });
+
+            // Create the nested module
+            fs.writeFileSync(path.join(nodeModules, "add.vf"), "export let add = 42;");
+
+            // Create the main file
+            writeVfFile(tempDir, "main.vf", 'import { add } from "lodash/fp/add";');
+
+            const result = loadModules(path.join(tempDir, "main.vf"));
+
+            expect(result.modules.size).toBe(2);
+        });
+
+        it("should error when nested package subpath does not exist", () => {
+            // Create a node_modules structure without the nested path
+            const nodeModules = path.join(tempDir, "node_modules", "@foo", "bar");
+            fs.mkdirSync(nodeModules, { recursive: true });
+
+            // Create an index but not the nested module
+            fs.writeFileSync(path.join(nodeModules, "index.vf"), "export let x = 1;");
+
+            // Create the main file requesting nested module
+            writeVfFile(tempDir, "main.vf", 'import { x } from "@foo/bar/nonexistent/path";');
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow(/not found|could not resolve/i);
+        });
+    });
+
+    describe("non-.vf file imports", () => {
+        it("should error when importing a .js file that does not exist", () => {
+            // Create only a .js file (not .vf) - should fail
+            fs.writeFileSync(path.join(tempDir, "module.js"), "export const x = 1;");
+
+            // Try to import it - this tries module.js.vf which doesn't exist
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./module.js";');
+
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow();
+        });
+
+        it("should error when importing a .ts file that does not exist", () => {
+            fs.writeFileSync(path.join(tempDir, "module.ts"), "export const x: number = 1;");
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./module.ts";');
+
+            // This tries module.ts.vf which doesn't exist
+            expect(() => loadModules(path.join(tempDir, "main.vf"))).toThrow();
+        });
+
+        it("should resolve path.ext to path.ext.vf if it exists", () => {
+            // Create module.js.vf (vibefun file with unusual name)
+            fs.writeFileSync(path.join(tempDir, "module.js.vf"), "export let x = 1;");
+
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./module.js";');
+
+            // Actually resolves to module.js.vf - this is valid vibefun behavior
+            const result = loadModules(path.join(tempDir, "main.vf"));
+            expect(result.modules.size).toBe(2);
+        });
+
+        it("should resolve path.json to path.json.vf if it exists", () => {
+            fs.writeFileSync(path.join(tempDir, "data.json.vf"), "export let x = 1;");
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./data.json";');
+
+            // Actually resolves to data.json.vf
+            const result = loadModules(path.join(tempDir, "main.vf"));
+            expect(result.modules.size).toBe(2);
+        });
+
+        it("should prefer .vf file over appending .vf to explicit extension", () => {
+            // Create both utils.vf and utils.js.vf
+            fs.writeFileSync(path.join(tempDir, "utils.vf"), "export let x = 1;");
+            fs.writeFileSync(path.join(tempDir, "utils.js.vf"), "export let y = 2;");
+
+            // Import without extension should find utils.vf
+            writeVfFile(tempDir, "main.vf", 'import { x } from "./utils";');
+
+            const result = loadModules(path.join(tempDir, "main.vf"));
+            expect(result.modules.size).toBe(2);
+        });
+    });
+});
