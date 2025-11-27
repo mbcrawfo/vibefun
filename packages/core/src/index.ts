@@ -12,3 +12,28 @@ export type { DiagnosticSeverity, DiagnosticPhase, Diagnostic } from "./diagnost
 // Configuration loading
 export { findProjectRoot, loadConfigFromEntryPoint, loadVibefunConfig } from "./config/index.js";
 export type { ConfigLoadResult, PathMappings, VibefunCompilerOptions, VibefunConfig } from "./config/index.js";
+
+// Module loader - discovers and parses modules
+export { loadModules, ModuleLoader } from "./module-loader/index.js";
+export type { ModuleLoadResult, ModuleLoaderOptions } from "./module-loader/index.js";
+
+// Module resolver - analyzes dependencies, detects cycles
+export {
+    loadAndResolveModules,
+    resolveModules,
+    hasErrors,
+    hasWarnings,
+    formatErrors,
+    formatWarnings,
+    ModuleGraph,
+    detectCycles,
+} from "./module-resolver/index.js";
+export type {
+    ModuleResolution,
+    ModuleResolverOptions,
+    DependencyEdge,
+    TopologicalSortResult,
+    Cycle,
+    CycleDetectionResult,
+    SelfImport,
+} from "./module-resolver/index.js";
