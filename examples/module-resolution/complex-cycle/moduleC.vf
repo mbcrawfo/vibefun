@@ -1,0 +1,5 @@
+// Module C in the cycle: C -> B (and B -> A, so C indirectly depends on A)
+import { dataB, processB } from "./moduleB";
+
+export let dataC = "DataFromC";
+export let processC = (input: String) => "C(" & processB(input) & ")";

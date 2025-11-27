@@ -1,0 +1,12 @@
+// Safe circular type imports example
+// Type-only imports do not execute code at module initialization,
+// so circular type dependencies are safe and don't trigger warnings.
+
+import type { Node } from "./moduleB";
+
+// A tree type that references Node from another module
+export type Tree = 
+  | Empty
+  | Branch(value: Int, children: List(Node));
+
+export let createTree = () => Empty;

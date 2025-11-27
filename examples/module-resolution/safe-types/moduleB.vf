@@ -1,0 +1,10 @@
+// Node type that references Tree from moduleA
+import type { Tree } from "./moduleA";
+
+// A node that can contain trees
+export type Node = {
+  id: Int,
+  subtree: Tree
+};
+
+export let createNode = (id: Int) => { id: id, subtree: Empty };

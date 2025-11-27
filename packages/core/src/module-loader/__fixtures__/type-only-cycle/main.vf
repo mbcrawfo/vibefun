@@ -1,0 +1,6 @@
+// Entry point for type-only cycle fixture
+import { createA } from "./moduleA";
+import { createB } from "./moduleB";
+
+let a = createA();
+let b = createB();

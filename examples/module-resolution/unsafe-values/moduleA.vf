@@ -1,0 +1,10 @@
+// Unsafe circular value imports example
+// This will trigger a VF5900 warning because value imports
+// create runtime dependencies that can cause initialization issues.
+
+import { formatMessage } from "./moduleB";
+
+export let MESSAGE = "Hello";
+
+// This function uses a value from moduleB
+export let greet = (name: String) => formatMessage(MESSAGE & ", " & name);
