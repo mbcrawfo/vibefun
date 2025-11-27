@@ -14,9 +14,26 @@ The Vibefun compiler uses a **linear pipeline architecture** where each phase:
 ### Pipeline Stages
 
 ```
-Source → Lexer → Parser → Desugarer → Type Checker → Optimizer → Code Generator → JavaScript
- (text)  (tokens) (Surface)  (Core)    (Typed Core) (Optimized)    (JS + maps)     (files)
+                                    ┌──────────────────────────────────────────────────────────────┐
+                                    │              Single-Module Pipeline (per module)             │
+                                    │                                                              │
+Source → Lexer → Parser ─┐          │  ┌→ Desugarer → Type Checker → Optimizer → Code Generator ──┼→ JavaScript
+ (text)  (tokens) (Surface)│          │  │   (Core)    (Typed Core)  (Optimized)    (JS + maps)   │    (files)
+                          │          │  │                                                          │
+                          ▼          │  │                                                          │
+                    Module Loader ───┼──┘                                                          │
+                     (discovers &    │   (processes modules in dependency order)                   │
+                      parses all     │                                                              │
+                      modules)       │                                                              │
+                          │          └──────────────────────────────────────────────────────────────┘
+                          ▼
+                    Module Resolver
+                     (builds graph,
+                      detects cycles,
+                      determines order)
 ```
+
+**Note:** For multi-file projects, the Module Loader discovers all modules first, then the Module Resolver determines compilation order. Each module then flows through the remaining phases.
 
 ### Phase Independence
 
@@ -231,6 +248,168 @@ Lowest to highest precedence:
 - Precedence and associativity
 - Edge cases (deeply nested, complex compositions)
 - Error cases (missing tokens, unexpected syntax)
+
+## Phase 2.5: Module Loader
+
+### Responsibility
+
+Discover all modules transitively from an entry point and parse them into ASTs.
+
+### Architecture
+
+The Module Loader handles file I/O and module discovery while the Module Resolver (Phase 2.6) handles pure graph analysis. This separation enables:
+- Pure resolver is highly testable (no I/O needed)
+- Different loaders can be swapped (file, memory, network)
+- Clear separation of concerns
+
+### Input
+
+- **Entry point:** Path to main `.vf` file
+
+### Output
+
+- **Module map:** `Map<string, Module>` keyed by absolute real paths
+- All transitive dependencies discovered and parsed
+
+### Key Features
+
+**1. Transitive Discovery**
+- Parses entry point module
+- Extracts import statements
+- Recursively discovers imported modules
+- Stops when all modules found
+
+**2. Path Resolution**
+- Relative imports (`./utils`, `../shared`)
+- Package imports (`@vibefun/std`, `@org/package`)
+- Path mappings from `vibefun.json` (`@/*` → `./src/*`)
+- Extension resolution (`.vf` optional)
+- Index file resolution (`./utils` → `./utils/index.vf`)
+
+**3. Module Caching**
+- Each module parsed exactly once
+- Cache keyed by real path (after symlink resolution)
+- Diamond dependencies handled correctly
+
+**4. Symlink Resolution**
+- All paths resolved to canonical real paths via `fs.realpathSync()`
+- Symlinked file and original treated as same module
+- Circular symlinks detected and reported as errors
+
+**5. Error Collection**
+- Collects all errors before reporting (not fail-fast)
+- Continue discovering modules even if some fail
+- Multiple errors reported together for better developer experience
+
+**6. Case Sensitivity Warning**
+- Detects case mismatch between import path and actual file
+- Warns with VF5901 for cross-platform safety
+- Prevents "works on my machine" deployment bugs
+
+### Error Handling
+
+**Throws errors for:**
+- Entry point not found (VF5005)
+- Module not found (VF5000)
+- Self-import (VF5004)
+- Parse errors (collected and reported together)
+- Permission errors (collected and reported together)
+
+### Testing
+
+**260+ tests covering:**
+- Single and multi-module discovery
+- Path resolution edge cases
+- Symlink handling
+- Error collection
+- Case sensitivity
+- Unicode and long paths
+
+## Phase 2.6: Module Resolver
+
+### Responsibility
+
+Build dependency graph from parsed modules, detect circular dependencies, and determine compilation order.
+
+### Architecture
+
+**Pure graph analysis phase** with no file I/O. Takes modules from loader and produces:
+- Dependency graph
+- Circular dependency warnings
+- Topologically sorted compilation order
+
+### Input
+
+- **Module map:** `Map<string, Module>` from Module Loader
+
+### Output
+
+- **ModuleResolution:** Contains:
+  - `compilationOrder`: Modules in dependency order
+  - `warnings`: Circular dependency warnings (VF5900)
+  - `errors`: Self-import errors (VF5004)
+  - `graph`: Dependency graph for tooling
+  - `cycles`: Detected cycles (for tooling)
+
+### Key Features
+
+**1. Dependency Graph Construction**
+- Extract imports from Module AST nodes
+- Create edges with metadata (type-only flag, location)
+- Track re-exports as dependencies
+- Handle dual imports (type + value → value edge)
+
+**2. Circular Dependency Detection**
+- Tarjan's Strongly Connected Components algorithm
+- Finds ALL cycles in one O(V+E) pass
+- Distinguishes type-only vs value cycles
+- Type-only cycles are safe (no warning)
+
+**3. Type-Only Cycles**
+- If ALL edges in cycle use `import type`, cycle is safe
+- Types are erased at runtime, no initialization issues
+- Common pattern for complex type definitions
+
+**4. Warning Generation**
+- VF5900 for value circular dependencies
+- Includes cycle path: `a.vf → b.vf → a.vf`
+- Provides hints for resolution
+- Does not halt compilation (warning, not error)
+
+**5. Topological Sort**
+- Determines compilation order respecting dependencies
+- Dependencies processed before dependents
+- For cycles: best-effort order, alphabetical within SCC
+- Deterministic (same input → same order)
+
+### Design Decisions
+
+**Why Tarjan's SCC algorithm?**
+- Finds ALL cycles in one pass
+- Better UX: see all problems at once
+- Same O(V+E) complexity as simple DFS
+- Standard algorithm, well-tested
+
+**Why separate Loader and Resolver?**
+- Resolver is pure (no I/O) - easily tested with constructed ASTs
+- Different loaders can be used (file, memory, test)
+- Enables in-memory compilation (REPL, virtual fs)
+- Clear separation of concerns
+
+**Why type-only cycles allowed?**
+- Types are erased at runtime
+- No initialization order issues
+- Common in complex type systems
+- Matches TypeScript behavior
+
+### Testing
+
+**140+ tests covering:**
+- Graph construction
+- Cycle detection (simple, complex, multiple)
+- Type-only vs value cycles
+- Topological sort
+- Performance (1000+ module graphs)
 
 ## Phase 3: Desugarer
 
@@ -655,7 +834,7 @@ Maintains an output buffer and source map state while traversing the AST to emit
 
 ## Data Flow Summary
 
-### Complete Pipeline
+### Single Module Pipeline
 
 ```
 ┌──────────────┐
@@ -693,6 +872,34 @@ Maintains an output buffer and source map state while traversing the AST to emit
 └──────────────┘
 ```
 
+### Multi-Module Pipeline
+
+```
+┌──────────────┐
+│ Entry Point  │ main.vf
+└──────┬───────┘
+       │ Module Loader (lexer + parser for each)
+       ▼
+┌──────────────┐
+│ Module Map   │ Map<path, Module>
+│              │ { main.vf, utils.vf, helpers.vf }
+└──────┬───────┘
+       │ Module Resolver
+       ▼
+┌──────────────┐
+│ Resolution   │ compilationOrder: [helpers, utils, main]
+│              │ warnings: [VF5900 if cycles]
+└──────┬───────┘
+       │ For each module (in order)
+       ▼
+┌──────────────┐
+│ Desugarer    │ → Core AST
+│ Type Checker │ → Typed Core
+│ Optimizer    │ → Optimized
+│ Code Gen     │ → JavaScript
+└──────────────┘
+```
+
 ### Information Flow
 
 **Forward Flow (data transformations):**
@@ -717,6 +924,8 @@ Maintains an output buffer and source map state while traversing the AST to emit
 |-------|------------|----------|
 | Lexer | `LexerError` | Invalid character, unterminated string |
 | Parser | `ParserError` | Unexpected token, missing delimiter |
+| Module Loader | `VF5000`, `VF5004`, `VF5005` | Module not found, self-import, entry point not found |
+| Module Resolver | `VF5900` (warning) | Circular dependency detected |
 | Desugarer | Rarely errors | (Transformations should always succeed) |
 | Type Checker | `TypeError` | Type mismatch, undefined variable |
 | Optimizer | Should not error | (Optimizations preserve semantics) |
@@ -752,12 +961,14 @@ All errors include:
 |-------|------------|-------|
 | Lexer | O(n) | Linear scan of source |
 | Parser | O(n) | Recursive descent, no backtracking |
+| Module Loader | O(m * n) | m = modules, n = avg module size |
+| Module Resolver | O(V + E) | Tarjan's SCC algorithm |
 | Desugarer | O(n) | Tree traversal |
 | Type Checker | O(n * log n) | Algorithm W with environment lookups |
 | Optimizer | O(n * k) | k = iterations (1 for O1, ~5-10 for O2) |
 | Code Gen | O(n) | Tree traversal |
 
-**Overall:** O(n) to O(n * log n) depending on type checker complexity
+**Overall:** O(m * n) where m = modules, n = avg module size
 
 ### Space Complexity
 
@@ -792,4 +1003,4 @@ Continue reading:
 
 ---
 
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-27

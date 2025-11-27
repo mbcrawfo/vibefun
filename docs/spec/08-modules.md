@@ -75,22 +75,29 @@ import { helper } from './utils';
 **3. For package imports:**
 
 Search in order:
-1. **Standard library**: `@vibefun/*` packages (e.g., `@vibefun/std`)
+1. **Configured paths**: Check `vibefun.json` path mappings first
 2. **node_modules**: Search `node_modules/` in current and ancestor directories
-3. **Configured paths**: Check `vibefun.json` path mappings
+
+> **Note**: Path mappings take precedence over node_modules, matching TypeScript behavior.
+> This allows project-specific aliases to override package names when needed.
 
 ```vibefun
-// Stdlib import
+// Stdlib import (resolved via node_modules)
 import { Option } from '@vibefun/std';
-// Resolves via node_modules to @vibefun/std package
+// Resolves to: node_modules/@vibefun/std/index.vf
 
-// Package import
+// Path-mapped import (if @ui/* is configured in vibefun.json)
 import { Button } from '@ui/components';
+// First checks: vibefun.json paths (e.g., "@ui/*": ["./src/ui/*"])
+// Then checks: node_modules/@ui/components/
+
+// Package import (no path mapping matches)
+import { lodash } from 'lodash';
 // Search order:
-//   1. ./node_modules/@ui/components.vf
-//   2. ./node_modules/@ui/components/index.vf
-//   3. ../node_modules/@ui/components.vf
-//   4. ../node_modules/@ui/components/index.vf
+//   1. ./node_modules/lodash.vf
+//   2. ./node_modules/lodash/index.vf
+//   3. ../node_modules/lodash.vf
+//   4. ../node_modules/lodash/index.vf
 //   (continue up the directory tree)
 ```
 
@@ -152,6 +159,19 @@ main.vf → utils.vf → stdlib.vf
    - Execute module's top-level code
    - Bind exported values
    - Mark module as "initialized"
+
+##### Self-Imports
+
+A module **cannot import itself**. Self-imports are compile-time errors:
+
+```vibefun
+// utils.vf
+import { helper } from './utils';  // ❌ Error: Module cannot import itself
+
+export let helper = (x) => x + 1;
+```
+
+Self-imports serve no useful purpose and typically indicate a mistake in the import path.
 
 ##### Circular Dependencies
 
