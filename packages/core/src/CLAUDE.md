@@ -11,9 +11,14 @@ This directory contains the Vibefun compiler implementation. Each module handles
 | desugarer/ | Surface syntax → Core AST | — |
 | typechecker/ | Type inference & checking | — |
 | optimizer/ | AST optimizations | — |
+| config/ | Compiler configuration (vibefun.json) | — |
+| module-loader/ | Module discovery & parsing | — |
+| module-resolver/ | Dependency graph & cycle detection | — |
 | diagnostics/ | Error system (VFxxxx codes) | [README](./diagnostics/README.md), [Adding Codes](./diagnostics/codes/README.md) |
 | types/ | Shared type definitions | — |
 | utils/ | Common utilities | — |
+
+> **Maintenance:** When adding or removing folders in `src/`, update this module guide to keep it accurate.
 
 ## Critical: Error System
 
