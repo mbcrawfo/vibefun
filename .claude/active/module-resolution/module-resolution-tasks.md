@@ -777,18 +777,29 @@ Instead of implementing runtime tests now, create a design doc:
 
 ---
 
-## Phase 7.5a: Desugarer Integration (UNBLOCKED)
+## Phase 7.5a: Desugarer Integration ✅ COMPLETE
 
-The desugarer exists and is fully functional. These tests can be implemented.
+The desugarer exists and is fully functional. Integration tests implemented.
 
-- [ ] Verify desugaring happens in dependency order
-- [ ] Test sugar in cyclic modules handled correctly
-- [ ] Ensure desugared ASTs maintain module structure
-- [ ] Verify transformations don't break module graph
-- [ ] Test all desugaring features work across modules
+- [x] Verify desugaring happens in dependency order
+- [x] Test sugar in cyclic modules handled correctly
+- [x] Ensure desugared ASTs maintain module structure
+- [x] Verify transformations don't break module graph
+- [x] Test all desugaring features work across modules
+
+### Test File
+- `packages/core/src/desugarer/desugarer-integration.test.ts` (18 tests)
+
+### Test Coverage
+- Dependency order: desugaring in compilation order, diamond dependencies
+- Cyclic modules: type-only cycles, value cycles (warning), blocks in cyclic modules
+- Module structure: imports preserved, exports preserved, re-exports, locations
+- Module graph: structure unchanged, import relationships maintained
+- Cross-module sugar: pipes, list literals, composition, if-then-else, currying, blocks
+- Full pipeline: realistic multi-module program with variants and pattern matching
 
 ### Quality Checks
-- [ ] Run `npm run verify`
+- [x] Run `npm run verify`
 
 ---
 
@@ -997,10 +1008,10 @@ End-to-end compilation tests are blocked until code generator is implemented.
 
 ## Progress Summary
 
-**Phases Completed:** 14/18 (78%)
-**Estimated Tasks:** ~300 (expanded after Phase 1.6 addition)
-**Tasks Completed:** ~285
-**Current Phase:** Phase 7e COMPLETE, ready for Phase 7.5a or Phase 8
+**Phases Completed:** 15/18 (83%)
+**Estimated Tasks:** ~305 (expanded after Phase 7.5a addition)
+**Tasks Completed:** ~295
+**Current Phase:** Phase 7.5a COMPLETE, ready for Phase 8 (Documentation)
 **Blockers:** Phase 7.5b-d blocked (see below)
 
 **Major Components:**
@@ -1019,7 +1030,7 @@ End-to-end compilation tests are blocked until code generator is implemented.
 - **Phase 7c**: Cycle Detection Edge Case Tests ✅ COMPLETE
 - **Phase 7d**: Performance Tests ✅ COMPLETE
 - **Phase 7e**: Misc Edge Cases and Test Infrastructure ✅ COMPLETE
-- **Phase 7.5a**: Desugarer Integration ✅ UNBLOCKED
+- **Phase 7.5a**: Desugarer Integration ✅ COMPLETE
 - **Phase 7.5b**: Type Checker Integration ⏸️ BLOCKED (needs TC multi-module support)
 - **Phase 7.5c**: Code Generator Integration ⏸️ BLOCKED (no code generator exists)
 - **Phase 7.5d**: End-to-End Tests ⏸️ BLOCKED (requires code generator)
