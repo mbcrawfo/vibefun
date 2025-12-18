@@ -38,6 +38,6 @@
     },
     "dependencies": {
         "@vibefun/core": "*",
-        "commander": "12.1.0"
+        "commander": "14.0.2"
     }
 }
