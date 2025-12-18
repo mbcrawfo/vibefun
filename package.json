@@ -4,7 +4,9 @@
     "description": "A pragmatic functional programming language that transpiles to JavaScript",
     "private": true,
     "type": "module",
-    "workspaces": ["packages/*"],
+    "workspaces": [
+        "packages/*"
+    ],
     "scripts": {
         "build": "tsc --build tsconfig.json",
         "build:watch": "npm run build:watch --workspaces --if-present",
@@ -43,7 +45,7 @@
         "@vitest/coverage-v8": "3.0.5",
         "eslint": "9.18.0",
         "eslint-config-prettier": "9.1.0",
-        "prettier": "3.4.2",
+        "prettier": "3.7.4",
         "typescript": "5.7.2",
         "vitest": "3.0.5"
     }
