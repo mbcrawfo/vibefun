@@ -1,6 +1,6 @@
 # Vibefun
 
-[![CI](https://github.com/mbcrawfo/vibefun/actions/workflows/ci.yml/badge.svg)](https://github.com/mbcrawfo/vibefun/actions/workflows/ci.yml)
+[![CI](https://github.com/mbcrawfo/vibefun/actions/workflows/ci.yml/badge.svg)](https://github.com/mbcrawfo/vibefun/actions/workflows/ci.yml) ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/mbcrawfo/vibefun?utm_source=oss&utm_medium=github&utm_campaign=mbcrawfo%2Fvibefun&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 **A pragmatic functional programming language that transpiles to JavaScript**
 
