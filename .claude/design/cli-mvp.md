@@ -226,10 +226,8 @@ error[VF4001]: Type mismatch
 
 ## Error Handling Behavior
 
-- **Multi-error reporting**: Report up to 10 errors per file before stopping
-- **Cascading prevention**: Use error types to prevent cascading errors from a single root cause
+- **Single-error reporting (MVP)**: Stop at first error. Multi-error collection deferred to post-MVP.
 - **Deterministic order**: Report errors in source order for reproducible output
-- **Error recovery**: Parser continues after syntax errors to find additional errors
 
 ---
 

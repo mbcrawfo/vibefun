@@ -4,7 +4,7 @@
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 /** Manages a temporary directory for test outputs */
 export class TempDir {
@@ -38,9 +38,11 @@ export class TempDir {
         return join(this.getPath(), ...paths);
     }
 
-    /** Write a file to the temp directory */
+    /** Write a file to the temp directory (creates parent directories if needed) */
     writeFile(relativePath: string, content: string): void {
-        writeFileSync(this.join(relativePath), content, "utf-8");
+        const fullPath = this.join(relativePath);
+        mkdirSync(dirname(fullPath), { recursive: true });
+        writeFileSync(fullPath, content, "utf-8");
     }
 
     /** Read a file from the temp directory */
