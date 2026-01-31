@@ -1,15 +1,18 @@
 # CLI MVP Task List
 
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-01-31 (Gap analysis update)
 
 ## Phase 1: Core Package Exports
 
-- [ ] Add desugarer exports to `packages/core/src/index.ts`
-  - Export `desugarModule` from desugarer
-- [ ] Add typechecker exports to `packages/core/src/index.ts`
-  - Export `typeCheck`, `TypedModule`, `TypeCheckOptions`
-- [ ] Add Core AST type exports
-  - Export `CoreModule`, `CoreExpr`, `CoreDeclaration`, `CorePattern`
+> **Note:** Verification needed - these exports may already exist in `@vibefun/core`.
+> Run `npm run build -w @vibefun/core` and test imports before marking complete.
+
+- [ ] Verify desugarer exports exist in `packages/core/src/index.ts`
+  - Check `desugarModule` is accessible
+- [ ] Verify typechecker exports exist in `packages/core/src/index.ts`
+  - Check `typeCheck`, `TypedModule`, `TypeCheckOptions` are accessible
+- [ ] Verify Core AST type exports exist
+  - Check `CoreModule`, `CoreExpr`, `CoreDeclaration`, `CorePattern` are accessible
 - [ ] Verify exports work: `npm run build -w @vibefun/core`
 
 ## Phase 2: Stubbed Code Generator
@@ -28,6 +31,8 @@
 - [ ] Implement `getTimings()` returning PhaseTimings
 - [ ] Implement `formatVerbose(filename)` for human output
 - [ ] Implement `toJSON()` for JSON output
+- [ ] Track output byte size for codegen phase
+- [ ] Implement `formatBytes(bytes)` - human-readable size (1.2KB, 2.3MB)
 - [ ] Write unit tests
 
 ### Colors (`src/utils/colors.ts`)
@@ -53,6 +58,9 @@
 - [ ] Implement `formatDiagnosticHuman(diagnostic, source, useColor)`
 - [ ] Implement `formatDiagnosticsJson(diagnostics, timings?)`
 - [ ] Implement `toJsonDiagnostic(diagnostic)` conversion
+- [ ] Support collecting multiple diagnostics (up to 10 per file)
+- [ ] Implement `formatDiagnosticsJson` with optional `timing` field
+- [ ] Handle --verbose --json combination (timing in JSON, not stderr)
 - [ ] Write unit tests
 
 ### AST JSON (`src/output/ast-json.ts`)
@@ -82,6 +90,10 @@
 - [ ] Implement `--verbose` timing output
 - [ ] Implement `--quiet` mode
 - [ ] Implement `--json` error output
+- [ ] Implement multi-error collection (stop after 10 errors)
+- [ ] Create parent directories for output path (recursive mkdir)
+- [ ] Handle --verbose --json: include timing in JSON output
+- [ ] Handle spaces in file paths correctly
 - [ ] Write integration tests
 
 ## Phase 6: CLI Entry Point
@@ -107,6 +119,10 @@
 - [ ] Create `unicode.vf` - unicode identifiers
 - [ ] Create `type-error.vf` - type error program
 - [ ] Create `parse-error.vf` - syntax error program
+- [ ] Create `comments-only.vf` - file containing only `// comment`
+- [ ] Create `multi-error.vf` - file with 3+ distinct errors
+- [ ] Create `with-bom.vf` - UTF-8 file with BOM prefix
+- [ ] Create `path with spaces/test.vf` - file in directory with spaces
 
 ### E2E Tests (`src/cli.e2e.test.ts`)
 - [ ] Test basic compilation creates output file
@@ -125,6 +141,14 @@
 - [ ] Test `--no-color` disables colors
 - [ ] Test `--version` outputs version
 - [ ] Test `--help` outputs help
+- [ ] Test comments-only file produces valid empty module
+- [ ] Test file with UTF-8 BOM compiles correctly
+- [ ] Test file path with spaces works: `"fixtures/path with spaces/test.vf"`
+- [ ] Test overwriting existing output file works atomically
+- [ ] Test multiple errors (3+) all reported, exit code 1
+- [ ] Test atomic writes: failed compile leaves no partial file
+- [ ] Test `--verbose --json` includes timing in JSON output
+- [ ] Test error count limited to 10 per file
 
 ## Phase 8: Final Verification
 
