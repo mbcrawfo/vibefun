@@ -63,7 +63,7 @@ jobs:
 
       - name: Download base branch coverage
         if: github.event_name == 'pull_request'
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@v11
         continue-on-error: true
         id: download-coverage
         with:
