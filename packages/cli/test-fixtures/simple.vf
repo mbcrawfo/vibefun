@@ -1,0 +1,4 @@
+// A simple vibefun program
+let x = 42;
+let y = "hello";
+let add = (a, b) => a + b;

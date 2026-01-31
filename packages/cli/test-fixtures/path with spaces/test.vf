@@ -1,0 +1,2 @@
+// File in a directory with spaces in the path
+let spacey = "works";
