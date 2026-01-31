@@ -92,7 +92,7 @@ vibefun/
 - **No `any` types**: Maintain type safety throughout the codebase (strictly prohibited)
 - **Functional style**: Prefer functional programming patterns (pure functions, immutability, composition)
 - **Classes when practical**: Use classes for lexers, parsers, and stateful components when it improves clarity
-- **Node 24.10**: Using modern Node.js features
+- **Node 24.13**: Using modern Node.js features
 - **Comprehensive testing**: All code must have thorough test coverage
 
 ### Compilation Pipeline

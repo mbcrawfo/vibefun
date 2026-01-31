@@ -325,7 +325,7 @@ Authoritative definitions:
 ### Core Technologies
 
 - **TypeScript 5.x** - Implementation language with strict type checking
-- **Node.js 24.10+** - Runtime environment
+- **Node.js 24.13+** - Runtime environment
 - **Vitest** - Testing framework
 - **ESLint** - Linting
 - **Prettier** - Code formatting
