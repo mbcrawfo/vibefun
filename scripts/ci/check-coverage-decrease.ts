@@ -128,7 +128,8 @@ function main(): void {
     switch (result.status) {
         case "skipped":
             console.log(`   Skipped - ${result.reason}`);
-            break;
+            console.log("\nCoverage check skipped.");
+            return;
         case "new":
             console.log(`   New coverage at ${result.currentCoverage}%`);
             break;

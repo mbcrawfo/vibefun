@@ -13,6 +13,7 @@ export default defineConfig({
                 'dist/',
                 'src/**/*.test.ts',
                 'src/**/*.spec.ts',
+                'vitest.config.ts',
             ],
         },
     },
