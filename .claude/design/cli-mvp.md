@@ -100,7 +100,10 @@ Machine-parseable diagnostic output for tooling and test automation:
       "line": 10,
       "column": 15,
       "endLine": 10,
-      "endColumn": 24
+      "endColumn": 24,
+      "expected": "Int",
+      "actual": "String",
+      "hint": "Use String.fromInt() for conversion"
     }
   ],
   "errorCount": 1,
@@ -108,9 +111,15 @@ Machine-parseable diagnostic output for tooling and test automation:
 }
 ```
 
+**JSON Field Notes:**
+- `expected`/`actual`: Present for type mismatch errors (VF4001, VF4012)
+- `hint`: Optional field with actionable suggestion (when available)
+
 ---
 
 ## `--emit` Output Formats (Debugging)
+
+> **Note:** When `--emit ast` or `--emit typed-ast` is used, output goes to stdout regardless of `-o` flag. The `-o` flag only applies to `--emit js` (the default).
 
 ### `js` (default)
 
@@ -160,7 +169,7 @@ error[VF4001]: Type mismatch
    =      got: String
 ```
 
-### Error Code Categories (MVP subset)
+### Error Code Categories
 
 | Range | Category |
 |-------|----------|
@@ -168,8 +177,9 @@ error[VF4001]: Type mismatch
 | VF2xxx | Parser errors |
 | VF3xxx | Desugarer errors |
 | VF4xxx | Type checker errors |
+| VF49xx | Type checker warnings |
 
-**MVP Error Codes:**
+**Representative Error Codes:**
 
 | Code | Description |
 |------|-------------|
@@ -191,6 +201,15 @@ error[VF4001]: Type mismatch
 | VF4014 | Undefined type |
 | VF4016 | Undefined variant |
 
+**Warnings (VF49xx):**
+
+| Code | Description |
+|------|-------------|
+| VF4900 | Non-exhaustive match |
+| VF4901 | Unreachable pattern |
+
+> **Note:** This is a representative subset. See `cli-requirements.md` for the complete error code catalog (60+ codes across all phases).
+
 ---
 
 ## Exit Codes
@@ -205,6 +224,34 @@ error[VF4001]: Type mismatch
 
 ---
 
+## Error Handling Behavior
+
+- **Multi-error reporting**: Report up to 10 errors per file before stopping
+- **Cascading prevention**: Use error types to prevent cascading errors from a single root cause
+- **Deterministic order**: Report errors in source order for reproducible output
+- **Error recovery**: Parser continues after syntax errors to find additional errors
+
+---
+
+## Input Handling
+
+- **Encoding**: UTF-8 required; reject invalid encoding with clear error message
+- **BOM**: Handle UTF-8 BOM gracefully (strip and continue)
+- **Line endings**: Handle CR, LF, and CRLF uniformly
+- **Empty files**: Produce valid empty JavaScript module
+- **Comments only**: Treated same as empty file
+
+---
+
+## Output Reliability
+
+- **Atomic writes**: Use temp file + rename pattern to avoid partial output on failure
+- **No partial files**: Never leave incomplete output on compilation error
+- **Directory creation**: Create parent directories as needed for output path
+- **Overwrite behavior**: Existing output files are atomically replaced
+
+---
+
 ## Test Scenarios
 
 ### Basic Compilation
@@ -214,6 +261,18 @@ error[VF4001]: Type mismatch
 | Compile simple file | `vibefun compile hello.vf` | Creates `hello.js` |
 | Specify output | `vibefun compile main.vf -o out.js` | Creates `out.js` |
 | Create output directory | `vibefun compile main.vf -o dist/out.js` | Creates `dist/` and `out.js` |
+| Nested output path | `vibefun compile main.vf -o a/b/c.js` | Creates directories recursively |
+| Overwrite existing | `vibefun compile main.vf` (output exists) | Atomically replaces `main.js` |
+
+### Input Edge Cases
+
+| Scenario | Input | Expected |
+|----------|-------|----------|
+| Empty file | Empty `.vf` file | Valid empty JS module |
+| Only comments | File with only `// comment` | Valid empty JS module |
+| Unicode identifiers | `let π = 3.14` | Compiles correctly |
+| UTF-8 BOM | File with BOM prefix | Handles gracefully |
+| Spaces in path | `"path/my file.vf"` | Works correctly |
 
 ### Debug Output
 
@@ -223,7 +282,9 @@ error[VF4001]: Type mismatch
 | Dump typed AST | `vibefun compile main.vf --emit typed-ast` | JSON typed AST to terminal |
 | Verbose timing | `vibefun compile main.vf --verbose` | Phase timing shown |
 | JSON diagnostics | `vibefun compile bad.vf --json` | JSON error format |
-| Verbose + JSON | `vibefun compile main.vf --verbose --json` | Timing in JSON format |
+| Verbose + JSON | `vibefun compile main.vf --verbose --json` | Timing included in JSON output |
+
+**Note on `--verbose --json`:** When both flags are used, timing information is included in the JSON output under a `timing` field rather than printed to stderr.
 
 ### Error Cases
 
@@ -340,13 +401,15 @@ The CLI MVP is complete when:
 1. `vibefun compile main.vf` produces valid, executable JavaScript
 2. `vibefun compile main.vf -o out.js` writes to specified path
 3. Error messages include file, line, column, and source context
-4. `--emit ast` outputs valid JSON representation of surface AST
-5. `--emit typed-ast` outputs valid JSON with inferred types
+4. `--emit ast` outputs valid JSON representation of surface AST (to stdout)
+5. `--emit typed-ast` outputs valid JSON with inferred types (to stdout)
 6. `--verbose` shows timing breakdown per phase with counts
 7. `--json` produces machine-parseable diagnostics
+8. Empty files compile to valid empty JS modules
 9. Exit codes correctly indicate success/failure type (0/1/2/4/5)
 10. `--help` and `--version` work correctly
 11. Color output works and respects `--no-color` / `NO_COLOR`
+12. Output files are written atomically (no partial files on error)
 
 ---
 
@@ -364,8 +427,23 @@ node test.js  # should run without error
 vibefun compile test.vf -o out.js
 ls out.js  # should exist
 
-# AST debugging
+# Nested output path (creates directories)
+vibefun compile test.vf -o deep/nested/out.js
+ls deep/nested/out.js  # should exist
+
+# Empty file handling
+touch empty.vf
+vibefun compile empty.vf
+node empty.js  # should run without error (empty module)
+
+# Unicode identifiers
+echo 'let π = 3.14159' > unicode.vf
+vibefun compile unicode.vf
+node unicode.js  # should run without error
+
+# AST debugging (outputs to stdout)
 vibefun compile test.vf --emit ast | jq .  # valid JSON
+vibefun compile test.vf --emit ast -o ignored.js | jq .  # still goes to stdout
 
 # Typed AST debugging
 vibefun compile test.vf --emit typed-ast | jq .  # valid JSON with types
@@ -373,11 +451,18 @@ vibefun compile test.vf --emit typed-ast | jq .  # valid JSON with types
 # Verbose output
 vibefun compile test.vf --verbose  # shows timing
 
+# Verbose + JSON
+vibefun compile test.vf --verbose --json | jq .timing  # timing in JSON
+
 # Error handling
 echo 'let x: Int = "hello"' > bad.vf
 vibefun compile bad.vf  # shows type error with location
-vibefun compile bad.vf --json | jq .  # JSON error format
+vibefun compile bad.vf --json | jq .  # JSON error format with expected/actual
 vibefun compile missing.vf; echo $?  # exit code 4
+
+# Atomic writes (no partial files on error)
+echo 'let x: Int = "hello"' > fails.vf
+vibefun compile fails.vf -o should_not_exist.js; ls should_not_exist.js  # should not exist
 
 # Help
 vibefun --help
