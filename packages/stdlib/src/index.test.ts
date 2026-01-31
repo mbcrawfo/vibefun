@@ -1,16 +1,24 @@
 /**
- * PLACEHOLDER TEST - Remove when real stdlib implementation is added
+ * Standard Library Tests
  *
- * This test exists solely to enable coverage reporting for this package.
- * Replace with proper tests when stdlib functionality is implemented.
+ * Currently stdlib only exports VERSION, so tests are minimal.
+ * Comprehensive tests will be added as stdlib functionality grows:
+ * - List operations (map, filter, fold)
+ * - Option/Result type utilities
+ * - String and math utilities
  */
 import { describe, expect, it } from "vitest";
 
 import { VERSION } from "./index.js";
 
-describe("stdlib placeholder", () => {
-    // TODO: Remove this test when real stdlib code is added
-    it("exports VERSION", () => {
-        expect(VERSION).toBe("0.1.0");
+describe("stdlib", () => {
+    describe("VERSION", () => {
+        it("exports the current version", () => {
+            expect(VERSION).toBe("0.1.0");
+        });
+
+        it("follows semver format", () => {
+            expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+        });
     });
 });

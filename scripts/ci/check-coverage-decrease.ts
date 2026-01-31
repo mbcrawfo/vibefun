@@ -34,12 +34,41 @@ const THRESHOLD = 0.01; // Tolerance for floating point precision
 
 const baseCoveragePath = process.env["BASE_COVERAGE_PATH"] ?? "base-coverage";
 
+/**
+ * Type guard to validate coverage summary structure
+ */
+function isCoverageSummary(value: unknown): value is CoverageSummary {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value as Record<string, unknown>;
+    if (typeof obj["total"] !== "object" || obj["total"] === null) {
+        return false;
+    }
+    const total = obj["total"] as Record<string, unknown>;
+    if (typeof total["lines"] !== "object" || total["lines"] === null) {
+        return false;
+    }
+    const lines = total["lines"] as Record<string, unknown>;
+    return typeof lines["pct"] === "number";
+}
+
 function readCoverageSummary(filepath: string): CoverageSummary | null {
     if (!fs.existsSync(filepath)) {
         return null;
     }
-    const content = fs.readFileSync(filepath, "utf-8");
-    return JSON.parse(content) as CoverageSummary;
+    try {
+        const content = fs.readFileSync(filepath, "utf-8");
+        const parsed: unknown = JSON.parse(content);
+        if (!isCoverageSummary(parsed)) {
+            console.warn(`Warning: Invalid coverage format in ${filepath}`);
+            return null;
+        }
+        return parsed;
+    } catch (error) {
+        console.warn(`Warning: Failed to parse ${filepath}: ${error}`);
+        return null;
+    }
 }
 
 function checkPackage(pkg: string): PackageResult {
