@@ -29,16 +29,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # Full history for incremental diffs
 
-      - name: Run Claude Code Review
-        id: claude-review
+      - name: Run Claude Code Review (Initial)
+        if: github.event.action == 'opened'
+        id: claude-review-initial
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
+            # Initial PR Review
+
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
+
+            This is the INITIAL review of this pull request.
 
             Please review this pull request and provide feedback on:
             - Code quality and best practices
@@ -47,15 +52,67 @@ jobs:
             - Security concerns
             - Test coverage
 
-            Use the repository's CLAUDE.md for guidance on style and conventions:
-            - Be concise and direct with your feedback.
-            - Group your feedback into PROBLEMS that must be addressed and SUGGESTIONS to improve the code.
-            - Do not provide minor nitpick or stylist feedback.
-            - If the changes meet expectations leave only a simple comment such "✅ Good code quality".
+            Use the repository's CLAUDE.md for guidance on style and conventions.
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            Guidelines:
+            - Be concise and direct with your feedback
+            - Group feedback into PROBLEMS (must address) and SUGGESTIONS (improvements)
+            - Do not provide minor nitpick or stylistic feedback
+            - If changes meet expectations, leave only "✅ Good code quality"
+
+            Use `gh pr diff ${{ github.event.pull_request.number }}` to see all changes.
+            Use `gh pr comment` to leave your review as a comment on the PR.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
-          claude_args: '--model claude-opus-4-5-20251101 --allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: '--model claude-opus-4-5-20251101 --allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(git diff:*),Bash(git log:*)"'
 
+      - name: Run Claude Code Review (Update)
+        if: github.event.action == 'synchronize'
+        id: claude-review-update
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            # Incremental PR Review (Update)
+
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            PREVIOUS COMMIT: ${{ github.event.before }}
+            NEW COMMIT: ${{ github.event.after }}
+
+            This is an INCREMENTAL review. The PR was updated with new commits.
+
+            ## Your Task
+
+            1. **Review ONLY the new changes** since the last review:
+               - Run: `git diff ${{ github.event.before }}..${{ github.event.after }}`
+               - This shows only what changed in this update
+
+            2. **Check previous review comments** (if any):
+               - Run: `gh pr view ${{ github.event.pull_request.number }} --comments`
+               - Note any previously raised issues that may now be addressed
+
+            3. **Provide focused feedback**:
+               - Only comment on the NEW changes
+               - Acknowledge if previous issues were addressed
+               - Don't repeat feedback already given on unchanged code
+
+            ## Review Criteria (for new changes only)
+            - Code quality and best practices
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+
+            ## Guidelines
+            - Be concise - this is a follow-up review
+            - If the update addresses previous feedback: "✅ Previous feedback addressed"
+            - If new issues: list only NEW problems/suggestions
+            - If update is good: "✅ Update looks good"
+
+            Use `gh pr comment` to leave your review as a comment on the PR.
+
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
+          claude_args: '--model claude-opus-4-5-20251101 --allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(git diff:*),Bash(git log:*)"'
