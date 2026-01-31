@@ -108,6 +108,25 @@ describe("formatDiagnosticHuman", () => {
 
         expect(output).toContain("let y = @#$");
     });
+
+    it("should not duplicate error code in output with colors", () => {
+        const diagnostic = createTestDiagnostic({}, { location: { file: "test.vf", line: 2, column: 9, offset: 19 } });
+        const colors = createColors(true);
+        const output = formatDiagnosticHuman(diagnostic, source, colors);
+
+        // Strip ANSI codes for easier matching
+        // eslint-disable-next-line no-control-regex
+        const plainOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
+
+        // Count occurrences of error code - should appear exactly once
+        const codeMatches = plainOutput.match(/VF1001/g);
+        expect(codeMatches).toHaveLength(1);
+
+        // Verify the message appears correctly (just the message, not the full Error.message)
+        expect(plainOutput).toContain("error[VF1001]: Test error message");
+        // Should NOT contain the Error.message format with location
+        expect(plainOutput).not.toMatch(/error\[VF1001\]: \[VF1001\]/);
+    });
 });
 
 describe("formatDiagnosticsJson", () => {
