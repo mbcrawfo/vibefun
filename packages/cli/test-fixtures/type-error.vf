@@ -1,0 +1,2 @@
+// Type error: adding incompatible types
+let x = 42 + "hello";

@@ -1,0 +1,4 @@
+// Unicode identifiers
+let π = 3.14159;
+let área = 100;
+let 日本語 = "Japanese";
