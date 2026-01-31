@@ -1,7 +1,7 @@
 # CLI MVP Implementation Plan
 
 **Status:** Planning
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-01-31 (Gap analysis update)
 
 ## Summary
 
@@ -52,6 +52,8 @@ packages/core/src/
 ### Phase 1: Core Package Exports
 Export desugarer (`desugarModule`) and typechecker (`typeCheck`, `TypedModule`) from `@vibefun/core` so CLI can access full pipeline.
 
+> **Note:** Initial investigation suggests these exports may already exist. Verify before implementing.
+
 ### Phase 2: Stubbed Code Generator
 Create `packages/core/src/codegen/` with a stub that produces placeholder JS output. This allows the CLI to run the full pipeline without blocking on codegen implementation.
 
@@ -87,6 +89,28 @@ The code generator produces:
 export {};
 ```
 This is valid ES module syntax that runs without error.
+
+## Codegen Stub Limitations
+
+The code generator is intentionally stubbed for MVP, producing placeholder JavaScript.
+
+### What This Enables Testing
+- Full compilation pipeline (lexer → parser → desugarer → typechecker → codegen)
+- All CLI options (--verbose, --json, --emit, -o, etc.)
+- Error handling and exit codes
+- File I/O (atomic writes, directory creation)
+- AST/typed-AST JSON output
+
+### What Cannot Be Tested Until Codegen Implemented
+- Generated code has correct semantics
+- Variables and functions work at runtime
+- Actual JavaScript output matches vibefun semantics
+
+### Test Strategy
+Tests like `node output.js` will PASS because `export {};` is valid ES module syntax.
+These tests verify "compilation completes without error" not "generated code is correct".
+
+This is acceptable for MVP. Semantic tests will be added when codegen is implemented.
 
 ### Error Handling
 - Pipeline errors throw `VibefunDiagnostic`

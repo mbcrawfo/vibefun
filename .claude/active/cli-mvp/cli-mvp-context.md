@@ -1,6 +1,6 @@
 # CLI MVP Context
 
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-01-31 (Gap analysis update)
 
 ## Key Files Reference
 
@@ -29,9 +29,9 @@
 |-------|--------|----------|
 | Lexer | Implemented, exported | `lexer/lexer.ts` |
 | Parser | Implemented, exported | `parser/parser.ts` |
-| Desugarer | Implemented, NOT exported | `desugarer/desugarer.ts` |
-| TypeChecker | Implemented, NOT exported | `typechecker/typechecker.ts` |
-| Optimizer | Implemented, NOT exported | `optimizer/` (not needed for MVP) |
+| Desugarer | Implemented, exported | `desugarer/desugarer.ts` |
+| TypeChecker | Implemented, exported | `typechecker/typechecker.ts` |
+| Optimizer | Implemented, exported | `optimizer/` (not needed for MVP) |
 | Code Generator | NOT IMPLEMENTED | N/A |
 
 ## Core Functions to Export
@@ -103,10 +103,22 @@ The typechecker's `Type` is an internal representation. For `--emit typed-ast`, 
 
 ```typescript
 // packages/core/src/typechecker/format.ts
-export function formatType(type: Type): string;
+export function typeToString(type: Type): string;
+export function formatType(type: Type): string;  // Alias
 ```
 
-This is already implemented and exported from typechecker.
+Already exported from `@vibefun/core` - use for `--emit typed-ast` output.
+
+## Warning Collection
+
+The diagnostics module provides warning collection:
+
+```typescript
+// packages/core/src/diagnostics/
+export class WarningCollector { ... }
+```
+
+Use for collecting non-fatal warnings during compilation (e.g., VF4900 non-exhaustive match).
 
 ## AST Node Counting
 
