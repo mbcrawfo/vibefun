@@ -1,87 +1,107 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { Lexer, Parser } from "@vibefun/core";
+/**
+ * Vibefun CLI Entry Point
+ *
+ * Main CLI for the vibefun programming language compiler.
+ */
+import type { EmitType } from "./commands/index.js";
+
 import { Command } from "commander";
 
-import { formatError } from "./format-error.js";
+import { compile, EXIT_USAGE_ERROR } from "./commands/index.js";
 
 const program = new Command();
 
-program.name("vibefun").description("Vibefun - A pragmatic functional programming language").version("0.1.0");
+/**
+ * Global options interface
+ */
+interface GlobalOptions {
+    quiet?: boolean;
+    verbose?: boolean;
+    json?: boolean;
+    color?: boolean;
+    noColor?: boolean;
+}
 
 /**
- * Display a compilation error to stderr.
+ * Compile command options interface
  */
-function displayError(error: unknown, source: string): void {
-    console.error(formatError(error, source));
+interface CompileCommandOptions {
+    output?: string;
+    emit?: EmitType;
 }
+
+program
+    .name("vibefun")
+    .description("Vibefun - A pragmatic functional programming language")
+    .version("0.1.0")
+    .option("-q, --quiet", "Suppress non-error output")
+    .option("--verbose", "Verbose output (timing, phases, counts)")
+    .option("--json", "Output diagnostics as JSON")
+    .option("--color", "Force color output")
+    .option("--no-color", "Disable color output");
 
 program
     .command("compile")
     .description("Compile a .vf file to JavaScript")
     .argument("<file>", "Source file to compile")
-    .option("-o, --output <file>", "Output file")
-    .action((file: string, options: { output?: string }) => {
-        let source = "";
-        try {
-            console.log(`Compiling ${file}...`);
+    .option("-o, --output <path>", "Output file path")
+    .option("-e, --emit <type>", "Output type: js, ast, typed-ast", "js")
+    .action((file: string, cmdOptions: CompileCommandOptions) => {
+        const globalOptions = program.opts<GlobalOptions>();
 
-            source = readFileSync(file, "utf-8");
-            const lexer = new Lexer(source, file);
-            const tokens = lexer.tokenize();
-
-            console.log(`✓ Lexer: ${tokens.length} tokens`);
-
-            const parser = new Parser(tokens, file);
-            const ast = parser.parse();
-
-            console.log(`✓ Parser: ${ast.declarations.length} declarations`);
-
-            if (options.output) {
-                console.log(`Output would be written to: ${options.output}`);
-            }
-
-            console.log("\n⚠️  Code generation not yet implemented");
-            console.log("The lexer and parser are complete, but transpilation is TODO.");
-        } catch (error) {
-            console.error("Compilation failed:");
-            displayError(error, source);
-            process.exit(1);
+        // Validate emit option
+        const emit = cmdOptions.emit;
+        if (emit && !["js", "ast", "typed-ast"].includes(emit)) {
+            console.error(`error: Invalid emit type '${emit}'. Valid options: js, ast, typed-ast`);
+            process.exit(EXIT_USAGE_ERROR);
         }
+
+        const result = compile(file, {
+            ...(cmdOptions.output !== undefined ? { output: cmdOptions.output } : {}),
+            ...(emit !== undefined && emit !== "js" ? { emit: emit as EmitType } : {}),
+            ...(globalOptions.quiet === true ? { quiet: true } : {}),
+            ...(globalOptions.verbose === true ? { verbose: true } : {}),
+            ...(globalOptions.json === true ? { json: true } : {}),
+            ...(globalOptions.color === true ? { color: true } : {}),
+            ...(globalOptions.noColor === true ? { noColor: true } : {}),
+        });
+
+        // Output results
+        if (result.stdout) {
+            console.log(result.stdout);
+        }
+        if (result.stderr) {
+            console.error(result.stderr);
+        }
+
+        process.exit(result.exitCode);
     });
 
+// Stub commands for future implementation
 program
     .command("check")
-    .description("Type check a .vf file without compiling")
+    .description("Type check a .vf file without compiling (not yet implemented)")
     .argument("<file>", "Source file to check")
-    .action((file: string) => {
-        let source = "";
-        try {
-            console.log(`Type checking ${file}...`);
-
-            source = readFileSync(file, "utf-8");
-            const lexer = new Lexer(source, file);
-            const tokens = lexer.tokenize();
-            const parser = new Parser(tokens, file);
-            const ast = parser.parse();
-
-            console.log(`✓ Syntax valid: ${ast.declarations.length} declarations`);
-            console.log("\n⚠️  Type checker not yet implemented");
-        } catch (error) {
-            console.error("Type checking failed:");
-            displayError(error, source);
-            process.exit(1);
-        }
+    .action(() => {
+        console.error("The 'check' command is not yet implemented.");
+        process.exit(1);
     });
 
 program
     .command("run")
-    .description("Compile and run a .vf file")
+    .description("Compile and run a .vf file (not yet implemented)")
     .argument("<file>", "Source file to run")
-    .action((file: string) => {
-        console.log(`Running ${file}...`);
-        console.log("⚠️  Not yet implemented");
+    .action(() => {
+        console.error("The 'run' command is not yet implemented.");
         process.exit(1);
     });
+
+// Handle unknown commands
+program.on("command:*", () => {
+    console.error(`error: Unknown command '${program.args[0]}'`);
+    console.error("Run 'vibefun --help' for available commands.");
+    process.exit(EXIT_USAGE_ERROR);
+});
 
 program.parse();
