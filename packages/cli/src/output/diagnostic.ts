@@ -87,7 +87,7 @@ export function formatDiagnosticHuman(diagnostic: VibefunDiagnostic, source: str
               ? colors.yellow("warning")
               : colors.cyan("info");
 
-    lines.push(`${severityLabel}[${colors.bold(diagnostic.code)}]: ${diagnostic.message}`);
+    lines.push(`${severityLabel}[${colors.bold(diagnostic.code)}]: ${diagnostic.diagnosticMessage}`);
 
     // Location line
     lines.push(`  ${colors.cyan("-->")} ${loc.file}:${loc.line}:${loc.column}`);
