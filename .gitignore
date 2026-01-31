@@ -142,3 +142,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# CLI test fixture outputs (generated during testing)
+packages/cli/tests/fixtures/**/*.js
