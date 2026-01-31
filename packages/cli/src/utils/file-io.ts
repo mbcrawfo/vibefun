@@ -87,8 +87,19 @@ export function writeAtomic(path: string, content: string): void {
         // Write to temp file
         writeFileSync(tempPath, content, "utf-8");
 
-        // Atomic rename
-        renameSync(tempPath, path);
+        // Atomic rename (with fallback for Windows)
+        try {
+            renameSync(tempPath, path);
+        } catch (renameError) {
+            // On Windows, renameSync can fail with EEXIST or EPERM when destination exists.
+            // Fall back to delete + rename (not atomic, but necessary for cross-platform support).
+            if (isNodeError(renameError) && (renameError.code === "EEXIST" || renameError.code === "EPERM")) {
+                unlinkSync(path);
+                renameSync(tempPath, path);
+            } else {
+                throw renameError;
+            }
+        }
     } catch (error) {
         // Clean up temp file if it exists
         try {
