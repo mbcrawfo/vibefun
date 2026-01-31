@@ -1,25 +1,19 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { Lexer, Parser, VibefunDiagnostic } from "@vibefun/core";
+import { Lexer, Parser } from "@vibefun/core";
 import { Command } from "commander";
+
+import { formatError } from "./format-error.js";
 
 const program = new Command();
 
 program.name("vibefun").description("Vibefun - A pragmatic functional programming language").version("0.1.0");
 
 /**
- * Format and display a compilation error.
- * Uses VibefunDiagnostic.format() for structured errors with source context.
+ * Display a compilation error to stderr.
  */
 function displayError(error: unknown, source: string): void {
-    if (error instanceof VibefunDiagnostic) {
-        // Use the unified diagnostic formatting with source context
-        console.error(error.format(source));
-    } else if (error instanceof Error) {
-        console.error(`Error: ${error.message}`);
-    } else {
-        console.error(error);
-    }
+    console.error(formatError(error, source));
 }
 
 program
