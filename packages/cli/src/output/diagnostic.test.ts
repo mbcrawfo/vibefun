@@ -127,6 +127,38 @@ describe("formatDiagnosticHuman", () => {
         // Should NOT contain the Error.message format with location
         expect(plainOutput).not.toMatch(/error\[VF1001\]: \[VF1001\]/);
     });
+
+    it("should handle out-of-range line numbers gracefully", () => {
+        const diagnostic = createTestDiagnostic({}, { location: { file: "test.vf", line: 100, column: 1, offset: 0 } });
+        const colors = createColors(true);
+        const output = formatDiagnosticHuman(diagnostic, "let x = 1", colors);
+
+        // Should still format without crashing, just no source context
+        expect(output).toContain("VF1001");
+        expect(output).toContain("test.vf:100:1");
+        // Should not contain source line since line 100 doesn't exist
+        expect(output).not.toContain("let x = 1");
+    });
+
+    it("should handle empty source string", () => {
+        const diagnostic = createTestDiagnostic({}, { location: { file: "test.vf", line: 1, column: 1, offset: 0 } });
+        const colors = createColors(true);
+        const output = formatDiagnosticHuman(diagnostic, "", colors);
+
+        // Should format without crashing
+        expect(output).toContain("VF1001");
+        expect(output).toContain("test.vf:1:1");
+    });
+
+    it("should handle line number 0 gracefully", () => {
+        const diagnostic = createTestDiagnostic({}, { location: { file: "test.vf", line: 0, column: 1, offset: 0 } });
+        const colors = createColors(true);
+        const output = formatDiagnosticHuman(diagnostic, "let x = 1", colors);
+
+        // Should format without crashing
+        expect(output).toContain("VF1001");
+        expect(output).toContain("test.vf:0:1");
+    });
 });
 
 describe("formatDiagnosticsJson", () => {
