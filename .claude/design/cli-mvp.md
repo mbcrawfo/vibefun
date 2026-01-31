@@ -292,7 +292,7 @@ error[VF4001]: Type mismatch
 | No file argument | `vibefun compile` | Usage error, exit 2 |
 | Syntax error | Invalid `.vf` file | Parser error with location, exit 1 |
 | Type error | Type mismatch | Type error with expected/actual, exit 1 |
-| Multiple errors | File with 3 errors | All errors reported, exit 1 |
+| Multiple errors | File with 3 errors | First error reported, exit 1 (multi-error deferred) |
 | Lexer error | Invalid character | Error with location, exit 1 |
 
 ### Global Options
