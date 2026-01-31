@@ -92,7 +92,8 @@ export function writeAtomic(path: string, content: string): void {
             renameSync(tempPath, path);
         } catch (renameError) {
             // On Windows, renameSync can fail with EEXIST or EPERM when destination exists.
-            // Fall back to delete + rename (not atomic, but necessary for cross-platform support).
+            // Windows-specific fallback, cannot test on macOS/Linux CI
+            /* v8 ignore next 6 */
             if (isNodeError(renameError) && (renameError.code === "EEXIST" || renameError.code === "EPERM")) {
                 unlinkSync(path);
                 renameSync(tempPath, path);
