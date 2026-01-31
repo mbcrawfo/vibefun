@@ -119,3 +119,87 @@ describe("serializeTypedAst", () => {
         expect(parsed.types.y).toBe("String");
     });
 });
+
+describe("sanitizeForJson", () => {
+    it("should remove function properties from objects", () => {
+        const module = parse("let x = 42;");
+        // Add a function property to the module (simulating an edge case)
+        const moduleWithFn = {
+            ...module,
+            customFn: (): void => {
+                /* noop */
+            },
+        };
+
+        const output = serializeSurfaceAst(moduleWithFn, "test.vf");
+        const parsed = JSON.parse(output);
+
+        // The function property should be removed
+        expect(parsed.ast.customFn).toBeUndefined();
+    });
+
+    it("should remove symbol properties from objects", () => {
+        const module = parse("let x = 42;");
+        const symbolKey = Symbol("testSymbol");
+        // Add a symbol property to the module
+        const moduleWithSymbol = {
+            ...module,
+            [symbolKey]: "symbolValue",
+        };
+
+        const output = serializeSurfaceAst(moduleWithSymbol, "test.vf");
+        const parsed = JSON.parse(output);
+
+        // Symbol properties are not enumerable by Object.entries, so it won't appear
+        // But we can verify the output is still valid JSON
+        expect(parsed.ast.declarations).toHaveLength(1);
+    });
+
+    it("should convert Set values to arrays", () => {
+        // Create a module-like object with a Set
+        const moduleWithSet = {
+            imports: [],
+            declarations: [],
+            loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            tags: new Set(["tag1", "tag2", "tag3"]),
+        };
+
+        const output = serializeSurfaceAst(moduleWithSet as Module, "test.vf");
+        const parsed = JSON.parse(output);
+
+        // The Set should be converted to an array
+        expect(Array.isArray(parsed.ast.tags)).toBe(true);
+        expect(parsed.ast.tags).toContain("tag1");
+        expect(parsed.ast.tags).toContain("tag2");
+        expect(parsed.ast.tags).toContain("tag3");
+    });
+
+    it("should handle deeply nested Sets and functions", () => {
+        const moduleWithNested = {
+            imports: [],
+            declarations: [],
+            loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            metadata: {
+                options: new Set([1, 2, 3]),
+                handler: (): void => {
+                    /* noop */
+                },
+                nested: {
+                    innerSet: new Set(["a", "b"]),
+                },
+            },
+        };
+
+        const output = serializeSurfaceAst(moduleWithNested as Module, "test.vf");
+        const parsed = JSON.parse(output);
+
+        // Sets should be arrays
+        expect(Array.isArray(parsed.ast.metadata.options)).toBe(true);
+        expect(parsed.ast.metadata.options).toEqual([1, 2, 3]);
+        // Functions should be removed
+        expect(parsed.ast.metadata.handler).toBeUndefined();
+        // Nested Sets should also be arrays
+        expect(Array.isArray(parsed.ast.metadata.nested.innerSet)).toBe(true);
+        expect(parsed.ast.metadata.nested.innerSet).toEqual(["a", "b"]);
+    });
+});

@@ -370,4 +370,176 @@ describe("EtaReductionPass", () => {
             expect(pass.canApply(expr)).toBe(false);
         });
     });
+
+    describe("record with spread fields", () => {
+        it("should handle records with spread fields", () => {
+            // (x) => { ...base, a: f(x) } - not reducible but should traverse
+            const expr: CoreExpr = {
+                kind: "CoreLambda",
+                param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                body: {
+                    kind: "CoreRecord",
+                    fields: [
+                        {
+                            kind: "Spread",
+                            expr: { kind: "CoreVar", name: "base", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        {
+                            kind: "Field",
+                            name: "a",
+                            value: {
+                                kind: "CoreApp",
+                                func: { kind: "CoreVar", name: "f", loc: testLoc },
+                                args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                                loc: testLoc,
+                            },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            // Should not reduce (body is a record, not application)
+            expect(result.kind).toBe("CoreLambda");
+            if (result.kind === "CoreLambda" && result.body.kind === "CoreRecord") {
+                expect(result.body.fields).toHaveLength(2);
+                expect(result.body.fields[0]?.kind).toBe("Spread");
+            }
+        });
+
+        it("should reduce eta expansion in spread expressions", () => {
+            // { ...((x) => f(x))(base) }
+            const expr: CoreExpr = {
+                kind: "CoreRecord",
+                fields: [
+                    {
+                        kind: "Spread",
+                        expr: {
+                            kind: "CoreApp",
+                            func: {
+                                kind: "CoreLambda",
+                                param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                                body: {
+                                    kind: "CoreApp",
+                                    func: { kind: "CoreVar", name: "f", loc: testLoc },
+                                    args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                                    loc: testLoc,
+                                },
+                                loc: testLoc,
+                            },
+                            args: [{ kind: "CoreVar", name: "base", loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreRecord");
+            if (result.kind === "CoreRecord") {
+                const spread = result.fields[0];
+                expect(spread?.kind).toBe("Spread");
+                if (spread?.kind === "Spread" && spread.expr.kind === "CoreApp") {
+                    // The lambda should be reduced to f
+                    expect(spread.expr.func).toEqual({ kind: "CoreVar", name: "f", loc: testLoc });
+                }
+            }
+        });
+    });
+
+    describe("record update with spread fields", () => {
+        it("should handle record updates with spread in updates", () => {
+            // { r with ...((x) => f(x))(extra) }
+            const expr: CoreExpr = {
+                kind: "CoreRecordUpdate",
+                record: { kind: "CoreVar", name: "r", loc: testLoc },
+                updates: [
+                    {
+                        kind: "Spread",
+                        expr: {
+                            kind: "CoreApp",
+                            func: {
+                                kind: "CoreLambda",
+                                param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                                body: {
+                                    kind: "CoreApp",
+                                    func: { kind: "CoreVar", name: "f", loc: testLoc },
+                                    args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                                    loc: testLoc,
+                                },
+                                loc: testLoc,
+                            },
+                            args: [{ kind: "CoreVar", name: "extra", loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreRecordUpdate");
+            if (result.kind === "CoreRecordUpdate") {
+                const update = result.updates[0];
+                expect(update?.kind).toBe("Spread");
+                if (update?.kind === "Spread" && update.expr.kind === "CoreApp") {
+                    // The lambda should be reduced to f
+                    expect(update.expr.func).toEqual({ kind: "CoreVar", name: "f", loc: testLoc });
+                }
+            }
+        });
+    });
+
+    describe("tuple expressions", () => {
+        it("should reduce eta expansion in tuple elements", () => {
+            // ((x) => f(x), (y) => g(y))
+            const expr: CoreExpr = {
+                kind: "CoreTuple",
+                elements: [
+                    {
+                        kind: "CoreLambda",
+                        param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                        body: {
+                            kind: "CoreApp",
+                            func: { kind: "CoreVar", name: "f", loc: testLoc },
+                            args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                    {
+                        kind: "CoreLambda",
+                        param: { kind: "CoreVarPattern", name: "y", loc: testLoc },
+                        body: {
+                            kind: "CoreApp",
+                            func: { kind: "CoreVar", name: "g", loc: testLoc },
+                            args: [{ kind: "CoreVar", name: "y", loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreTuple");
+            if (result.kind === "CoreTuple") {
+                // Both elements should be reduced
+                expect(result.elements[0]).toEqual({ kind: "CoreVar", name: "f", loc: testLoc });
+                expect(result.elements[1]).toEqual({ kind: "CoreVar", name: "g", loc: testLoc });
+            }
+        });
+    });
 });
