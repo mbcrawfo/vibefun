@@ -1,75 +1,71 @@
 # CLI MVP Task List
 
-**Last Updated:** 2026-01-31 (Gap analysis update)
+**Last Updated:** 2026-01-31
 
-## Phase 1: Core Package Exports
+## Phase 1: Core Package Exports ✅ COMPLETE
 
-> **Note:** Verification needed - these exports may already exist in `@vibefun/core`.
-> Run `npm run build -w @vibefun/core` and test imports before marking complete.
+- [x] Verify desugarer exports exist in `packages/core/src/index.ts`
+  - Added `desugarModule` export
+- [x] Verify typechecker exports exist in `packages/core/src/index.ts`
+  - Added `typeCheck`, `TypedModule`, `TypeCheckOptions`, `typeToString` exports
+- [x] Verify Core AST type exports exist
+  - Added `CoreModule`, `CoreExpr`, `CoreDeclaration`, `CorePattern` exports
+- [x] Verify exports work: `npm run build -w @vibefun/core`
 
-- [ ] Verify desugarer exports exist in `packages/core/src/index.ts`
-  - Check `desugarModule` is accessible
-- [ ] Verify typechecker exports exist in `packages/core/src/index.ts`
-  - Check `typeCheck`, `TypedModule`, `TypeCheckOptions` are accessible
-- [ ] Verify Core AST type exports exist
-  - Check `CoreModule`, `CoreExpr`, `CoreDeclaration`, `CorePattern` are accessible
-- [ ] Verify exports work: `npm run build -w @vibefun/core`
+## Phase 2: Stubbed Code Generator ✅ COMPLETE
 
-## Phase 2: Stubbed Code Generator
-
-- [ ] Create `packages/core/src/codegen/index.ts`
-- [ ] Implement `generate(typedModule, options)` stub
+- [x] Create `packages/core/src/codegen/index.ts`
+- [x] Implement `generate(typedModule, options)` stub
   - Returns `{ code: string }` with placeholder JS
-  - Output: `// Vibefun compiled output (codegen stub)\nexport {};`
-- [ ] Export from `packages/core/src/index.ts`
-- [ ] Write unit tests for code generator stub
+  - Output includes source filename and declaration count
+- [x] Export from `packages/core/src/index.ts`
+- [x] Write unit tests for code generator stub
 
-## Phase 3: CLI Utility Modules
+## Phase 3: CLI Utility Modules ✅ COMPLETE
 
 ### Timer (`src/utils/timer.ts`)
-- [ ] Create Timer class with start/stop methods
-- [ ] Implement `getTimings()` returning PhaseTimings
-- [ ] Implement `formatVerbose(filename)` for human output
-- [ ] Implement `toJSON()` for JSON output
-- [ ] Track output byte size for codegen phase
-- [ ] Implement `formatBytes(bytes)` - human-readable size (1.2KB, 2.3MB)
-- [ ] Write unit tests
+- [x] Create Timer class with start/stop methods
+- [x] Implement `getTimings()` returning PhaseTimings
+- [x] Implement `formatVerbose(filename)` for human output
+- [x] Implement `toJSON()` for JSON output
+- [x] Track output byte size for codegen phase
+- [x] Implement `formatBytes(bytes)` - human-readable size (1.2KB, 2.3MB)
+- [x] Write unit tests
 
 ### Colors (`src/utils/colors.ts`)
-- [ ] Implement `shouldUseColor(options)` with detection logic
+- [x] Implement `shouldUseColor(options)` with detection logic
   - Handle --color/--no-color flags
   - Handle NO_COLOR/FORCE_COLOR env vars
   - Handle CI env var
   - Handle TTY detection
-- [ ] Implement color functions (red, yellow, cyan, dim, bold)
-- [ ] Write unit tests
+- [x] Implement color functions (red, yellow, cyan, dim, bold)
+- [x] Write unit tests
 
 ### File I/O (`src/utils/file-io.ts`)
-- [ ] Implement `stripBom(content)` - remove UTF-8 BOM
-- [ ] Implement `normalizeLineEndings(content)` - convert to LF
-- [ ] Implement `readSourceFile(path)` with error handling
-- [ ] Implement `writeAtomic(path, content)` - temp file + rename
-- [ ] Write unit tests
+- [x] Implement `stripBom(content)` - remove UTF-8 BOM
+- [x] Implement `normalizeLineEndings(content)` - convert to LF
+- [x] Implement `readSourceFile(path)` with error handling
+- [x] Implement `writeAtomic(path, content)` - temp file + rename
+- [x] Write unit tests
 
-## Phase 4: Output Modules
+## Phase 4: Output Modules ✅ COMPLETE
 
 ### Diagnostics (`src/output/diagnostic.ts`)
-- [ ] Define `JsonDiagnostic` interface matching cli-mvp.md spec
-- [ ] Implement `formatDiagnosticHuman(diagnostic, source, useColor)`
-- [ ] Implement `formatDiagnosticsJson(diagnostics, timings?)`
-- [ ] Implement `toJsonDiagnostic(diagnostic)` conversion
-- [ ] Support collecting multiple diagnostics (up to 10 per file)
-- [ ] Implement `formatDiagnosticsJson` with optional `timing` field
-- [ ] Handle --verbose --json combination (timing in JSON, not stderr)
-- [ ] Write unit tests
+- [x] Define `JsonDiagnostic` interface matching cli-mvp.md spec
+- [x] Implement `formatDiagnosticHuman(diagnostic, source, useColor)`
+- [x] Implement `formatDiagnosticsJson(diagnostics, timings?)`
+- [x] Implement `toJsonDiagnostic(diagnostic)` conversion
+- [x] Implement `formatSuccessJson` for success output
+- [x] Handle --verbose --json combination (timing in JSON output)
+- [x] Write unit tests
 
 ### AST JSON (`src/output/ast-json.ts`)
-- [ ] Define `AstOutput` interface
-- [ ] Implement `serializeSurfaceAst(module, filename)`
-- [ ] Implement `serializeTypedAst(typedModule, filename)`
+- [x] Define `AstOutput` interface
+- [x] Implement `serializeSurfaceAst(module, filename)`
+- [x] Implement `serializeTypedAst(typedModule, filename)`
   - Include declaration types as formatted strings
-- [ ] Implement `countNodes(module)` helper
-- [ ] Write unit tests
+- [x] Implement `countNodes(module)` helper
+- [x] Write unit tests
 
 ## Phase 5: Compile Command
 
