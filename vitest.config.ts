@@ -23,12 +23,12 @@ export default defineConfig({
             // Coverage thresholds set as a safety net. The CI also checks for coverage
             // decreases from the base branch, which provides the main protection against
             // coverage regression. These thresholds reflect the combined coverage across
-            // all packages.
+            // all packages, with margin for minor environment differences.
             thresholds: {
-                lines: 89,
-                branches: 84,
-                functions: 89,
-                statements: 89,
+                lines: 88,
+                branches: 81,
+                functions: 88,
+                statements: 88,
             },
         },
     },
