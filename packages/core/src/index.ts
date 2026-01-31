@@ -5,6 +5,22 @@ export type { Token, Keyword, Location } from "./types/index.js";
 export { Parser } from "./parser/index.js";
 export type { Module, Declaration, Expr, Pattern, TypeExpr, Literal } from "./types/index.js";
 
+// Core AST types (desugared form)
+export type { CoreModule, CoreDeclaration, CoreExpr, CorePattern } from "./types/index.js";
+
+// Desugarer - transforms Surface AST to Core AST
+export { desugarModule } from "./desugarer/index.js";
+
+// Typechecker - type inference and checking
+export { typeCheck } from "./typechecker/index.js";
+export type { TypedModule, TypeCheckOptions } from "./typechecker/index.js";
+export { typeToString } from "./typechecker/index.js";
+export type { Type, TypeEnv } from "./types/index.js";
+
+// Code generator - transforms typed AST to JavaScript
+export { generate } from "./codegen/index.js";
+export type { GenerateOptions, GenerateResult } from "./codegen/index.js";
+
 // Unified diagnostic system
 export { VibefunDiagnostic, createDiagnostic, throwDiagnostic, WarningCollector } from "./diagnostics/index.js";
 export type { DiagnosticSeverity, DiagnosticPhase, DiagnosticDefinition, Diagnostic } from "./diagnostics/index.js";

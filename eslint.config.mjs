@@ -80,6 +80,14 @@ export default [
     },
     {
         files: ['packages/cli/src/**/*.ts'],
+        languageOptions: {
+            globals: {
+                console: 'readonly',
+                process: 'readonly',
+                performance: 'readonly',
+                NodeJS: 'readonly',
+            },
+        },
         rules: {
             // CLI can use console
             'no-console': 'off',
