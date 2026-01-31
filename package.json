@@ -21,7 +21,8 @@
         "verify": "npm run build && npm run check && npm run lint && npm run test && npm run format:check",
         "clean": "npm run clean --workspaces --if-present",
         "docs:errors": "node --experimental-strip-types scripts/generate-error-docs.ts",
-        "docs:errors:check": "node --experimental-strip-types scripts/generate-error-docs.ts --check"
+        "docs:errors:check": "node --experimental-strip-types scripts/generate-error-docs.ts --check",
+        "vibefun": "node packages/cli/dist/index.js"
     },
     "keywords": [
         "functional-programming",
