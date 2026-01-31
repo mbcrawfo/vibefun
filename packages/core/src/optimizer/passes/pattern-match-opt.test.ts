@@ -557,4 +557,137 @@ describe("PatternMatchOptimizationPass", () => {
             expect(pass.canApply(expr)).toBe(false);
         });
     });
+
+    describe("tuple optimization", () => {
+        it("should optimize match expressions containing tuples in case bodies", () => {
+            // match x { Some(y) => (1, y) | None => (0, 0) }
+            const expr: CoreExpr = {
+                kind: "CoreMatch",
+                expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                cases: [
+                    {
+                        pattern: {
+                            kind: "CoreVariantPattern",
+                            constructor: "Some",
+                            args: [{ kind: "CoreVarPattern", name: "y", loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        body: {
+                            kind: "CoreTuple",
+                            elements: [
+                                { kind: "CoreIntLit", value: 1, loc: testLoc },
+                                { kind: "CoreVar", name: "y", loc: testLoc },
+                            ],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                    {
+                        pattern: { kind: "CoreVariantPattern", constructor: "None", args: [], loc: testLoc },
+                        body: {
+                            kind: "CoreTuple",
+                            elements: [
+                                { kind: "CoreIntLit", value: 0, loc: testLoc },
+                                { kind: "CoreIntLit", value: 0, loc: testLoc },
+                            ],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreMatch");
+            if (result.kind === "CoreMatch") {
+                expect(result.cases).toHaveLength(2);
+                // Tuple bodies should be preserved
+                expect(result.cases[0]?.body.kind).toBe("CoreTuple");
+                expect(result.cases[1]?.body.kind).toBe("CoreTuple");
+            }
+        });
+    });
+
+    describe("record and tuple pattern reordering", () => {
+        it("should reorder record patterns before catch-all when no guards", () => {
+            // match x { _ => 1 | { a: 1 } => 2 }
+            const expr: CoreExpr = {
+                kind: "CoreMatch",
+                expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                cases: [
+                    {
+                        pattern: { kind: "CoreWildcardPattern", loc: testLoc },
+                        body: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                        loc: testLoc,
+                    },
+                    {
+                        pattern: {
+                            kind: "CoreRecordPattern",
+                            fields: [
+                                {
+                                    name: "a",
+                                    pattern: { kind: "CoreLiteralPattern", literal: 1, loc: testLoc },
+                                    loc: testLoc,
+                                },
+                            ],
+                            loc: testLoc,
+                        },
+                        body: { kind: "CoreIntLit", value: 2, loc: testLoc },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreMatch");
+            if (result.kind === "CoreMatch") {
+                // Record pattern should come first, then wildcard
+                expect(result.cases).toHaveLength(2);
+                expect(result.cases[0]?.pattern.kind).toBe("CoreRecordPattern");
+                expect(result.cases[1]?.pattern.kind).toBe("CoreWildcardPattern");
+            }
+        });
+
+        it("should reorder tuple patterns before catch-all when no guards", () => {
+            // match x { _ => 1 | (1, 2) => 2 }
+            const expr: CoreExpr = {
+                kind: "CoreMatch",
+                expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                cases: [
+                    {
+                        pattern: { kind: "CoreWildcardPattern", loc: testLoc },
+                        body: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                        loc: testLoc,
+                    },
+                    {
+                        pattern: {
+                            kind: "CoreTuplePattern",
+                            elements: [
+                                { kind: "CoreLiteralPattern", literal: 1, loc: testLoc },
+                                { kind: "CoreLiteralPattern", literal: 2, loc: testLoc },
+                            ],
+                            loc: testLoc,
+                        },
+                        body: { kind: "CoreIntLit", value: 2, loc: testLoc },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreMatch");
+            if (result.kind === "CoreMatch") {
+                // Tuple pattern should come first, then wildcard
+                expect(result.cases).toHaveLength(2);
+                expect(result.cases[0]?.pattern.kind).toBe("CoreTuplePattern");
+                expect(result.cases[1]?.pattern.kind).toBe("CoreWildcardPattern");
+            }
+        });
+    });
 });
