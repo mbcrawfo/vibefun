@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 /**
- * Check for coverage decrease across all packages
+ * Check for coverage decrease in the combined coverage report
  *
  * Usage:
  *   node --experimental-strip-types scripts/ci/check-coverage-decrease.ts
@@ -20,8 +20,7 @@ interface CoverageSummary {
     };
 }
 
-interface PackageResult {
-    package: string;
+interface CoverageResult {
     status: "improved" | "maintained" | "decreased" | "skipped" | "new";
     baseCoverage?: number;
     currentCoverage?: number;
@@ -29,7 +28,6 @@ interface PackageResult {
     reason?: string;
 }
 
-const PACKAGES = ["core", "stdlib", "cli"];
 const THRESHOLD = 0.01; // Tolerance for floating point precision
 
 const baseCoveragePath = process.env["BASE_COVERAGE_PATH"] ?? "base-coverage";
@@ -71,18 +69,17 @@ function readCoverageSummary(filepath: string): CoverageSummary | null {
     }
 }
 
-function checkPackage(pkg: string): PackageResult {
-    const currentPath = path.join("packages", pkg, "coverage", "coverage-summary.json");
-    const basePath = path.join(baseCoveragePath, "packages", pkg, "coverage", "coverage-summary.json");
+function checkCoverage(): CoverageResult {
+    const currentPath = path.join("coverage", "coverage-summary.json");
+    const basePath = path.join(baseCoveragePath, "coverage-summary.json");
 
     const current = readCoverageSummary(currentPath);
     const base = readCoverageSummary(basePath);
 
     if (!current) {
         return {
-            package: pkg,
             status: "skipped",
-            reason: "No coverage data (package may have no tests)",
+            reason: "No coverage data found",
         };
     }
 
@@ -90,10 +87,9 @@ function checkPackage(pkg: string): PackageResult {
 
     if (!base) {
         return {
-            package: pkg,
             status: "new",
             currentCoverage,
-            reason: "No base coverage to compare (new package or first coverage)",
+            reason: "No base coverage to compare (first coverage run)",
         };
     }
 
@@ -102,7 +98,6 @@ function checkPackage(pkg: string): PackageResult {
 
     if (currentCoverage < baseCoverage - THRESHOLD) {
         return {
-            package: pkg,
             status: "decreased",
             baseCoverage,
             currentCoverage,
@@ -110,7 +105,6 @@ function checkPackage(pkg: string): PackageResult {
         };
     } else if (Math.abs(change) <= THRESHOLD) {
         return {
-            package: pkg,
             status: "maintained",
             baseCoverage,
             currentCoverage,
@@ -118,7 +112,6 @@ function checkPackage(pkg: string): PackageResult {
         };
     } else {
         return {
-            package: pkg,
             status: "improved",
             baseCoverage,
             currentCoverage,
@@ -128,48 +121,36 @@ function checkPackage(pkg: string): PackageResult {
 }
 
 function main(): void {
-    console.log("Checking coverage across all packages...\n");
+    console.log("Checking combined coverage...\n");
 
-    const results: PackageResult[] = PACKAGES.map(checkPackage);
-    let hasFailure = false;
+    const result = checkCoverage();
 
-    for (const result of results) {
-        const pkgName = `@vibefun/${result.package}`;
-
-        switch (result.status) {
-            case "skipped":
-                console.log(`   ${pkgName}: Skipped - ${result.reason}`);
-                break;
-            case "new":
-                console.log(`   ${pkgName}: New coverage at ${result.currentCoverage}%`);
-                break;
-            case "maintained":
-                console.log(`   ${pkgName}: Coverage maintained at ~${result.currentCoverage}%`);
-                break;
-            case "improved":
-                console.log(
-                    `   ${pkgName}: Coverage improved by ${result.change?.toFixed(2)}% ` +
-                        `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
-                );
-                break;
-            case "decreased":
-                console.log(
-                    `   ${pkgName}: Coverage decreased by ${Math.abs(result.change ?? 0).toFixed(2)}% ` +
-                        `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
-                );
-                hasFailure = true;
-                break;
-        }
+    switch (result.status) {
+        case "skipped":
+            console.log(`   Skipped - ${result.reason}`);
+            break;
+        case "new":
+            console.log(`   New coverage at ${result.currentCoverage}%`);
+            break;
+        case "maintained":
+            console.log(`   Coverage maintained at ~${result.currentCoverage}%`);
+            break;
+        case "improved":
+            console.log(
+                `   Coverage improved by ${result.change?.toFixed(2)}% ` +
+                    `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
+            );
+            break;
+        case "decreased":
+            console.log(
+                `   Coverage decreased by ${Math.abs(result.change ?? 0).toFixed(2)}% ` +
+                    `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
+            );
+            console.log("\nCoverage check failed. Please add tests to maintain or improve coverage.");
+            process.exit(1);
     }
 
-    console.log("");
-
-    if (hasFailure) {
-        console.log("Coverage check failed. Please add tests to maintain or improve coverage.");
-        process.exit(1);
-    } else {
-        console.log("Coverage check passed.");
-    }
+    console.log("\nCoverage check passed.");
 }
 
 main();

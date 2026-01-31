@@ -50,7 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
-          path: packages/*/coverage/
+          path: coverage/
           retention-days: 30
 
       - name: Upload build outputs
@@ -76,29 +76,11 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node --experimental-strip-types scripts/ci/check-coverage-decrease.ts
 
-      - name: Report coverage - core
+      - name: Report coverage
         if: github.event_name == 'pull_request' && always()
         uses: davelosert/vitest-coverage-report-action@v2
         with:
-          name: '@vibefun/core'
-          json-summary-path: packages/core/coverage/coverage-summary.json
-          json-final-path: packages/core/coverage/coverage-final.json
-          file-coverage-mode: 'changes'
-
-      - name: Report coverage - stdlib
-        if: github.event_name == 'pull_request' && always()
-        uses: davelosert/vitest-coverage-report-action@v2
-        with:
-          name: '@vibefun/stdlib'
-          json-summary-path: packages/stdlib/coverage/coverage-summary.json
-          json-final-path: packages/stdlib/coverage/coverage-final.json
-          file-coverage-mode: 'changes'
-
-      - name: Report coverage - cli
-        if: github.event_name == 'pull_request' && always()
-        uses: davelosert/vitest-coverage-report-action@v2
-        with:
-          name: '@vibefun/cli'
-          json-summary-path: packages/cli/coverage/coverage-summary.json
-          json-final-path: packages/cli/coverage/coverage-final.json
+          name: 'Combined Coverage'
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
           file-coverage-mode: 'changes'
