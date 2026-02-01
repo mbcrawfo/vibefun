@@ -92,11 +92,16 @@ This must be done first because it's a correctness bug independent of the new op
 - [ ] Verify all switch statements are exhaustive (TypeScript will error if not)
 - [ ] Manual verification: Run the integration tests to confirm AST lowering works end-to-end
 
-## Phase 8: Documentation & Cleanup (Optional)
+## Phase 8: Documentation & Cleanup
 
+### Required Documentation Updates
+- [ ] Update language spec (`docs/spec/`) with IntDivide/FloatDivide semantics and truncation-toward-zero behavior
+- [ ] Update `.claude/VIBEFUN_AI_CODING_GUIDE.md` with the new division operator details
+- [ ] Update codegen-requirements.md if any decisions changed during implementation
+
+### Optional Cleanup
 - [ ] Update any relevant doc comments in modified files
 - [ ] Consider removing `"Divide"` from `CoreBinaryOp` if confident no code paths use it
-- [ ] Update codegen-requirements.md if any decisions changed
 
 ---
 
@@ -111,7 +116,7 @@ This must be done first because it's a correctness bug independent of the new op
 | Phase 5: Constant Folding | 🔜 Not Started | Handle new operators |
 | Phase 6: Tests | 🔜 Not Started | Comprehensive test coverage |
 | Phase 7: Verification | 🔜 Not Started | Full verification suite |
-| Phase 8: Cleanup | 🔜 Not Started | Optional cleanup |
+| Phase 8: Documentation | 🔜 Not Started | Spec & guide updates |
 
 **Overall Progress:** 0/8 phases complete
 
