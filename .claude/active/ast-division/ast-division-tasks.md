@@ -31,13 +31,13 @@ This must be done first because it's a correctness bug independent of the new op
 
 ## Phase 4: Inline Lowering in Type Inference
 
-- [ ] Modify `inferBinOp()` in `infer-operators.ts`:
+- [x] Modify `inferBinOp()` in `infer-operators.ts`:
   - After computing `finalSubst` (around line 88), check if `expr.op === "Divide"`
   - Determine operand types using `applySubst(finalSubst, leftResult.type)` and `applySubst(finalSubst, rightResult.type)`
   - If both types are `Int` (type: "Const", name: "Int"), mutate `expr.op` to `"IntDivide"`
   - Otherwise (Float or unresolved type variable), mutate `expr.op` to `"FloatDivide"`
-- [ ] Add helper function `isIntType(type: Type): boolean` if needed for cleaner code
-- [ ] Run `npm run check` to verify
+- [x] Add helper function `isIntType(type: Type): boolean` if needed for cleaner code
+- [x] Run `npm run check` to verify
 
 **Implementation detail:** The mutation must happen before the `return` statement. Use `(expr as { op: CoreBinaryOp }).op = "IntDivide"` to satisfy TypeScript's readonly concerns if needed.
 
@@ -112,13 +112,13 @@ This must be done first because it's a correctness bug independent of the new op
 | Phase 1: Bug Fix | ✅ Done | Fix Math.floor → Math.trunc |
 | Phase 2: Core AST | ✅ Done | Add IntDivide/FloatDivide types |
 | Phase 3: Type Checker | ✅ Done | Add operator type cases |
-| Phase 4: Lowering | 🔜 Not Started | Inline lowering in inferBinOp |
+| Phase 4: Lowering | ✅ Done | Inline lowering in inferBinOp |
 | Phase 5: Constant Folding | 🔜 Not Started | Handle new operators |
 | Phase 6: Tests | 🔜 Not Started | Comprehensive test coverage |
 | Phase 7: Verification | 🔜 Not Started | Full verification suite |
 | Phase 8: Documentation | 🔜 Not Started | Spec & guide updates |
 
-**Overall Progress:** 3/8 phases complete
+**Overall Progress:** 4/8 phases complete
 
 ---
 

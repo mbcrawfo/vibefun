@@ -87,7 +87,26 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     // Apply substitution to result type
     const finalResultType = applySubst(finalSubst, resultType);
 
+    // Inline lowering: Replace "Divide" with specific division operator
+    // based on the inferred operand types
+    if (expr.op === "Divide") {
+        const leftTypeResolved = applySubst(finalSubst, leftResult.type);
+        const rightTypeResolved = applySubst(finalSubst, rightResult.type);
+
+        const isIntDiv = isIntType(leftTypeResolved) && isIntType(rightTypeResolved);
+
+        // Mutate the operator in place - safe since Core AST won't be reused pre-lowering
+        (expr as { op: CoreBinaryOp }).op = isIntDiv ? "IntDivide" : "FloatDivide";
+    }
+
     return { type: finalResultType, subst: finalSubst };
+}
+
+/**
+ * Check if a type is the Int primitive type
+ */
+function isIntType(t: Type): boolean {
+    return t.type === "Const" && t.name === "Int";
 }
 
 /**
