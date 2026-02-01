@@ -4,7 +4,7 @@
 
 ## Overview
 
-Add `IntDivide` and `FloatDivide` operators to the Core AST to replace the generic `Divide` operator. This enables proper code generation with distinct JavaScript output for integer vs float division.
+Add `IntDivide` and `FloatDivide` operators to the Core AST alongside the existing `Divide` operator. The type checker will lower `Divide` to the appropriate specific operator during inference. This enables proper code generation with distinct JavaScript output for integer vs float division.
 
 ## Background
 

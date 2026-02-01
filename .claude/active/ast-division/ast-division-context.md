@@ -115,3 +115,7 @@ These switch statements will get TypeScript exhaustiveness warnings after adding
 | `optimizer/passes/constant-folding.ts` | 98 | Float arithmetic - needs `FloatDivide` case |
 
 **Note:** Other switch statements (lines 152, 181, 226) handle comparison/boolean/string ops and don't need changes.
+
+## Maintenance Notes
+
+**Line numbers may shift:** This document references specific line numbers for precision during implementation. These should be re-verified at implementation time, as other changes to the codebase may have shifted them. Function and type names (e.g., `getBinOpTypes()`, `CoreBinaryOp`) are the stable references.
