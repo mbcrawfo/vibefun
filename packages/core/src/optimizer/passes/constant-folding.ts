@@ -71,7 +71,9 @@ export class ConstantFoldingPass extends OptimizationPass {
                 case "Divide":
                     // Don't fold division by zero (runtime error)
                     if (r === 0) return expr;
-                    return { kind: "CoreIntLit", value: Math.floor(l / r), loc };
+                    // Use Math.trunc for truncation toward zero (not Math.floor)
+                    // -7 / 2 = -3 (truncation), not -4 (floor)
+                    return { kind: "CoreIntLit", value: Math.trunc(l / r), loc };
                 case "Modulo":
                     if (r === 0) return expr;
                     return { kind: "CoreIntLit", value: l % r, loc };

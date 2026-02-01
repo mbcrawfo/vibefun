@@ -67,7 +67,7 @@ describe("ConstantFoldingPass", () => {
 
             const result = pass.transform(expr);
 
-            expect(result).toEqual({ kind: "CoreIntLit", value: 3, loc: testLoc }); // Floor division
+            expect(result).toEqual({ kind: "CoreIntLit", value: 3, loc: testLoc }); // Truncation toward zero
         });
 
         it("should fold integer modulo", () => {
@@ -110,6 +110,51 @@ describe("ConstantFoldingPass", () => {
             const result = pass.transform(expr);
 
             expect(result).toEqual(expr); // Unchanged
+        });
+
+        it("should truncate toward zero for negative dividend", () => {
+            // -7 / 2 should equal -3 (truncation toward zero, not -4 like floor)
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "Divide",
+                left: { kind: "CoreIntLit", value: -7, loc: testLoc },
+                right: { kind: "CoreIntLit", value: 2, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: -3, loc: testLoc });
+        });
+
+        it("should truncate toward zero for negative divisor", () => {
+            // 7 / -2 should equal -3 (truncation toward zero)
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "Divide",
+                left: { kind: "CoreIntLit", value: 7, loc: testLoc },
+                right: { kind: "CoreIntLit", value: -2, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: -3, loc: testLoc });
+        });
+
+        it("should truncate toward zero when both operands are negative", () => {
+            // -7 / -2 should equal 3 (truncation toward zero)
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "Divide",
+                left: { kind: "CoreIntLit", value: -7, loc: testLoc },
+                right: { kind: "CoreIntLit", value: -2, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: 3, loc: testLoc });
         });
     });
 
