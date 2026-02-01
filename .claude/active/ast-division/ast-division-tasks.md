@@ -43,10 +43,10 @@ This must be done first because it's a correctness bug independent of the new op
 
 ## Phase 5: Constant Folding Updates
 
-- [ ] Add `"IntDivide"` case in integer arithmetic section (around line 75) using `Math.trunc(l / r)`
-- [ ] Add `"FloatDivide"` case in float arithmetic section (around line 120) preserving current float logic
-- [ ] Keep `"Divide"` case using `Math.trunc` (for backwards compatibility with unit tests that construct AST directly)
-- [ ] Run `npm run check` to verify
+- [x] Add `"IntDivide"` case in integer arithmetic section (around line 75) using `Math.trunc(l / r)`
+- [x] Add `"FloatDivide"` case in float arithmetic section (around line 120) preserving current float logic
+- [x] Keep `"Divide"` case using `Math.trunc` (for backwards compatibility with unit tests that construct AST directly)
+- [x] Run `npm run check` to verify
 
 **Note:** After type checking, the optimizer will only see `IntDivide` and `FloatDivide`. The `Divide` case is kept for tests that construct Core AST directly without going through the full pipeline.
 
@@ -113,12 +113,12 @@ This must be done first because it's a correctness bug independent of the new op
 | Phase 2: Core AST | ✅ Done | Add IntDivide/FloatDivide types |
 | Phase 3: Type Checker | ✅ Done | Add operator type cases |
 | Phase 4: Lowering | ✅ Done | Inline lowering in inferBinOp |
-| Phase 5: Constant Folding | 🔜 Not Started | Handle new operators |
+| Phase 5: Constant Folding | ✅ Done | Handle new operators |
 | Phase 6: Tests | 🔜 Not Started | Comprehensive test coverage |
 | Phase 7: Verification | 🔜 Not Started | Full verification suite |
 | Phase 8: Documentation | 🔜 Not Started | Spec & guide updates |
 
-**Overall Progress:** 4/8 phases complete
+**Overall Progress:** 5/8 phases complete
 
 ---
 
