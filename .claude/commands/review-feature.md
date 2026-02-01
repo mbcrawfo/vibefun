@@ -20,4 +20,4 @@ Carefully review the $1 feature ($1-plan.md, $1-context.md, and $1-tasks.md).  T
 - Are prerequisite changes or dependencies on other features identified?
 - Will the changes require updates to the standard library (`@vibefun/std`)?
 
-Ask clarifying questions and perform any research necessary to improve the feature, then update $1-plan.md, $1-context.md, and $1-tasks.md.
+Ask clarifying questions and perform any research necessary to improve the feature, then update $1-plan.md, $1-context.md, and $1-tasks.md. Ensure those files have updated "Last Updated" timestamps and mark completed tasks immediately upon finishing.
