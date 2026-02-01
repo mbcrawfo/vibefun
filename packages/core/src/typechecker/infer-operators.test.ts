@@ -199,6 +199,57 @@ describe("Type Inference - Binary Operators", () => {
 
         expect(expr.op).toBe("IntDivide");
     });
+
+    it("should infer Float result type for Divide with Float operands", () => {
+        const left: CoreFloatLit = { kind: "CoreFloatLit", value: 5.0, loc: testLoc };
+        const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.0, loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "Divide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Float);
+    });
+
+    it("should lower Divide to FloatDivide for Float operands", () => {
+        const left: CoreFloatLit = { kind: "CoreFloatLit", value: 5.0, loc: testLoc };
+        const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.0, loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "Divide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        // After inference, the operator should be mutated to FloatDivide
+        inferExpr(ctx, expr);
+
+        expect(expr.op).toBe("FloatDivide");
+    });
+
+    it("should reject Divide with mixed Int and Float operands", () => {
+        const left: CoreIntLit = { kind: "CoreIntLit", value: 5, loc: testLoc };
+        const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.0, loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "Divide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        // Should throw because Int and Float cannot unify
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("should reject Divide with non-numeric operands", () => {
+        const left: CoreStringLit = { kind: "CoreStringLit", value: "hello", loc: testLoc };
+        const right: CoreStringLit = { kind: "CoreStringLit", value: "world", loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "Divide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        // Should throw because String is not a numeric type
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
 });
 
 describe("Type Inference - Unary Operators", () => {

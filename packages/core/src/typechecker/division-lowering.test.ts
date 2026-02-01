@@ -216,4 +216,122 @@ describe("Division Lowering Integration", () => {
         expect(divOp.kind).toBe("CoreBinOp");
         expect(divOp.op).toBe("IntDivide");
     });
+
+    it("should lower Divide to FloatDivide for Float literals", () => {
+        // let x = 5.0 / 2.0
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: {
+                    kind: "CoreBinOp",
+                    op: "Divide",
+                    left: { kind: "CoreFloatLit", value: 5.0, loc: testLoc },
+                    right: { kind: "CoreFloatLit", value: 2.0, loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: true,
+                loc: testLoc,
+            },
+        ]);
+
+        const typedModule = typeCheck(module);
+
+        // Get the let declaration
+        const decl = typedModule.module.declarations[0] as CoreLetDecl;
+        expect(decl.kind).toBe("CoreLetDecl");
+
+        // The value should be a binary op with FloatDivide (lowered from Divide)
+        const binOp = decl.value as CoreBinOp;
+        expect(binOp.kind).toBe("CoreBinOp");
+        expect(binOp.op).toBe("FloatDivide");
+    });
+
+    it("should lower Divide to FloatDivide inside lambda body with Float operands", () => {
+        // let f = (x) => x / 2.0   (where x is inferred to be Float from usage)
+        // Since 2.0 is Float, x must also be Float, so division becomes FloatDivide
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                value: {
+                    kind: "CoreLambda",
+                    param: {
+                        kind: "CoreVarPattern",
+                        name: "x",
+                        loc: testLoc,
+                    },
+                    body: {
+                        kind: "CoreBinOp",
+                        op: "Divide",
+                        left: { kind: "CoreVar", name: "x", loc: testLoc },
+                        right: { kind: "CoreFloatLit", value: 2.0, loc: testLoc },
+                        loc: testLoc,
+                    },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: true,
+                loc: testLoc,
+            },
+        ]);
+
+        const typedModule = typeCheck(module);
+
+        // Get the let declaration
+        const decl = typedModule.module.declarations[0] as CoreLetDecl;
+        expect(decl.kind).toBe("CoreLetDecl");
+
+        // The value should be a lambda
+        const lambda = decl.value as CoreLambda;
+        expect(lambda.kind).toBe("CoreLambda");
+
+        // The body should be a binary op with FloatDivide
+        const binOp = lambda.body as CoreBinOp;
+        expect(binOp.kind).toBe("CoreBinOp");
+        expect(binOp.op).toBe("FloatDivide");
+    });
+
+    it("should lower nested Float divisions correctly", () => {
+        // let x = (10.0 / 2.0) / 3.0
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: {
+                    kind: "CoreBinOp",
+                    op: "Divide",
+                    left: {
+                        kind: "CoreBinOp",
+                        op: "Divide",
+                        left: { kind: "CoreFloatLit", value: 10.0, loc: testLoc },
+                        right: { kind: "CoreFloatLit", value: 2.0, loc: testLoc },
+                        loc: testLoc,
+                    },
+                    right: { kind: "CoreFloatLit", value: 3.0, loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: true,
+                loc: testLoc,
+            },
+        ]);
+
+        const typedModule = typeCheck(module);
+
+        // Get the let declaration
+        const decl = typedModule.module.declarations[0] as CoreLetDecl;
+        const outerBinOp = decl.value as CoreBinOp;
+
+        // Both outer and inner divisions should be FloatDivide
+        expect(outerBinOp.op).toBe("FloatDivide");
+
+        const innerBinOp = outerBinOp.left as CoreBinOp;
+        expect(innerBinOp.kind).toBe("CoreBinOp");
+        expect(innerBinOp.op).toBe("FloatDivide");
+    });
 });

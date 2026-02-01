@@ -8,6 +8,8 @@ import type { CoreBinaryOp, CoreExpr, CoreUnary } from "../../types/core-ast.js"
 import type { Type } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
+import { throwDiagnostic } from "../../diagnostics/index.js";
+import { typeToString } from "../format.js";
 import { appType, constType, freshTypeVar, primitiveTypes } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
@@ -69,6 +71,41 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
         return { type: primitiveTypes.Unit, subst: finalSubst };
     }
 
+    // Special handling for Divide: infer operand types, then lower to IntDivide or FloatDivide
+    if (expr.op === "Divide") {
+        const unifyCtx = { loc: expr.loc };
+
+        // Unify left and right (must be same type)
+        const unifySubst = unify(leftType, rightType, unifyCtx);
+        const finalSubst = composeSubst(unifySubst, currentSubst);
+
+        // Get the resolved type
+        const resolvedType = applySubst(finalSubst, leftType);
+
+        // Check if resolved type is numeric (Int or Float)
+        const isInt = isIntType(resolvedType);
+        const isFloat = isFloatType(resolvedType);
+
+        if (!isInt && !isFloat) {
+            // Check if it's a known non-numeric type
+            if (resolvedType.type === "Const") {
+                // Concrete non-numeric type (String, Bool, etc.)
+                throwDiagnostic("VF4010", expr.loc, {
+                    op: "/",
+                    left: typeToString(resolvedType),
+                    right: typeToString(resolvedType),
+                });
+            }
+            // Type variable - default to FloatDivide (safe default for IEEE 754 semantics)
+            // This matches existing behavior where FloatDivide was the fallback
+        }
+
+        // Lower to specific operator
+        (expr as { op: CoreBinaryOp }).op = isInt ? "IntDivide" : "FloatDivide";
+
+        return { type: resolvedType, subst: finalSubst };
+    }
+
     // Determine expected types and result type based on operator
     const { paramType, resultType } = getBinOpTypes(expr.op);
 
@@ -87,18 +124,6 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     // Apply substitution to result type
     const finalResultType = applySubst(finalSubst, resultType);
 
-    // Inline lowering: Replace "Divide" with specific division operator
-    // based on the inferred operand types
-    if (expr.op === "Divide") {
-        const leftTypeResolved = applySubst(finalSubst, leftResult.type);
-        const rightTypeResolved = applySubst(finalSubst, rightResult.type);
-
-        const isIntDiv = isIntType(leftTypeResolved) && isIntType(rightTypeResolved);
-
-        // Mutate the operator in place - safe since Core AST won't be reused pre-lowering
-        (expr as { op: CoreBinaryOp }).op = isIntDiv ? "IntDivide" : "FloatDivide";
-    }
-
     return { type: finalResultType, subst: finalSubst };
 }
 
@@ -107,6 +132,13 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
  */
 function isIntType(t: Type): boolean {
     return t.type === "Const" && t.name === "Int";
+}
+
+/**
+ * Check if a type is the Float primitive type
+ */
+function isFloatType(t: Type): boolean {
+    return t.type === "Const" && t.name === "Float";
 }
 
 /**
@@ -122,7 +154,6 @@ function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } 
         case "Add":
         case "Subtract":
         case "Multiply":
-        case "Divide": // Pre-lowering: treated as Int, will be lowered to IntDivide/FloatDivide
         case "Modulo": {
             // Currently require Int for arithmetic operators
             // TODO: Add polymorphic arithmetic to support Float operators
@@ -130,6 +161,11 @@ function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } 
                 paramType: primitiveTypes.Int,
                 resultType: primitiveTypes.Int,
             };
+        }
+
+        // Divide is handled with special logic in inferBinOp before this function is called
+        case "Divide": {
+            throw new Error("Divide should be handled by special case logic in inferBinOp");
         }
 
         // Integer division (post-lowering): (Int, Int) -> Int
