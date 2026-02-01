@@ -94,7 +94,7 @@ let x = Float.fromInt(5) + 2.0;
 // 7 / -2 = -3
 // -7 / -2 = 3
 
-// Float division gives exact result
+// Float division follows IEEE 754 semantics (may round)
 // 7.0 / 2.0 = 3.5
 // -7.0 / 2.0 = -3.5
 
