@@ -21,6 +21,16 @@ It produces readable, ES2020-compliant JavaScript that correctly implements vibe
 3. **Modularity**: Architecture must support multiple output targets in the future
 4. **Performance**: Generated code should be reasonably efficient
 
+### 1.3 Non-Goals (MVP)
+
+The following are explicitly out of scope for the initial implementation:
+
+1. **Source maps**: Will be added in a future phase
+2. **Runtime type checking**: FFI boundary checks deferred
+3. **Multiple ES targets**: Only ES2020 for now
+4. **Minification**: Output prioritizes readability
+5. **Tree shaking**: Emit all declarations
+
 ---
 
 ## 2. Input/Output Contract
@@ -181,16 +191,28 @@ const triple = [1, "hello", true];
 
 **Representation:** Objects with `$value` property
 
+In vibefun, mutable references are created with `let mut x = ref(value)` syntax. The `ref(...)` call creates a mutable cell.
+
 ```vibefun
-let mut counter = ref(0);  // Create
-let value = !counter;      // Dereference
-counter := 5;              // Assign
+let mut counter = ref(0);  // Create mutable reference
+let value = !counter;      // Dereference (read)
+counter := 5;              // Assign (write)
 ```
 ```javascript
 const counter = { $value: 0 };
 const value = counter.$value;
 counter.$value = 5;
 ```
+
+**Note on AST representation:** At the Core AST level, `ref(0)` appears as a `CoreApp` calling a `ref` function with argument `0`. The code generator recognizes this special form and emits `{ $value: 0 }` directly.
+
+**Alternative:** The `ref` function could be provided by the runtime/stdlib:
+```javascript
+const ref = ($value) => ({ $value });
+const counter = ref(0);
+```
+
+This approach is simpler but adds a function call overhead. Both strategies are acceptable.
 
 ### 4.7 Functions
 
@@ -207,6 +229,26 @@ const add = (x) => (y) => x + y;
 
 ---
 
+## 4A. Desugared Constructs (Not in Core AST)
+
+The following surface syntax constructs are **desugared before** reaching the code generator. The code generator never sees them:
+
+| Surface Syntax | Desugared To | Notes |
+|----------------|--------------|-------|
+| `if c then a else b` | `match c { \| true => a \| false => b }` | Match on boolean |
+| `if c then a` | `match c { \| true => a \| false => () }` | Unit else branch |
+| `while cond { body }` | Recursive function | See desugaring spec |
+| `[1, 2, 3]` | `Cons(1)(Cons(2)(Cons(3)(Nil)))` | List literals |
+| `x \|> f` | `f(x)` | Pipe operator |
+| `f >> g` | `(x) => g(f(x))` | Forward composition |
+| `(a, b) => body` | `(a) => (b) => body` | Multi-param lambda |
+| `{ stmt1; stmt2; expr }` | Nested let bindings | Block expressions |
+| `p1 \| p2 => body` | Two match cases | Or-patterns |
+
+**Implication:** The code generator only handles Core AST nodes. If you see a construct in vibefun source that isn't in Core AST, it was desugared before reaching codegen.
+
+---
+
 ## 5. Expression Compilation Rules
 
 ### 5.1 Literals
@@ -214,12 +256,30 @@ const add = (x) => (y) => x + y;
 | Core AST | JavaScript |
 |----------|------------|
 | `CoreIntLit { value: 42 }` | `42` |
+| `CoreIntLit { value: -5 }` | `(-5)` |
 | `CoreFloatLit { value: 3.14 }` | `3.14` |
+| `CoreFloatLit { value: Infinity }` | `Infinity` |
+| `CoreFloatLit { value: -Infinity }` | `(-Infinity)` |
+| `CoreFloatLit { value: NaN }` | `NaN` |
 | `CoreStringLit { value: "hi" }` | `"hi"` |
 | `CoreBoolLit { value: true }` | `true` |
 | `CoreUnitLit` | `undefined` |
 
-**String escaping:** Strings must be properly escaped for JavaScript (quotes, backslashes, newlines, etc.).
+**Negative numbers:** Wrap negative literals in parentheses to avoid ambiguity with subtraction: `(-5)`.
+
+**Float special values:** JavaScript's `Infinity`, `-Infinity`, and `NaN` are valid identifiers. Emit them directly. Note: `NaN !== NaN` in JavaScript (IEEE 754 semantics).
+
+**String escaping:** The following characters must be escaped:
+- `\` → `\\`
+- `"` → `\"`
+- `\n` → `\\n`
+- `\r` → `\\r`
+- `\t` → `\\t`
+- `\0` → `\\0`
+- Control characters (0x00-0x1F) → `\\uXXXX`
+- Line separators (U+2028, U+2029) → `\\uXXXX`
+
+Use JSON.stringify() as a reference implementation for string escaping.
 
 ### 5.2 Variables
 
@@ -229,23 +289,50 @@ const add = (x) => (y) => x + y;
 
 ### 5.3 Let Bindings (CoreLet)
 
-**Simple binding:**
+`CoreLet` represents a let-in expression: `let pattern = value in body`.
+
+**Key decision:** How to emit depends on context:
+
+**Expression context (nested inside another expression):**
 ```javascript
-// let x = expr in body
-((x) => body)(expr)
-// Or using IIFE with const:
-(() => { const x = expr; return body; })()
+// CoreLet { pattern: CoreVarPattern("x"), value, body }
+// Use IIFE to create scope
+(() => {
+    const x = value;
+    return body;
+})()
 ```
 
-**Preferred approach:** Use statement-level `const` when at declaration level:
+**Statement context (at top level of a block/function):**
 ```javascript
-const x = expr;
+// Can emit directly as statements
+const x = value;
+// ... body follows as subsequent statements
 ```
 
-**Pattern bindings:** Destructure according to pattern:
+**Pattern destructuring:**
 ```javascript
+// CoreLet { pattern: CoreRecordPattern(...), ... }
 const { name, age } = person;
+
+// CoreLet { pattern: CoreTuplePattern(...), ... }
 const [first, second] = tuple;
+```
+
+**Recursive bindings (CoreLet with `recursive: true`):**
+```javascript
+// let rec factorial = (n) => ... in body
+const factorial = (n) => n <= 1 ? 1 : n * factorial(n - 1);
+// body follows
+```
+
+**Mutable bindings (CoreLet with `mutable: true`):**
+
+The value is already a ref object. Just emit as const:
+```javascript
+// let mut x = ref(0) in body
+const x = { $value: 0 };
+// or: const x = ref(0);
 ```
 
 ### 5.4 Recursive Bindings (CoreLet with recursive: true)
@@ -278,14 +365,27 @@ const isOdd = (n) => n === 0 ? false : isEven(n - 1);
 
 ### 5.7 Function Application (CoreApp)
 
-**Single argument:**
+**Note:** `CoreApp` has an `args: CoreExpr[]` field that may contain multiple arguments.
+
+**Single argument (args.length === 1):**
 ```javascript
 func(arg)
 ```
 
-**Multiple arguments (curried):**
+**Multiple arguments (args.length > 1):**
+Generate curried calls:
 ```javascript
+// CoreApp { func, args: [arg1, arg2, arg3] }
 func(arg1)(arg2)(arg3)
+```
+
+**Optimization opportunity:** When the callee is known to be a multi-argument function, a single call `func(arg1, arg2, arg3)` may be more efficient. This is optional for MVP.
+
+**Nested application:**
+When `func` is itself a `CoreApp`, emit the outer application:
+```javascript
+// CoreApp { func: CoreApp { func: f, args: [a] }, args: [b] }
+f(a)(b)
 ```
 
 ### 5.8 Match Expressions (CoreMatch)
@@ -362,28 +462,69 @@ Some(42)
 
 | Core Op | JavaScript | Notes |
 |---------|------------|-------|
-| `Add` | `a + b` | |
+| `Add` | `a + b` | Works for both Int and Float |
 | `Subtract` | `a - b` | |
 | `Multiply` | `a * b` | |
-| `Divide` | `a / b` | For Int, use `Math.trunc(a / b)` |
+| `Divide` | `a / b` or `Math.trunc(a / b)` | See below |
 | `Modulo` | `a % b` | |
-| `Equal` | `a === b` | See equality section |
-| `NotEqual` | `a !== b` | See equality section |
-| `LessThan` | `a < b` | |
-| `LessEqual` | `a <= b` | |
-| `GreaterThan` | `a > b` | |
-| `GreaterEqual` | `a >= b` | |
+| `Equal` | `$eq(a, b)` or `a === b` | See Section 9 |
+| `NotEqual` | `!$eq(a, b)` or `a !== b` | See Section 9 |
+| `LessThan` | `a < b` | Primitives only |
+| `LessEqual` | `a <= b` | Primitives only |
+| `GreaterThan` | `a > b` | Primitives only |
+| `GreaterEqual` | `a >= b` | Primitives only |
 | `LogicalAnd` | `a && b` | Short-circuit preserved |
 | `LogicalOr` | `a \|\| b` | Short-circuit preserved |
 | `Concat` | `a + b` | String concatenation |
-| `RefAssign` | `a.$value = b` | Returns undefined |
+| `RefAssign` | `(a.$value = b, undefined)` | Returns Unit |
 
-**Integer division:** Must truncate toward zero:
+**Integer division:**
+
+For integer operands, division must truncate toward zero:
 ```javascript
 Math.trunc(a / b)
 ```
 
-**Short-circuit operators:** Must preserve short-circuit semantics. The generated code must not evaluate the right operand if the left determines the result.
+For float operands, use regular division:
+```javascript
+a / b
+```
+
+**Challenge:** At codegen time, we may not have type information to distinguish Int vs Float division. Options:
+1. **Always use Math.trunc** for Divide - Incorrect for Float
+2. **Type-directed codegen** - Requires type info in Core AST
+3. **Separate operators** - `IntDivide` vs `FloatDivide` in Core AST
+
+**Recommendation:** Add type annotation to `CoreBinOp` or have desugarer emit different operators for Int vs Float division.
+
+**RefAssign return value:**
+
+The `:=` operator returns `Unit`. JavaScript assignment returns the assigned value, so wrap in comma expression:
+```javascript
+(a.$value = b, undefined)
+```
+
+Or if result is discarded (statement context), just emit:
+```javascript
+a.$value = b;
+```
+
+**Short-circuit operators:**
+
+`&&` and `||` must preserve short-circuit semantics. The generated code must not evaluate the right operand if the left determines the result:
+```javascript
+// a && b
+// If a is falsy, b is never evaluated
+a && b
+
+// a || b
+// If a is truthy, b is never evaluated
+a || b
+```
+
+**Comparison operators:**
+
+`<`, `<=`, `>`, `>=` are only defined for primitives (Int, Float, String). Do not generate comparison for records/variants.
 
 ### 5.12 Unary Operators (CoreUnaryOp)
 
@@ -417,6 +558,158 @@ expr
 
 ---
 
+## 5A. Operator Precedence and Parenthesization
+
+### 5A.1 The Problem
+
+When emitting nested binary operations, parentheses may be needed to preserve semantics:
+```vibefun
+// Source: a * (b + c)
+// Wrong: a * b + c   (different semantics)
+// Right: a * (b + c)
+```
+
+### 5A.2 JavaScript Precedence Reference
+
+From highest to lowest (relevant subset):
+1. Member access (`.`), function call (`()`)
+2. Unary (`!`, `-`)
+3. Multiplicative (`*`, `/`, `%`)
+4. Additive (`+`, `-`)
+5. Comparison (`<`, `<=`, `>`, `>=`)
+6. Equality (`===`, `!==`)
+7. Logical AND (`&&`)
+8. Logical OR (`||`)
+9. Assignment (`=`)
+
+### 5A.3 Parenthesization Strategy
+
+**Option A (Conservative):** Always parenthesize binary operations
+```javascript
+((a) * ((b) + (c)))  // Safe but verbose
+```
+
+**Option B (Minimal):** Only parenthesize when precedence requires
+```javascript
+a * (b + c)  // Minimal necessary parens
+```
+
+**Option C (Hybrid - Recommended):** Parenthesize based on context
+- Parenthesize when child precedence < parent precedence
+- Parenthesize when child is same precedence and associativity matters
+- Never parenthesize literals, variables, or function calls
+
+**Implementation:**
+```typescript
+function needsParens(parent: CoreBinaryOp, child: CoreExpr, position: "left" | "right"): boolean {
+    if (child.kind !== "CoreBinOp") return false;
+    const parentPrec = precedence(parent);
+    const childPrec = precedence(child.op);
+    if (childPrec < parentPrec) return true;
+    if (childPrec === parentPrec && position === "right") return true; // Handle right-associativity
+    return false;
+}
+```
+
+### 5A.4 Unary Operator Parenthesization
+
+Unary operators need parentheses in certain contexts:
+```javascript
+// CoreUnaryOp { op: "Negate", expr: CoreBinOp { ... } }
+-(a + b)  // Parentheses needed
+
+// CoreUnaryOp { op: "LogicalNot", expr: CoreVar { name: "x" } }
+!x  // No parentheses needed
+
+// CoreUnaryOp nested in CoreBinOp
+a + -b  // Works without parens in JS, but (-b) is clearer
+```
+
+**Recommendation:** Parenthesize unary operands that are binary operations.
+
+### 5A.5 Function Application Parenthesization
+
+When the callee is an expression (not a simple variable):
+```javascript
+// CoreApp { func: CoreLambda { ... }, args: [x] }
+((param) => body)(x)  // Parentheses around lambda
+
+// CoreApp { func: CoreMatch { ... }, args: [x] }
+(matchExpr)(x)  // Parentheses around match
+```
+
+**Rule:** Parenthesize `func` if it's not a `CoreVar` or `CoreRecordAccess`.
+
+---
+
+## 5B. Expression vs Statement Context
+
+### 5B.1 Context Types
+
+Expressions are emitted differently depending on their syntactic context:
+
+1. **Statement context**: At top level of a block or module body
+2. **Expression context**: Inside another expression
+
+### 5B.2 CoreLet in Different Contexts
+
+**Statement context (top-level binding):**
+```javascript
+const x = expr;
+// ... body follows as subsequent statements
+```
+
+**Expression context (nested in another expression):**
+```javascript
+// Option A: IIFE
+(() => { const x = expr; return body; })()
+
+// Option B: Comma operator (simpler cases)
+(x = expr, body)  // Only if x can be a simple assignment
+```
+
+**Recommendation:** Use IIFEs for nested let expressions. They're clearer and handle all cases.
+
+### 5B.3 CoreMatch in Statement vs Expression Context
+
+**Statement context:**
+```javascript
+// Can use if statements
+if ($match.$tag === "Some") {
+    const x = $match.$0;
+    return body1;
+}
+// ... more cases
+```
+
+**Expression context:**
+```javascript
+// Must use IIFE
+(($match) => {
+    if ($match.$tag === "Some") { const x = $match.$0; return body1; }
+    // ... more cases
+})(scrutinee)
+```
+
+### 5B.4 Semicolons and Statement Termination
+
+**Rules:**
+- Declarations at module top level end with semicolons
+- Statements inside IIFEs end with semicolons
+- Expression-only returns don't need semicolons before `}`
+- Use consistent style (recommend semicolons everywhere)
+
+**Example:**
+```javascript
+const add = (x) => (y) => x + y;  // Semicolon after declaration
+const result = (() => {
+    const temp = compute();  // Semicolon
+    return temp + 1;  // Semicolon optional before }
+})();
+```
+
+---
+
 ## 6. Pattern Compilation Rules
 
 ### 6.1 Pattern Types
@@ -429,6 +722,15 @@ expr
 | `CoreVariantPattern { constructor, args }` | `value.$tag === "Ctor"` | Destructure `$0`, `$1`, etc. |
 | `CoreRecordPattern { fields }` | None (structural) | Destructure named fields |
 | `CoreTuplePattern { elements }` | None (structural) | Destructure array indices |
+
+**CoreLiteral type:**
+The `CoreLiteralPattern.literal` field has type `number | string | boolean | null`:
+- `number`: Match integer or float literals (`value === 42`)
+- `string`: Match string literals (`value === "hello"`)
+- `boolean`: Match `true` or `false` (`value === true`)
+- `null`: Match the `null` value (`value === null`)
+
+**Note:** The `null` literal is primarily used for JavaScript interop. In pure vibefun code, `None` (a variant) is used instead.
 
 ### 6.2 Nested Patterns
 
@@ -463,17 +765,52 @@ if (/* pattern matches */) {
 
 ### 7.1 Let Declarations (CoreLetDecl)
 
-**Non-exported:**
+**Simple variable pattern (CoreVarPattern):**
+
+Non-exported:
 ```javascript
 const name = value;
 ```
 
-**Exported:**
+Exported:
 ```javascript
 const name = value;
 // At end of file:
 export { name };
 ```
+
+**Pattern destructuring:**
+
+When `pattern` is not a simple variable (e.g., tuple or record pattern), destructure:
+
+```javascript
+// CoreLetDecl { pattern: CoreTuplePattern { elements: [a, b] }, value, exported: false }
+const [a, b] = value;
+
+// CoreLetDecl { pattern: CoreRecordPattern { fields: [{name: "x", ...}, {name: "y", ...}] }, ... }
+const { x, y } = value;
+```
+
+**Exported pattern destructuring:**
+
+When a destructuring pattern is exported, export all bound names:
+
+```javascript
+const { x, y } = value;
+// At end of file:
+export { x, y };
+```
+
+**Mutable declarations:**
+
+When `mutable: true`, the binding is a `Ref<T>`. The value is already a ref object, so just use `const`:
+
+```javascript
+// let mut counter = ref(0)
+const counter = { $value: 0 };  // Or: const counter = ref(0);
+```
+
+Note: Even mutable refs use `const` because the binding itself isn't reassigned—only the ref's `$value` is mutated.
 
 ### 7.2 Recursive Let Groups (CoreLetRecGroup)
 
@@ -538,9 +875,33 @@ import { foo, bar as baz } from './module';
 import { foo, bar as baz } from "./module.js";
 ```
 
-**Type-only imports:** No runtime code.
+**Type-only imports:** Filter out items where `isType === true`. If all items are type-only, emit no import.
 
-**Extension handling:** Append `.js` to relative imports.
+**Extension handling rules:**
+1. **Relative paths** (start with `./` or `../`): Append `.js` extension
+   - `'./module'` → `"./module.js"`
+   - `'../utils/helper'` → `"../utils/helper.js"`
+2. **Package imports** (no path prefix): Pass through unchanged
+   - `'lodash'` → `"lodash"`
+   - `'@scope/package'` → `"@scope/package"`
+3. **Absolute paths** (start with `/`): Append `.js` extension
+   - `'/lib/utils'` → `"/lib/utils.js"`
+
+**Example with mixed type/value imports:**
+```typescript
+// CoreImportDecl {
+//   items: [
+//     { name: "foo", isType: false },
+//     { name: "MyType", isType: true },
+//     { name: "bar", alias: "baz", isType: false }
+//   ],
+//   from: "./module"
+// }
+```
+```javascript
+import { foo, bar as baz } from "./module.js";
+// MyType is omitted (type-only)
+```
 
 ---
 
@@ -585,14 +946,62 @@ Use `===` for primitives (Int, Float, String, Bool):
 a === b
 ```
 
+This works correctly because JavaScript's `===` handles these types appropriately.
+
 ### 9.2 Structural Equality for Records and Variants
 
-For composite types, `==` should compare structurally. Options:
-1. **Simple:** Generate deep comparison code inline
-2. **Runtime helper:** Call `$equals(a, b)` function
-3. **Inline for simple cases:** Use `===` when types are known primitive
+Vibefun's `==` operator provides **structural equality** for composite types. This is a key semantic difference from JavaScript's reference equality.
 
-**Recommendation:** Start with `===` for MVP (works for primitives and reference equality). Add structural equality as needed.
+**Problem:** JavaScript's `===` compares objects by reference:
+```javascript
+{ a: 1 } === { a: 1 }  // false (different objects)
+[1, 2] === [1, 2]      // false (different arrays)
+```
+
+**Options:**
+
+1. **Runtime helper function (Recommended):**
+```javascript
+// Emit equality as:
+$eq(a, b)
+
+// Where $eq is a runtime function that performs deep structural comparison
+```
+
+2. **Type-directed inline comparison:**
+When types are known at compile time, generate specific comparison code:
+```javascript
+// For record { x: Int, y: Int }:
+a.x === b.x && a.y === b.y
+
+// For variant Option<Int>:
+a.$tag === b.$tag && (a.$tag === "None" || a.$0 === b.$0)
+```
+
+3. **Hybrid approach:**
+- Use `===` when type is known to be primitive
+- Use `$eq` for composite types or when type is polymorphic
+
+**MVP Recommendation:** Implement a `$eq` runtime helper that:
+- Returns `a === b` for primitives
+- Compares `$tag` for variants, then compares fields
+- Compares all fields for records
+- Compares element-wise for tuples/arrays
+- Handles nested structures recursively
+
+**Special cases:**
+- `NaN === NaN` is `false` in JavaScript. Decide: preserve JS semantics or make `NaN == NaN` true?
+- Ref equality: `Ref<T>` uses reference equality (same cell), not structural equality of contents
+- Function equality: Functions are compared by reference (not structurally)
+
+### 9.3 Inequality (NotEqual)
+
+Generate the negation of equality:
+```javascript
+!$eq(a, b)
+// Or for primitives:
+a !== b
+```
 
 ---
 
@@ -658,6 +1067,49 @@ For future target support:
 - Abstract `Emitter` interface
 - Target-specific emitter implementations
 - Shared identifier handling
+
+### 11.4 Output Buffer Management
+
+**OutputBuffer class responsibilities:**
+- Maintain generated code string
+- Track current indentation level
+- Handle newlines and semicolons consistently
+- Collect exports for end-of-file emission
+
+**Interface sketch:**
+```typescript
+class OutputBuffer {
+    private parts: string[] = [];
+    private indentLevel: number = 0;
+    private exports: string[] = [];
+
+    emit(code: string): void;
+    emitLine(code: string): void;  // Adds newline
+    indent(): void;
+    dedent(): void;
+    addExport(name: string): void;
+    finish(): string;  // Joins parts + exports
+}
+```
+
+### 11.5 Output Formatting Rules
+
+**Indentation:**
+- Use 2 spaces per indent level (configurable)
+- Indent inside: IIFEs, match bodies, arrow function bodies (when multi-line)
+
+**Newlines:**
+- One newline between top-level declarations
+- No trailing newlines inside expressions
+- One newline at end of file
+
+**Semicolons:**
+- Always emit semicolons after statements
+- Follow consistent style (no ASI reliance)
+
+**Line length:**
+- No strict limit for MVP
+- Future: Optional line wrapping
 
 ---
 
@@ -767,26 +1219,244 @@ Three modes:
 
 ---
 
+## 16. Open Questions and Decisions Needed
+
+The following items require clarification or design decisions:
+
+### 16.1 Structural Equality Implementation
+
+**Question:** How should structural equality (`==`) be implemented for composite types?
+
+**Options:**
+1. **Runtime helper `$eq(a, b)`** - Simple, works everywhere, but adds runtime overhead
+2. **Type-directed inline comparison** - Generates specific code per type, no runtime, but requires type info at codegen
+3. **Use `===` everywhere** - Simple but incorrect for records/variants (breaks semantics)
+
+**Recommendation:** Option 1 for MVP. Option 2 can be added as optimization.
+
+**Related question:** Should `NaN == NaN` return `true` (deviate from JS) or `false` (match JS)?
+
+### 16.2 Integer Division by Zero
+
+**Question:** Should integer division by zero throw at runtime?
+
+**Current spec:** Undefined/implementation-defined.
+
+**Options:**
+1. **Generate check:** `b === 0 ? (throw new Error("Division by zero")) : Math.trunc(a / b)`
+2. **No check:** `Math.trunc(a / b)` - Returns `Infinity`, `-Infinity`, or `NaN`
+3. **Debug mode only:** Check in development, skip in production
+
+**Recommendation:** Option 2 for MVP (matches JS behavior). Option 3 for future runtime checks feature.
+
+### 16.3 `ref()` Handling
+
+**Question:** How is `ref(value)` represented and compiled?
+
+**Current understanding:** The desugarer/parser generates `CoreApp { func: CoreVar("ref"), args: [value] }`.
+
+**Options:**
+1. **Special-case `ref` calls in codegen:** Detect calls to `ref` and emit `{ $value: value }`
+2. **Provide `ref` as runtime function:** Emit calls normally, provide `const ref = ($value) => ({ $value })`
+3. **Desugar to variant:** Treat `Ref<T>` as a variant with single field
+
+**Recommendation:** Option 2 for simplicity. Include `ref` in runtime preamble or stdlib.
+
+### 16.4 Constructor Function Generation Strategy
+
+**Question:** When should variant constructors be generated as functions vs inline objects?
+
+**Options:**
+1. **Always functions:** `Some(42)` uses `Some(42)` if `const Some = ($0) => ({ $tag: "Some", $0 })`
+2. **Always inline:** `Some(42)` emits `{ $tag: "Some", $0: 42 }`
+3. **Hybrid:** Generate functions at type declaration, use them in expressions
+
+**Recommendation:** Option 3. Generate constructor functions when processing `CoreTypeDecl` with variants, then use those functions in `CoreVariant` expressions.
+
+### 16.5 Export Strategy
+
+**Question:** Should exports be collected at end of file or inline?
+
+**Options:**
+1. **Collected at end:** `export { name1, name2, ... };` at bottom of file
+2. **Inline exports:** `export const name = value;`
+3. **Hybrid:** Inline for simple bindings, collected for complex patterns
+
+**Recommendation:** Option 1 for consistency and simplicity. Bundlers work with both.
+
+### 16.6 Empty Tuple vs Unit
+
+**Question:** How are empty tuples `()` vs unit expressions distinguished?
+
+**Current understanding:** `CoreUnitLit` represents unit, `CoreTuple { elements: [] }` represents empty tuple.
+
+**JavaScript representation:**
+- Unit: `undefined`
+- Empty tuple: `[]`
+
+**Are these the same in vibefun?** Clarify with language spec.
+
+### 16.7 Record Spread in Updates
+
+**Question:** `CoreRecordUpdate.updates` can contain `Spread` kinds. When does this occur?
+
+**Answer needed:** Check if the desugarer ever produces spreads in record updates, or if updates are always field assignments.
+
+---
+
 ## Appendix A: Complete Core AST Node Reference
 
 ### Expressions (CoreExpr)
-- `CoreIntLit`, `CoreFloatLit`, `CoreStringLit`, `CoreBoolLit`, `CoreUnitLit`
-- `CoreVar`, `CoreLet`, `CoreLetRecExpr`
-- `CoreLambda`, `CoreApp`
-- `CoreMatch`
-- `CoreRecord`, `CoreRecordAccess`, `CoreRecordUpdate`
-- `CoreVariant`
-- `CoreBinOp`, `CoreUnaryOp`
-- `CoreTypeAnnotation`, `CoreUnsafe`
-- `CoreTuple`
+
+| Node Kind | Key Fields | Compilation |
+|-----------|------------|-------------|
+| `CoreIntLit` | `value: number` | Emit number literal |
+| `CoreFloatLit` | `value: number` | Emit number literal |
+| `CoreStringLit` | `value: string` | Emit escaped string |
+| `CoreBoolLit` | `value: boolean` | Emit `true`/`false` |
+| `CoreUnitLit` | - | Emit `undefined` |
+| `CoreVar` | `name: string` | Emit identifier (escaped if reserved) |
+| `CoreLet` | `pattern`, `value`, `body`, `mutable`, `recursive` | Emit binding + body |
+| `CoreLetRecExpr` | `bindings[]`, `body` | Emit mutually recursive bindings |
+| `CoreLambda` | `param: CorePattern`, `body` | Emit arrow function |
+| `CoreApp` | `func`, `args[]` | Emit curried calls |
+| `CoreMatch` | `expr`, `cases[]` | Emit IIFE with conditionals |
+| `CoreRecord` | `fields[]` | Emit object literal |
+| `CoreRecordAccess` | `record`, `field` | Emit `expr.field` |
+| `CoreRecordUpdate` | `record`, `updates[]` | Emit spread + updates |
+| `CoreVariant` | `constructor`, `args[]` | Emit constructor call or tagged object |
+| `CoreBinOp` | `op`, `left`, `right` | Emit binary expression |
+| `CoreUnaryOp` | `op`, `expr` | Emit unary expression |
+| `CoreTypeAnnotation` | `expr`, `typeExpr` | Emit inner expression only |
+| `CoreUnsafe` | `expr` | Emit inner expression only |
+| `CoreTuple` | `elements[]` | Emit array literal |
 
 ### Patterns (CorePattern)
-- `CoreWildcardPattern`, `CoreVarPattern`
-- `CoreLiteralPattern`
-- `CoreVariantPattern`, `CoreRecordPattern`, `CoreTuplePattern`
+
+| Node Kind | Key Fields | Compilation |
+|-----------|------------|-------------|
+| `CoreWildcardPattern` | - | No test, no binding |
+| `CoreVarPattern` | `name: string` | No test, bind to name |
+| `CoreLiteralPattern` | `literal: number\|string\|boolean\|null` | Test with `===` |
+| `CoreVariantPattern` | `constructor`, `args[]` | Test `$tag`, destructure `$0`, `$1`... |
+| `CoreRecordPattern` | `fields[]` | Destructure named fields |
+| `CoreTuplePattern` | `elements[]` | Destructure array indices |
 
 ### Declarations (CoreDeclaration)
-- `CoreLetDecl`, `CoreLetRecGroup`
-- `CoreTypeDecl`
-- `CoreExternalDecl`, `CoreExternalTypeDecl`
-- `CoreImportDecl`
+
+| Node Kind | Key Fields | Compilation |
+|-----------|------------|-------------|
+| `CoreLetDecl` | `pattern`, `value`, `mutable`, `recursive`, `exported` | Emit `const` binding |
+| `CoreLetRecGroup` | `bindings[]`, `exported` | Emit mutually recursive bindings |
+| `CoreTypeDecl` | `name`, `params`, `definition`, `exported` | Emit constructor functions (variants only) |
+| `CoreExternalDecl` | `name`, `jsName`, `from?`, `exported` | Emit import + const binding |
+| `CoreExternalTypeDecl` | `name`, `typeExpr`, `exported` | No runtime code |
+| `CoreImportDecl` | `items[]`, `from` | Emit ES6 import |
+
+### Supporting Types
+
+| Type | Fields | Notes |
+|------|--------|-------|
+| `CoreRecordField` | `kind: "Field"\|"Spread"`, `name?`, `value`/`expr` | For record construction |
+| `CoreMatchCase` | `pattern`, `guard?`, `body` | Guard is optional |
+| `CoreImportItem` | `name`, `alias?`, `isType` | Type-only imports are filtered |
+
+---
+
+## Appendix B: JavaScript Reserved Words
+
+These must be escaped when used as vibefun identifiers:
+
+**Keywords:**
+`break`, `case`, `catch`, `class`, `const`, `continue`, `debugger`, `default`, `delete`, `do`, `else`, `enum`, `export`, `extends`, `false`, `finally`, `for`, `function`, `if`, `import`, `in`, `instanceof`, `new`, `null`, `return`, `super`, `switch`, `this`, `throw`, `true`, `try`, `typeof`, `var`, `void`, `while`, `with`, `yield`
+
+**Strict mode reserved:**
+`implements`, `interface`, `let`, `package`, `private`, `protected`, `public`, `static`
+
+**Future reserved:**
+`await`
+
+**Escaping strategy:** Append `$` to create valid identifier: `class` → `class$`
+
+---
+
+## Appendix C: Compiler-Generated Names
+
+Names starting with `$` are reserved for compiler use:
+
+| Pattern | Usage |
+|---------|-------|
+| `$tag` | Variant tag property |
+| `$0`, `$1`, ... | Variant constructor arguments |
+| `$value` | Ref value property |
+| `$match` | Match scrutinee temporary |
+| `$ext_*` | External import bindings |
+| `$eq` | Structural equality helper |
+| `$temp_*` | Temporary variables |
+
+User code should not use `$`-prefixed identifiers.
+
+---
+
+## Appendix D: Implementation Checklist
+
+Use this checklist to verify completeness of the code generator:
+
+### Core Expression Types
+- [ ] `CoreIntLit` - Integer literals (including negative)
+- [ ] `CoreFloatLit` - Float literals (including Infinity, NaN)
+- [ ] `CoreStringLit` - String literals with proper escaping
+- [ ] `CoreBoolLit` - Boolean literals
+- [ ] `CoreUnitLit` - Unit literal
+- [ ] `CoreVar` - Variable references (with reserved word escaping)
+- [ ] `CoreLet` - Let bindings (with patterns, mutable, recursive flags)
+- [ ] `CoreLetRecExpr` - Mutually recursive bindings
+- [ ] `CoreLambda` - Lambda expressions (single param)
+- [ ] `CoreApp` - Function application (multi-arg currying)
+- [ ] `CoreMatch` - Match expressions with guards
+- [ ] `CoreRecord` - Record literals (with spreads)
+- [ ] `CoreRecordAccess` - Field access
+- [ ] `CoreRecordUpdate` - Record update
+- [ ] `CoreVariant` - Variant construction
+- [ ] `CoreBinOp` - All binary operators
+- [ ] `CoreUnaryOp` - All unary operators
+- [ ] `CoreTypeAnnotation` - Type annotation (erased)
+- [ ] `CoreUnsafe` - Unsafe block (erased)
+- [ ] `CoreTuple` - Tuple expressions
+
+### Pattern Types
+- [ ] `CoreWildcardPattern` - Wildcard pattern
+- [ ] `CoreVarPattern` - Variable binding pattern
+- [ ] `CoreLiteralPattern` - Literal matching (number, string, boolean, null)
+- [ ] `CoreVariantPattern` - Variant destructuring
+- [ ] `CoreRecordPattern` - Record destructuring
+- [ ] `CoreTuplePattern` - Tuple destructuring
+- [ ] Nested patterns
+- [ ] Guard expressions
+
+### Declaration Types
+- [ ] `CoreLetDecl` - Top-level let declarations
+- [ ] `CoreLetRecGroup` - Mutually recursive declaration groups
+- [ ] `CoreTypeDecl` - Type declarations (variant constructors)
+- [ ] `CoreExternalDecl` - External value declarations
+- [ ] `CoreExternalTypeDecl` - External type declarations (no output)
+- [ ] `CoreImportDecl` - Import declarations
+
+### Infrastructure
+- [ ] Header comment generation
+- [ ] Import collection and emission
+- [ ] Export collection and emission
+- [ ] Identifier escaping
+- [ ] Operator precedence handling
+- [ ] Proper parenthesization
+- [ ] Statement vs expression context handling
+- [ ] Semicolon insertion
+- [ ] Indentation management
+
+### Testing Coverage
+- [ ] Unit tests for each expression type
+- [ ] Unit tests for each pattern type
+- [ ] Unit tests for each declaration type
+- [ ] Integration tests (end-to-end compilation)
+- [ ] Semantic tests (currying, short-circuit, etc.)
+- [ ] Snapshot/golden tests for representative programs
