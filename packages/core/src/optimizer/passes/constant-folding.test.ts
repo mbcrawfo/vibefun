@@ -156,6 +156,76 @@ describe("ConstantFoldingPass", () => {
 
             expect(result).toEqual({ kind: "CoreIntLit", value: 3, loc: testLoc });
         });
+
+        it("should fold IntDivide", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "IntDivide",
+                left: { kind: "CoreIntLit", value: 10, loc: testLoc },
+                right: { kind: "CoreIntLit", value: 3, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: 3, loc: testLoc });
+        });
+
+        it("should not fold IntDivide by zero", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "IntDivide",
+                left: { kind: "CoreIntLit", value: 10, loc: testLoc },
+                right: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual(expr); // Unchanged
+        });
+
+        it("should truncate IntDivide toward zero for negative dividend", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "IntDivide",
+                left: { kind: "CoreIntLit", value: -7, loc: testLoc },
+                right: { kind: "CoreIntLit", value: 2, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: -3, loc: testLoc });
+        });
+
+        it("should truncate IntDivide toward zero for negative divisor", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "IntDivide",
+                left: { kind: "CoreIntLit", value: 7, loc: testLoc },
+                right: { kind: "CoreIntLit", value: -2, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: -3, loc: testLoc });
+        });
+
+        it("should truncate IntDivide toward zero when both negative", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "IntDivide",
+                left: { kind: "CoreIntLit", value: -7, loc: testLoc },
+                right: { kind: "CoreIntLit", value: -2, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual({ kind: "CoreIntLit", value: 3, loc: testLoc });
+        });
     });
 
     describe("Float arithmetic", () => {
@@ -219,6 +289,55 @@ describe("ConstantFoldingPass", () => {
             const result = pass.transform(expr);
 
             expect(result).toEqual(expr); // Unchanged (would be NaN)
+        });
+
+        it("should fold FloatDivide", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "FloatDivide",
+                left: { kind: "CoreFloatLit", value: 10.0, loc: testLoc },
+                right: { kind: "CoreFloatLit", value: 4.0, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreFloatLit");
+            if (result.kind === "CoreFloatLit") {
+                expect(result.value).toBeCloseTo(2.5);
+            }
+        });
+
+        it("should not fold FloatDivide by zero", () => {
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "FloatDivide",
+                left: { kind: "CoreFloatLit", value: 10.0, loc: testLoc },
+                right: { kind: "CoreFloatLit", value: 0.0, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result).toEqual(expr); // Unchanged (would be Infinity)
+        });
+
+        it("should fold FloatDivide with negative dividend (no truncation)", () => {
+            // Float division: -7.0 / 2.0 = -3.5 (no truncation like IntDivide)
+            const expr: CoreExpr = {
+                kind: "CoreBinOp",
+                op: "FloatDivide",
+                left: { kind: "CoreFloatLit", value: -7.0, loc: testLoc },
+                right: { kind: "CoreFloatLit", value: 2.0, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = pass.transform(expr);
+
+            expect(result.kind).toBe("CoreFloatLit");
+            if (result.kind === "CoreFloatLit") {
+                expect(result.value).toBeCloseTo(-3.5);
+            }
         });
     });
 

@@ -2,7 +2,14 @@
  * Tests for type inference - binary and unary operators
  */
 
-import type { CoreBinOp, CoreBoolLit, CoreIntLit, CoreStringLit, CoreUnaryOp } from "../types/core-ast.js";
+import type {
+    CoreBinOp,
+    CoreBoolLit,
+    CoreFloatLit,
+    CoreIntLit,
+    CoreStringLit,
+    CoreUnaryOp,
+} from "../types/core-ast.js";
 import type { TypeEnv } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -151,6 +158,46 @@ describe("Type Inference - Binary Operators", () => {
         const ctx = createContext(env);
 
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("should infer type for IntDivide", () => {
+        const left: CoreIntLit = { kind: "CoreIntLit", value: 10, loc: testLoc };
+        const right: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "IntDivide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Int);
+    });
+
+    it("should infer type for FloatDivide", () => {
+        const left: CoreFloatLit = { kind: "CoreFloatLit", value: 10.0, loc: testLoc };
+        const right: CoreFloatLit = { kind: "CoreFloatLit", value: 3.0, loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "FloatDivide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Float);
+    });
+
+    it("should lower Divide to IntDivide for Int operands", () => {
+        const left: CoreIntLit = { kind: "CoreIntLit", value: 10, loc: testLoc };
+        const right: CoreIntLit = { kind: "CoreIntLit", value: 2, loc: testLoc };
+        const expr: CoreBinOp = { kind: "CoreBinOp", op: "Divide", left, right, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        // After inference, the operator should be mutated to IntDivide
+        inferExpr(ctx, expr);
+
+        expect(expr.op).toBe("IntDivide");
     });
 });
 
