@@ -1,6 +1,6 @@
 # AST Division Operators Implementation Plan
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-01 (reviewed)
 
 ## Overview
 
@@ -101,6 +101,11 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
 
 The chosen approach will be mutation in place, since the Core AST is already constructed and will be used for later passes.
 
+**Important Implementation Note:** Mutation is safe here because:
+1. `TypedModule.module` returns the same `CoreModule` reference that was passed in
+2. The lowered operators will be visible in the module after `typeCheck()` returns
+3. This can be verified in tests by inspecting `typedModule.module.declarations[0]` to see that `Divide` has been replaced with `IntDivide`
+
 ### 3. Type Checker Integration (`typechecker.ts`)
 
 No changes needed! The lowering happens automatically during `inferExpr()` calls.
@@ -164,11 +169,15 @@ case "Divide":
 4. **Constant folding edge cases**: Don't fold if result is non-finite
 5. **Polymorphic division**: If operand type cannot be resolved to Int or Float (e.g., type variable), default to `FloatDivide` as the safer option
 6. **Division in different contexts**: Lowering must work for division in lambdas, match bodies, let bindings, etc. (handled automatically by recursive inference)
+7. **Negative divisor**: `7 / -2` must equal `-3` (truncate toward zero)
+8. **Both negative**: `-7 / -2` must equal `3` (truncate toward zero)
 
 ## Dependencies
 
 - No external dependencies
 - No internal ordering dependencies (lowering is inline with inference)
+
+**Pipeline ordering guarantee:** The optimizer runs AFTER type checking, so by the time constant folding occurs, all `Divide` operators will have been lowered to `IntDivide` or `FloatDivide`. The optimizer will never see unlowered `Divide` operators (except in legacy test cases that construct Core AST directly).
 
 ## Scope Exclusions
 
