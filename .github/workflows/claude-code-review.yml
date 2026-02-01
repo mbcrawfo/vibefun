@@ -56,6 +56,7 @@ jobs:
 
             Guidelines:
             - Be concise and direct with your feedback
+            - Do not summarizes the changes, only leave feedback
             - Group feedback into PROBLEMS (must address) and SUGGESTIONS (improvements)
             - Do not provide minor nitpick or stylistic feedback
             - If changes meet expectations, leave only "✅ Good code quality"
@@ -107,6 +108,7 @@ jobs:
 
             ## Guidelines
             - Be concise - this is a follow-up review
+            - Do not summarizes the changes, only leave feedback
             - If the update addresses previous feedback: "✅ Previous feedback addressed"
             - If new issues: list only NEW problems/suggestions
             - If update is good: "✅ Update looks good"
