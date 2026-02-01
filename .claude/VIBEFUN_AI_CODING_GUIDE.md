@@ -339,7 +339,7 @@ let y = 3.14 * Float.fromInt(2);  // 6.28
 //   10 / 3 = 3
 //   -7 / 2 = -3 (not -4)
 //   7 / -2 = -3
-// Float: exact IEEE 754 division
+// Float: IEEE 754 division (may round)
 //   10.0 / 3.0 = 3.333...
 ```
 
