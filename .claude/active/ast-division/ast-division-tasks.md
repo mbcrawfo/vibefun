@@ -1,6 +1,6 @@
 # AST Division Tasks
 
-**Last Updated:** 2026-02-01 (reviewed)
+**Last Updated:** 2026-02-01 (COMPLETE)
 
 ## Phase 1: Fix Critical Bug (Math.floor → Math.trunc)
 
@@ -80,23 +80,27 @@ This must be done first because it's a correctness bug independent of the new op
 
 ## Phase 7: Verification
 
-- [ ] Run `npm run check` - Type checking passes (no exhaustiveness warnings)
-- [ ] Run `npm run lint` - Linting passes
-- [ ] Run `npm test` - All tests pass
-- [ ] Run `npm run format` - Code formatted
-- [ ] Verify all switch statements are exhaustive (TypeScript will error if not)
-- [ ] Manual verification: Run the integration tests to confirm AST lowering works end-to-end
+- [x] Run `npm run check` - Type checking passes (no exhaustiveness warnings)
+- [x] Run `npm run lint` - Linting passes
+- [x] Run `npm test` - All tests pass (3665 tests)
+- [x] Run `npm run format` - Code formatted
+- [x] Verify all switch statements are exhaustive (TypeScript will error if not)
+- [x] Manual verification: Run the integration tests to confirm AST lowering works end-to-end
 
 ## Phase 8: Documentation & Cleanup
 
 ### Required Documentation Updates
-- [ ] Update language spec (`docs/spec/`) with IntDivide/FloatDivide semantics and truncation-toward-zero behavior
-- [ ] Update `.claude/VIBEFUN_AI_CODING_GUIDE.md` with the new division operator details
-- [ ] Update codegen-requirements.md if any decisions changed during implementation
+- [x] Update language spec (`docs/spec/`) with IntDivide/FloatDivide semantics and truncation-toward-zero behavior
+  - `docs/spec/04-expressions/basic-expressions.md` already documents truncation toward zero with correct examples
+  - `docs/spec/12-compilation/codegen.md` focuses on semantic guarantees (no operator-specific changes needed)
+- [x] Update `.claude/VIBEFUN_AI_CODING_GUIDE.md` with the new division operator details
+  - Added explicit truncation-toward-zero examples including negative number cases
+- [x] Update codegen-requirements.md if any decisions changed during implementation
+  - Already documents `IntDivide` and `FloatDivide` operators with `Math.trunc` semantics
 
 ### Optional Cleanup
-- [ ] Update any relevant doc comments in modified files
-- [ ] Consider removing `"Divide"` from `CoreBinaryOp` if confident no code paths use it
+- [x] Update any relevant doc comments in modified files (no changes needed - code is self-documenting)
+- [x] Consider removing `"Divide"` from `CoreBinaryOp` - keeping for backward compatibility with tests
 
 ---
 
@@ -110,10 +114,10 @@ This must be done first because it's a correctness bug independent of the new op
 | Phase 4: Lowering | ✅ Done | Inline lowering in inferBinOp |
 | Phase 5: Constant Folding | ✅ Done | Handle new operators |
 | Phase 6: Tests | ✅ Done | Comprehensive test coverage |
-| Phase 7: Verification | 🔜 Not Started | Full verification suite |
-| Phase 8: Documentation | 🔜 Not Started | Spec & guide updates |
+| Phase 7: Verification | ✅ Done | Full verification suite |
+| Phase 8: Documentation | ✅ Done | Spec & guide updates |
 
-**Overall Progress:** 6/8 phases complete
+**Overall Progress:** 8/8 phases complete ✅
 
 ---
 

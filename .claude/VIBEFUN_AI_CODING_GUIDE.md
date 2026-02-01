@@ -88,6 +88,16 @@ let x = 5 + 2.0;  // ERROR
 // ✅ Explicit conversion required
 let x = Float.fromInt(5) + 2.0;
 
+// Integer division truncates toward zero (not floor!)
+// 7 / 2 = 3
+// -7 / 2 = -3 (NOT -4)
+// 7 / -2 = -3
+// -7 / -2 = 3
+
+// Float division gives exact result
+// 7.0 / 2.0 = 3.5
+// -7.0 / 2.0 = -3.5
+
 // Most types inferred automatically
 let double = (x) => x * 2;  // Inferred: (Int) -> Int or (Float) -> Float
 
@@ -324,8 +334,13 @@ let y = 3.14 * 2;
 let x = Float.fromInt(5) + 2.0;  // 7.0
 let y = 3.14 * Float.fromInt(2);  // 6.28
 
-// Int: 10 / 3 = 3 (truncates)
-// Float: 10.0 / 3.0 = 3.333...
+// Division behavior:
+// Int: truncates toward zero (NOT floor!)
+//   10 / 3 = 3
+//   -7 / 2 = -3 (not -4)
+//   7 / -2 = -3
+// Float: exact IEEE 754 division
+//   10.0 / 3.0 = 3.333...
 ```
 
 ### #3: Value Restriction
