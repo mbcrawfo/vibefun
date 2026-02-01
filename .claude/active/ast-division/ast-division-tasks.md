@@ -17,17 +17,17 @@ This must be done first because it's a correctness bug independent of the new op
 
 ## Phase 2: Core AST Updates
 
-- [ ] Add `"IntDivide"` to `CoreBinaryOp` in `core-ast.ts` (after `"Divide"`)
-- [ ] Add `"FloatDivide"` to `CoreBinaryOp` in `core-ast.ts` (after `"IntDivide"`)
-- [ ] Keep `"Divide"` for backward compatibility (desugarer output)
-- [ ] Run `npm run check` to verify no type errors
+- [x] Add `"IntDivide"` to `CoreBinaryOp` in `core-ast.ts` (after `"Divide"`)
+- [x] Add `"FloatDivide"` to `CoreBinaryOp` in `core-ast.ts` (after `"IntDivide"`)
+- [x] Keep `"Divide"` for backward compatibility (desugarer output)
+- [x] Run `npm run check` to verify no type errors
 
 ## Phase 3: Type Checker - Operator Types
 
-- [ ] Add `"IntDivide"` case to `getBinOpTypes()` returning `(Int, Int) -> Int`
-- [ ] Add `"FloatDivide"` case to `getBinOpTypes()` returning `(Float, Float) -> Float`
-- [ ] Keep `"Divide"` case unchanged (will be lowered by inferBinOp)
-- [ ] Run `npm run check` to verify
+- [x] Add `"IntDivide"` case to `getBinOpTypes()` returning `(Int, Int) -> Int`
+- [x] Add `"FloatDivide"` case to `getBinOpTypes()` returning `(Float, Float) -> Float`
+- [x] Keep `"Divide"` case unchanged (will be lowered by inferBinOp)
+- [x] Run `npm run check` to verify
 
 ## Phase 4: Inline Lowering in Type Inference
 
@@ -110,15 +110,15 @@ This must be done first because it's a correctness bug independent of the new op
 | Phase | Status | Description |
 |-------|--------|-------------|
 | Phase 1: Bug Fix | ✅ Done | Fix Math.floor → Math.trunc |
-| Phase 2: Core AST | 🔜 Not Started | Add IntDivide/FloatDivide types |
-| Phase 3: Type Checker | 🔜 Not Started | Add operator type cases |
+| Phase 2: Core AST | ✅ Done | Add IntDivide/FloatDivide types |
+| Phase 3: Type Checker | ✅ Done | Add operator type cases |
 | Phase 4: Lowering | 🔜 Not Started | Inline lowering in inferBinOp |
 | Phase 5: Constant Folding | 🔜 Not Started | Handle new operators |
 | Phase 6: Tests | 🔜 Not Started | Comprehensive test coverage |
 | Phase 7: Verification | 🔜 Not Started | Full verification suite |
 | Phase 8: Documentation | 🔜 Not Started | Spec & guide updates |
 
-**Overall Progress:** 1/8 phases complete
+**Overall Progress:** 3/8 phases complete
 
 ---
 

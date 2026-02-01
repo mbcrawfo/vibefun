@@ -246,7 +246,9 @@ export type CoreBinaryOp =
     | "Add"
     | "Subtract"
     | "Multiply"
-    | "Divide"
+    | "Divide" // Pre-lowering: used by desugarer, lowered to IntDivide/FloatDivide by typechecker
+    | "IntDivide" // Post-lowering: integer division (truncates toward zero)
+    | "FloatDivide" // Post-lowering: floating-point division
     | "Modulo"
     // Comparison
     | "Equal"
