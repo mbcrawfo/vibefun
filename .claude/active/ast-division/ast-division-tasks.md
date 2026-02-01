@@ -6,12 +6,12 @@
 
 This must be done first because it's a correctness bug independent of the new operators.
 
-- [ ] Change `Math.floor` to `Math.trunc` in `constant-folding.ts` line 74
-- [ ] Update test comment in `constant-folding.test.ts` line 70: "Floor division" → "Truncation toward zero"
-- [ ] Add test: `-7 / 2 = -3` (truncation toward zero, not -4 like floor)
-- [ ] Add test: `7 / -2 = -3` (truncation toward zero)
-- [ ] Add test: `-7 / -2 = 3` (truncation toward zero)
-- [ ] Run `npm run verify` to confirm fix
+- [x] Change `Math.floor` to `Math.trunc` in `constant-folding.ts` line 74
+- [x] Update test comment in `constant-folding.test.ts` line 70: "Floor division" → "Truncation toward zero"
+- [x] Add test: `-7 / 2 = -3` (truncation toward zero, not -4 like floor)
+- [x] Add test: `7 / -2 = -3` (truncation toward zero)
+- [x] Add test: `-7 / -2 = 3` (truncation toward zero)
+- [x] Run `npm run verify` to confirm fix
 
 **Verification:** The key test is `-7 / 2`. With `Math.floor`, this would be `-4`. With `Math.trunc`, it's `-3`. The existing test `10 / 3 = 3` passes with both because both operands are positive.
 
@@ -109,7 +109,7 @@ This must be done first because it's a correctness bug independent of the new op
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1: Bug Fix | 🔜 Not Started | Fix Math.floor → Math.trunc |
+| Phase 1: Bug Fix | ✅ Done | Fix Math.floor → Math.trunc |
 | Phase 2: Core AST | 🔜 Not Started | Add IntDivide/FloatDivide types |
 | Phase 3: Type Checker | 🔜 Not Started | Add operator type cases |
 | Phase 4: Lowering | 🔜 Not Started | Inline lowering in inferBinOp |
@@ -118,7 +118,7 @@ This must be done first because it's a correctness bug independent of the new op
 | Phase 7: Verification | 🔜 Not Started | Full verification suite |
 | Phase 8: Documentation | 🔜 Not Started | Spec & guide updates |
 
-**Overall Progress:** 0/8 phases complete
+**Overall Progress:** 1/8 phases complete
 
 ---
 
