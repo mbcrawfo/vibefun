@@ -159,3 +159,7 @@ it("should truncate toward zero for negative integers", () => {
     expect(result).toEqual({ kind: "CoreIntLit", value: -3, loc: testLoc });
 });
 ```
+
+## Maintenance Notes
+
+**Line Number References:** This document references specific line numbers (e.g., line 74, line 88, line 120) for precision during implementation. Re-verify all line numbers at implementation time as the codebase may have shifted.
