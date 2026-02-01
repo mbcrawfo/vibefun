@@ -1,33 +1,33 @@
 # AST Division Context
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-01 (reviewed)
 
 ## Key Files
 
 ### Core AST Definition
 - **Path:** `packages/core/src/types/core-ast.ts`
 - **Lines:** 244-264 (`CoreBinaryOp` type union)
-- **Current state:** Has single `"Divide"` operator
-- **Change needed:** Add `"IntDivide"` and `"FloatDivide"` to union
+- **Current state:** Has single `"Divide"` operator at line 249
+- **Change needed:** Add `"IntDivide"` and `"FloatDivide"` to union after `"Divide"`
 
 ### Type Checker - Operator Inference (PRIMARY CHANGE FILE)
 - **Path:** `packages/core/src/typechecker/infer/infer-operators.ts`
-- **Function:** `inferBinOp()` (line 34-91)
-- **Function:** `getBinOpTypes()` (line 99-158)
-- **Current state:** `"Divide"` returns `(Int, Int) -> Int`
+- **Function:** `inferBinOp()` (lines 34-91)
+- **Function:** `getBinOpTypes()` (lines 99-159)
+- **Current state:** `"Divide"` at line 106 returns `(Int, Int) -> Int`
 - **Change needed:**
-  1. Add cases for `IntDivide` and `FloatDivide` in `getBinOpTypes()`
-  2. Add inline lowering logic in `inferBinOp()` to replace `Divide` with appropriate operator
+  1. Add cases for `IntDivide` and `FloatDivide` in `getBinOpTypes()` (lines ~115-120)
+  2. Add inline lowering logic in `inferBinOp()` after line 88 (before the return) to replace `Divide` with appropriate operator
 
 ### Constant Folding Optimizer
 - **Path:** `packages/core/src/optimizer/passes/constant-folding.ts`
-- **Lines:** 71-74 (integer division with `Math.floor` - **BUG**)
-- **Lines:** 115-120 (float division)
-- **Critical Bug:** Uses `Math.floor` instead of `Math.trunc`
+- **Lines:** 71-74 (integer division with `Math.floor` - **BUG** at line 74)
+- **Lines:** 115-119 (float division)
+- **Critical Bug:** Line 74 uses `Math.floor` instead of `Math.trunc`
 - **Change needed:**
-  1. Fix `Math.floor` → `Math.trunc` for existing `Divide` case
-  2. Add `IntDivide` case using `Math.trunc`
-  3. Add `FloatDivide` case using standard division
+  1. Fix `Math.floor` → `Math.trunc` for existing `Divide` case (line 74)
+  2. Add `IntDivide` case using `Math.trunc` (after line 77)
+  3. Add `FloatDivide` case using standard division (after line 125)
 
 ### Type Checker - Main Entry (NO CHANGES NEEDED)
 - **Path:** `packages/core/src/typechecker/typechecker.ts`
@@ -101,5 +101,17 @@ export type InferenceContext = {
 | `types/ast.ts` | 121 | Surface `BinaryOp` type (unchanged) |
 | `typechecker/infer/infer-operators.ts` | 106 | `getBinOpTypes()` case |
 | `optimizer/passes/constant-folding.ts` | 71, 115 | Integer and float folding cases |
-| `parser/parse-expression-operators.ts` | 421 | Parser produces `"Divide"` |
+| `parser/parse-expression-operators.ts` | 421 | Parser produces `"Divide"` (unchanged) |
 | Test files | various | Test cases using `"Divide"` |
+
+## All Switch Statements on Binary Op
+
+These switch statements will get TypeScript exhaustiveness warnings after adding new operators:
+
+| File | Line | Function/Context |
+|------|------|------------------|
+| `typechecker/infer/infer-operators.ts` | 100 | `getBinOpTypes()` - needs `IntDivide`/`FloatDivide` cases |
+| `optimizer/passes/constant-folding.ts` | 64 | Integer arithmetic - needs `IntDivide` case |
+| `optimizer/passes/constant-folding.ts` | 98 | Float arithmetic - needs `FloatDivide` case |
+
+**Note:** Other switch statements (lines 152, 181, 226) handle comparison/boolean/string ops and don't need changes.
