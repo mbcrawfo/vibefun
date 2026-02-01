@@ -199,20 +199,17 @@ let value = !counter;      // Dereference (read)
 counter := 5;              // Assign (write)
 ```
 ```javascript
-const counter = { $value: 0 };
+const counter = ref(0);
 const value = counter.$value;
 counter.$value = 5;
 ```
 
-**Note on AST representation:** At the Core AST level, `ref(0)` appears as a `CoreApp` calling a `ref` function with argument `0`. The code generator recognizes this special form and emits `{ $value: 0 }` directly.
-
-**Alternative:** The `ref` function could be provided by the runtime/stdlib:
+**Implementation:** The runtime preamble includes a `ref` helper function:
 ```javascript
 const ref = ($value) => ({ $value });
-const counter = ref(0);
 ```
 
-This approach is simpler but adds a function call overhead. Both strategies are acceptable.
+At the Core AST level, `ref(0)` appears as a `CoreApp` calling a `ref` function with argument `0`. The code generator emits this as a normal function call `ref(0)`, relying on the runtime helper.
 
 ### 4.7 Functions
 
@@ -465,7 +462,8 @@ Some(42)
 | `Add` | `a + b` | Works for both Int and Float |
 | `Subtract` | `a - b` | |
 | `Multiply` | `a * b` | |
-| `Divide` | `a / b` or `Math.trunc(a / b)` | See below |
+| `IntDivide` | `Math.trunc(a / b)` | Integer division (truncates toward zero) |
+| `FloatDivide` | `a / b` | Float division |
 | `Modulo` | `a % b` | |
 | `Equal` | `$eq(a, b)` or `a === b` | See Section 9 |
 | `NotEqual` | `!$eq(a, b)` or `a !== b` | See Section 9 |
@@ -478,24 +476,13 @@ Some(42)
 | `Concat` | `a + b` | String concatenation |
 | `RefAssign` | `(a.$value = b, undefined)` | Returns Unit |
 
-**Integer division:**
+**Division operators:**
 
-For integer operands, division must truncate toward zero:
-```javascript
-Math.trunc(a / b)
-```
+The Core AST uses separate operators for integer and float division:
+- `IntDivide`: Emits `Math.trunc(a / b)` - truncates toward zero
+- `FloatDivide`: Emits `a / b` - standard IEEE 754 division
 
-For float operands, use regular division:
-```javascript
-a / b
-```
-
-**Challenge:** At codegen time, we may not have type information to distinguish Int vs Float division. Options:
-1. **Always use Math.trunc** for Divide - Incorrect for Float
-2. **Type-directed codegen** - Requires type info in Core AST
-3. **Separate operators** - `IntDivide` vs `FloatDivide` in Core AST
-
-**Recommendation:** Add type annotation to `CoreBinOp` or have desugarer emit different operators for Int vs Float division.
+The desugarer/typechecker emits the appropriate operator based on operand types. This allows codegen to emit the correct JavaScript without needing type information.
 
 **RefAssign return value:**
 
@@ -948,6 +935,8 @@ a === b
 
 This works correctly because JavaScript's `===` handles these types appropriately.
 
+**NaN handling:** `NaN == NaN` returns `false`, following JavaScript/IEEE 754 semantics. This means two NaN values are never equal, which is consistent with JavaScript's behavior.
+
 ### 9.2 Structural Equality for Records and Variants
 
 Vibefun's `==` operator provides **structural equality** for composite types. This is a key semantic difference from JavaScript's reference equality.
@@ -958,41 +947,15 @@ Vibefun's `==` operator provides **structural equality** for composite types. Th
 [1, 2] === [1, 2]      // false (different arrays)
 ```
 
-**Options:**
-
-1. **Runtime helper function (Recommended):**
-```javascript
-// Emit equality as:
-$eq(a, b)
-
-// Where $eq is a runtime function that performs deep structural comparison
-```
-
-2. **Type-directed inline comparison:**
-When types are known at compile time, generate specific comparison code:
-```javascript
-// For record { x: Int, y: Int }:
-a.x === b.x && a.y === b.y
-
-// For variant Option<Int>:
-a.$tag === b.$tag && (a.$tag === "None" || a.$0 === b.$0)
-```
-
-3. **Hybrid approach:**
-- Use `===` when type is known to be primitive
-- Use `$eq` for composite types or when type is polymorphic
-
-**MVP Recommendation:** Implement a `$eq` runtime helper that:
-- Returns `a === b` for primitives
-- Compares `$tag` for variants, then compares fields
+**Implementation:** Use `$eq` runtime helper that:
+- Returns `a === b` for primitives (including NaN's IEEE 754 behavior)
+- Compares `$tag` for variants, then compares fields recursively
 - Compares all fields for records
 - Compares element-wise for tuples/arrays
-- Handles nested structures recursively
+- Uses `===` for refs (identity equality, not structural equality of contents)
+- Functions are not comparable (filtered at type-check time)
 
-**Special cases:**
-- `NaN === NaN` is `false` in JavaScript. Decide: preserve JS semantics or make `NaN == NaN` true?
-- Ref equality: `Ref<T>` uses reference equality (same cell), not structural equality of contents
-- Function equality: Functions are compared by reference (not structurally)
+The `$eq` helper is provided by the runtime preamble (see Section 11.5A).
 
 ### 9.3 Inequality (NotEqual)
 
@@ -1020,7 +983,8 @@ These indicate bugs in earlier phases, not user errors.
 
 Generate code that throws for:
 - **panic(message):** `throw new Error(message)`
-- **Integer division by zero:** `if (b === 0) throw new Error("Division by zero")`
+
+**Integer division by zero:** Follows JavaScript behavior - returns `Infinity`, `-Infinity`, or `NaN` depending on operands. No runtime exception is thrown. Users who need explicit error handling should check for zero before dividing.
 
 **Non-exhaustive match:** Should never occur (typechecker ensures exhaustiveness), but generate fallback throw as safety net:
 ```javascript
@@ -1110,6 +1074,49 @@ class OutputBuffer {
 **Line length:**
 - No strict limit for MVP
 - Future: Optional line wrapping
+
+### 11.6 Runtime Preamble
+
+The code generator emits a runtime preamble containing helper functions used by generated code:
+
+```javascript
+// Runtime helpers
+const ref = ($value) => ({ $value });
+
+const $eq = (a, b) => {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (typeof a !== "object") return false;
+
+    // Variant comparison
+    if ("$tag" in a) {
+        if (a.$tag !== b.$tag) return false;
+        // Compare all $N fields
+        for (let i = 0; `$${i}` in a; i++) {
+            if (!$eq(a[`$${i}`], b[`$${i}`])) return false;
+        }
+        return true;
+    }
+
+    // Tuple comparison (arrays)
+    if (Array.isArray(a)) {
+        if (!Array.isArray(b) || a.length !== b.length) return false;
+        return a.every((v, i) => $eq(v, b[i]));
+    }
+
+    // Record comparison
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every(k => $eq(a[k], b[k]));
+};
+```
+
+**Usage notes:**
+- The preamble is only emitted if the program uses features that require it
+- `ref` is needed when mutable references are used
+- `$eq` is needed when `==` or `!=` is used on composite types
+- Future optimization: tree-shake unused helpers
 
 ---
 
@@ -1219,88 +1226,45 @@ Three modes:
 
 ---
 
-## 16. Open Questions and Decisions Needed
+## 16. Design Decisions (Resolved)
 
-The following items require clarification or design decisions:
+The following design decisions were made during the requirements review:
 
-### 16.1 Structural Equality Implementation
+### 16.1 Structural Equality
 
-**Question:** How should structural equality (`==`) be implemented for composite types?
-
-**Options:**
-1. **Runtime helper `$eq(a, b)`** - Simple, works everywhere, but adds runtime overhead
-2. **Type-directed inline comparison** - Generates specific code per type, no runtime, but requires type info at codegen
-3. **Use `===` everywhere** - Simple but incorrect for records/variants (breaks semantics)
-
-**Recommendation:** Option 1 for MVP. Option 2 can be added as optimization.
-
-**Related question:** Should `NaN == NaN` return `true` (deviate from JS) or `false` (match JS)?
+- **Decision:** Use `$eq` runtime helper for composite types
+- **NaN:** Follows IEEE 754 (`NaN == NaN` is `false`)
+- **Implementation:** See Section 11.6 for the `$eq` helper specification
 
 ### 16.2 Integer Division by Zero
 
-**Question:** Should integer division by zero throw at runtime?
+- **Decision:** Follow JavaScript behavior (no exception)
+- **Rationale:** Returns `Infinity`, `-Infinity`, or `NaN`. Users who need explicit error handling should check for zero before dividing.
 
-**Current spec:** Undefined/implementation-defined.
+### 16.3 ref() Handling
 
-**Options:**
-1. **Generate check:** `b === 0 ? (throw new Error("Division by zero")) : Math.trunc(a / b)`
-2. **No check:** `Math.trunc(a / b)` - Returns `Infinity`, `-Infinity`, or `NaN`
-3. **Debug mode only:** Check in development, skip in production
+- **Decision:** Runtime preamble provides `const ref = ($value) => ({ $value })`
+- **Rationale:** Simple and consistent. The `ref` function is included in the runtime preamble (Section 11.6).
 
-**Recommendation:** Option 2 for MVP (matches JS behavior). Option 3 for future runtime checks feature.
+### 16.4 Constructor Functions
 
-### 16.3 `ref()` Handling
-
-**Question:** How is `ref(value)` represented and compiled?
-
-**Current understanding:** The desugarer/parser generates `CoreApp { func: CoreVar("ref"), args: [value] }`.
-
-**Options:**
-1. **Special-case `ref` calls in codegen:** Detect calls to `ref` and emit `{ $value: value }`
-2. **Provide `ref` as runtime function:** Emit calls normally, provide `const ref = ($value) => ({ $value })`
-3. **Desugar to variant:** Treat `Ref<T>` as a variant with single field
-
-**Recommendation:** Option 2 for simplicity. Include `ref` in runtime preamble or stdlib.
-
-### 16.4 Constructor Function Generation Strategy
-
-**Question:** When should variant constructors be generated as functions vs inline objects?
-
-**Options:**
-1. **Always functions:** `Some(42)` uses `Some(42)` if `const Some = ($0) => ({ $tag: "Some", $0 })`
-2. **Always inline:** `Some(42)` emits `{ $tag: "Some", $0: 42 }`
-3. **Hybrid:** Generate functions at type declaration, use them in expressions
-
-**Recommendation:** Option 3. Generate constructor functions when processing `CoreTypeDecl` with variants, then use those functions in `CoreVariant` expressions.
+- **Decision:** Generate constructor functions at type declaration, use in expressions
+- **Example:** `CoreTypeDecl` for `Option<T>` generates `const Some = ($0) => ({ $tag: "Some", $0 })` and `const None = { $tag: "None" }`
 
 ### 16.5 Export Strategy
 
-**Question:** Should exports be collected at end of file or inline?
-
-**Options:**
-1. **Collected at end:** `export { name1, name2, ... };` at bottom of file
-2. **Inline exports:** `export const name = value;`
-3. **Hybrid:** Inline for simple bindings, collected for complex patterns
-
-**Recommendation:** Option 1 for consistency and simplicity. Bundlers work with both.
+- **Decision:** Collected at end of file
+- **Format:** `export { name1, name2, ... };` at bottom of generated file
 
 ### 16.6 Empty Tuple vs Unit
 
-**Question:** How are empty tuples `()` vs unit expressions distinguished?
-
-**Current understanding:** `CoreUnitLit` represents unit, `CoreTuple { elements: [] }` represents empty tuple.
-
-**JavaScript representation:**
-- Unit: `undefined`
-- Empty tuple: `[]`
-
-**Are these the same in vibefun?** Clarify with language spec.
+- **Decision:** `CoreUnitLit` → `undefined`, `CoreTuple` → array literal
+- **Note:** Empty `CoreTuple { elements: [] }` should not occur from normal parsing. The parser produces `UnitLit` for `()`, which desugars to `CoreUnitLit`.
 
 ### 16.7 Record Spread in Updates
 
-**Question:** `CoreRecordUpdate.updates` can contain `Spread` kinds. When does this occur?
-
-**Answer needed:** Check if the desugarer ever produces spreads in record updates, or if updates are always field assignments.
+- **Decision:** Preserve spreads in JavaScript output using `...` syntax
+- **Format:** `CoreRecordUpdate` with spreads emits `{ ...record, ...other, field: value }`
 
 ---
 
