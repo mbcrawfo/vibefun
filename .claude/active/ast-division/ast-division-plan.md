@@ -176,6 +176,7 @@ case "Divide":
 
 - No external dependencies
 - No internal ordering dependencies (lowering is inline with inference)
+- **Documentation updates required:** Update `docs/spec/` and `.claude/VIBEFUN_AI_CODING_GUIDE.md` with the new division semantics (IntDivide vs FloatDivide, truncation toward zero)
 
 **Pipeline ordering guarantee:** The optimizer runs AFTER type checking, so by the time constant folding occurs, all `Divide` operators will have been lowered to `IntDivide` or `FloatDivide`. The optimizer will never see unlowered `Divide` operators (except in legacy test cases that construct Core AST directly).
 
