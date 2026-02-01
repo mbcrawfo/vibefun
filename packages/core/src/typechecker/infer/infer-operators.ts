@@ -103,13 +103,29 @@ function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } 
         case "Add":
         case "Subtract":
         case "Multiply":
-        case "Divide":
+        case "Divide": // Pre-lowering: treated as Int, will be lowered to IntDivide/FloatDivide
         case "Modulo": {
             // Currently require Int for arithmetic operators
             // TODO: Add polymorphic arithmetic to support Float operators
             return {
                 paramType: primitiveTypes.Int,
                 resultType: primitiveTypes.Int,
+            };
+        }
+
+        // Integer division (post-lowering): (Int, Int) -> Int
+        case "IntDivide": {
+            return {
+                paramType: primitiveTypes.Int,
+                resultType: primitiveTypes.Int,
+            };
+        }
+
+        // Float division (post-lowering): (Float, Float) -> Float
+        case "FloatDivide": {
+            return {
+                paramType: primitiveTypes.Float,
+                resultType: primitiveTypes.Float,
             };
         }
 
