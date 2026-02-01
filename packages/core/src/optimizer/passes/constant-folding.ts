@@ -73,6 +73,12 @@ export class ConstantFoldingPass extends OptimizationPass {
                     if (r === 0) return expr;
                     // Use Math.trunc for truncation toward zero (not Math.floor)
                     // -7 / 2 = -3 (truncation), not -4 (floor)
+                    // Note: Divide is kept for backwards compatibility with tests
+                    // that construct Core AST directly; normally lowered to IntDivide
+                    return { kind: "CoreIntLit", value: Math.trunc(l / r), loc };
+                case "IntDivide":
+                    // Integer division: truncates toward zero
+                    if (r === 0) return expr;
                     return { kind: "CoreIntLit", value: Math.trunc(l / r), loc };
                 case "Modulo":
                     if (r === 0) return expr;
@@ -115,6 +121,15 @@ export class ConstantFoldingPass extends OptimizationPass {
                     return { kind: "CoreFloatLit", value: result, loc };
                 }
                 case "Divide": {
+                    // Note: Divide is kept for backwards compatibility with tests
+                    // that construct Core AST directly; normally lowered to FloatDivide
+                    if (r === 0) return expr;
+                    const result = l / r;
+                    if (!Number.isFinite(result)) return expr;
+                    return { kind: "CoreFloatLit", value: result, loc };
+                }
+                case "FloatDivide": {
+                    // Float division: standard IEEE 754 division
                     if (r === 0) return expr;
                     const result = l / r;
                     if (!Number.isFinite(result)) return expr;
