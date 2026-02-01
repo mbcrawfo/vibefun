@@ -2,61 +2,67 @@
 
 **Last Updated:** 2026-02-01
 
-## Phase 1: Core AST Updates
+## Phase 1: Fix Critical Bug (Math.floor → Math.trunc)
 
-- [ ] Add `"IntDivide"` to `CoreBinaryOp` in `core-ast.ts`
-- [ ] Add `"FloatDivide"` to `CoreBinaryOp` in `core-ast.ts`
-- [ ] Keep `"Divide"` for backward compatibility during transition
+This must be done first because it's a correctness bug independent of the new operators.
 
-## Phase 2: Type Checker - Operator Inference
+- [ ] Change `Math.floor` to `Math.trunc` in `constant-folding.ts` line 74
+- [ ] Update test comment "Floor division" → "Truncation toward zero"
+- [ ] Add test: `-7 / 2 = -3` (truncation toward zero)
+- [ ] Add test: `7 / -2 = -3` (truncation toward zero)
+- [ ] Add test: `-7 / -2 = 3` (truncation toward zero)
+- [ ] Run `npm run verify` to confirm fix
+
+## Phase 2: Core AST Updates
+
+- [ ] Add `"IntDivide"` to `CoreBinaryOp` in `core-ast.ts` (after `"Divide"`)
+- [ ] Add `"FloatDivide"` to `CoreBinaryOp` in `core-ast.ts` (after `"IntDivide"`)
+- [ ] Keep `"Divide"` for backward compatibility (desugarer output)
+- [ ] Run `npm run check` to verify no type errors
+
+## Phase 3: Type Checker - Operator Types
 
 - [ ] Add `"IntDivide"` case to `getBinOpTypes()` returning `(Int, Int) -> Int`
 - [ ] Add `"FloatDivide"` case to `getBinOpTypes()` returning `(Float, Float) -> Float`
-- [ ] Keep `"Divide"` case unchanged (will be lowered later)
+- [ ] Keep `"Divide"` case unchanged (will be lowered by inferBinOp)
+- [ ] Run `npm run check` to verify
 
-## Phase 3: Division Lowering Pass
+## Phase 4: Inline Lowering in Type Inference
 
-- [ ] Create new file `packages/core/src/typechecker/lower-division.ts`
-- [ ] Implement `lowerDivisionExpr()` to transform single expression
-- [ ] Implement `lowerDivisionModule()` to transform entire module
-- [ ] Handle edge case: unknown/polymorphic type (default to FloatDivide)
-- [ ] Export from `packages/core/src/typechecker/index.ts`
-
-## Phase 4: Type Checker Integration
-
-- [ ] Modify `typeCheck()` in `typechecker.ts` to call division lowering
-- [ ] Ensure lowering runs after all declarations are typechecked
-- [ ] Pass expression type map to lowering function
+- [ ] Modify `inferBinOp()` in `infer-operators.ts`:
+  - After computing `finalSubst`, check if `expr.op === "Divide"`
+  - Determine operand types using `applySubst(finalSubst, leftResult.type)` etc.
+  - If both types are `Int` (Const with name "Int"), mutate `expr.op` to `"IntDivide"`
+  - Otherwise (Float or unknown), mutate `expr.op` to `"FloatDivide"`
+- [ ] Add helper function `isIntType(type: Type): boolean` if needed
+- [ ] Run `npm run check` to verify
 
 ## Phase 5: Constant Folding Updates
 
 - [ ] Add `"IntDivide"` case using `Math.trunc(l / r)`
 - [ ] Add `"FloatDivide"` case preserving current float logic
-- [ ] **FIX:** Change existing integer `"Divide"` from `Math.floor` to `Math.trunc`
-- [ ] Update or remove `"Divide"` case (may still be needed during transition)
+- [ ] Keep `"Divide"` case using `Math.trunc` (for any pre-lowering edge cases)
+- [ ] Run `npm run check` to verify
 
-## Phase 6: Test Updates
+## Phase 6: Unit Tests
 
-### Constant Folding Tests
-- [ ] Update test "should fold integer division" to use `IntDivide`
-- [ ] Update test "should not fold division by zero" to use `IntDivide`
-- [ ] Update float division tests to use `FloatDivide`
-- [ ] Add test: `-7 / 2 = -3` (truncation toward zero)
-- [ ] Add test: `7 / -2 = -3` (truncation toward zero)
-- [ ] Fix comment "Floor division" -> "Truncation toward zero"
+### Constant Folding Tests (`constant-folding.test.ts`)
+- [ ] Add test: `IntDivide` folds `10 / 3 = 3`
+- [ ] Add test: `IntDivide` doesn't fold division by zero
+- [ ] Add test: `IntDivide` negative truncation: `-7 / 2 = -3`
+- [ ] Add test: `IntDivide` negative truncation: `7 / -2 = -3`
+- [ ] Add test: `FloatDivide` folds `10.0 / 4.0 = 2.5`
+- [ ] Add test: `FloatDivide` doesn't fold division by zero
 
-### Type Inference Tests
-- [ ] Update test "should infer type for division" to use `IntDivide`
-- [ ] Add test for `FloatDivide` type inference
-- [ ] Keep or add test for pre-lowered `Divide` if needed
+### Type Inference Tests (`infer-operators.test.ts`)
+- [ ] Add test: `IntDivide` infers `(Int, Int) -> Int`
+- [ ] Add test: `FloatDivide` infers `(Float, Float) -> Float`
+- [ ] Verify existing `Divide` test still passes (gets lowered to IntDivide)
 
-### New Lowering Tests
-- [ ] Create `packages/core/src/typechecker/lower-division.test.ts`
-- [ ] Test: Int / Int -> IntDivide
-- [ ] Test: Float / Float -> FloatDivide
-- [ ] Test: Int / Float -> FloatDivide
-- [ ] Test: Float / Int -> FloatDivide
-- [ ] Test: nested expressions are lowered correctly
+### Integration Test (new file or existing)
+- [ ] Add test: full pipeline (parse → desugar → typecheck) verifies `Divide` becomes `IntDivide`
+- [ ] Add test: division inside lambda body gets lowered correctly
+- [ ] Add test: division inside match case gets lowered correctly
 
 ## Phase 7: Verification
 
@@ -64,26 +70,67 @@
 - [ ] Run `npm run lint` - Linting passes
 - [ ] Run `npm test` - All tests pass
 - [ ] Run `npm run format` - Code formatted
-- [ ] Manual verification: constant folding `-7 / 2 = -3`
+- [ ] Manual verification: Check that after typechecking, AST has `IntDivide` not `Divide`
 
-## Optional Phase 8: Cleanup
+## Phase 8: Documentation & Cleanup (Optional)
 
-- [ ] Consider removing `"Divide"` from `CoreBinaryOp` if no longer needed
-- [ ] Update any remaining code that references `"Divide"` in Core AST context
+- [ ] Update any relevant doc comments in modified files
+- [ ] Consider removing `"Divide"` from `CoreBinaryOp` if confident no code paths use it
+- [ ] Update codegen-requirements.md if any decisions changed
 
 ---
 
 ## Progress Summary
 
-| Phase | Status |
-|-------|--------|
-| Phase 1: Core AST | Not Started |
-| Phase 2: Type Inference | Not Started |
-| Phase 3: Lowering Pass | Not Started |
-| Phase 4: Integration | Not Started |
-| Phase 5: Constant Folding | Not Started |
-| Phase 6: Tests | Not Started |
-| Phase 7: Verification | Not Started |
-| Phase 8: Cleanup | Not Started |
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1: Bug Fix | 🔜 Not Started | Fix Math.floor → Math.trunc |
+| Phase 2: Core AST | 🔜 Not Started | Add IntDivide/FloatDivide types |
+| Phase 3: Type Checker | 🔜 Not Started | Add operator type cases |
+| Phase 4: Lowering | 🔜 Not Started | Inline lowering in inferBinOp |
+| Phase 5: Constant Folding | 🔜 Not Started | Handle new operators |
+| Phase 6: Tests | 🔜 Not Started | Comprehensive test coverage |
+| Phase 7: Verification | 🔜 Not Started | Full verification suite |
+| Phase 8: Cleanup | 🔜 Not Started | Optional cleanup |
 
 **Overall Progress:** 0/8 phases complete
+
+---
+
+## Implementation Notes
+
+### Inline Lowering Pseudocode
+
+```typescript
+// In inferBinOp(), after determining finalSubst and finalResultType:
+if (expr.op === "Divide") {
+    const leftTypeResolved = applySubst(finalSubst, leftResult.type);
+    const rightTypeResolved = applySubst(finalSubst, rightResult.type);
+
+    const isIntDiv =
+        leftTypeResolved.type === "Const" && leftTypeResolved.name === "Int" &&
+        rightTypeResolved.type === "Const" && rightTypeResolved.name === "Int";
+
+    // Mutate in place - safe since Core AST won't be reused pre-lowering
+    (expr as { op: CoreBinaryOp }).op = isIntDiv ? "IntDivide" : "FloatDivide";
+}
+```
+
+### Test Case for Negative Truncation
+
+```typescript
+it("should truncate toward zero for negative integers", () => {
+    // -7 / 2 should equal -3 (not -4 which is floor)
+    const expr: CoreExpr = {
+        kind: "CoreBinOp",
+        op: "IntDivide",
+        left: { kind: "CoreIntLit", value: -7, loc: testLoc },
+        right: { kind: "CoreIntLit", value: 2, loc: testLoc },
+        loc: testLoc,
+    };
+
+    const result = pass.transform(expr);
+
+    expect(result).toEqual({ kind: "CoreIntLit", value: -3, loc: testLoc });
+});
+```
