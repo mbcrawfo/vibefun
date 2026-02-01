@@ -1,5 +1,7 @@
 # Vibefun Code Generator Requirements
 
+> **Document Status:** Reviewed and refined. See **Section 17** for prerequisite Core AST changes required before implementation, **Section 18** for open questions, and **Section 19** for inconsistencies to resolve.
+
 ## 1. Overview
 
 This document specifies the requirements for the vibefun code generator, which transforms a `TypedModule` (the output of the type checker) into executable JavaScript.
@@ -467,10 +469,10 @@ Some(42)
 | `Modulo` | `a % b` | |
 | `Equal` | `$eq(a, b)` or `a === b` | See Section 9 |
 | `NotEqual` | `!$eq(a, b)` or `a !== b` | See Section 9 |
-| `LessThan` | `a < b` | Primitives only |
-| `LessEqual` | `a <= b` | Primitives only |
-| `GreaterThan` | `a > b` | Primitives only |
-| `GreaterEqual` | `a >= b` | Primitives only |
+| `LessThan` | `a < b` | Primitives only (Int, Float, String) |
+| `LessEqual` | `a <= b` | Primitives only (Int, Float, String) |
+| `GreaterThan` | `a > b` | Primitives only (Int, Float, String) |
+| `GreaterEqual` | `a >= b` | Primitives only (Int, Float, String) |
 | `LogicalAnd` | `a && b` | Short-circuit preserved |
 | `LogicalOr` | `a \|\| b` | Short-circuit preserved |
 | `Concat` | `a + b` | String concatenation |
@@ -478,7 +480,9 @@ Some(42)
 
 **Division operators:**
 
-The Core AST uses separate operators for integer and float division:
+> **⚠️ PREREQUISITE:** The Core AST must be updated to add `IntDivide` and `FloatDivide` operators before implementing codegen. See Section 17.1 for details.
+
+The Core AST will use separate operators for integer and float division:
 - `IntDivide`: Emits `Math.trunc(a / b)` - truncates toward zero
 - `FloatDivide`: Emits `a / b` - standard IEEE 754 division
 
@@ -695,6 +699,35 @@ const result = (() => {
 })();
 ```
 
+### 5B.5 Context Tracking Implementation
+
+The code generator must track the current emission context:
+
+```typescript
+type EmitContext = "expression" | "statement";
+
+class CodeGenerator {
+    private context: EmitContext = "statement";
+
+    private emitExpr(expr: CoreExpr): string {
+        // Returns the expression as a string
+    }
+
+    private emitInContext(expr: CoreExpr, ctx: EmitContext): string {
+        const prevContext = this.context;
+        this.context = ctx;
+        const result = this.emitExpr(expr);
+        this.context = prevContext;
+        return result;
+    }
+}
+```
+
+**Context affects:**
+- `CoreLet`: IIFE in expression context, direct const in statement context
+- `CoreMatch`: IIFE in expression context, if-chain in statement context
+- `RefAssign`: Comma expression in expression context, simple assignment in statement context
+
 ---
 
 ## 6. Pattern Compilation Rules
@@ -848,6 +881,20 @@ external parseInt: (String) -> Int = "parseInt";
 ```javascript
 const $parseInt = parseInt;  // Global reference
 ```
+
+**Dotted JavaScript names (member access):**
+```vibefun
+external floor: (Float) -> Int = "Math.floor";
+external pi: Float = "Math.PI";
+external random: () -> Float = "Math.random";
+```
+```javascript
+const floor = Math.floor;
+const pi = Math.PI;
+const random = Math.random;
+```
+
+**Note:** When `jsName` contains dots (e.g., `"Math.floor"`), emit as a member access chain, not as a string identifier. The JavaScript parser will treat `Math.floor` as accessing the `floor` property of the `Math` object.
 
 ### 7.5 External Type Declarations (CoreExternalTypeDecl)
 
@@ -1088,9 +1135,14 @@ const $eq = (a, b) => {
     if (a == null || b == null) return false;
     if (typeof a !== "object") return false;
 
+    // Ref comparison - identity only (not structural)
+    if ("$value" in a && "$value" in b) {
+        return a === b;  // Identity comparison for refs
+    }
+
     // Variant comparison
     if ("$tag" in a) {
-        if (a.$tag !== b.$tag) return false;
+        if (!("$tag" in b) || a.$tag !== b.$tag) return false;
         // Compare all $N fields
         for (let i = 0; `$${i}` in a; i++) {
             if (!$eq(a[`$${i}`], b[`$${i}`])) return false;
@@ -1108,7 +1160,7 @@ const $eq = (a, b) => {
     const keysA = Object.keys(a);
     const keysB = Object.keys(b);
     if (keysA.length !== keysB.length) return false;
-    return keysA.every(k => $eq(a[k], b[k]));
+    return keysA.every(k => k in b && $eq(a[k], b[k]));
 };
 ```
 
@@ -1117,6 +1169,10 @@ const $eq = (a, b) => {
 - `ref` is needed when mutable references are used
 - `$eq` is needed when `==` or `!=` is used on composite types
 - Future optimization: tree-shake unused helpers
+
+**Limitations:**
+- **Cyclic structures:** The `$eq` helper does not detect cycles. Comparing cyclic data structures will cause infinite loops. This is documented as a known limitation.
+- **Function comparison:** Functions are not comparable. The typechecker prevents `==` on function types.
 
 ---
 
@@ -1179,6 +1235,39 @@ Three modes:
 - Verify pattern matching semantics
 - Verify short-circuit evaluation
 - Verify mutable reference behavior
+
+### 13.5 Edge Case Tests
+
+Critical edge cases that must be tested:
+
+**Numeric edge cases:**
+- Integer division with negative numbers: `-7 / 2` should be `-3` (truncate toward zero)
+- Division by zero: `10 / 0` returns `Infinity` (no exception)
+- `0 / 0` returns `NaN`
+- Negative zero: `-0.0` should be handled correctly
+- Large integers near MAX_SAFE_INTEGER boundary
+
+**Equality edge cases:**
+- `NaN == NaN` should be `false`
+- Nested variant/record equality
+- Empty records/tuples
+- Ref identity comparison (`ref(1) == ref(1)` is `false`)
+
+**Pattern matching edge cases:**
+- Guards with side effects (evaluation order)
+- Deeply nested pattern destructuring
+- Exhaustiveness with guards (fallback behavior)
+
+**String edge cases:**
+- Unicode normalization
+- Empty strings
+- Strings with escape sequences
+- Very long strings
+
+**Identifier edge cases:**
+- All JavaScript reserved words used as vibefun identifiers
+- Unicode identifiers
+- Identifiers starting with `$` (should be avoided by users)
 
 ---
 
@@ -1268,6 +1357,182 @@ The following design decisions were made during the requirements review:
 
 ---
 
+## 17. Prerequisite Changes (Core AST Updates Required)
+
+The following changes to the Core AST are required **before** implementing the code generator:
+
+### 17.1 Division Operators
+
+**Current state:** The Core AST (`packages/core/src/types/core-ast.ts`) has a single `"Divide"` operator.
+
+**Required change:** Update `CoreBinaryOp` to include separate operators:
+```typescript
+export type CoreBinaryOp =
+    // Arithmetic
+    | "Add"
+    | "Subtract"
+    | "Multiply"
+    | "IntDivide"      // Was: "Divide"
+    | "FloatDivide"    // NEW: For floating-point division
+    | "Modulo"
+    // ... rest unchanged
+```
+
+**Rationale:** The codegen needs to emit different JavaScript for integer vs float division:
+- `IntDivide`: Emits `Math.trunc(a / b)` - truncates toward zero
+- `FloatDivide`: Emits `a / b` - standard IEEE 754 division
+
+**Where to update:**
+1. `packages/core/src/types/core-ast.ts` - Add `IntDivide` and `FloatDivide`
+2. `packages/core/src/types/ast.ts` - Update surface `BinaryOp` if needed
+3. `packages/core/src/desugarer/` - Emit correct operator based on type context
+4. `packages/core/src/typechecker/` - Handle both operators
+5. `packages/core/src/optimizer/passes/constant-folding.ts` - Update to use `IntDivide`/`FloatDivide`
+
+**Migration note:** The optimizer currently uses `Math.floor` for integer division. This should be changed to `Math.trunc` for consistent "truncate toward zero" semantics.
+
+### 17.2 Equality Semantics
+
+**Alternative approach:** Instead of separate operators, the codegen can use type information from `TypedModule.declarationTypes` to determine whether to emit `===` or `$eq()` for the `Equal` operator. This avoids Core AST changes.
+
+**Decision:** Use type information from the type environment rather than adding `StructuralEqual`/`ReferenceEqual` operators.
+
+---
+
+## 18. Open Questions and Edge Cases
+
+The following questions require clarification before implementation:
+
+### 18.1 External Declarations with Dotted Names
+
+**Question:** How to handle external declarations where `jsName` contains dots?
+
+```vibefun
+external floor: (Float) -> Int = "Math.floor";
+external pi: Float = "Math.PI";
+```
+
+**Current thinking:** Emit property access chain, not identifier:
+```javascript
+const floor = Math.floor;  // Direct reference (works for globals)
+const pi = Math.PI;        // Direct reference
+```
+
+**Edge case:** What if the path is deeper? `"window.document.body.style"`
+
+**Proposed rule:** Split on `.` and emit as member expression chain.
+
+### 18.2 Lambda Pattern Failures
+
+**Question:** What happens if a lambda parameter pattern can fail?
+
+```vibefun
+let getFirst = (Some(x)) => x;  // Can fail if None passed
+```
+
+**Answer:** Lambda parameters must be irrefutable patterns. The typechecker should enforce this. If not, codegen throws internal error.
+
+### 18.3 Cyclic Data Structures in $eq
+
+**Question:** The `$eq` helper can infinite loop on cyclic structures:
+
+```vibefun
+type Node = Node({ value: Int, next: Ref<Option<Node>> });
+```
+
+**Proposed solution for MVP:** Document that cyclic structures may cause infinite loops in equality. Future enhancement: Add visited set tracking.
+
+### 18.4 Stack Overflow from Deep Recursion
+
+**Question:** No tail call optimization is specified. Deep recursion will overflow:
+
+```vibefun
+let rec sum = (n, acc) => match n { | 0 => acc | _ => sum(n - 1, acc + n) };
+sum(100000, 0);  // Stack overflow
+```
+
+**Decision for MVP:** No TCO. Document this limitation. Future enhancement: Investigate trampolines or Safari's TCO.
+
+### 18.5 Import Path Extensions
+
+**Question:** What extension for imports from `.vf` files?
+
+```vibefun
+import { foo } from "./other";  // other.vf
+```
+
+**Decision:** All relative imports append `.js`:
+- `"./other"` → `"./other.js"` (whether source was `.vf` or not)
+- This works because the other file will also be compiled to `.js`
+
+### 18.6 Standard Library Constructors
+
+**Question:** Where do `Cons`, `Nil`, `Some`, `None` come from?
+
+**Answer:** These are defined in the standard library (`@vibefun/std`). Users must import them:
+```vibefun
+import { Some, None } from "@vibefun/std/option";
+import { Cons, Nil } from "@vibefun/std/list";
+```
+
+The code generator does not emit constructor functions for these - they come from imports.
+
+### 18.7 Comparison Operators for Strings
+
+**Question:** Can strings be compared with `<`, `<=`, `>`, `>=`?
+
+**Answer:** Yes. The language spec allows comparison for all primitives (Int, Float, String, Bool). String comparison uses JavaScript's lexicographic comparison.
+
+```vibefun
+"abc" < "abd";  // true (lexicographic)
+"10" < "9";     // true (string comparison, not numeric!)
+```
+
+### 18.8 RefAssign Expression vs Statement
+
+**Question:** When to use `(a.$value = b, undefined)` vs `a.$value = b;`?
+
+**Rule:**
+- **Expression context** (result used): `(a.$value = b, undefined)`
+- **Statement context** (result discarded): `a.$value = b;`
+
+Detection: Track whether we're in expression or statement context during generation.
+
+### 18.9 Very Large Generated Files
+
+**Question:** Any streaming concerns for large modules?
+
+**Answer for MVP:** No streaming. Use string concatenation. Modern V8 handles this efficiently. Future: Consider streaming for very large generated files.
+
+### 18.10 Integer Overflow
+
+**Question:** What happens when integers exceed safe integer range?
+
+**Answer:** Implementation-defined behavior (matches JavaScript). The codegen does not emit overflow checks. Document this in user-facing documentation.
+
+---
+
+## 19. Known Inconsistencies to Resolve
+
+### 19.1 Integer Division Rounding Direction
+
+**Issue:** The optimizer uses `Math.floor` but this document specifies `Math.trunc`.
+
+- `Math.floor(-7 / 2)` = `-4` (rounds toward -∞)
+- `Math.trunc(-7 / 2)` = `-3` (rounds toward 0)
+
+**Decision:** Use `Math.trunc` (truncate toward zero). Update the optimizer accordingly.
+
+**Rationale:** Truncation toward zero is more intuitive and matches most languages (C, Java, Rust).
+
+### 19.2 Surface AST Divide Operator
+
+**Issue:** Surface AST has single `"Divide"` operator. Need to determine when to emit `IntDivide` vs `FloatDivide`.
+
+**Resolution:** The typechecker/desugarer knows the operand types. Emit appropriate Core AST operator based on type. If both operands are `Int`, emit `IntDivide`. If either is `Float`, emit `FloatDivide`.
+
+---
+
 ## Appendix A: Complete Core AST Node Reference
 
 ### Expressions (CoreExpr)
@@ -1289,7 +1554,7 @@ The following design decisions were made during the requirements review:
 | `CoreRecordAccess` | `record`, `field` | Emit `expr.field` |
 | `CoreRecordUpdate` | `record`, `updates[]` | Emit spread + updates |
 | `CoreVariant` | `constructor`, `args[]` | Emit constructor call or tagged object |
-| `CoreBinOp` | `op`, `left`, `right` | Emit binary expression |
+| `CoreBinOp` | `op`, `left`, `right` | Emit binary expression (see Section 5.11 for operator mappings) |
 | `CoreUnaryOp` | `op`, `expr` | Emit unary expression |
 | `CoreTypeAnnotation` | `expr`, `typeExpr` | Emit inner expression only |
 | `CoreUnsafe` | `expr` | Emit inner expression only |
@@ -1366,6 +1631,12 @@ User code should not use `$`-prefixed identifiers.
 
 Use this checklist to verify completeness of the code generator:
 
+### Prerequisites (Must Complete First)
+- [ ] Update Core AST to add `IntDivide` and `FloatDivide` operators (see Section 17.1)
+- [ ] Update desugarer to emit correct division operator based on operand types
+- [ ] Update optimizer constant-folding to use `Math.trunc` for integer division
+- [ ] Update typechecker to handle both division operators
+
 ### Core Expression Types
 - [ ] `CoreIntLit` - Integer literals (including negative)
 - [ ] `CoreFloatLit` - Float literals (including Infinity, NaN)
@@ -1382,7 +1653,7 @@ Use this checklist to verify completeness of the code generator:
 - [ ] `CoreRecordAccess` - Field access
 - [ ] `CoreRecordUpdate` - Record update
 - [ ] `CoreVariant` - Variant construction
-- [ ] `CoreBinOp` - All binary operators
+- [ ] `CoreBinOp` - All binary operators (including IntDivide/FloatDivide)
 - [ ] `CoreUnaryOp` - All unary operators
 - [ ] `CoreTypeAnnotation` - Type annotation (erased)
 - [ ] `CoreUnsafe` - Unsafe block (erased)
