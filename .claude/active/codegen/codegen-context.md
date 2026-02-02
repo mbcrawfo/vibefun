@@ -1,6 +1,6 @@
 # Code Generator Context
 
-**Last Updated:** 2026-02-01 (Reviewed: added ExternalOverload, $eq detection strategy, improved execution test helper)
+**Last Updated:** 2026-02-01 (Second review: added CoreApp semantics, string escaping details, export handling)
 
 ## Critical Reference Files
 
@@ -217,6 +217,44 @@ const $eq = (a, b) => {
 - NaN equality: `NaN === NaN` is false (IEEE 754)
 - Empty modules: emit valid JS with just header and `export {}`
 - Deeply nested patterns: ensure correct binding extraction
+- Zero-arg variant constructors: emit as object literal, not function
+- All type-only imports: emit nothing (no empty import statement)
+- Mutual recursion: use `let` declarations for forward references
+
+## String Escape Rules
+
+When emitting string literals, apply these escapes:
+
+| Character | Escape Sequence |
+|-----------|-----------------|
+| `\n` (newline) | `\\n` |
+| `\r` (carriage return) | `\\r` |
+| `\t` (tab) | `\\t` |
+| `\\` (backslash) | `\\\\` |
+| `"` (quote) | `\\"` |
+| U+2028 (line separator) | `\\u2028` |
+| U+2029 (paragraph separator) | `\\u2029` |
+| Other control chars (0x00-0x1F) | `\\xNN` |
+
+Note: U+2028 and U+2029 are JavaScript line terminators and MUST be escaped in string literals to avoid syntax errors.
+
+## CoreApp Structure Clarification
+
+The desugarer transforms multi-argument calls into nested single-argument applications:
+
+```
+// Source: add(1, 2)
+// After desugaring: two nested CoreApp nodes
+CoreApp {
+    func: CoreApp {
+        func: CoreVar { name: "add" },
+        args: [CoreIntLit { value: 1 }]
+    },
+    args: [CoreIntLit { value: 2 }]
+}
+```
+
+Each `CoreApp.args` array has exactly **one element**. Codegen emits as chained calls: `add(1)(2)`
 
 ## CLAUDE.md Template (for es2020/ module)
 

@@ -1,6 +1,6 @@
 # ES2020 Code Generator Implementation Plan
 
-**Last Updated:** 2026-02-01 (Reviewed: clarified $eq detection, ExternalOverload, execution tests)
+**Last Updated:** 2026-02-01 (Second review: CoreApp.args semantics, string escaping, export strategy, mutual recursion)
 
 ## Overview
 
@@ -164,7 +164,7 @@ Append `$` suffix: `class` → `class$`
 | CoreVar | `x`, `class$` (escaped) |
 | CoreLet | IIFE or const (context-dependent) |
 | CoreLambda | `(x) => body` |
-| CoreApp | `f(a)(b)(c)` (curried) - Note: `args` array may have 1+ elements |
+| CoreApp | `f(a)(b)(c)` (curried) - Note: `args` is always a single-element array |
 | CoreMatch | IIFE with if-chain |
 | CoreRecord | `{ field: value }` |
 | CoreRecordAccess | `record.field` |
@@ -302,11 +302,77 @@ After implementation:
 
 ## Special Considerations
 
+### CoreApp.args Semantics
+The Core AST uses single-parameter lambdas (curried), so `CoreApp.args` is **always a single-element array**. Multi-argument calls like `add(1, 2)` are already desugared to `add(1)(2)`, which becomes nested `CoreApp` nodes, each with a single-element `args` array.
+
+**Emission pattern:**
+```typescript
+// CoreApp { func: f, args: [a] }  →  f(a)
+// Nested: CoreApp { func: CoreApp { func: f, args: [a] }, args: [b] }  →  f(a)(b)
+```
+
+### String Escape Sequences
+Emit strings with proper escaping for JavaScript string literals:
+- Control characters: `\n`, `\t`, `\r`, `\\`, `\"`
+- Unicode line separators: `U+2028` → `\u2028`, `U+2029` → `\u2029`
+- Other non-printable characters: `\xNN` or `\uNNNN`
+
+Note: U+2028 and U+2029 are valid in JavaScript strings but break when appearing unescaped in string literals (they're line terminators).
+
+### Export Strategy
+Exports are collected during declaration emission and emitted as a single `export { ... }` statement at the end of the module. This approach:
+- Keeps declarations as simple `const` statements
+- Allows easy deduplication
+- Handles pattern destructuring exports correctly
+
+**Example:**
+```javascript
+// Declarations
+const add = (x) => (y) => x + y;
+const multiply = (x) => (y) => x * y;
+// End of file
+export { add, multiply };
+```
+
+### Mutual Recursion and Let Rec Groups
+JavaScript `const` is not hoisted, so mutually recursive functions require special handling:
+
+**Strategy:** Use a two-phase approach:
+1. Declare all names with `let` (to allow forward references)
+2. Assign the function bodies
+
+```javascript
+// let rec f = (x) => g(x) and g = (x) => f(x)
+let f, g;
+f = (x) => g(x);
+g = (x) => f(x);
+```
+
+For single recursive functions, this simplifies to using `const` with an arrow function (works because the name is in scope in the body).
+
+### Variant Constructor Emission
+Zero-argument and multi-argument constructors are handled differently:
+
+| Constructor | Emission |
+|-------------|----------|
+| `None` (0 args) | `{ $tag: "None" }` (constant object) |
+| `Some(x)` (1 arg) | `($$0) => ({ $tag: "Some", $0: $$0 })` (function) |
+| `Node(l, v, r)` (3 args) | `($$0) => ($$1) => ($$2) => ({ $tag: "Node", $0: $$0, $1: $$1, $2: $$2 })` (curried function) |
+
+Zero-arg constructors are not functions - they're directly usable as values.
+
 ### Float Edge Cases
 - `Infinity` → emit as `Infinity`
 - `-Infinity` → emit as `(-Infinity)` (parenthesized)
 - `NaN` → emit as `NaN`
 - `-0.0` → emit as `(-0)` (negative zero)
+
+### NaN and Negative Zero in $eq Helper
+The `$eq` helper preserves IEEE 754 semantics:
+- `NaN === NaN` returns `false` (identity check `a === b` handles this)
+- `-0 === 0` returns `true` in JavaScript (acceptable for Vibefun equality)
+
+No special handling needed - JavaScript's `===` already provides correct behavior for these cases.
 
 ### Import Path Rules
 | Import Type | Rule |
