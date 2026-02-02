@@ -16,11 +16,16 @@ import {
     letRecExpr,
     literalPat,
     matchExpr,
+    record,
+    recordAccess,
+    recordUpdate,
+    recordWithSpread,
     stringLit,
     tuple,
     tuplePat,
     unaryOp,
     unitLit,
+    variant,
     variantPat,
     varPat,
     varRef,
@@ -556,6 +561,161 @@ describe("Expression Emission", () => {
             const result = emitExpr(expr, ctx);
             expect(result).toContain("{ $value: 0 }");
             expect(ctx.needsRefHelper).toBe(true);
+        });
+    });
+
+    describe("Records", () => {
+        it("should emit empty record", () => {
+            const ctx = createTestContext();
+            expect(emitExpr(record([]), ctx)).toBe("{  }");
+        });
+
+        it("should emit simple record", () => {
+            const ctx = createTestContext();
+            const expr = record([
+                { name: "x", value: intLit(1) },
+                { name: "y", value: intLit(2) },
+            ]);
+            expect(emitExpr(expr, ctx)).toBe("{ x: 1, y: 2 }");
+        });
+
+        it("should emit record with complex values", () => {
+            const ctx = createTestContext();
+            const expr = record([
+                { name: "name", value: stringLit("Alice") },
+                { name: "age", value: intLit(30) },
+                { name: "active", value: boolLit(true) },
+            ]);
+            expect(emitExpr(expr, ctx)).toBe('{ name: "Alice", age: 30, active: true }');
+        });
+
+        it("should emit record with spread", () => {
+            const ctx = createTestContext();
+            const expr = recordWithSpread(varRef("base"), [{ name: "x", value: intLit(10) }]);
+            expect(emitExpr(expr, ctx)).toBe("{ ...base, x: 10 }");
+        });
+
+        it("should emit record access", () => {
+            const ctx = createTestContext();
+            expect(emitExpr(recordAccess(varRef("person"), "name"), ctx)).toBe("person.name");
+        });
+
+        it("should emit nested record access", () => {
+            const ctx = createTestContext();
+            const expr = recordAccess(recordAccess(varRef("user"), "profile"), "email");
+            expect(emitExpr(expr, ctx)).toBe("user.profile.email");
+        });
+
+        it("should emit record update", () => {
+            const ctx = createTestContext();
+            const expr = recordUpdate(varRef("person"), [{ name: "age", value: intLit(31) }]);
+            expect(emitExpr(expr, ctx)).toBe("{ ...person, age: 31 }");
+        });
+
+        it("should emit record update with multiple fields", () => {
+            const ctx = createTestContext();
+            const expr = recordUpdate(varRef("person"), [
+                { name: "age", value: intLit(31) },
+                { name: "active", value: boolLit(false) },
+            ]);
+            expect(emitExpr(expr, ctx)).toBe("{ ...person, age: 31, active: false }");
+        });
+
+        it("should emit record update with complex base expression", () => {
+            const ctx = createTestContext();
+            const expr = recordUpdate(recordAccess(varRef("users"), "first"), [
+                { name: "name", value: stringLit("Bob") },
+            ]);
+            expect(emitExpr(expr, ctx)).toBe('{ ...users.first, name: "Bob" }');
+        });
+    });
+
+    describe("Variants", () => {
+        it("should emit zero-arg variant constructor", () => {
+            const ctx = createTestContext();
+            expect(emitExpr(variant("None", []), ctx)).toBe('{ $tag: "None" }');
+        });
+
+        it("should emit single-arg variant constructor", () => {
+            const ctx = createTestContext();
+            const expr = variant("Some", [intLit(42)]);
+            expect(emitExpr(expr, ctx)).toBe('{ $tag: "Some", $0: 42 }');
+        });
+
+        it("should emit multi-arg variant constructor", () => {
+            const ctx = createTestContext();
+            const expr = variant("Node", [varRef("left"), intLit(5), varRef("right")]);
+            expect(emitExpr(expr, ctx)).toBe('{ $tag: "Node", $0: left, $1: 5, $2: right }');
+        });
+
+        it("should emit variant with complex arguments", () => {
+            const ctx = createTestContext();
+            const expr = variant("Pair", [tuple([intLit(1), intLit(2)]), record([{ name: "x", value: intLit(3) }])]);
+            expect(emitExpr(expr, ctx)).toBe('{ $tag: "Pair", $0: [1, 2], $1: { x: 3 } }');
+        });
+
+        it("should emit nested variants", () => {
+            const ctx = createTestContext();
+            // Some(Some(42))
+            const inner = variant("Some", [intLit(42)]);
+            const outer = variant("Some", [inner]);
+            expect(emitExpr(outer, ctx)).toBe('{ $tag: "Some", $0: { $tag: "Some", $0: 42 } }');
+        });
+
+        it("should emit variant inside record", () => {
+            const ctx = createTestContext();
+            const expr = record([
+                { name: "value", value: variant("Some", [intLit(10)]) },
+                { name: "next", value: variant("None", []) },
+            ]);
+            expect(emitExpr(expr, ctx)).toBe('{ value: { $tag: "Some", $0: 10 }, next: { $tag: "None" } }');
+        });
+    });
+
+    describe("Type annotations and unsafe", () => {
+        it("should pass through type annotation", () => {
+            const ctx = createTestContext();
+            const expr = {
+                kind: "CoreTypeAnnotation" as const,
+                expr: intLit(42),
+                typeExpr: {
+                    kind: "CoreTypeConst" as const,
+                    name: "Int",
+                    loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+                },
+                loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            };
+            expect(emitExpr(expr, ctx)).toBe("42");
+        });
+
+        it("should pass through unsafe block", () => {
+            const ctx = createTestContext();
+            const expr = {
+                kind: "CoreUnsafe" as const,
+                expr: varRef("dangerousValue"),
+                loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            };
+            expect(emitExpr(expr, ctx)).toBe("dangerousValue");
+        });
+
+        it("should pass through nested annotations", () => {
+            const ctx = createTestContext();
+            const inner = {
+                kind: "CoreTypeAnnotation" as const,
+                expr: intLit(5),
+                typeExpr: {
+                    kind: "CoreTypeConst" as const,
+                    name: "Int",
+                    loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+                },
+                loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            };
+            const outer = {
+                kind: "CoreUnsafe" as const,
+                expr: inner,
+                loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            };
+            expect(emitExpr(outer, ctx)).toBe("5");
         });
     });
 });

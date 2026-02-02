@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Phase 7 complete)
+**Last Updated:** 2026-02-01 (Phases 8 and 9 complete)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -97,24 +97,24 @@
 - [x] Write `tests/expressions.test.ts` - Let section
 
 ## Phase 8: Records and Variants
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Implement CoreRecord emission (object literals)
-- [ ] Handle CoreRecordField (named fields)
-- [ ] Handle CoreRecordField spread
-- [ ] Implement CoreRecordAccess emission (dot notation)
-- [ ] Implement CoreRecordUpdate emission (spread + updates)
-- [ ] Implement CoreVariant emission (tagged objects)
-- [ ] Handle zero-arg constructors (emit as object literal, not function)
-- [ ] Handle multi-arg constructors (emit as curried function returning tagged object)
-- [ ] Write `tests/expressions.test.ts` - Records/Variants section
+- [x] Implement CoreRecord emission (object literals)
+- [x] Handle CoreRecordField (named fields)
+- [x] Handle CoreRecordField spread
+- [x] Implement CoreRecordAccess emission (dot notation)
+- [x] Implement CoreRecordUpdate emission (spread + updates)
+- [x] Implement CoreVariant emission (tagged objects)
+- [x] Handle zero-arg constructors (emit as object literal, not function)
+- [x] Handle multi-arg constructors (emit as curried function returning tagged object)
+- [x] Write `tests/expressions.test.ts` - Records/Variants section
 
 ## Phase 9: Type Annotations and Unsafe
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Implement CoreTypeAnnotation emission (pass through)
-- [ ] Implement CoreUnsafe emission (pass through)
-- [ ] Write tests for annotation/unsafe pass-through
+- [x] Implement CoreTypeAnnotation emission (pass through)
+- [x] Implement CoreUnsafe emission (pass through)
+- [x] Write tests for annotation/unsafe pass-through
 
 ## Phase 10: Declaration Emission
 **Status:** 🔜 Not Started
@@ -248,8 +248,8 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 5. Patterns | ✅ | 11/11 |
 | 6. Match Expressions | ✅ | 6/6 |
 | 7. Let & Mutability | ✅ | 9/9 |
-| 8. Records & Variants | 🔜 | 0/9 |
-| 9. Annotations | 🔜 | 0/3 |
+| 8. Records & Variants | ✅ | 9/9 |
+| 9. Annotations | ✅ | 3/3 |
 | 10. Declarations | 🔜 | 0/20 |
 | 11. Generator Integration | 🔜 | 0/15 |
 | 12. Structural Equality | 🔜 | 0/7 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 64/166 tasks complete (39%)
+**Overall:** 76/166 tasks complete (46%)
