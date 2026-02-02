@@ -602,44 +602,107 @@ function emitLetRecExpr(
     return `(() => { let ${declarations.join(", ")}; ${assignments.join("; ")}; return ${bodyCode}; })()`;
 }
 
+// Forward declaration for match pattern emission (set by generator.ts)
+let emitMatchPatternFn: (
+    pattern: unknown,
+    scrutinee: string,
+    ctx: EmitContext,
+) => { condition: string | null; bindings: string[] } = () => {
+    throw new Error("emitMatchPatternFn not initialized - setEmitMatchPattern must be called first");
+};
+
+/**
+ * Set the match pattern emission function (called during initialization)
+ */
+export function setEmitMatchPattern(fn: typeof emitMatchPatternFn): void {
+    emitMatchPatternFn = fn;
+}
+
 /**
  * Emit a match expression
- * Uses IIFE with if-chain for pattern matching
+ *
+ * Uses IIFE with if-chain for pattern matching.
+ *
+ * Generated structure:
+ * ```javascript
+ * (() => {
+ *   const $match = <scrutinee>;
+ *   if (<condition1>) { <bindings1>; return <body1>; }
+ *   if (<condition2>) { <bindings2>; return <body2>; }
+ *   ...
+ *   throw new Error("Match exhausted"); // fallback
+ * })()
+ * ```
  */
 function emitMatch(
     expr: { kind: "CoreMatch"; expr: CoreExpr; cases: Array<{ pattern: unknown; guard?: CoreExpr; body: CoreExpr }> },
     ctx: EmitContext,
 ): string {
-    // TODO: Implement full pattern matching in Phase 6
-    // For now, emit a placeholder that shows the structure
+    const indent = ctx.indentString.repeat(ctx.indentLevel);
+    const indent1 = ctx.indentString.repeat(ctx.indentLevel + 1);
+
     const scrutineeCode = emitExpr(expr.expr, withPrecedence(ctx, 0));
 
     // Generate IIFE with if-chain
     const lines: string[] = [];
     lines.push(`(() => {`);
-    lines.push(`  const $match = ${scrutineeCode};`);
+    lines.push(`${indent1}const $match = ${scrutineeCode};`);
 
-    // For each case, generate a condition check and body
-    // This is a simplified version - full implementation in Phase 6
     for (let i = 0; i < expr.cases.length; i++) {
         const matchCase = expr.cases[i];
         if (matchCase === undefined) {
             continue;
         }
+
+        // Get pattern condition and bindings
+        const patternResult = emitMatchPatternFn(matchCase.pattern, "$match", ctx);
         const bodyCode = emitExpr(matchCase.body, withPrecedence(ctx, 0));
 
-        // For now, just handle wildcard/variable patterns as catch-all
-        // Full pattern matching will be implemented in Phase 6
-        if (i === expr.cases.length - 1) {
-            lines.push(`  return ${bodyCode};`);
-        } else {
-            lines.push(`  // Pattern case ${i} - full implementation in Phase 6`);
-            lines.push(`  return ${bodyCode};`);
+        // Build the full condition (pattern + guard)
+        let fullCondition = patternResult.condition;
+
+        if (matchCase.guard !== undefined) {
+            const guardCode = emitExpr(matchCase.guard, withPrecedence(ctx, 0));
+            if (fullCondition !== null) {
+                fullCondition = `${fullCondition} && ${guardCode}`;
+            } else {
+                fullCondition = guardCode;
+            }
+        }
+
+        // Generate bindings as variable declarations
+        const bindingsCode = patternResult.bindings.join(" ");
+
+        if (fullCondition === null) {
+            // Unconditional match (wildcard or variable without guard)
+            if (bindingsCode) {
+                lines.push(`${indent1}${bindingsCode} return ${bodyCode};`);
+            } else {
+                lines.push(`${indent1}return ${bodyCode};`);
+            }
+            // No need for fallback after unconditional match
             break;
+        } else {
+            // Conditional match
+            if (bindingsCode) {
+                lines.push(`${indent1}if (${fullCondition}) { ${bindingsCode} return ${bodyCode}; }`);
+            } else {
+                lines.push(`${indent1}if (${fullCondition}) { return ${bodyCode}; }`);
+            }
         }
     }
 
-    lines.push(`})()`);
+    // Add exhaustiveness fallback (should be unreachable if typechecker ensures exhaustiveness)
+    const lastCase = expr.cases[expr.cases.length - 1];
+    if (lastCase !== undefined) {
+        const lastPatternResult = emitMatchPatternFn(lastCase.pattern, "$match", ctx);
+        // Only add fallback if the last case has a condition
+        if (lastPatternResult.condition !== null || lastCase.guard !== undefined) {
+            lines.push(`${indent1}throw new Error("Match exhausted");`);
+        }
+    }
+
+    lines.push(`${indent}})()`);
 
     return lines.join("\n");
 }

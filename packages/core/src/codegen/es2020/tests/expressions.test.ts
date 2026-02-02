@@ -1,6 +1,9 @@
+import type { EmitContext } from "../context.js";
+
 import { describe, expect, it } from "vitest";
 
-import { emitExpr, escapeString, setEmitPattern } from "../emit-expressions.js";
+import { emitExpr, escapeString, setEmitMatchPattern, setEmitPattern } from "../emit-expressions.js";
+import { emitMatchPattern, emitPattern } from "../emit-patterns.js";
 import {
     app,
     binOp,
@@ -9,25 +12,28 @@ import {
     floatLit,
     intLit,
     lambda,
+    literalPat,
+    matchExpr,
     stringLit,
     tuple,
+    tuplePat,
     unaryOp,
     unitLit,
+    variantPat,
     varPat,
     varRef,
+    wildcardPat,
 } from "./test-helpers.js";
 
-// Set up pattern emission for testing (simple variable pattern only for now)
-setEmitPattern((pattern: unknown) => {
-    const p = pattern as { kind: string; name?: string };
-    if (p.kind === "CoreVarPattern") {
-        return p.name!;
-    }
-    if (p.kind === "CoreWildcardPattern") {
-        return "_";
-    }
-    return "_";
-});
+// Set up pattern emission dependencies (cast to unknown to satisfy DI types)
+setEmitPattern(emitPattern as (pattern: unknown, ctx: EmitContext) => string);
+setEmitMatchPattern(
+    emitMatchPattern as (
+        pattern: unknown,
+        scrutinee: string,
+        ctx: EmitContext,
+    ) => { condition: string | null; bindings: string[] },
+);
 
 describe("Expression Emission", () => {
     describe("Literals", () => {
@@ -350,6 +356,118 @@ describe("Expression Emission", () => {
         it("should emit mixed tuple", () => {
             const ctx = createTestContext();
             expect(emitExpr(tuple([intLit(1), stringLit("hello"), boolLit(true)]), ctx)).toBe('[1, "hello", true]');
+        });
+    });
+
+    describe("Match expressions", () => {
+        it("should emit match with wildcard pattern", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("x"), [{ pattern: wildcardPat(), body: intLit(42) }]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("const $match = x;");
+            expect(result).toContain("return 42;");
+            // Wildcard has no condition, so no if statement
+            expect(result).not.toContain("if");
+        });
+
+        it("should emit match with variable pattern", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("x"), [{ pattern: varPat("y"), body: varRef("y") }]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("const $match = x;");
+            expect(result).toContain("const y = $match;");
+            expect(result).toContain("return y;");
+        });
+
+        it("should emit match with literal pattern", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("x"), [
+                { pattern: literalPat(1), body: stringLit("one") },
+                { pattern: wildcardPat(), body: stringLit("other") },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain('if ($match === 1) { return "one"; }');
+            expect(result).toContain('return "other";');
+        });
+
+        it("should emit match with guard", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("x"), [
+                {
+                    pattern: varPat("n"),
+                    guard: binOp("GreaterThan", varRef("n"), intLit(0)),
+                    body: stringLit("positive"),
+                },
+                { pattern: wildcardPat(), body: stringLit("non-positive") },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("const n = $match;");
+            expect(result).toContain("n > 0");
+            expect(result).toContain('return "positive";');
+        });
+
+        it("should emit match with tuple pattern", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("pair"), [
+                { pattern: tuplePat([varPat("a"), varPat("b")]), body: binOp("Add", varRef("a"), varRef("b")) },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("Array.isArray($match)");
+            expect(result).toContain("$match.length === 2");
+            expect(result).toContain("const a = $match[0];");
+            expect(result).toContain("const b = $match[1];");
+        });
+
+        it("should emit match with variant pattern", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("opt"), [
+                { pattern: variantPat("Some", [varPat("x")]), body: varRef("x") },
+                { pattern: variantPat("None", []), body: intLit(0) },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain('$match.$tag === "Some"');
+            expect(result).toContain("const x = $match.$0;");
+            expect(result).toContain('$match.$tag === "None"');
+        });
+
+        it("should emit exhaustiveness fallback when needed", () => {
+            const ctx = createTestContext();
+            // Match that doesn't have an unconditional final case
+            const expr = matchExpr(varRef("x"), [
+                { pattern: literalPat(1), body: stringLit("one") },
+                { pattern: literalPat(2), body: stringLit("two") },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain('throw new Error("Match exhausted")');
+        });
+
+        it("should not emit fallback after unconditional match", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("x"), [
+                { pattern: literalPat(1), body: stringLit("one") },
+                { pattern: wildcardPat(), body: stringLit("other") },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).not.toContain('throw new Error("Match exhausted")');
+        });
+
+        it("should emit match with nested patterns", () => {
+            const ctx = createTestContext();
+            // match opt with
+            // | Some((a, b)) -> a + b
+            // | None -> 0
+            const expr = matchExpr(varRef("opt"), [
+                {
+                    pattern: variantPat("Some", [tuplePat([varPat("a"), varPat("b")])]),
+                    body: binOp("Add", varRef("a"), varRef("b")),
+                },
+                { pattern: variantPat("None", []), body: intLit(0) },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain('$match.$tag === "Some"');
+            expect(result).toContain("Array.isArray($match.$0)");
+            expect(result).toContain("const a = $match.$0[0];");
+            expect(result).toContain("const b = $match.$0[1];");
         });
     });
 });
