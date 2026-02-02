@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-01 (Phase 6 complete)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -74,14 +74,14 @@
 - [x] Write `tests/patterns.test.ts`
 
 ## Phase 6: Match Expressions
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Implement CoreMatch emission (IIFE with if-chain)
-- [ ] Handle pattern matching with bindings
-- [ ] Handle guard expressions
-- [ ] Handle nested patterns
-- [ ] Handle exhaustiveness fallback (throw)
-- [ ] Write `tests/expressions.test.ts` - Match section
+- [x] Implement CoreMatch emission (IIFE with if-chain)
+- [x] Handle pattern matching with bindings
+- [x] Handle guard expressions
+- [x] Handle nested patterns
+- [x] Handle exhaustiveness fallback (throw)
+- [x] Write `tests/expressions.test.ts` - Match section
 
 ## Phase 7: Let Expressions and Mutability
 **Status:** 🔜 Not Started
@@ -246,7 +246,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 3. Operators | ✅ | 14/14 |
 | 4. Functions | ✅ | 4/4 |
 | 5. Patterns | ✅ | 11/11 |
-| 6. Match Expressions | 🔜 | 0/6 |
+| 6. Match Expressions | ✅ | 6/6 |
 | 7. Let & Mutability | 🔜 | 0/9 |
 | 8. Records & Variants | 🔜 | 0/9 |
 | 9. Annotations | 🔜 | 0/3 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 49/166 tasks complete (30%)
+**Overall:** 55/166 tasks complete (33%)
