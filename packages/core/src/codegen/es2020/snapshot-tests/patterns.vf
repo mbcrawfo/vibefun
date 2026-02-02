@@ -1,0 +1,30 @@
+// Codegen Snapshot Test: Patterns
+
+// Basic pattern matching
+type Option<T> = None | Some(T);
+
+let unwrapOrZero = (opt) => match opt {
+    | Some(x) => x
+    | None => 0
+};
+
+// Multiple patterns in match
+type Result<T, E> = Ok(T) | Err(E);
+
+let handleResult = (res) => match res {
+    | Ok(value) => value
+    | Err(_) => 0
+};
+
+// Wildcard patterns
+let isZero = (n) => match n {
+    | 0 => true
+    | _ => false
+};
+
+// Literal patterns
+let describe = (n) => match n {
+    | 0 => "zero"
+    | 1 => "one"
+    | _ => "many"
+};

@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Phase 11 complete)
+**Last Updated:** 2026-02-01 (Phase 14 complete)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -182,22 +182,22 @@
 - [ ] Achieve target coverage
 
 ## Phase 14: Snapshot Tests
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Create `snapshot-tests/test-helpers.ts` - compileFixture()
-- [ ] Create `snapshot-tests/expressions.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-expressions.test.ts`
-- [ ] Create `snapshot-tests/declarations.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-declarations.test.ts`
-- [ ] Create `snapshot-tests/patterns.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-patterns.test.ts`
-- [ ] Create `snapshot-tests/functions.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-functions.test.ts`
-- [ ] Create `snapshot-tests/data-structures.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-data-structures.test.ts`
-- [ ] Create `snapshot-tests/real-world.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-real-world.test.ts`
-- [ ] Generate and review initial snapshots
+- [x] Create `snapshot-tests/test-helpers.ts` - compileFixture()
+- [x] Create `snapshot-tests/expressions.vf` fixture
+- [x] Create `snapshot-tests/snapshot-expressions.test.ts`
+- [x] Create `snapshot-tests/declarations.vf` fixture
+- [x] Create `snapshot-tests/snapshot-declarations.test.ts`
+- [x] Create `snapshot-tests/patterns.vf` fixture
+- [x] Create `snapshot-tests/snapshot-patterns.test.ts`
+- [x] Create `snapshot-tests/functions.vf` fixture
+- [x] Create `snapshot-tests/snapshot-functions.test.ts`
+- [x] Create `snapshot-tests/data-structures.vf` fixture
+- [x] Create `snapshot-tests/snapshot-data-structures.test.ts`
+- [x] Create `snapshot-tests/real-world.vf` fixture
+- [x] Create `snapshot-tests/snapshot-real-world.test.ts`
+- [x] Generate and review initial snapshots
 
 ## Phase 14B: Execution Tests (NEW)
 **Status:** 🔜 Not Started
@@ -256,8 +256,8 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 11. Generator Integration | ✅ | 17/17 |
 | 12. Structural Equality | ✅ | 7/7 |
 | 13. Unit Tests | 🔜 | 0/6 |
-| 14. Snapshot Tests | 🔜 | 0/14 |
+| 14. Snapshot Tests | ✅ | 14/14 |
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 119/165 tasks complete (72%)
+**Overall:** 133/165 tasks complete (81%)

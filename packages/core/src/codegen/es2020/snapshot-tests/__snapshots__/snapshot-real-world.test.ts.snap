@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Codegen Snapshot - Real World > should compile real-world.vf 1`] = `
+"// Vibefun compiled output
+// Source: real-world.vf
+// Target: ES2020
+const None = { $tag: "None" };
+const Some = ($$0) => ({ $tag: "Some", $0: $$0 });
+const isSome = (opt) => (() => {
+  const $match = opt;
+  if ($match.$tag === "Some") { return true; }
+  if ($match.$tag === "None") { return false; }
+  throw new Error("Match exhausted");
+})();
+const Ok = ($$0) => ({ $tag: "Ok", $0: $$0 });
+const Err = ($$0) => ({ $tag: "Err", $0: $$0 });
+const isOk = (res) => (() => {
+  const $match = res;
+  if ($match.$tag === "Ok") { return true; }
+  if ($match.$tag === "Err") { return false; }
+  throw new Error("Match exhausted");
+})();
+const origin = { x: 0, y: 0 };
+const add = (a) => (b) => a + b;
+const multiply = (a) => (b) => a * b;
+const increment = add(1);
+const double = multiply(2);
+const processNumber = (n) => increment(double(increment(n)));
+const classify = (n) => (() => {
+  const $match = n;
+  if ($match === 0) { return "zero"; }
+  return "non-zero";
+})();
+export { isOk, isSome };
+"
+`;

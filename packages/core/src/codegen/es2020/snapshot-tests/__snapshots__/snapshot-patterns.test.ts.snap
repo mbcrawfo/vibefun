@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Codegen Snapshot - Patterns > should compile patterns.vf 1`] = `
+"// Vibefun compiled output
+// Source: patterns.vf
+// Target: ES2020
+const None = { $tag: "None" };
+const Some = ($$0) => ({ $tag: "Some", $0: $$0 });
+const unwrapOrZero = (opt) => (() => {
+  const $match = opt;
+  if ($match.$tag === "Some") { const x = $match.$0; return x; }
+  if ($match.$tag === "None") { return 0; }
+  throw new Error("Match exhausted");
+})();
+const Ok = ($$0) => ({ $tag: "Ok", $0: $$0 });
+const Err = ($$0) => ({ $tag: "Err", $0: $$0 });
+const handleResult = (res) => (() => {
+  const $match = res;
+  if ($match.$tag === "Ok") { const value = $match.$0; return value; }
+  if ($match.$tag === "Err") { return 0; }
+  throw new Error("Match exhausted");
+})();
+const isZero = (n) => (() => {
+  const $match = n;
+  if ($match === 0) { return true; }
+  return false;
+})();
+const describe = (n) => (() => {
+  const $match = n;
+  if ($match === 0) { return "zero"; }
+  if ($match === 1) { return "one"; }
+  return "many";
+})();
+export {};
+"
+`;

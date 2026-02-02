@@ -1,0 +1,26 @@
+// Codegen Snapshot Test: Functions
+
+// Simple functions
+let identity = (x) => x;
+let addTwo = (x, y) => x + y;
+
+// Multi-parameter functions (curried)
+let add = (x, y) => x + y;
+let multiply = (x, y) => x * y;
+
+// Higher-order functions
+let apply = (f, x) => f(x);
+let compose = (f, g, x) => f(g(x));
+
+// Partial application
+let addFive = add(5);
+let double = multiply(2);
+
+// Function returning function
+let makeAdder = (n) => (x) => x + n;
+
+// Nested lambdas
+let curriedAdd3 = (a) => (b) => (c) => a + b + c;
+
+// Pipeline
+let pipeline = (x) => x |> addFive |> double;

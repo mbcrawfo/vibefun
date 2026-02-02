@@ -1,0 +1,33 @@
+// Codegen Snapshot Test: Data Structures
+
+// Records
+let point = { x: 0, y: 0 };
+let person = { name: "Alice", age: 30, active: true };
+
+// Nested records
+let box = {
+    origin: { x: 0, y: 0 },
+    size: { width: 100, height: 50 }
+};
+
+// Record access
+let xValue = point.x;
+let boxWidth = box.size.width;
+
+// Record update (functional update)
+let movedPoint = { ...point, x: 10 };
+let updatedPerson = { ...person, age: 31 };
+
+// Variants
+type Option<T> = None | Some(T);
+type Result<T, E> = Ok(T) | Err(E);
+
+// Creating variant values
+let nothing = None;
+let justFive = Some(5);
+let success = Ok("done");
+let failure = Err("failed");
+
+// Nested variants
+let nestedOption = Some(Some(42));
+let optionResult = Some(Ok(100));

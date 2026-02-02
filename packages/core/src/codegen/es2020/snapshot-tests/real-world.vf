@@ -1,0 +1,38 @@
+// Codegen Snapshot Test: Real-World Patterns
+
+// Option type utilities
+type Option<T> = None | Some(T);
+
+export let isSome = (opt) => match opt {
+    | Some(_) => true
+    | None => false
+};
+
+// Result type utilities
+type Result<T, E> = Ok(T) | Err(E);
+
+export let isOk = (res) => match res {
+    | Ok(_) => true
+    | Err(_) => false
+};
+
+// Point operations
+type Point = { x: Int, y: Int };
+
+let origin = { x: 0, y: 0 };
+
+// Composition patterns
+let add = (a, b) => a + b;
+let multiply = (a, b) => a * b;
+
+let increment = add(1);
+let double = multiply(2);
+
+// Pipeline example
+let processNumber = (n) => n |> increment |> double |> increment;
+
+// Simple matching
+let classify = (n) => match n {
+    | 0 => "zero"
+    | _ => "non-zero"
+};

@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Codegen Snapshot - Expressions > should compile expressions.vf 1`] = `
+"// Vibefun compiled output
+// Source: expressions.vf
+// Target: ES2020
+const intPositive = 42;
+const intZero = 0;
+const intLarge = 1000000;
+const floatPositive = 3.14;
+const floatZero = 0.0;
+const floatSmall = 0.001;
+const strSimple = "hello";
+const strEmpty = "";
+const strEscapes = "line1\\nline2\\ttab";
+const boolTrue = true;
+const boolFalse = false;
+const unitVal = undefined;
+const add = 1 + 2;
+const sub = 5 - 3;
+const mul = 4 * 2;
+const divInt = Math.trunc(7 / 2);
+const modulo = 7 % 3;
+const lt = 1 < 2;
+const lte = 1 <= 2;
+const gt = 2 > 1;
+const gte = 2 >= 1;
+const eq = 1 === 1;
+const neq = 1 !== 2;
+const andOp = true && false;
+const orOp = true || false;
+const notOp = !true;
+const concat = "hello" + " " + "world";
+const precedence1 = 1 + 2 * 3;
+const precedence2 = (1 + 2) * 3;
+const precedence3 = 1 < 2 && 3 > 0;
+const identity = (x) => x;
+const add2 = (x) => (y) => x + y;
+const curried = (x) => (y) => x + y;
+const applyId = identity(42);
+const applyCurried = curried(1)(2);
+const point = { x: 10, y: 20 };
+const person = { name: "Alice", age: 30 };
+const nested = { pos: { x: 0, y: 0 }, size: 10 };
+const xCoord = point.x;
+const personName = person.name;
+const movedPoint = { ...point, x: 100 };
+export {};
+"
+`;
