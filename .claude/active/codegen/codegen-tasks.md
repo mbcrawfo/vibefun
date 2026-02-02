@@ -59,19 +59,19 @@
 - [x] Write `tests/expressions.test.ts` - Functions section
 
 ## Phase 5: Pattern Emission
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Create `emit-patterns.ts` with DI setup
-- [ ] Implement emitPattern() for destructuring contexts
-- [ ] Implement emitMatchPattern() for match case contexts
-- [ ] Implement CoreWildcardPattern
-- [ ] Implement CoreVarPattern
-- [ ] Implement CoreLiteralPattern (handle `null` → `undefined` for unit)
-- [ ] Implement CoreTuplePattern
-- [ ] Implement CoreRecordPattern
-- [ ] Implement CoreVariantPattern (tag checking + field extraction)
-- [ ] Wire up DI between expressions and patterns
-- [ ] Write `tests/patterns.test.ts`
+- [x] Create `emit-patterns.ts` with DI setup
+- [x] Implement emitPattern() for destructuring contexts
+- [x] Implement emitMatchPattern() for match case contexts
+- [x] Implement CoreWildcardPattern
+- [x] Implement CoreVarPattern
+- [x] Implement CoreLiteralPattern (handle `null` → `undefined` for unit)
+- [x] Implement CoreTuplePattern
+- [x] Implement CoreRecordPattern
+- [x] Implement CoreVariantPattern (tag checking + field extraction)
+- [x] Wire up DI between expressions and patterns
+- [x] Write `tests/patterns.test.ts`
 
 ## Phase 6: Match Expressions
 **Status:** 🔜 Not Started
@@ -245,7 +245,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 2. Literals & Variables | ✅ | 10/10 |
 | 3. Operators | ✅ | 14/14 |
 | 4. Functions | ✅ | 4/4 |
-| 5. Patterns | 🔜 | 0/11 |
+| 5. Patterns | ✅ | 11/11 |
 | 6. Match Expressions | 🔜 | 0/6 |
 | 7. Let & Mutability | 🔜 | 0/9 |
 | 8. Records & Variants | 🔜 | 0/9 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 38/166 tasks complete (23%)
+**Overall:** 49/166 tasks complete (30%)
