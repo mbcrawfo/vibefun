@@ -19,44 +19,44 @@
 - [x] Write `tests/operators.test.ts` (precedence tests)
 
 ## Phase 2: Expression Emission - Literals & Variables
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Create `emit-expressions.ts` with emitExpr() dispatcher
-- [ ] Implement CoreIntLit emission (including negative wrapping)
-- [ ] Implement CoreFloatLit emission (including Infinity, -Infinity, NaN, -0)
-- [ ] Implement CoreStringLit emission (with proper escaping)
-- [ ] Implement string escape helper (\\n, \\t, \\r, \\\\, \\", U+2028, U+2029, control chars)
-- [ ] Implement CoreBoolLit emission
-- [ ] Implement CoreUnitLit emission
-- [ ] Implement CoreVar emission (with reserved word escaping)
-- [ ] Implement CoreVar external lookup (check TypeEnv for External/ExternalOverload, use jsName)
-- [ ] Write `tests/expressions.test.ts` - Literals section
+- [x] Create `emit-expressions.ts` with emitExpr() dispatcher
+- [x] Implement CoreIntLit emission (including negative wrapping)
+- [x] Implement CoreFloatLit emission (including Infinity, -Infinity, NaN, -0)
+- [x] Implement CoreStringLit emission (with proper escaping)
+- [x] Implement string escape helper (\\n, \\t, \\r, \\\\, \\", U+2028, U+2029, control chars)
+- [x] Implement CoreBoolLit emission
+- [x] Implement CoreUnitLit emission
+- [x] Implement CoreVar emission (with reserved word escaping)
+- [x] Implement CoreVar external lookup (check TypeEnv for External/ExternalOverload, use jsName)
+- [x] Write `tests/expressions.test.ts` - Literals section
 
 ## Phase 3: Expression Emission - Operators
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Implement CoreBinOp emission with precedence handling
-- [ ] Handle Add, Subtract, Multiply, Modulo
-- [ ] Handle IntDivide (Math.trunc)
-- [ ] Handle FloatDivide (direct division)
-- [ ] Handle unlowered Divide (throw internal error - typechecker bug)
-- [ ] Handle Equal, NotEqual (primitive vs composite detection via TypeEnv)
-- [ ] Implement `getExprType()` helper for $eq detection using TypeEnv and declarationTypes
-- [ ] Handle comparison operators (LessThan, LessEqual, etc.)
-- [ ] Handle LogicalAnd, LogicalOr (short-circuit)
-- [ ] Handle Concat (string +)
-- [ ] Handle RefAssign (context-dependent)
-- [ ] Implement CoreUnaryOp emission
-- [ ] Handle Negate, LogicalNot, Deref
-- [ ] Write `tests/expressions.test.ts` - Operators section
+- [x] Implement CoreBinOp emission with precedence handling
+- [x] Handle Add, Subtract, Multiply, Modulo
+- [x] Handle IntDivide (Math.trunc)
+- [x] Handle FloatDivide (direct division)
+- [x] Handle unlowered Divide (throw internal error - typechecker bug)
+- [x] Handle Equal, NotEqual (primitive vs composite detection via TypeEnv)
+- [x] Implement `getExprType()` helper for $eq detection using TypeEnv and declarationTypes
+- [x] Handle comparison operators (LessThan, LessEqual, etc.)
+- [x] Handle LogicalAnd, LogicalOr (short-circuit)
+- [x] Handle Concat (string +)
+- [x] Handle RefAssign (context-dependent)
+- [x] Implement CoreUnaryOp emission
+- [x] Handle Negate, LogicalNot, Deref
+- [x] Write `tests/expressions.test.ts` - Operators section
 
 ## Phase 4: Expression Emission - Functions
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Implement CoreLambda emission (arrow functions)
-- [ ] Implement CoreApp emission (curried calls - note: args is always single-element)
-- [ ] Implement CoreTuple emission (as arrays)
-- [ ] Write `tests/expressions.test.ts` - Functions section
+- [x] Implement CoreLambda emission (arrow functions)
+- [x] Implement CoreApp emission (curried calls - note: args is always single-element)
+- [x] Implement CoreTuple emission (as arrays)
+- [x] Write `tests/expressions.test.ts` - Functions section
 
 ## Phase 5: Pattern Emission
 **Status:** 🔜 Not Started
@@ -242,9 +242,9 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | Phase | Status | Tasks |
 |-------|--------|-------|
 | 1. Core Infrastructure | ✅ | 10/10 |
-| 2. Literals & Variables | 🔜 | 0/10 |
-| 3. Operators | 🔜 | 0/14 |
-| 4. Functions | 🔜 | 0/4 |
+| 2. Literals & Variables | ✅ | 10/10 |
+| 3. Operators | ✅ | 14/14 |
+| 4. Functions | ✅ | 4/4 |
 | 5. Patterns | 🔜 | 0/11 |
 | 6. Match Expressions | 🔜 | 0/6 |
 | 7. Let & Mutability | 🔜 | 0/9 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 10/166 tasks complete (6%)
+**Overall:** 38/166 tasks complete (23%)
