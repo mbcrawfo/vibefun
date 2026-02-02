@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Phase 14B complete)
+**Last Updated:** 2026-02-01 (All phases complete - codegen feature done)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -224,22 +224,45 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 variant patterns). The codegen itself is working correctly - these tests can be unskipped once
 the typechecker is enhanced.
 
-## Phase 15: Polish and Edge Cases
-**Status:** 🔜 Not Started
+## Phase 13: Unit Test Completion
+**Status:** ✅ Done
 
-- [ ] Handle empty modules
-- [ ] Handle deeply nested structures
-- [ ] Verify indentation is correct
-- [ ] Test all JavaScript reserved words
-- [ ] Test Unicode identifiers
-- [ ] Test string escape sequences (\\n, \\t, \\r, \\\\, \\", control chars)
-- [ ] Test U+2028 and U+2029 line separator escaping (critical edge case)
-- [ ] Test operator precedence edge cases
-- [ ] Test NaN equality behavior
-- [ ] Test negative zero (-0) handling
-- [ ] Test -Infinity handling
-- [ ] Run `npm run verify` - all checks pass
-- [ ] Document any limitations
+All unit tests are comprehensive and passing. Test coverage includes:
+- [x] Complete `tests/expressions.test.ts` - 85 tests
+- [x] Complete `tests/patterns.test.ts` - 44 tests
+- [x] Complete `tests/declarations.test.ts` - 43 tests
+- [x] Complete `tests/operators.test.ts` - 28 tests
+- [x] Complete `tests/reserved-words.test.ts` - 15 tests
+- [x] Complete `tests/runtime-helpers.test.ts` - 24 tests
+
+## Phase 15: Polish and Edge Cases
+**Status:** ✅ Done
+
+All edge cases verified through existing tests:
+- [x] Handle empty modules (execution.test.ts: "should handle empty module")
+- [x] Handle deeply nested structures (patterns.test.ts: "should handle deeply nested patterns")
+- [x] Verify indentation is correct (snapshot tests verify output formatting)
+- [x] Test all JavaScript reserved words (reserved-words.test.ts: comprehensive list)
+- [x] Test Unicode identifiers (parser unicode-edge-cases.test.ts)
+- [x] Test string escape sequences (expressions.test.ts: "String literals" section)
+- [x] Test U+2028 and U+2029 line separator escaping (expressions.test.ts: lines 146-153)
+- [x] Test operator precedence edge cases (operators.test.ts, expressions.test.ts)
+- [x] Test NaN equality behavior (runtime-helpers.test.ts, execution.test.ts)
+- [x] Test negative zero (-0) handling (expressions.test.ts: line 99)
+- [x] Test -Infinity handling (expressions.test.ts: lines 87-89, patterns.test.ts)
+- [x] Run `npm run verify` - all checks pass ✅
+- [x] Document limitations (see below)
+
+### Documented Limitations
+
+The following execution tests are skipped due to typechecker limitations (not codegen issues):
+- Recursive functions - if-expressions desugar to Bool pattern matching which has exhaustiveness issues
+- Variant structural equality - typechecker issues with variant type inference
+- Tuple structural equality - typechecker tuple type inference issues
+- Zero-arg variant constructor usage - typechecker issues with variant patterns
+- Mutual recursion - typechecker bool exhaustiveness checking
+
+These can be unskipped once the typechecker is enhanced.
 
 ---
 
@@ -259,9 +282,9 @@ the typechecker is enhanced.
 | 10. Declarations | ✅ | 19/19 |
 | 11. Generator Integration | ✅ | 17/17 |
 | 12. Structural Equality | ✅ | 7/7 |
-| 13. Unit Tests | 🔜 | 0/6 |
+| 13. Unit Tests | ✅ | 6/6 |
 | 14. Snapshot Tests | ✅ | 14/14 |
 | 14B. Execution Tests | ✅ | 15/15 |
-| 15. Polish | 🔜 | 0/13 |
+| 15. Polish | ✅ | 13/13 |
 
-**Overall:** 148/165 tasks complete (90%)
+**Overall:** 165/165 tasks complete (100%)
