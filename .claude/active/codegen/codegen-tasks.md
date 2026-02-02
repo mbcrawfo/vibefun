@@ -1,22 +1,22 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern literal, import deduplication, snapshot naming)
+**Last Updated:** 2026-02-01
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
 ## Phase 1: Core Infrastructure
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Create directory structure `packages/core/src/codegen/es2020/`
-- [ ] Create directory structure `packages/core/src/codegen/es2020/tests/`
-- [ ] Create directory structure `packages/core/src/codegen/es2020/snapshot-tests/`
-- [ ] Create `packages/core/src/codegen/es2020/CLAUDE.md` - Module documentation
-- [ ] Implement `context.ts` - EmitContext type and helper functions (include indentString config)
-- [ ] Implement `reserved-words.ts` - JS reserved words set and escapeIdentifier()
-- [ ] Implement `emit-operators.ts` - Precedence table and needsParens()
-- [ ] Implement `tests/test-helpers.ts` - createTestContext(), generateExpr()
-- [ ] Write `tests/reserved-words.test.ts`
-- [ ] Write `tests/operators.test.ts` (precedence tests)
+- [x] Create directory structure `packages/core/src/codegen/es2020/`
+- [x] Create directory structure `packages/core/src/codegen/es2020/tests/`
+- [x] Create directory structure `packages/core/src/codegen/es2020/snapshot-tests/`
+- [x] Create `packages/core/src/codegen/es2020/CLAUDE.md` - Module documentation
+- [x] Implement `context.ts` - EmitContext type and helper functions (include indentString config)
+- [x] Implement `reserved-words.ts` - JS reserved words set and escapeIdentifier()
+- [x] Implement `emit-operators.ts` - Precedence table and needsParens()
+- [x] Implement `tests/test-helpers.ts` - createTestContext(), generateExpr()
+- [x] Write `tests/reserved-words.test.ts`
+- [x] Write `tests/operators.test.ts` (precedence tests)
 
 ## Phase 2: Expression Emission - Literals & Variables
 **Status:** 🔜 Not Started
@@ -241,7 +241,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 
 | Phase | Status | Tasks |
 |-------|--------|-------|
-| 1. Core Infrastructure | 🔜 | 0/10 |
+| 1. Core Infrastructure | ✅ | 10/10 |
 | 2. Literals & Variables | 🔜 | 0/10 |
 | 3. Operators | 🔜 | 0/14 |
 | 4. Functions | 🔜 | 0/4 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 0/166 tasks complete (0%)
+**Overall:** 10/166 tasks complete (6%)
