@@ -8,16 +8,16 @@ const None = { $tag: "None" };
 const Some = ($$0) => ({ $tag: "Some", $0: $$0 });
 const unwrapOrZero = (opt) => (() => {
   const $match = opt;
-  if ($match.$tag === "Some") { const x = $match.$0; return x; }
-  if ($match.$tag === "None") { return 0; }
+  if (typeof $match === "object" && $match !== null && $match.$tag === "Some") { const x = $match.$0; return x; }
+  if (typeof $match === "object" && $match !== null && $match.$tag === "None") { return 0; }
   throw new Error("Match exhausted");
 })();
 const Ok = ($$0) => ({ $tag: "Ok", $0: $$0 });
 const Err = ($$0) => ({ $tag: "Err", $0: $$0 });
 const handleResult = (res) => (() => {
   const $match = res;
-  if ($match.$tag === "Ok") { const value = $match.$0; return value; }
-  if ($match.$tag === "Err") { return 0; }
+  if (typeof $match === "object" && $match !== null && $match.$tag === "Ok") { const value = $match.$0; return value; }
+  if (typeof $match === "object" && $match !== null && $match.$tag === "Err") { return 0; }
   throw new Error("Match exhausted");
 })();
 const isZero = (n) => (() => {

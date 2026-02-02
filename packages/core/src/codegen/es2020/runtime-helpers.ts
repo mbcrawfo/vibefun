@@ -38,7 +38,7 @@ export function generateEqHelper(): string {
     return `const $eq = (a, b) => {
   if (a === b) return true;
   if (a == null || b == null) return false;
-  if (typeof a !== "object") return false;
+  if (typeof a !== "object" || typeof b !== "object") return false;
   if ("$value" in a && "$value" in b) return a === b;
   if ("$tag" in a) {
     if (!("$tag" in b) || a.$tag !== b.$tag) return false;

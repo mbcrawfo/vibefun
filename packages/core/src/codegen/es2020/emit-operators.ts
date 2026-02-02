@@ -1,7 +1,7 @@
 /**
  * Operator precedence and parenthesization
  *
- * JavaScript operator precedence levels (lower = binds tighter):
+ * JavaScript operator precedence levels (higher = binds tighter):
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_precedence
  *
  * We use a simplified subset relevant to our generated code.
@@ -11,7 +11,7 @@ import type { CoreBinaryOp, CoreUnary } from "../../types/core-ast.js";
 
 /**
  * Precedence levels for binary operators
- * Higher numbers = lower precedence (binds looser)
+ * Higher numbers = higher precedence (binds tighter)
  *
  * Based on JavaScript operator precedence:
  * - Assignment: 2 (not used directly, but RefAssign is similar)
@@ -104,7 +104,7 @@ export function getUnaryPrecedence(op: CoreUnary): number {
  * Determine if parentheses are needed for a subexpression
  *
  * Parentheses are needed when the inner expression has lower precedence
- * (higher number) than the outer context.
+ * (lower number) than the outer context.
  *
  * @param innerPrecedence - Precedence of the inner expression
  * @param outerPrecedence - Precedence of the outer context

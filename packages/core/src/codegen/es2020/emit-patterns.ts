@@ -9,6 +9,7 @@
 import type { CoreExpr, CorePattern } from "../../types/core-ast.js";
 import type { EmitContext } from "./context.js";
 
+import { nextWildcardId } from "./context.js";
 import { escapeIdentifier } from "./reserved-words.js";
 
 // =============================================================================
@@ -47,8 +48,8 @@ export function setEmitExpr(fn: typeof emitExprFn): void {
 export function emitPattern(pattern: CorePattern, ctx: EmitContext): string {
     switch (pattern.kind) {
         case "CoreWildcardPattern":
-            // Use underscore for wildcards (valid JS identifier)
-            return "_";
+            // Generate unique identifier to avoid duplicate `_` in destructuring
+            return nextWildcardId(ctx);
 
         case "CoreVarPattern":
             return escapeIdentifier(pattern.name);
@@ -310,6 +311,10 @@ function emitVariantPattern(
 ): MatchPatternResult {
     const conditions: string[] = [];
     const bindings: string[] = [];
+
+    // Ensure scrutinee is a non-null object before tag access
+    conditions.push(`typeof ${scrutinee} === "object"`);
+    conditions.push(`${scrutinee} !== null`);
 
     // Check the tag
     conditions.push(`${scrutinee}.$tag === "${pattern.constructor}"`);

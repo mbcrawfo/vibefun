@@ -29,6 +29,8 @@ export type SharedState = {
     needsEqHelper: boolean;
     needsRefHelper: boolean;
     exportedNames: Set<string>;
+    /** Counter for generating unique wildcard identifiers */
+    wildcardCounter: number;
 };
 
 /**
@@ -93,6 +95,7 @@ export function createContext(options: CreateContextOptions): EmitContext {
         needsEqHelper: false,
         needsRefHelper: false,
         exportedNames: new Set(),
+        wildcardCounter: 0,
     };
 
     return {
@@ -193,4 +196,18 @@ export function markNeedsRefHelper(ctx: EmitContext): void {
  */
 export function addExport(ctx: EmitContext, name: string): void {
     ctx.shared.exportedNames.add(name);
+}
+
+/**
+ * Generate a unique wildcard identifier
+ *
+ * Used to avoid duplicate `_` identifiers in destructuring patterns.
+ * Each call returns a unique name like `_unused0`, `_unused1`, etc.
+ *
+ * @param ctx - Context to update (mutates shared state!)
+ * @returns Unique wildcard identifier
+ */
+export function nextWildcardId(ctx: EmitContext): string {
+    const id = ctx.shared.wildcardCounter++;
+    return `_unused${id}`;
 }
