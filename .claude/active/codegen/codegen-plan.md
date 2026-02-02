@@ -1,8 +1,20 @@
 # ES2020 Code Generator Implementation Plan
 
+**Last Updated:** 2026-02-01
+
 ## Overview
 
 Implement the ES2020 code generator for the Vibefun compiler. The generator transforms `TypedModule` (output of typechecker) into valid ES2020 JavaScript code.
+
+## Prerequisites Status
+
+| Prerequisite | Status | Notes |
+|--------------|--------|-------|
+| IntDivide/FloatDivide in Core AST | ✅ Complete | `core-ast.ts:250-251` |
+| Typechecker division lowering | ✅ Complete | `infer-operators.ts`, tests in `division-lowering.test.ts` |
+| Optimizer constant folding updated | ✅ Complete | Uses `Math.trunc` for IntDivide |
+
+All prerequisites are in place. Implementation can proceed.
 
 ## Directory Structure
 
@@ -10,6 +22,7 @@ Implement the ES2020 code generator for the Vibefun compiler. The generator tran
 packages/core/src/codegen/
 ├── index.ts                    # Main public API (update existing)
 └── es2020/
+    ├── CLAUDE.md               # Module documentation (following parser pattern)
     ├── index.ts                # ES2020 public API (~50 lines)
     ├── generator.ts            # Main generator class (~350 lines)
     ├── emit-expressions.ts     # Expression emission (~450 lines)
@@ -25,6 +38,8 @@ packages/core/src/codegen/
     │   ├── patterns.test.ts
     │   ├── declarations.test.ts
     │   ├── operators.test.ts
+    │   ├── execution-test-helpers.ts  # Uses Node vm module
+    │   ├── execution.test.ts          # Runtime semantic tests
     │   └── reserved-words.test.ts
     └── snapshot-tests/
         ├── test-helpers.ts
@@ -237,21 +252,30 @@ Append `$` suffix: `class` → `class$`
 ### Phase 8: Generator Integration
 - Main generator class
 - Module emission
-- Runtime helper injection
+- Runtime helper injection (conditional)
+- Helper detection: track `needsEqHelper`/`needsRefHelper` during emission
+- Empty module handling
+- Import deduplication
 - Public API
 
 ### Phase 9: Snapshot Tests
-- Fixture files
-- Test helpers
+- Fixture files (following parser snapshot test pattern)
+- Test helpers (`compileFixture()` that goes source → JS)
 - Generate snapshots
 
-### Phase 10: Structural Equality
-- $eq helper implementation
-- Tracking when needed
+### Phase 10: Execution Tests (NEW)
+- End-to-end tests that execute generated JS using Node's `vm` module (sandboxed)
+- Verify runtime semantics (currying, pattern matching, etc.)
+- Test edge cases (NaN equality, integer division truncation, etc.)
 
-### Phase 11: Polish
-- Edge cases
-- Indentation
+### Phase 11: Structural Equality
+- $eq helper implementation
+- Tracking when needed (composite types in Equal/NotEqual)
+
+### Phase 12: Polish
+- Edge cases (negative zero, deeply nested structures)
+- Indentation consistency
+- Internal error handling (unknown node kinds)
 - Documentation
 
 ## Verification
@@ -262,3 +286,28 @@ After implementation:
 3. `npm test` - All tests pass
 4. `npm run format` - Code formatting
 5. Manual testing with example .vf files
+
+## Special Considerations
+
+### Float Edge Cases
+- `Infinity` → emit as `Infinity`
+- `-Infinity` → emit as `(-Infinity)` (parenthesized)
+- `NaN` → emit as `NaN`
+- `-0.0` → emit as `(-0)` (negative zero)
+
+### Import Path Rules
+| Import Type | Rule |
+|-------------|------|
+| Relative (`./foo`) | Append `.js` → `"./foo.js"` |
+| Absolute (`/lib/foo`) | Append `.js` → `"/lib/foo.js"` |
+| Package (`lodash`) | Pass through unchanged |
+| Scoped (`@vibefun/std`) | Pass through unchanged |
+
+### Runtime Helper Detection
+Track during expression emission:
+- `needsRefHelper`: Set when encountering `CoreLet` with `mutable: true` OR `CoreUnaryOp` with `op: "Deref"` OR `CoreBinOp` with `op: "RefAssign"`
+- `needsEqHelper`: Set when encountering `CoreBinOp` with `op: "Equal"` or `"NotEqual"` AND operand type is composite (record, variant, tuple, list)
+
+### Error Handling
+- Unknown AST node kind → throw internal compiler error with node details
+- Invalid/malformed TypedModule → throw internal compiler error (should never happen if typechecker is correct)
