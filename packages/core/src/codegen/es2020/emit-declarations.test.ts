@@ -28,6 +28,8 @@ import {
 } from "./test-helpers.js";
 
 // Set up dependencies for expression emission
+// Note: The DI pattern uses `unknown` for forward declarations to break circular dependencies.
+// Type safety is enforced at the implementation level, not at the injection site.
 setExprEmitPattern(emitPattern as (pattern: unknown, ctx: EmitContext) => string);
 setEmitMatchPattern(
     emitMatchPattern as (

@@ -150,6 +150,15 @@ describe("Expression Emission", () => {
                 expect(emitExpr(stringLit("a\0b"), ctx)).toBe('"a\\0b"');
             });
 
+            it("should use \\x00 for null bytes followed by digits", () => {
+                const ctx = createTestContext();
+                // When null is followed by a digit, we must use \x00 to avoid
+                // creating invalid octal escape sequences like \01
+                expect(emitExpr(stringLit("\x001"), ctx)).toBe('"\\x001"');
+                expect(emitExpr(stringLit("\x009"), ctx)).toBe('"\\x009"');
+                expect(emitExpr(stringLit("a\x005b"), ctx)).toBe('"a\\x005b"');
+            });
+
             it("should escape U+2028 line separator", () => {
                 const ctx = createTestContext();
                 expect(emitExpr(stringLit("a\u2028b"), ctx)).toBe('"a\\u2028b"');

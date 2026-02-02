@@ -15,6 +15,23 @@ import { typeCheck } from "../../../typechecker/index.js";
 import { generate } from "../../index.js";
 
 /**
+ * Compile vibefun source through the full pipeline.
+ *
+ * @param source - Vibefun source code
+ * @returns The generated JavaScript code
+ */
+function compile(source: string): string {
+    const lexer = new Lexer(source, "test.vf");
+    const tokens = lexer.tokenize();
+    const parser = new Parser(tokens, "test.vf");
+    const ast = parser.parse();
+    const coreModule = desugarModule(ast);
+    const typedModule = typeCheck(coreModule);
+    const { code } = generate(typedModule, { filename: "test.vf" });
+    return code;
+}
+
+/**
  * Strip the export statement from generated code for vm execution.
  * ES modules exports are not supported in vm.runInContext().
  */
@@ -31,17 +48,8 @@ function stripExports(code: string): string {
  * @returns The result of evaluating resultExpr, or undefined
  */
 export function compileAndRun(source: string, resultExpr?: string): unknown {
-    // Compile through full pipeline
-    const lexer = new Lexer(source, "test.vf");
-    const tokens = lexer.tokenize();
-    const parser = new Parser(tokens, "test.vf");
-    const ast = parser.parse();
-    const coreModule = desugarModule(ast);
-    const typedModule = typeCheck(coreModule);
-    const { code } = generate(typedModule, { filename: "test.vf" });
-
     // Strip export statement for vm execution
-    const executableCode = stripExports(code);
+    const executableCode = stripExports(compile(source));
 
     // Execute in sandboxed context
     const context = vm.createContext({
@@ -98,12 +106,5 @@ export function compileAndRunSucceeds(source: string): boolean {
  * @returns The generated JavaScript code
  */
 export function compileToJs(source: string): string {
-    const lexer = new Lexer(source, "test.vf");
-    const tokens = lexer.tokenize();
-    const parser = new Parser(tokens, "test.vf");
-    const ast = parser.parse();
-    const coreModule = desugarModule(ast);
-    const typedModule = typeCheck(coreModule);
-    const { code } = generate(typedModule, { filename: "test.vf" });
-    return code;
+    return compile(source);
 }
