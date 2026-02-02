@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Codegen Snapshot - Functions > should compile functions.vf 1`] = `
+"// Vibefun compiled output
+// Source: functions.vf
+// Target: ES2020
+const identity = (x) => x;
+const addTwo = (x) => (y) => x + y;
+const add = (x) => (y) => x + y;
+const multiply = (x) => (y) => x * y;
+const apply = (f) => (x) => f(x);
+const compose = (f) => (g) => (x) => f(g(x));
+const addFive = add(5);
+const double = multiply(2);
+const makeAdder = (n) => (x) => x + n;
+const curriedAdd3 = (a) => (b) => (c) => a + b + c;
+const pipeline = (x) => double(addFive(x));
+export {};
+"
+`;

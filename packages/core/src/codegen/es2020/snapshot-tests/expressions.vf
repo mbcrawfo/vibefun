@@ -1,0 +1,72 @@
+// Codegen Snapshot Test: Expressions
+
+// Integer literals
+let intPositive = 42;
+let intZero = 0;
+let intLarge = 1000000;
+
+// Float literals
+let floatPositive = 3.14;
+let floatZero = 0.0;
+let floatSmall = 0.001;
+
+// String literals
+let strSimple = "hello";
+let strEmpty = "";
+let strEscapes = "line1\nline2\ttab";
+
+// Boolean literals
+let boolTrue = true;
+let boolFalse = false;
+
+// Unit literal
+let unitVal = ();
+
+// Arithmetic expressions
+let add = 1 + 2;
+let sub = 5 - 3;
+let mul = 4 * 2;
+let divInt = 7 / 2;
+let modulo = 7 % 3;
+
+// Comparison operators
+let lt = 1 < 2;
+let lte = 1 <= 2;
+let gt = 2 > 1;
+let gte = 2 >= 1;
+let eq = 1 == 1;
+let neq = 1 != 2;
+
+// Logical operators
+let andOp = true && false;
+let orOp = true || false;
+let notOp = !true;
+
+// String concatenation
+let concat = "hello" & " " & "world";
+
+// Operator precedence
+let precedence1 = 1 + 2 * 3;
+let precedence2 = (1 + 2) * 3;
+let precedence3 = 1 < 2 && 3 > 0;
+
+// Lambda expressions
+let identity = (x) => x;
+let add2 = (x, y) => x + y;
+let curried = (x) => (y) => x + y;
+
+// Function application
+let applyId = identity(42);
+let applyCurried = curried(1)(2);
+
+// Records
+let point = { x: 10, y: 20 };
+let person = { name: "Alice", age: 30 };
+let nested = { pos: { x: 0, y: 0 }, size: 10 };
+
+// Record access
+let xCoord = point.x;
+let personName = person.name;
+
+// Record update
+let movedPoint = { ...point, x: 100 };

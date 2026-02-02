@@ -1,0 +1,21 @@
+// Codegen Snapshot Test: Declarations
+
+// Simple let declarations
+let x = 42;
+let greeting = "Hello";
+
+// Exported declarations
+export let publicValue = 100;
+export let addOne = (x) => x + 1;
+
+// Variant type declaration
+type Option<T> = None | Some(T);
+
+// Exported variant type
+export type Result<T, E> = Ok(T) | Err(E);
+
+// Record type
+type Point = { x: Int, y: Int };
+
+// External with different JS name
+external floor: (Float) -> Int = "Math.floor";

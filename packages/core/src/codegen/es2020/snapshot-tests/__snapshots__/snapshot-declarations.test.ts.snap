@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Codegen Snapshot - Declarations > should compile declarations.vf 1`] = `
+"// Vibefun compiled output
+// Source: declarations.vf
+// Target: ES2020
+const x = 42;
+const greeting = "Hello";
+const publicValue = 100;
+const addOne = (x) => x + 1;
+const None = { $tag: "None" };
+const Some = ($$0) => ({ $tag: "Some", $0: $$0 });
+const Ok = ($$0) => ({ $tag: "Ok", $0: $$0 });
+const Err = ($$0) => ({ $tag: "Err", $0: $$0 });
+const floor = Math.floor;
+export { Err, Ok, addOne, publicValue };
+"
+`;
