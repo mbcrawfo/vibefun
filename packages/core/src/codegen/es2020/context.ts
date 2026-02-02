@@ -1,0 +1,164 @@
+/**
+ * Emission context for code generation
+ *
+ * Tracks state during code generation including:
+ * - Statement vs expression context
+ * - Indentation level
+ * - Operator precedence (for parenthesization)
+ * - Runtime helper usage
+ * - Type environment (for structural equality detection)
+ */
+
+import type { Type, TypeEnv } from "../../types/environment.js";
+
+/**
+ * Context mode for emission
+ * - "statement": Top-level or block context (can emit const/let)
+ * - "expression": Value context (must emit single expression)
+ */
+export type EmitMode = "statement" | "expression";
+
+/**
+ * Emission context passed through code generation
+ */
+export type EmitContext = {
+    /** Current emission mode (statement or expression) */
+    mode: EmitMode;
+
+    /** Current indentation level (0 = no indent) */
+    indentLevel: number;
+
+    /** String used for each indentation level (default: "  ") */
+    indentString: string;
+
+    /** Current precedence level for parenthesization */
+    precedence: number;
+
+    /** Whether the $eq helper is needed */
+    needsEqHelper: boolean;
+
+    /** Whether the ref helper is needed */
+    needsRefHelper: boolean;
+
+    /** Type environment for looking up variable types */
+    env: TypeEnv;
+
+    /** Inferred types for top-level declarations */
+    declarationTypes: Map<string, Type>;
+
+    /** Names that should be exported (collected during emission) */
+    exportedNames: Set<string>;
+};
+
+/**
+ * Default options for creating context
+ */
+export type CreateContextOptions = {
+    /** Initial mode (default: "statement") */
+    mode?: EmitMode;
+    /** Indentation string (default: "  ") */
+    indentString?: string;
+    /** Type environment */
+    env: TypeEnv;
+    /** Declaration types */
+    declarationTypes: Map<string, Type>;
+};
+
+/**
+ * Create a new emission context with default values
+ *
+ * @param options - Configuration options
+ * @returns Fresh emission context
+ */
+export function createContext(options: CreateContextOptions): EmitContext {
+    return {
+        mode: options.mode ?? "statement",
+        indentLevel: 0,
+        indentString: options.indentString ?? "  ",
+        precedence: 0,
+        needsEqHelper: false,
+        needsRefHelper: false,
+        env: options.env,
+        declarationTypes: options.declarationTypes,
+        exportedNames: new Set(),
+    };
+}
+
+/**
+ * Get the current indentation string
+ *
+ * @param ctx - Emission context
+ * @returns String for current indentation level
+ */
+export function getIndent(ctx: EmitContext): string {
+    return ctx.indentString.repeat(ctx.indentLevel);
+}
+
+/**
+ * Create a new context with incremented indentation
+ *
+ * @param ctx - Base context
+ * @returns New context with indentation level + 1
+ */
+export function withIndent(ctx: EmitContext): EmitContext {
+    return { ...ctx, indentLevel: ctx.indentLevel + 1 };
+}
+
+/**
+ * Create a new context in expression mode
+ *
+ * @param ctx - Base context
+ * @returns New context in expression mode
+ */
+export function withExpressionMode(ctx: EmitContext): EmitContext {
+    return { ...ctx, mode: "expression" };
+}
+
+/**
+ * Create a new context in statement mode
+ *
+ * @param ctx - Base context
+ * @returns New context in statement mode
+ */
+export function withStatementMode(ctx: EmitContext): EmitContext {
+    return { ...ctx, mode: "statement" };
+}
+
+/**
+ * Create a new context with specified precedence
+ *
+ * @param ctx - Base context
+ * @param precedence - New precedence level
+ * @returns New context with updated precedence
+ */
+export function withPrecedence(ctx: EmitContext, precedence: number): EmitContext {
+    return { ...ctx, precedence };
+}
+
+/**
+ * Mark that the $eq helper is needed
+ *
+ * @param ctx - Context to update (mutates!)
+ */
+export function markNeedsEqHelper(ctx: EmitContext): void {
+    ctx.needsEqHelper = true;
+}
+
+/**
+ * Mark that the ref helper is needed
+ *
+ * @param ctx - Context to update (mutates!)
+ */
+export function markNeedsRefHelper(ctx: EmitContext): void {
+    ctx.needsRefHelper = true;
+}
+
+/**
+ * Add a name to the export set
+ *
+ * @param ctx - Context to update (mutates!)
+ * @param name - Name to export
+ */
+export function addExport(ctx: EmitContext, name: string): void {
+    ctx.exportedNames.add(name);
+}
