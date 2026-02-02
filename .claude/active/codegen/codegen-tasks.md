@@ -171,16 +171,6 @@
 - [x] Handle type variable case (conservatively use $eq)
 - [x] Write equality edge case tests (NaN, refs, nested structures)
 
-## Phase 13: Unit Test Completion
-**Status:** 🔜 Not Started
-
-- [ ] Complete `tests/expressions.test.ts`
-- [ ] Complete `tests/patterns.test.ts`
-- [ ] Complete `tests/declarations.test.ts`
-- [ ] Complete `tests/operators.test.ts`
-- [ ] Complete `tests/reserved-words.test.ts`
-- [ ] Achieve target coverage
-
 ## Phase 14: Snapshot Tests
 **Status:** ✅ Done
 
@@ -287,4 +277,4 @@ These can be unskipped once the typechecker is enhanced.
 | 14B. Execution Tests | ✅ | 15/15 |
 | 15. Polish | ✅ | 13/13 |
 
-**Overall:** 165/165 tasks complete (100%)
+**Overall:** 167/167 tasks complete (100%)
