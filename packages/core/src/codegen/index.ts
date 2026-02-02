@@ -1,11 +1,19 @@
 /**
  * Code generator module - transforms typed Core AST to JavaScript
  *
- * NOTE: This is currently a stub implementation that produces placeholder output.
- * Full code generation will be implemented in a future phase.
+ * This module provides the main entry point for code generation.
+ * Currently supports ES2020 target. Future versions may support additional targets.
  */
 
 import type { TypedModule } from "../typechecker/typechecker.js";
+
+import { generate as generateES2020 } from "./es2020/index.js";
+
+/**
+ * Supported ES targets
+ * Currently only ES2020 is supported.
+ */
+export type ESTarget = "es2020";
 
 /**
  * Options for code generation
@@ -13,6 +21,9 @@ import type { TypedModule } from "../typechecker/typechecker.js";
 export interface GenerateOptions {
     /** Source filename (for output comments) */
     readonly filename?: string;
+
+    /** Target ES version (default: "es2020") */
+    readonly target?: ESTarget;
 }
 
 /**
@@ -38,16 +49,19 @@ export interface GenerateResult {
  * ```
  */
 export function generate(typedModule: TypedModule, options?: GenerateOptions): GenerateResult {
-    // Stub implementation - produces placeholder output
-    // The typedModule is validated but not used for actual code generation yet
-    void typedModule;
+    const target = options?.target ?? "es2020";
 
-    const filename = options?.filename ?? "unknown";
-    const code = `// Vibefun compiled output (codegen stub)
-// Source: ${filename}
-// Declarations: ${typedModule.declarationTypes.size}
-export {};
-`;
+    switch (target) {
+        case "es2020":
+            return generateES2020(typedModule, options?.filename ? { filename: options.filename } : undefined);
 
-    return { code };
+        default: {
+            // Exhaustiveness check
+            const _exhaustive: never = target;
+            throw new Error(`Internal error: Unknown ES target: ${_exhaustive}`);
+        }
+    }
 }
+
+// Re-export ES2020 types for convenience
+export type { EmitContext } from "./es2020/index.js";

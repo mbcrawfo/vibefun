@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Phase 10 complete)
+**Last Updated:** 2026-02-01 (Phase 11 complete)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -140,34 +140,36 @@
 - [x] Write `tests/declarations.test.ts`
 
 ## Phase 11: Generator Integration
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Create `generator.ts` - ES2020Generator class
-- [ ] Implement generate() method
-- [ ] Implement header comment emission
-- [ ] Implement import collection and emission
-- [ ] Implement import deduplication (same module, multiple items; type+value → value)
-- [ ] Implement declaration emission loop
-- [ ] Implement runtime helper tracking (needsEqHelper, needsRefHelper)
-- [ ] Implement runtime helper emission (conditional, at top after imports)
-- [ ] Implement export collection during declaration emission
-- [ ] Implement export statement emission at end of module (`export { ... }`)
-- [ ] Handle empty modules (emit valid JS with just header)
-- [ ] Create `es2020/index.ts` - public API
-- [ ] Update `codegen/index.ts` - target selection
-- [ ] Wire up all DI dependencies
-- [ ] Add internal error handling for unknown AST node kinds
+- [x] Create `generator.ts` - ES2020Generator class
+- [x] Implement generate() method
+- [x] Implement header comment emission
+- [x] Implement import collection and emission
+- [x] Implement import deduplication (same module, multiple items; type+value → value)
+- [x] Implement declaration emission loop
+- [x] Implement runtime helper tracking (needsEqHelper, needsRefHelper)
+- [x] Implement runtime helper emission (conditional, at top after imports)
+- [x] Implement export collection during declaration emission
+- [x] Implement export statement emission at end of module (`export { ... }`)
+- [x] Handle empty modules (emit valid JS with just header)
+- [x] Create `es2020/index.ts` - public API
+- [x] Update `codegen/index.ts` - target selection
+- [x] Wire up all DI dependencies
+- [x] Add internal error handling for unknown AST node kinds
+- [x] Fix shared state propagation (needsEqHelper, needsRefHelper via SharedState object)
+- [x] Write `tests/generator.test.ts`
 
 ## Phase 12: Structural Equality
-**Status:** 🔜 Not Started
+**Status:** ✅ Done (implemented in Phase 11)
 
-- [ ] Implement $eq helper generation in runtime-helpers.ts
-- [ ] Track needsEqHelper during emission
-- [ ] Emit $eq only when needed
-- [ ] Handle primitive equality (use ===) - Int, Float, String, Bool, Unit
-- [ ] Handle composite equality (use $eq) - records, variants, tuples, lists
-- [ ] Handle type variable case (conservatively use $eq)
-- [ ] Write equality edge case tests (NaN, refs, nested structures)
+- [x] Implement $eq helper generation in runtime-helpers.ts
+- [x] Track needsEqHelper during emission
+- [x] Emit $eq only when needed
+- [x] Handle primitive equality (use ===) - Int, Float, String, Bool, Unit
+- [x] Handle composite equality (use $eq) - records, variants, tuples, lists
+- [x] Handle type variable case (conservatively use $eq)
+- [x] Write equality edge case tests (NaN, refs, nested structures)
 
 ## Phase 13: Unit Test Completion
 **Status:** 🔜 Not Started
@@ -251,11 +253,11 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 8. Records & Variants | ✅ | 9/9 |
 | 9. Annotations | ✅ | 3/3 |
 | 10. Declarations | ✅ | 19/19 |
-| 11. Generator Integration | 🔜 | 0/15 |
-| 12. Structural Equality | 🔜 | 0/7 |
+| 11. Generator Integration | ✅ | 17/17 |
+| 12. Structural Equality | ✅ | 7/7 |
 | 13. Unit Tests | 🔜 | 0/6 |
 | 14. Snapshot Tests | 🔜 | 0/14 |
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 95/165 tasks complete (58%)
+**Overall:** 119/165 tasks complete (72%)

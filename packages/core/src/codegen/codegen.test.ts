@@ -55,18 +55,18 @@ describe("generate", () => {
         expect(code).toContain("// Source: unknown");
     });
 
-    it("should include declaration count in comment", () => {
-        const typedModule = createTypedModule(3);
-        const { code } = generate(typedModule, { filename: "test.vf" });
-
-        expect(code).toContain("// Declarations: 3");
-    });
-
-    it("should include stub indicator in comment", () => {
+    it("should include target ES version in comment", () => {
         const typedModule = createTypedModule();
         const { code } = generate(typedModule);
 
-        expect(code).toContain("codegen stub");
+        expect(code).toContain("// Target: ES2020");
+    });
+
+    it("should include vibefun header comment", () => {
+        const typedModule = createTypedModule();
+        const { code } = generate(typedModule);
+
+        expect(code).toContain("// Vibefun compiled output");
     });
 
     it("should produce valid ES module structure", () => {
