@@ -2,7 +2,7 @@
  * Test helpers for ES2020 code generator unit tests
  */
 
-import type { Location } from "../../../types/ast.js";
+import type { Location } from "../../types/ast.js";
 import type {
     CoreDeclaration,
     CoreExpr,
@@ -10,12 +10,12 @@ import type {
     CorePattern,
     CoreTypeExpr,
     CoreVariantConstructor,
-} from "../../../types/core-ast.js";
-import type { Type } from "../../../types/environment.js";
-import type { EmitContext, EmitMode } from "../context.js";
+} from "../../types/core-ast.js";
+import type { Type } from "../../types/environment.js";
+import type { EmitContext, EmitMode } from "./context.js";
 
-import { emptyEnv } from "../../../types/environment.js";
-import { createContext } from "../context.js";
+import { emptyEnv } from "../../types/environment.js";
+import { createContext } from "./context.js";
 
 /**
  * Create a test context with default values

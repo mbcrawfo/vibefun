@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { emitMatchPattern, emitPattern, extractPatternNames, setEmitExpr } from "../emit-patterns.js";
+import { emitMatchPattern, emitPattern, extractPatternNames, setEmitExpr } from "./emit-patterns.js";
 import { createTestContext, literalPat, recordPat, tuplePat, variantPat, varPat, wildcardPat } from "./test-helpers.js";
 
 // Set up expression emission for testing (not used in pattern emission directly)

@@ -10,7 +10,7 @@ import {
     MEMBER_PRECEDENCE,
     needsParens,
     PRECEDENCE,
-} from "../emit-operators.js";
+} from "./emit-operators.js";
 
 describe("Emit Operators", () => {
     describe("PRECEDENCE", () => {

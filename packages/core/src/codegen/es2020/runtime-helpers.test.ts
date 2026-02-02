@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { generateEqHelper, generateRefHelper, generateRuntimeHelpers } from "../runtime-helpers.js";
+import { generateEqHelper, generateRefHelper, generateRuntimeHelpers } from "./runtime-helpers.js";
 
 describe("Runtime Helpers", () => {
     describe("generateRefHelper", () => {

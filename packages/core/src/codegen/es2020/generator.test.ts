@@ -2,14 +2,14 @@
  * Tests for the ES2020 generator integration
  */
 
-import type { TypedModule } from "../../../typechecker/typechecker.js";
-import type { CoreDeclaration, CoreImportDecl, CoreModule } from "../../../types/core-ast.js";
-import type { Type } from "../../../types/environment.js";
+import type { TypedModule } from "../../typechecker/typechecker.js";
+import type { CoreDeclaration, CoreImportDecl, CoreModule } from "../../types/core-ast.js";
+import type { Type } from "../../types/environment.js";
 
 import { describe, expect, it } from "vitest";
 
-import { emptyEnv } from "../../../types/environment.js";
-import { generate } from "../generator.js";
+import { emptyEnv } from "../../types/environment.js";
+import { generate } from "./generator.js";
 import {
     binOp,
     externalDecl,

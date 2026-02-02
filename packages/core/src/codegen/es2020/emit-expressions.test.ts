@@ -1,9 +1,9 @@
-import type { EmitContext } from "../context.js";
+import type { EmitContext } from "./context.js";
 
 import { describe, expect, it } from "vitest";
 
-import { emitExpr, escapeString, setEmitMatchPattern, setEmitPattern } from "../emit-expressions.js";
-import { emitMatchPattern, emitPattern } from "../emit-patterns.js";
+import { emitExpr, escapeString, setEmitMatchPattern, setEmitPattern } from "./emit-expressions.js";
+import { emitMatchPattern, emitPattern } from "./emit-patterns.js";
 import {
     app,
     binOp,
