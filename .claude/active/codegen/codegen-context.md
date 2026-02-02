@@ -1,6 +1,6 @@
 # Code Generator Context
 
-**Last Updated:** 2026-02-01 (Third review: CoreLetRecExpr, unlowered Divide error, execution test ES module handling, pattern names extraction)
+**Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern literal, import deduplication)
 
 ## Critical Reference Files
 
@@ -224,6 +224,9 @@ const $eq = (a, b) => {
 - CoreLetRecExpr (expression context): emit as IIFE with let declarations
 - Unlowered `Divide`: throw internal error (typechecker bug)
 - Pattern destructuring exports: extract all bound names from pattern
+- CoreVar for externals: use `jsName` from TypeEnv, not vibefun name
+- CoreLiteralPattern with `null`: emit as `=== undefined` check
+- Import deduplication: type+value → value; track by `(from, name)` tuple
 
 ## String Escape Rules
 

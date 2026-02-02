@@ -1,6 +1,6 @@
 # ES2020 Code Generator Implementation Plan
 
-**Last Updated:** 2026-02-01 (Third review: CoreLetRecExpr, unlowered Divide error, pattern export collection, execution test ES module handling, indent config)
+**Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern, import deduplication, diagnostics usage, snapshot naming)
 
 ## Overview
 
@@ -44,12 +44,18 @@ packages/core/src/codegen/
     └── snapshot-tests/
         ├── test-helpers.ts
         ├── __snapshots__/
-        ├── expressions.vf / .test.ts
-        ├── declarations.vf / .test.ts
-        ├── patterns.vf / .test.ts
-        ├── functions.vf / .test.ts
-        ├── data-structures.vf / .test.ts
-        └── real-world.vf / .test.ts
+        ├── expressions.vf
+        ├── snapshot-expressions.test.ts  # Match parser naming: snapshot-*.test.ts
+        ├── declarations.vf
+        ├── snapshot-declarations.test.ts
+        ├── patterns.vf
+        ├── snapshot-patterns.test.ts
+        ├── functions.vf
+        ├── snapshot-functions.test.ts
+        ├── data-structures.vf
+        ├── snapshot-data-structures.test.ts
+        ├── real-world.vf
+        └── snapshot-real-world.test.ts
 ```
 
 ## Public API Design
@@ -168,11 +174,11 @@ Append `$` suffix: `class` → `class$`
 | CoreStringLit | `"hello"` (escaped) |
 | CoreBoolLit | `true`, `false` |
 | CoreUnitLit | `undefined` |
-| CoreVar | `x`, `class$` (escaped) |
+| CoreVar | `x`, `class$` (escaped), or external `jsName` |
 | CoreLet | IIFE or const (context-dependent) |
 | CoreLetRecExpr | IIFE with let declarations (mutual recursion in expressions) |
 | CoreLambda | `(x) => body` |
-| CoreApp | `f(a)(b)(c)` (curried) - Note: `args` is always a single-element array |
+| CoreApp | `f(a)` (single arg per CoreApp) - nested CoreApps become `f(a)(b)` |
 | CoreMatch | IIFE with if-chain |
 | CoreRecord | `{ field: value }` |
 | CoreRecordAccess | `record.field` |
@@ -187,10 +193,12 @@ Append `$` suffix: `class` → `class$`
 |---------|-----------|----------|
 | CoreWildcardPattern | (none) | (none) |
 | CoreVarPattern | (none) | `const name = value` |
-| CoreLiteralPattern | `value === literal` | (none) |
+| CoreLiteralPattern | `value === literal` (for `null`: `value === undefined`) | (none) |
 | CoreVariantPattern | `value.$tag === "Name"` | `value.$0`, `value.$1`... |
 | CoreRecordPattern | (none) | `{ field }` destructuring |
 | CoreTuplePattern | (none) | `[a, b]` destructuring |
+
+**Note:** `null` in `CoreLiteralPattern` represents the unit value, which maps to `undefined` in JavaScript.
 
 ### Declarations (CoreDeclaration)
 | Declaration | JavaScript Output |
@@ -279,24 +287,29 @@ Append `$` suffix: `class` → `class$`
 - Import deduplication
 - Public API
 
-### Phase 9: Snapshot Tests
+### Phase 9: Type Annotations and Unsafe
+For these nodes, emit only the inner expression (these are type-system markers with no runtime effect):
+- `CoreTypeAnnotation` → emit `expr.expr` (type annotation erased)
+- `CoreUnsafe` → emit `expr.expr` (unsafe marker erased)
+
+### Phase 10: Snapshot Tests
 - Fixture files (following parser snapshot test pattern)
 - Test helpers (`compileFixture()` that goes source → JS)
 - Generate snapshots
 - **Naming Convention:** Use `snapshot-*.test.ts` pattern to match parser convention
 
-### Phase 10: Execution Tests
+### Phase 11: Execution Tests
 - End-to-end tests that execute generated JS using Node's `vm` module (sandboxed)
 - Verify runtime semantics (currying, pattern matching, etc.)
 - Test edge cases (NaN equality, integer division truncation, etc.)
 - **Note:** Test helper must handle module-level declarations, not just expressions
 - **ES Module Handling:** Generated code uses `export { }` which isn't supported by `vm.runInContext`. Solution: Strip the final `export { ... }` statement before execution, as declarations are already available in the vm context.
 
-### Phase 11: Structural Equality
+### Phase 12: Structural Equality
 - $eq helper implementation
 - Tracking when needed (composite types in Equal/NotEqual)
 
-### Phase 12: Polish
+### Phase 13: Polish
 - Edge cases (negative zero, deeply nested structures)
 - Indentation consistency
 - Internal error handling (unknown node kinds)
@@ -405,9 +418,24 @@ Track during expression emission:
 - `needsEqHelper`: Set when encountering `CoreBinOp` with `op: "Equal"` or `"NotEqual"` AND operand type is composite (record, variant, tuple, list)
 
 ### Error Handling
-- Unknown AST node kind → throw internal compiler error with node details
-- Invalid/malformed TypedModule → throw internal compiler error (should never happen if typechecker is correct)
-- Unlowered `Divide` operator → throw internal compiler error (typechecker must lower to IntDivide/FloatDivide)
+Use the diagnostics system for consistency:
+- Unknown AST node kind → `throw new Error("Internal error: ...")` (internal bug, not user-facing)
+- Invalid/malformed TypedModule → `throw new Error("Internal error: ...")` (typechecker bug)
+- Unlowered `Divide` operator → `throw new Error("Internal error: ...")` (typechecker bug)
+
+Note: These are internal compiler bugs, not user errors, so they use plain `Error` rather than `throwDiagnostic()`.
+
+### External Variable Resolution
+When emitting `CoreVar`, check if the variable is an external binding:
+1. Look up `name` in `ctx.env.values`
+2. If binding is `External` or `ExternalOverload`, use the `jsName` field instead of the vibefun name
+3. For dotted JS names like `Math.floor`, emit as-is (no escaping needed)
+
+### Import Deduplication
+When the same name is imported multiple times from the same module:
+- Type-only import + value import → emit as value import (types are erased)
+- Duplicate value imports → emit once
+- Track by `(from, name)` tuple
 
 ### Pattern Export Collection
 When a declaration uses pattern destructuring, all bound names must be exported:
