@@ -19,6 +19,19 @@ import type { Type, TypeEnv } from "../../types/environment.js";
 export type EmitMode = "statement" | "expression";
 
 /**
+ * Shared mutable state that persists across context copies
+ *
+ * When contexts are copied with withPrecedence/withIndent/etc., this object
+ * reference is shared so that mutations (like marking helpers as needed)
+ * propagate to the original context.
+ */
+export type SharedState = {
+    needsEqHelper: boolean;
+    needsRefHelper: boolean;
+    exportedNames: Set<string>;
+};
+
+/**
  * Emission context passed through code generation
  */
 export type EmitContext = {
@@ -34,20 +47,25 @@ export type EmitContext = {
     /** Current precedence level for parenthesization */
     precedence: number;
 
-    /** Whether the $eq helper is needed */
-    needsEqHelper: boolean;
-
-    /** Whether the ref helper is needed */
-    needsRefHelper: boolean;
-
     /** Type environment for looking up variable types */
     env: TypeEnv;
 
     /** Inferred types for top-level declarations */
     declarationTypes: Map<string, Type>;
 
-    /** Names that should be exported (collected during emission) */
-    exportedNames: Set<string>;
+    /**
+     * Shared mutable state - survives context copies
+     * Use helper functions to access/modify these values
+     */
+    shared: SharedState;
+
+    // Convenience accessors (read-only, for backward compatibility in tests)
+    /** @deprecated Use shared.needsEqHelper instead */
+    get needsEqHelper(): boolean;
+    /** @deprecated Use shared.needsRefHelper instead */
+    get needsRefHelper(): boolean;
+    /** @deprecated Use shared.exportedNames instead */
+    get exportedNames(): Set<string>;
 };
 
 /**
@@ -71,16 +89,30 @@ export type CreateContextOptions = {
  * @returns Fresh emission context
  */
 export function createContext(options: CreateContextOptions): EmitContext {
+    const shared: SharedState = {
+        needsEqHelper: false,
+        needsRefHelper: false,
+        exportedNames: new Set(),
+    };
+
     return {
         mode: options.mode ?? "statement",
         indentLevel: 0,
         indentString: options.indentString ?? "  ",
         precedence: 0,
-        needsEqHelper: false,
-        needsRefHelper: false,
         env: options.env,
         declarationTypes: options.declarationTypes,
-        exportedNames: new Set(),
+        shared,
+        // Getters for backward compatibility
+        get needsEqHelper() {
+            return shared.needsEqHelper;
+        },
+        get needsRefHelper() {
+            return shared.needsRefHelper;
+        },
+        get exportedNames() {
+            return shared.exportedNames;
+        },
     };
 }
 
@@ -138,27 +170,27 @@ export function withPrecedence(ctx: EmitContext, precedence: number): EmitContex
 /**
  * Mark that the $eq helper is needed
  *
- * @param ctx - Context to update (mutates!)
+ * @param ctx - Context to update (mutates shared state!)
  */
 export function markNeedsEqHelper(ctx: EmitContext): void {
-    ctx.needsEqHelper = true;
+    ctx.shared.needsEqHelper = true;
 }
 
 /**
  * Mark that the ref helper is needed
  *
- * @param ctx - Context to update (mutates!)
+ * @param ctx - Context to update (mutates shared state!)
  */
 export function markNeedsRefHelper(ctx: EmitContext): void {
-    ctx.needsRefHelper = true;
+    ctx.shared.needsRefHelper = true;
 }
 
 /**
  * Add a name to the export set
  *
- * @param ctx - Context to update (mutates!)
+ * @param ctx - Context to update (mutates shared state!)
  * @param name - Name to export
  */
 export function addExport(ctx: EmitContext, name: string): void {
-    ctx.exportedNames.add(name);
+    ctx.shared.exportedNames.add(name);
 }
