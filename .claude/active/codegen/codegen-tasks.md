@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Third review: CoreLetRecExpr, unlowered Divide error, execution test ES module handling, pattern names extraction, indent config)
+**Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern literal, import deduplication, snapshot naming)
 
 ## Phase 1: Core Infrastructure
 **Status:** 🔜 Not Started
@@ -27,6 +27,7 @@
 - [ ] Implement CoreBoolLit emission
 - [ ] Implement CoreUnitLit emission
 - [ ] Implement CoreVar emission (with reserved word escaping)
+- [ ] Implement CoreVar external lookup (check TypeEnv for External/ExternalOverload, use jsName)
 - [ ] Write `tests/expressions.test.ts` - Literals section
 
 ## Phase 3: Expression Emission - Operators
@@ -63,7 +64,7 @@
 - [ ] Implement emitMatchPattern() for match case contexts
 - [ ] Implement CoreWildcardPattern
 - [ ] Implement CoreVarPattern
-- [ ] Implement CoreLiteralPattern
+- [ ] Implement CoreLiteralPattern (handle `null` → `undefined` for unit)
 - [ ] Implement CoreTuplePattern
 - [ ] Implement CoreRecordPattern
 - [ ] Implement CoreVariantPattern (tag checking + field extraction)
@@ -143,7 +144,7 @@
 - [ ] Implement generate() method
 - [ ] Implement header comment emission
 - [ ] Implement import collection and emission
-- [ ] Implement import deduplication (same module, multiple items)
+- [ ] Implement import deduplication (same module, multiple items; type+value → value)
 - [ ] Implement declaration emission loop
 - [ ] Implement runtime helper tracking (needsEqHelper, needsRefHelper)
 - [ ] Implement runtime helper emission (conditional, at top after imports)
@@ -181,7 +182,7 @@
 
 - [ ] Create `snapshot-tests/test-helpers.ts` - compileFixture()
 - [ ] Create `snapshot-tests/expressions.vf` fixture
-- [ ] Create `snapshot-tests/snapshot-expressions.test.ts` (match parser naming convention)
+- [ ] Create `snapshot-tests/snapshot-expressions.test.ts`
 - [ ] Create `snapshot-tests/declarations.vf` fixture
 - [ ] Create `snapshot-tests/snapshot-declarations.test.ts`
 - [ ] Create `snapshot-tests/patterns.vf` fixture
@@ -239,7 +240,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | Phase | Status | Tasks |
 |-------|--------|-------|
 | 1. Core Infrastructure | 🔜 | 0/10 |
-| 2. Literals & Variables | 🔜 | 0/9 |
+| 2. Literals & Variables | 🔜 | 0/10 |
 | 3. Operators | 🔜 | 0/14 |
 | 4. Functions | 🔜 | 0/4 |
 | 5. Patterns | 🔜 | 0/11 |
@@ -255,4 +256,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 0/165 tasks complete (0%)
+**Overall:** 0/166 tasks complete (0%)
