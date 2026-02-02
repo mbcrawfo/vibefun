@@ -98,6 +98,13 @@ let x = Float.fromInt(5) + 2.0;
 // 7.0 / 2.0 = 3.5
 // -7.0 / 2.0 = -3.5
 
+// Type variable behavior with division:
+// When type cannot be inferred, division defaults to Float (IEEE 754)
+let f = (x, y) => x / y;  // Inferred: (Float, Float) -> Float
+
+// To get integer division, use explicit type annotations
+let intDiv = (x: Int, y: Int) => x / y;  // (Int, Int) -> Int
+
 // Most types inferred automatically
 let double = (x) => x * 2;  // Inferred: (Int) -> Int or (Float) -> Float
 
@@ -342,6 +349,20 @@ let y = 3.14 * Float.fromInt(2);  // 6.28
 // Float: IEEE 754 division (may round)
 //   10.0 / 3.0 = 3.333...
 ```
+
+### #2.5: Division Type Inference
+
+Division with unresolved type variables defaults to Float:
+
+```vibefun
+let divide = (a, b) => a / b;
+// Type is (Float, Float) -> Float, NOT (Int, Int) -> Int
+
+// If you want integer division, add explicit types:
+let intDivide = (a: Int, b: Int) => a / b;
+```
+
+This prevents accidental integer truncation in generic code.
 
 ### #3: Value Restriction
 
