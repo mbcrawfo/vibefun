@@ -12,6 +12,8 @@ import {
     floatLit,
     intLit,
     lambda,
+    letExpr,
+    letRecExpr,
     literalPat,
     matchExpr,
     stringLit,
@@ -468,6 +470,92 @@ describe("Expression Emission", () => {
             expect(result).toContain("Array.isArray($match.$0)");
             expect(result).toContain("const a = $match.$0[0];");
             expect(result).toContain("const b = $match.$0[1];");
+        });
+    });
+
+    describe("Let expressions", () => {
+        it("should emit simple let expression as IIFE", () => {
+            const ctx = createTestContext();
+            // let x = 5 in x + 1
+            const expr = letExpr(varPat("x"), intLit(5), binOp("Add", varRef("x"), intLit(1)));
+            const result = emitExpr(expr, ctx);
+            expect(result).toBe("(() => { const x = 5; return x + 1; })()");
+        });
+
+        it("should emit let with pattern destructuring", () => {
+            const ctx = createTestContext();
+            // let (a, b) = pair in a + b
+            const expr = letExpr(
+                tuplePat([varPat("a"), varPat("b")]),
+                varRef("pair"),
+                binOp("Add", varRef("a"), varRef("b")),
+            );
+            const result = emitExpr(expr, ctx);
+            expect(result).toBe("(() => { const [a, b] = pair; return a + b; })()");
+        });
+
+        it("should emit recursive let with let keyword", () => {
+            const ctx = createTestContext();
+            // let rec f = (n) => if n == 0 then 1 else n * f(n-1) in f(5)
+            const expr = letExpr(
+                varPat("f"),
+                lambda(varPat("n"), varRef("n")), // simplified body
+                app(varRef("f"), intLit(5)),
+                { recursive: true },
+            );
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("let f =");
+            expect(result).toContain("return f(5);");
+        });
+
+        it("should emit mutable let with ref wrapper", () => {
+            const ctx = createTestContext();
+            // let mutable x = 5 in x
+            const expr = letExpr(varPat("x"), intLit(5), varRef("x"), { mutable: true });
+            const result = emitExpr(expr, ctx);
+            expect(result).toBe("(() => { const x = { $value: 5 }; return x; })()");
+            expect(ctx.needsRefHelper).toBe(true);
+        });
+
+        it("should emit nested let expressions", () => {
+            const ctx = createTestContext();
+            // let x = 1 in let y = 2 in x + y
+            const innerLet = letExpr(varPat("y"), intLit(2), binOp("Add", varRef("x"), varRef("y")));
+            const expr = letExpr(varPat("x"), intLit(1), innerLet);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("const x = 1");
+            expect(result).toContain("const y = 2");
+            expect(result).toContain("x + y");
+        });
+    });
+
+    describe("Let rec expressions (mutual recursion)", () => {
+        it("should emit mutually recursive bindings with let declarations", () => {
+            const ctx = createTestContext();
+            // let rec isEven = (n) => ... and isOdd = (n) => ... in isEven(10)
+            const expr = letRecExpr(
+                [
+                    { pattern: varPat("isEven"), value: lambda(varPat("n"), varRef("n")) },
+                    { pattern: varPat("isOdd"), value: lambda(varPat("n"), varRef("n")) },
+                ],
+                app(varRef("isEven"), intLit(10)),
+            );
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("let isEven, isOdd;");
+            expect(result).toContain("isEven = (n) => n");
+            expect(result).toContain("isOdd = (n) => n");
+            expect(result).toContain("return isEven(10);");
+        });
+
+        it("should handle mutable bindings in let rec", () => {
+            const ctx = createTestContext();
+            const expr = letRecExpr(
+                [{ pattern: varPat("counter"), value: intLit(0), mutable: true }],
+                varRef("counter"),
+            );
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("{ $value: 0 }");
+            expect(ctx.needsRefHelper).toBe(true);
         });
     });
 });

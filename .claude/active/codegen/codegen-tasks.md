@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Phase 6 complete)
+**Last Updated:** 2026-02-01 (Phase 7 complete)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -84,17 +84,17 @@
 - [x] Write `tests/expressions.test.ts` - Match section
 
 ## Phase 7: Let Expressions and Mutability
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Implement `runtime-helpers.ts` - ref() and $eq() generation
-- [ ] Implement CoreLet in statement context (const declaration)
-- [ ] Implement CoreLet in expression context (IIFE)
-- [ ] Implement CoreLet with pattern destructuring
-- [ ] Implement CoreLet with mutable: true
-- [ ] Implement CoreLet with recursive: true
-- [ ] Implement CoreLetRecExpr (mutual recursion in expression context - IIFE with let declarations)
-- [ ] Track needsRefHelper usage
-- [ ] Write `tests/expressions.test.ts` - Let section
+- [x] Implement `runtime-helpers.ts` - ref() and $eq() generation
+- [x] Implement CoreLet in statement context (const declaration)
+- [x] Implement CoreLet in expression context (IIFE)
+- [x] Implement CoreLet with pattern destructuring
+- [x] Implement CoreLet with mutable: true
+- [x] Implement CoreLet with recursive: true
+- [x] Implement CoreLetRecExpr (mutual recursion in expression context - IIFE with let declarations)
+- [x] Track needsRefHelper usage
+- [x] Write `tests/expressions.test.ts` - Let section
 
 ## Phase 8: Records and Variants
 **Status:** 🔜 Not Started
@@ -247,7 +247,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 4. Functions | ✅ | 4/4 |
 | 5. Patterns | ✅ | 11/11 |
 | 6. Match Expressions | ✅ | 6/6 |
-| 7. Let & Mutability | 🔜 | 0/9 |
+| 7. Let & Mutability | ✅ | 9/9 |
 | 8. Records & Variants | 🔜 | 0/9 |
 | 9. Annotations | 🔜 | 0/3 |
 | 10. Declarations | 🔜 | 0/20 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 55/166 tasks complete (33%)
+**Overall:** 64/166 tasks complete (39%)
