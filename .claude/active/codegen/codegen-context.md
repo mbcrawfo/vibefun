@@ -2,6 +2,8 @@
 
 **Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern literal, import deduplication)
 
+**Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
+
 ## Critical Reference Files
 
 | File | Purpose |

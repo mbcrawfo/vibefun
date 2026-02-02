@@ -2,6 +2,8 @@
 
 **Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern, import deduplication, diagnostics usage, snapshot naming)
 
+**Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
+
 ## Overview
 
 Implement the ES2020 code generator for the Vibefun compiler. The generator transforms `TypedModule` (output of typechecker) into valid ES2020 JavaScript code.

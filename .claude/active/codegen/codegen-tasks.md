@@ -2,6 +2,8 @@
 
 **Last Updated:** 2026-02-01 (Fourth review: external var lookup, null pattern literal, import deduplication, snapshot naming)
 
+**Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
+
 ## Phase 1: Core Infrastructure
 **Status:** 🔜 Not Started
 
