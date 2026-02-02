@@ -1,0 +1,220 @@
+# Code Generator Task List
+
+**Last Updated:** 2026-02-01
+
+## Phase 1: Core Infrastructure
+**Status:** 🔜 Not Started
+
+- [ ] Create directory structure `packages/core/src/codegen/es2020/`
+- [ ] Create directory structure `packages/core/src/codegen/es2020/tests/`
+- [ ] Create directory structure `packages/core/src/codegen/es2020/snapshot-tests/`
+- [ ] Implement `context.ts` - EmitContext type and helper functions
+- [ ] Implement `reserved-words.ts` - JS reserved words set and escapeIdentifier()
+- [ ] Implement `emit-operators.ts` - Precedence table and needsParens()
+- [ ] Implement `tests/test-helpers.ts` - createTestContext(), generateExpr()
+- [ ] Write `tests/reserved-words.test.ts`
+- [ ] Write `tests/operators.test.ts` (precedence tests)
+
+## Phase 2: Expression Emission - Literals & Variables
+**Status:** 🔜 Not Started
+
+- [ ] Create `emit-expressions.ts` with emitExpr() dispatcher
+- [ ] Implement CoreIntLit emission (including negative wrapping)
+- [ ] Implement CoreFloatLit emission (including Infinity, NaN)
+- [ ] Implement CoreStringLit emission (with proper escaping)
+- [ ] Implement CoreBoolLit emission
+- [ ] Implement CoreUnitLit emission
+- [ ] Implement CoreVar emission (with reserved word escaping)
+- [ ] Write `tests/expressions.test.ts` - Literals section
+
+## Phase 3: Expression Emission - Operators
+**Status:** 🔜 Not Started
+
+- [ ] Implement CoreBinOp emission with precedence handling
+- [ ] Handle Add, Subtract, Multiply, Modulo
+- [ ] Handle IntDivide (Math.trunc)
+- [ ] Handle FloatDivide (direct division)
+- [ ] Handle Equal, NotEqual (primitive vs composite detection)
+- [ ] Handle comparison operators (LessThan, LessEqual, etc.)
+- [ ] Handle LogicalAnd, LogicalOr (short-circuit)
+- [ ] Handle Concat (string +)
+- [ ] Handle RefAssign (context-dependent)
+- [ ] Implement CoreUnaryOp emission
+- [ ] Handle Negate, LogicalNot, Deref
+- [ ] Write `tests/expressions.test.ts` - Operators section
+
+## Phase 4: Expression Emission - Functions
+**Status:** 🔜 Not Started
+
+- [ ] Implement CoreLambda emission (arrow functions)
+- [ ] Implement CoreApp emission (curried calls)
+- [ ] Implement CoreTuple emission (as arrays)
+- [ ] Write `tests/expressions.test.ts` - Functions section
+
+## Phase 5: Pattern Emission
+**Status:** 🔜 Not Started
+
+- [ ] Create `emit-patterns.ts` with DI setup
+- [ ] Implement emitPattern() for destructuring contexts
+- [ ] Implement emitMatchPattern() for match case contexts
+- [ ] Implement CoreWildcardPattern
+- [ ] Implement CoreVarPattern
+- [ ] Implement CoreLiteralPattern
+- [ ] Implement CoreTuplePattern
+- [ ] Implement CoreRecordPattern
+- [ ] Implement CoreVariantPattern (tag checking + field extraction)
+- [ ] Wire up DI between expressions and patterns
+- [ ] Write `tests/patterns.test.ts`
+
+## Phase 6: Match Expressions
+**Status:** 🔜 Not Started
+
+- [ ] Implement CoreMatch emission (IIFE with if-chain)
+- [ ] Handle pattern matching with bindings
+- [ ] Handle guard expressions
+- [ ] Handle nested patterns
+- [ ] Handle exhaustiveness fallback (throw)
+- [ ] Write `tests/expressions.test.ts` - Match section
+
+## Phase 7: Let Expressions and Mutability
+**Status:** 🔜 Not Started
+
+- [ ] Implement `runtime-helpers.ts` - ref() and $eq() generation
+- [ ] Implement CoreLet in statement context (const declaration)
+- [ ] Implement CoreLet in expression context (IIFE)
+- [ ] Implement CoreLet with pattern destructuring
+- [ ] Implement CoreLet with mutable: true
+- [ ] Implement CoreLet with recursive: true
+- [ ] Implement CoreLetRecExpr (mutual recursion)
+- [ ] Track needsRefHelper usage
+- [ ] Write `tests/expressions.test.ts` - Let section
+
+## Phase 8: Records and Variants
+**Status:** 🔜 Not Started
+
+- [ ] Implement CoreRecord emission (object literals)
+- [ ] Handle CoreRecordField (named fields)
+- [ ] Handle CoreRecordField spread
+- [ ] Implement CoreRecordAccess emission (dot notation)
+- [ ] Implement CoreRecordUpdate emission (spread + updates)
+- [ ] Implement CoreVariant emission (tagged objects)
+- [ ] Handle zero-arg constructors (plain objects)
+- [ ] Handle multi-arg constructors (curried functions)
+- [ ] Write `tests/expressions.test.ts` - Records/Variants section
+
+## Phase 9: Type Annotations and Unsafe
+**Status:** 🔜 Not Started
+
+- [ ] Implement CoreTypeAnnotation emission (pass through)
+- [ ] Implement CoreUnsafe emission (pass through)
+- [ ] Write tests for annotation/unsafe pass-through
+
+## Phase 10: Declaration Emission
+**Status:** 🔜 Not Started
+
+- [ ] Create `emit-declarations.ts` with DI setup
+- [ ] Implement CoreLetDecl emission
+- [ ] Handle exported declarations (collect exports)
+- [ ] Handle pattern destructuring in declarations
+- [ ] Implement CoreLetRecGroup emission
+- [ ] Implement CoreTypeDecl emission (variant constructors only)
+- [ ] Handle record types (no output)
+- [ ] Handle type aliases (no output)
+- [ ] Implement CoreExternalDecl emission
+- [ ] Handle dotted JS names (Math.floor)
+- [ ] Handle module imports
+- [ ] Implement CoreExternalTypeDecl (no output)
+- [ ] Implement CoreImportDecl emission
+- [ ] Handle type-only import filtering
+- [ ] Handle import path extension (.js)
+- [ ] Write `tests/declarations.test.ts`
+
+## Phase 11: Generator Integration
+**Status:** 🔜 Not Started
+
+- [ ] Create `generator.ts` - ES2020Generator class
+- [ ] Implement generate() method
+- [ ] Implement header comment emission
+- [ ] Implement import collection and emission
+- [ ] Implement declaration emission loop
+- [ ] Implement runtime helper emission (conditional)
+- [ ] Implement export collection and emission
+- [ ] Create `es2020/index.ts` - public API
+- [ ] Update `codegen/index.ts` - target selection
+- [ ] Wire up all DI dependencies
+
+## Phase 12: Structural Equality
+**Status:** 🔜 Not Started
+
+- [ ] Implement $eq helper generation in runtime-helpers.ts
+- [ ] Track needsEqHelper during emission
+- [ ] Emit $eq only when needed
+- [ ] Handle primitive equality (use ===)
+- [ ] Handle composite equality (use $eq)
+- [ ] Write equality edge case tests
+
+## Phase 13: Unit Test Completion
+**Status:** 🔜 Not Started
+
+- [ ] Complete `tests/expressions.test.ts`
+- [ ] Complete `tests/patterns.test.ts`
+- [ ] Complete `tests/declarations.test.ts`
+- [ ] Complete `tests/operators.test.ts`
+- [ ] Complete `tests/reserved-words.test.ts`
+- [ ] Achieve target coverage
+
+## Phase 14: Snapshot Tests
+**Status:** 🔜 Not Started
+
+- [ ] Create `snapshot-tests/test-helpers.ts` - compileFixture()
+- [ ] Create `snapshot-tests/expressions.vf` fixture
+- [ ] Create `snapshot-tests/expressions.test.ts`
+- [ ] Create `snapshot-tests/declarations.vf` fixture
+- [ ] Create `snapshot-tests/declarations.test.ts`
+- [ ] Create `snapshot-tests/patterns.vf` fixture
+- [ ] Create `snapshot-tests/patterns.test.ts`
+- [ ] Create `snapshot-tests/functions.vf` fixture
+- [ ] Create `snapshot-tests/functions.test.ts`
+- [ ] Create `snapshot-tests/data-structures.vf` fixture
+- [ ] Create `snapshot-tests/data-structures.test.ts`
+- [ ] Create `snapshot-tests/real-world.vf` fixture
+- [ ] Create `snapshot-tests/real-world.test.ts`
+- [ ] Generate and review initial snapshots
+
+## Phase 15: Polish and Edge Cases
+**Status:** 🔜 Not Started
+
+- [ ] Handle empty modules
+- [ ] Handle deeply nested structures
+- [ ] Verify indentation is correct
+- [ ] Test all JavaScript reserved words
+- [ ] Test Unicode identifiers
+- [ ] Test string escape sequences
+- [ ] Test operator precedence edge cases
+- [ ] Test NaN equality behavior
+- [ ] Run `npm run verify` - all checks pass
+- [ ] Document any limitations
+
+---
+
+## Progress Summary
+
+| Phase | Status | Tasks |
+|-------|--------|-------|
+| 1. Core Infrastructure | 🔜 | 0/9 |
+| 2. Literals & Variables | 🔜 | 0/8 |
+| 3. Operators | 🔜 | 0/12 |
+| 4. Functions | 🔜 | 0/4 |
+| 5. Patterns | 🔜 | 0/11 |
+| 6. Match Expressions | 🔜 | 0/6 |
+| 7. Let & Mutability | 🔜 | 0/9 |
+| 8. Records & Variants | 🔜 | 0/9 |
+| 9. Annotations | 🔜 | 0/3 |
+| 10. Declarations | 🔜 | 0/16 |
+| 11. Generator Integration | 🔜 | 0/10 |
+| 12. Structural Equality | 🔜 | 0/6 |
+| 13. Unit Tests | 🔜 | 0/6 |
+| 14. Snapshot Tests | 🔜 | 0/14 |
+| 15. Polish | 🔜 | 0/11 |
+
+**Overall:** 0/134 tasks complete (0%)
