@@ -111,6 +111,27 @@ Int.toFloat(5) + 2.0        // ✅ OK: 7.0
 - **Division by zero**: `5.0 / 0.0 = Infinity`, `-5.0 / 0.0 = -Infinity`
 - **Zero by zero**: `0.0 / 0.0 = NaN`
 
+#### Type Inference for Division
+
+Division operator types are inferred from operand types:
+- **Int operands**: `a / b` where both have type `Int` uses integer division (truncates toward zero)
+- **Float operands**: `a / b` where both have type `Float` uses IEEE 754 division
+
+**Type variable behavior:**
+When operand types cannot be resolved to a concrete numeric type (e.g., in polymorphic contexts with unresolved type variables), division defaults to **Float semantics** (IEEE 754). This is the safer default because:
+1. Float division preserves precision (no truncation)
+2. Float division handles edge cases gracefully (returns Infinity/NaN instead of panicking)
+
+```vibefun
+// Type variable defaults to Float division
+let f = (x, y) => x / y;  // Inferred: (Float, Float) -> Float (not Int)
+
+// Explicit type annotation forces Int division
+let g = (x: Int, y: Int) => x / y;  // (Int, Int) -> Int
+```
+
+**Rationale**: This behavior ensures predictable semantics when type information is incomplete, avoiding surprising integer truncation in generic code.
+
 #### Overflow and Underflow
 
 **Integer overflow:**
