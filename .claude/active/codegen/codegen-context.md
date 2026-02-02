@@ -1,5 +1,7 @@
 # Code Generator Context
 
+**Last Updated:** 2026-02-01 (Review updates - vm module, CLAUDE.md template)
+
 ## Critical Reference Files
 
 | File | Purpose |
@@ -9,6 +11,8 @@
 | `packages/core/src/types/environment.ts` | TypeEnv structure for variant info |
 | `packages/core/src/codegen/index.ts` | Current stub implementation |
 | `.claude/design/codegen-requirements.md` | Full requirements document |
+| `packages/core/src/parser/snapshot-tests/` | Reference for snapshot test pattern |
+| `packages/core/src/typechecker/division-lowering.test.ts` | Division operator tests (IntDivide/FloatDivide) |
 
 ## Input Contract: TypedModule
 
@@ -188,9 +192,170 @@ const $eq = (a, b) => {
 ## Edge Cases to Handle
 
 - Negative literals: wrap in parens `(-5)`
-- Float special values: `Infinity`, `NaN`
-- String escaping: `\n`, `\t`, `\"`, Unicode
+- Float special values: `Infinity`, `-Infinity`, `NaN`, `-0` (negative zero)
+- String escaping: `\n`, `\t`, `\"`, Unicode, line separators (U+2028, U+2029)
 - Reserved word escaping: `class` → `class$`
 - Operator precedence: proper parenthesization
 - RefAssign return: `(a.$value = b, undefined)` in expression context
 - NaN equality: `NaN === NaN` is false (IEEE 754)
+- Empty modules: emit valid JS with just header and `export {}`
+- Deeply nested patterns: ensure correct binding extraction
+
+## CLAUDE.md Template (for es2020/ module)
+
+```markdown
+# ES2020 Code Generator Module
+
+This module generates ES2020 JavaScript from typed Core AST.
+
+## Files
+
+- **generator.ts** - Main ES2020Generator class, wires dependencies
+- **emit-expressions.ts** - Expression emission functions
+- **emit-patterns.ts** - Pattern emission for destructuring and match
+- **emit-declarations.ts** - Declaration emission
+- **emit-operators.ts** - Operator precedence and parenthesization
+- **context.ts** - EmitContext type for tracking emission state
+- **reserved-words.ts** - JavaScript reserved word escaping
+- **runtime-helpers.ts** - $eq and ref helper generation
+
+## Public API
+
+The module exports a single `generate()` function via `index.ts`:
+- `generate(typedModule, options?)` - Generate JavaScript from TypedModule
+
+## Circular Dependencies
+
+Modules use dependency injection to avoid import cycles. Initialization happens in `generator.ts`:
+
+```typescript
+Expressions.setEmitPattern(Patterns.emitPattern);
+Patterns.setEmitExpr(Expressions.emitExpr);
+Declarations.setDependencies({ ... });
+```
+
+All emit functions take `EmitContext` as a parameter for state tracking.
+
+## Key Design Decisions
+
+1. **Context-aware emission**: Track statement vs expression mode
+2. **Precedence-based parenthesization**: Minimal parens for readability
+3. **Conditional helpers**: Only emit ref/$eq when used
+4. **IIFE for scoping**: Let expressions in expression context use IIFEs
+```
+
+## Test Helper Pattern (for snapshot tests)
+
+```typescript
+// snapshot-tests/test-helpers.ts
+import type { GenerateResult } from "../../index.js";
+
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+import { Lexer } from "../../../lexer/index.js";
+import { Parser } from "../../../parser/index.js";
+import { desugar } from "../../../desugarer/index.js";
+import { typeCheck } from "../../../typechecker/index.js";
+import { generate } from "../../index.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * Compile a .vf fixture file to JavaScript
+ */
+export function compileFixture(filename: string): GenerateResult {
+    const fixturePath = join(__dirname, filename);
+    const source = readFileSync(fixturePath, "utf-8");
+
+    // Full compilation pipeline
+    const lexer = new Lexer(source, filename);
+    const tokens = lexer.tokenize();
+    const parser = new Parser(tokens, filename);
+    const ast = parser.parse();
+    const coreModule = desugar(ast);
+    const typedModule = typeCheck(coreModule);
+
+    return generate(typedModule, { filename });
+}
+```
+
+## Execution Test Pattern (for semantic validation)
+
+Uses Node's `vm` module for sandboxed execution (safer than `new Function()`).
+
+```typescript
+// tests/execution-test-helpers.ts
+import vm from "node:vm";
+
+import { Lexer } from "../../../lexer/index.js";
+import { Parser } from "../../../parser/index.js";
+import { desugar } from "../../../desugarer/index.js";
+import { typeCheck } from "../../../typechecker/index.js";
+import { generate } from "../../index.js";
+
+/**
+ * Compile vibefun source and execute in a sandboxed VM context.
+ * The last expression's value is captured via a special $result variable.
+ */
+export function compileAndRun(source: string): unknown {
+    // Wrap source to capture result of last expression
+    const wrappedSource = `let $result = (${source.trim()});`;
+
+    // Compile through full pipeline
+    const lexer = new Lexer(wrappedSource, "test.vf");
+    const tokens = lexer.tokenize();
+    const parser = new Parser(tokens, "test.vf");
+    const ast = parser.parse();
+    const coreModule = desugar(ast);
+    const typedModule = typeCheck(coreModule);
+    const { code } = generate(typedModule, { filename: "test.vf" });
+
+    // Execute in sandboxed context
+    const context = vm.createContext({
+        // Provide minimal globals needed by generated code
+        Math,
+        Array,
+        Object,
+        Infinity,
+        NaN,
+        undefined,
+    });
+
+    // Run generated code and extract result
+    const script = new vm.Script(code + "\n$result;");
+    return script.runInContext(context);
+}
+```
+
+```typescript
+// tests/execution.test.ts
+import { describe, expect, it } from "vitest";
+import { compileAndRun } from "./execution-test-helpers.js";
+
+describe("Execution Tests", () => {
+    it("should correctly evaluate curried function application", () => {
+        const result = compileAndRun(`
+            let add = (x, y) => x + y;
+            let add5 = add(5);
+            add5(3)
+        `);
+        expect(result).toBe(8);
+    });
+
+    it("should handle NaN equality correctly", () => {
+        const result = compileAndRun(`
+            let x = 0.0 / 0.0;
+            x == x
+        `);
+        expect(result).toBe(false); // IEEE 754 semantics
+    });
+
+    it("should truncate integer division toward zero", () => {
+        const result = compileAndRun(`(-7) / 2`);
+        expect(result).toBe(-3); // Not -4 (floor)
+    });
+});
+```

@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-01 (Review updates - vm module, CLAUDE.md)
 
 ## Phase 1: Core Infrastructure
 **Status:** 🔜 Not Started
@@ -8,6 +8,7 @@
 - [ ] Create directory structure `packages/core/src/codegen/es2020/`
 - [ ] Create directory structure `packages/core/src/codegen/es2020/tests/`
 - [ ] Create directory structure `packages/core/src/codegen/es2020/snapshot-tests/`
+- [ ] Create `packages/core/src/codegen/es2020/CLAUDE.md` - Module documentation
 - [ ] Implement `context.ts` - EmitContext type and helper functions
 - [ ] Implement `reserved-words.ts` - JS reserved words set and escapeIdentifier()
 - [ ] Implement `emit-operators.ts` - Precedence table and needsParens()
@@ -20,8 +21,8 @@
 
 - [ ] Create `emit-expressions.ts` with emitExpr() dispatcher
 - [ ] Implement CoreIntLit emission (including negative wrapping)
-- [ ] Implement CoreFloatLit emission (including Infinity, NaN)
-- [ ] Implement CoreStringLit emission (with proper escaping)
+- [ ] Implement CoreFloatLit emission (including Infinity, -Infinity, NaN, -0)
+- [ ] Implement CoreStringLit emission (with proper escaping including U+2028/U+2029)
 - [ ] Implement CoreBoolLit emission
 - [ ] Implement CoreUnitLit emission
 - [ ] Implement CoreVar emission (with reserved word escaping)
@@ -136,12 +137,16 @@
 - [ ] Implement generate() method
 - [ ] Implement header comment emission
 - [ ] Implement import collection and emission
+- [ ] Implement import deduplication (same module, multiple items)
 - [ ] Implement declaration emission loop
-- [ ] Implement runtime helper emission (conditional)
+- [ ] Implement runtime helper tracking (needsEqHelper, needsRefHelper)
+- [ ] Implement runtime helper emission (conditional, at top after imports)
 - [ ] Implement export collection and emission
+- [ ] Handle empty modules (emit valid JS with just header)
 - [ ] Create `es2020/index.ts` - public API
 - [ ] Update `codegen/index.ts` - target selection
 - [ ] Wire up all DI dependencies
+- [ ] Add internal error handling for unknown AST node kinds
 
 ## Phase 12: Structural Equality
 **Status:** 🔜 Not Started
@@ -181,6 +186,23 @@
 - [ ] Create `snapshot-tests/real-world.test.ts`
 - [ ] Generate and review initial snapshots
 
+## Phase 14B: Execution Tests (NEW)
+**Status:** 🔜 Not Started
+
+Uses Node's `vm` module for sandboxed execution of generated JavaScript.
+
+- [ ] Create `tests/execution-test-helpers.ts` - compileAndRun() using vm.createContext()
+- [ ] Create `tests/execution.test.ts`
+- [ ] Test curried function application
+- [ ] Test pattern matching with guards
+- [ ] Test short-circuit evaluation (&&, ||)
+- [ ] Test mutable reference operations (ref, !, :=)
+- [ ] Test NaN equality semantics
+- [ ] Test integer division truncation (negative numbers)
+- [ ] Test record structural equality
+- [ ] Test variant structural equality
+- [ ] Test tuple structural equality
+
 ## Phase 15: Polish and Edge Cases
 **Status:** 🔜 Not Started
 
@@ -189,9 +211,11 @@
 - [ ] Verify indentation is correct
 - [ ] Test all JavaScript reserved words
 - [ ] Test Unicode identifiers
-- [ ] Test string escape sequences
+- [ ] Test string escape sequences (including U+2028, U+2029)
 - [ ] Test operator precedence edge cases
 - [ ] Test NaN equality behavior
+- [ ] Test negative zero (-0) handling
+- [ ] Test -Infinity handling
 - [ ] Run `npm run verify` - all checks pass
 - [ ] Document any limitations
 
@@ -201,7 +225,7 @@
 
 | Phase | Status | Tasks |
 |-------|--------|-------|
-| 1. Core Infrastructure | 🔜 | 0/9 |
+| 1. Core Infrastructure | 🔜 | 0/10 |
 | 2. Literals & Variables | 🔜 | 0/8 |
 | 3. Operators | 🔜 | 0/12 |
 | 4. Functions | 🔜 | 0/4 |
@@ -211,10 +235,11 @@
 | 8. Records & Variants | 🔜 | 0/9 |
 | 9. Annotations | 🔜 | 0/3 |
 | 10. Declarations | 🔜 | 0/16 |
-| 11. Generator Integration | 🔜 | 0/10 |
+| 11. Generator Integration | 🔜 | 0/14 |
 | 12. Structural Equality | 🔜 | 0/6 |
 | 13. Unit Tests | 🔜 | 0/6 |
 | 14. Snapshot Tests | 🔜 | 0/14 |
-| 15. Polish | 🔜 | 0/11 |
+| 14B. Execution Tests | 🔜 | 0/11 |
+| 15. Polish | 🔜 | 0/12 |
 
-**Overall:** 0/134 tasks complete (0%)
+**Overall:** 0/151 tasks complete (0%)
