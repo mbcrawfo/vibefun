@@ -3,7 +3,14 @@
  */
 
 import type { Location } from "../../../types/ast.js";
-import type { CoreExpr, CorePattern } from "../../../types/core-ast.js";
+import type {
+    CoreDeclaration,
+    CoreExpr,
+    CoreImportItem,
+    CorePattern,
+    CoreTypeExpr,
+    CoreVariantConstructor,
+} from "../../../types/core-ast.js";
 import type { Type } from "../../../types/environment.js";
 import type { EmitContext, EmitMode } from "../context.js";
 
@@ -375,4 +382,187 @@ export function recordType(fields: Record<string, Type>): Type {
  */
 export function tupleType(elements: Type[]): Type {
     return { type: "Tuple", elements };
+}
+
+// =============================================================================
+// Declaration Builders
+// =============================================================================
+
+/**
+ * Create a let declaration node
+ */
+export function letDecl(
+    pattern: CorePattern,
+    value: CoreExpr,
+    options?: { mutable?: boolean; recursive?: boolean; exported?: boolean },
+): CoreDeclaration {
+    return {
+        kind: "CoreLetDecl",
+        pattern,
+        value,
+        mutable: options?.mutable ?? false,
+        recursive: options?.recursive ?? false,
+        exported: options?.exported ?? false,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create a let rec group declaration node (mutual recursion)
+ */
+export function letRecGroup(
+    bindings: Array<{ pattern: CorePattern; value: CoreExpr; mutable?: boolean }>,
+    exported?: boolean,
+): CoreDeclaration {
+    return {
+        kind: "CoreLetRecGroup",
+        bindings: bindings.map((b) => ({
+            pattern: b.pattern,
+            value: b.value,
+            mutable: b.mutable ?? false,
+            loc: testLoc(),
+        })),
+        exported: exported ?? false,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create a type declaration node (for variants)
+ */
+export function variantTypeDecl(
+    name: string,
+    constructors: Array<{ name: string; argCount: number }>,
+    options?: { params?: string[]; exported?: boolean },
+): CoreDeclaration {
+    const ctors: CoreVariantConstructor[] = constructors.map((c) => ({
+        name: c.name,
+        args: Array.from({ length: c.argCount }, () => dummyTypeExpr()),
+        loc: testLoc(),
+    }));
+
+    return {
+        kind: "CoreTypeDecl",
+        name,
+        params: options?.params ?? [],
+        definition: {
+            kind: "CoreVariantTypeDef",
+            constructors: ctors,
+            loc: testLoc(),
+        },
+        exported: options?.exported ?? false,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create an alias type declaration node
+ */
+export function aliasTypeDecl(name: string, options?: { params?: string[]; exported?: boolean }): CoreDeclaration {
+    return {
+        kind: "CoreTypeDecl",
+        name,
+        params: options?.params ?? [],
+        definition: {
+            kind: "CoreAliasType",
+            typeExpr: dummyTypeExpr(),
+            loc: testLoc(),
+        },
+        exported: options?.exported ?? false,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create a record type declaration node
+ */
+export function recordTypeDecl(
+    name: string,
+    fieldNames: string[],
+    options?: { params?: string[]; exported?: boolean },
+): CoreDeclaration {
+    return {
+        kind: "CoreTypeDecl",
+        name,
+        params: options?.params ?? [],
+        definition: {
+            kind: "CoreRecordTypeDef",
+            fields: fieldNames.map((fname) => ({
+                name: fname,
+                typeExpr: dummyTypeExpr(),
+                loc: testLoc(),
+            })),
+            loc: testLoc(),
+        },
+        exported: options?.exported ?? false,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create an external declaration node
+ */
+export function externalDecl(
+    name: string,
+    jsName: string,
+    options?: { from?: string; exported?: boolean },
+): CoreDeclaration {
+    const result: CoreDeclaration = {
+        kind: "CoreExternalDecl",
+        name,
+        typeExpr: dummyTypeExpr(),
+        jsName,
+        exported: options?.exported ?? false,
+        loc: testLoc(),
+    };
+    if (options?.from !== undefined) {
+        (result as { from: string }).from = options.from;
+    }
+    return result;
+}
+
+/**
+ * Create an external type declaration node
+ */
+export function externalTypeDecl(name: string, options?: { exported?: boolean }): CoreDeclaration {
+    return {
+        kind: "CoreExternalTypeDecl",
+        name,
+        typeExpr: dummyTypeExpr(),
+        exported: options?.exported ?? false,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create an import declaration node
+ */
+export function importDecl(from: string, items: CoreImportItem[]): CoreDeclaration {
+    return {
+        kind: "CoreImportDecl",
+        items,
+        from,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create an import item
+ */
+export function importItem(name: string, options?: { alias?: string; isType?: boolean }): CoreImportItem {
+    const result: CoreImportItem = {
+        name,
+        isType: options?.isType ?? false,
+    };
+    if (options?.alias !== undefined) {
+        result.alias = options.alias;
+    }
+    return result;
+}
+
+/**
+ * Create a dummy type expression (for tests that don't care about types)
+ */
+function dummyTypeExpr(): CoreTypeExpr {
+    return { kind: "CoreTypeConst", name: "Int", loc: testLoc() };
 }

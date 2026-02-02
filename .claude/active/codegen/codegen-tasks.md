@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Phases 8 and 9 complete)
+**Last Updated:** 2026-02-01 (Phase 10 complete)
 
 **Maintenance Note:** Line numbers below are best-effort; re-verify at implementation time.
 
@@ -117,27 +117,27 @@
 - [x] Write tests for annotation/unsafe pass-through
 
 ## Phase 10: Declaration Emission
-**Status:** 🔜 Not Started
+**Status:** ✅ Done
 
-- [ ] Create `emit-declarations.ts` with DI setup
-- [ ] Implement CoreLetDecl emission
-- [ ] Handle exported declarations (collect exports)
-- [ ] Implement `extractPatternNames()` helper for pattern destructuring exports
-- [ ] Handle pattern destructuring in declarations (export all bound names)
-- [ ] Implement CoreLetRecGroup emission (use let declarations for forward references)
-- [ ] Implement CoreTypeDecl emission (variant constructors only)
-- [ ] Handle record types (no output)
-- [ ] Handle type aliases (no output)
-- [ ] Implement CoreExternalDecl emission
-- [ ] Handle ExternalOverload bindings (same jsName, different type signatures)
-- [ ] Handle dotted JS names (Math.floor)
-- [ ] Handle module imports
-- [ ] Implement CoreExternalTypeDecl (no output)
-- [ ] Implement CoreImportDecl emission
-- [ ] Handle type-only import filtering
-- [ ] Handle ALL type-only imports (emit no import statement)
-- [ ] Handle import path extension (.js)
-- [ ] Write `tests/declarations.test.ts`
+- [x] Create `emit-declarations.ts` with DI setup
+- [x] Implement CoreLetDecl emission
+- [x] Handle exported declarations (collect exports)
+- [x] Implement `extractPatternNames()` helper for pattern destructuring exports
+- [x] Handle pattern destructuring in declarations (export all bound names)
+- [x] Implement CoreLetRecGroup emission (use let declarations for forward references)
+- [x] Implement CoreTypeDecl emission (variant constructors only)
+- [x] Handle record types (no output)
+- [x] Handle type aliases (no output)
+- [x] Implement CoreExternalDecl emission
+- [x] Handle ExternalOverload bindings (same jsName, different type signatures)
+- [x] Handle dotted JS names (Math.floor)
+- [x] Handle module imports
+- [x] Implement CoreExternalTypeDecl (no output)
+- [x] Implement CoreImportDecl emission
+- [x] Handle type-only import filtering
+- [x] Handle ALL type-only imports (emit no import statement)
+- [x] Handle import path extension (.js)
+- [x] Write `tests/declarations.test.ts`
 
 ## Phase 11: Generator Integration
 **Status:** 🔜 Not Started
@@ -250,7 +250,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 7. Let & Mutability | ✅ | 9/9 |
 | 8. Records & Variants | ✅ | 9/9 |
 | 9. Annotations | ✅ | 3/3 |
-| 10. Declarations | 🔜 | 0/20 |
+| 10. Declarations | ✅ | 19/19 |
 | 11. Generator Integration | 🔜 | 0/15 |
 | 12. Structural Equality | 🔜 | 0/7 |
 | 13. Unit Tests | 🔜 | 0/6 |
@@ -258,4 +258,4 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 76/166 tasks complete (46%)
+**Overall:** 95/165 tasks complete (58%)
