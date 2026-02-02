@@ -42,6 +42,7 @@ function initializeDependencies(): void {
     Expressions.setEmitMatchPattern(
         Patterns.emitMatchPattern as (pattern: unknown, scrutinee: string, ctx: EmitContext) => MatchPatternResult,
     );
+    Expressions.setExtractPatternNames(Patterns.extractPatternNames as (pattern: unknown) => string[]);
 
     // Wire patterns -> expressions
     Patterns.setEmitExpr(Expressions.emitExpr as (expr: unknown, ctx: EmitContext) => string);
@@ -138,10 +139,13 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
 
 /**
  * Generate the file header comment
+ *
+ * Sanitizes filename to prevent newline injection into comment.
  */
 function generateHeader(filename: string): string {
+    const safeFilename = filename.replace(/\r?\n/g, " ");
     return `// Vibefun compiled output
-// Source: ${filename}
+// Source: ${safeFilename}
 // Target: ES2020`;
 }
 

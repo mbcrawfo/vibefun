@@ -27,11 +27,23 @@ let emitPatternFn: (pattern: unknown, ctx: EmitContext) => string = () => {
     throw new Error("emitPatternFn not initialized - setEmitPattern must be called first");
 };
 
+// Forward declaration for extracting pattern names (set by generator.ts)
+let extractPatternNamesFn: (pattern: unknown) => string[] = () => {
+    throw new Error("extractPatternNamesFn not initialized - setExtractPatternNames must be called first");
+};
+
 /**
  * Set the pattern emission function (called during initialization)
  */
 export function setEmitPattern(fn: typeof emitPatternFn): void {
     emitPatternFn = fn;
+}
+
+/**
+ * Set the pattern name extraction function (called during initialization)
+ */
+export function setExtractPatternNames(fn: typeof extractPatternNamesFn): void {
+    extractPatternNamesFn = fn;
 }
 
 // =============================================================================
@@ -570,6 +582,10 @@ function emitLet(
 
 /**
  * Emit a mutually recursive let expression
+ *
+ * For let rec, we need to declare variables first (forward references),
+ * then assign. JavaScript destructuring requires initializers, so we
+ * extract variable names for declarations and use full patterns for assignments.
  */
 function emitLetRecExpr(
     expr: {
@@ -584,9 +600,12 @@ function emitLetRecExpr(
     const assignments: string[] = [];
 
     for (const binding of expr.bindings) {
-        const patternCode = emitPatternFn(binding.pattern, ctx);
-        declarations.push(patternCode);
+        // Extract variable names for forward declaration (destructuring needs initializer)
+        const names = extractPatternNamesFn(binding.pattern).map(escapeIdentifier);
+        declarations.push(...names);
 
+        // Use full pattern for assignment
+        const patternCode = emitPatternFn(binding.pattern, ctx);
         const valueCode = binding.mutable
             ? `{ $value: ${emitExpr(binding.value, withPrecedence(ctx, 0))} }`
             : emitExpr(binding.value, withPrecedence(ctx, 0));
@@ -599,7 +618,8 @@ function emitLetRecExpr(
 
     const bodyCode = emitExpr(expr.body, withPrecedence(ctx, 0));
 
-    return `(() => { let ${declarations.join(", ")}; ${assignments.join("; ")}; return ${bodyCode}; })()`;
+    const declLine = declarations.length > 0 ? `let ${declarations.join(", ")}; ` : "";
+    return `(() => { ${declLine}${assignments.join("; ")}; return ${bodyCode}; })()`;
 }
 
 // Forward declaration for match pattern emission (set by generator.ts)

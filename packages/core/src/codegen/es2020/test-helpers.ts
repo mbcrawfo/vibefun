@@ -4,6 +4,7 @@
 
 import type { Location } from "../../types/ast.js";
 import type {
+    CoreBinaryOp,
     CoreDeclaration,
     CoreExpr,
     CoreImportItem,
@@ -105,14 +106,10 @@ export function varRef(name: string): CoreExpr {
 /**
  * Create a binary operation node
  */
-export function binOp(
-    op: CoreExpr["kind"] extends "CoreBinOp" ? never : string,
-    left: CoreExpr,
-    right: CoreExpr,
-): CoreExpr {
+export function binOp(op: CoreBinaryOp, left: CoreExpr, right: CoreExpr): CoreExpr {
     return {
         kind: "CoreBinOp",
-        op: op as "Add", // Type assertion needed
+        op,
         left,
         right,
         loc: testLoc(),
@@ -210,8 +207,8 @@ export function recordUpdate(record: CoreExpr, updates: Array<{ name: string; va
 /**
  * Create a variant constructor node
  */
-export function variant(constructor: string, args: CoreExpr[]): CoreExpr {
-    return { kind: "CoreVariant", constructor, args, loc: testLoc() };
+export function variant(ctorName: string, args: CoreExpr[]): CoreExpr {
+    return { kind: "CoreVariant", constructor: ctorName, args, loc: testLoc() };
 }
 
 /**
@@ -334,8 +331,8 @@ export function recordPat(fields: Array<{ name: string; pattern: CorePattern }>)
 /**
  * Create a variant pattern node
  */
-export function variantPat(constructor: string, args: CorePattern[]): CorePattern {
-    return { kind: "CoreVariantPattern", constructor, args, loc: testLoc() };
+export function variantPat(ctorName: string, args: CorePattern[]): CorePattern {
+    return { kind: "CoreVariantPattern", constructor: ctorName, args, loc: testLoc() };
 }
 
 // =============================================================================

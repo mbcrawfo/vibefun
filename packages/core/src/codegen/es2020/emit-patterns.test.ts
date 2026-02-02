@@ -9,9 +9,18 @@ setEmitExpr(() => "expr");
 describe("Pattern Emission", () => {
     describe("emitPattern (destructuring contexts)", () => {
         describe("Wildcard patterns", () => {
-            it("should emit underscore for wildcard", () => {
+            it("should emit unique identifiers for wildcards", () => {
                 const ctx = createTestContext();
-                expect(emitPattern(wildcardPat(), ctx)).toBe("_");
+                // Each wildcard gets a unique identifier to avoid JS duplicate binding errors
+                expect(emitPattern(wildcardPat(), ctx)).toBe("_unused0");
+            });
+
+            it("should generate unique identifiers for multiple wildcards", () => {
+                const ctx = createTestContext();
+                // Multiple wildcards in same context get different names
+                expect(emitPattern(wildcardPat(), ctx)).toBe("_unused0");
+                expect(emitPattern(wildcardPat(), ctx)).toBe("_unused1");
+                expect(emitPattern(wildcardPat(), ctx)).toBe("_unused2");
             });
         });
 
@@ -45,7 +54,8 @@ describe("Pattern Emission", () => {
             it("should handle wildcards in tuples", () => {
                 const ctx = createTestContext();
                 const pattern = tuplePat([varPat("a"), wildcardPat(), varPat("c")]);
-                expect(emitPattern(pattern, ctx)).toBe("[a, _, c]");
+                // Wildcards get unique identifiers to avoid duplicate binding
+                expect(emitPattern(pattern, ctx)).toBe("[a, _unused0, c]");
             });
         });
 
@@ -269,7 +279,10 @@ describe("Pattern Emission", () => {
             it("should handle zero-arg constructors", () => {
                 const ctx = createTestContext();
                 const result = emitMatchPattern(variantPat("None", []), "$match", ctx);
-                expect(result.condition).toBe('$match.$tag === "None"');
+                // Includes null/object checks before tag access for safety
+                expect(result.condition).toBe(
+                    'typeof $match === "object" && $match !== null && $match.$tag === "None"',
+                );
                 expect(result.bindings).toEqual([]);
             });
 

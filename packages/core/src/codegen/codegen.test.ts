@@ -78,4 +78,31 @@ describe("generate", () => {
         // Should start with comments
         expect(code).toMatch(/^\/\//);
     });
+
+    describe("target option", () => {
+        it("should default to es2020 when target is not specified", () => {
+            const typedModule = createTypedModule();
+            const { code } = generate(typedModule);
+
+            expect(code).toContain("// Target: ES2020");
+        });
+
+        it("should accept explicit es2020 target", () => {
+            const typedModule = createTypedModule();
+            const { code } = generate(typedModule, { target: "es2020" });
+
+            expect(code).toContain("// Target: ES2020");
+        });
+
+        it("should combine target with filename option", () => {
+            const typedModule = createTypedModule();
+            const { code } = generate(typedModule, {
+                target: "es2020",
+                filename: "test.vf",
+            });
+
+            expect(code).toContain("// Target: ES2020");
+            expect(code).toContain("// Source: test.vf");
+        });
+    });
 });
