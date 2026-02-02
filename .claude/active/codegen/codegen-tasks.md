@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Second review: string escaping tasks, export collection, mutual recursion, variant constructors)
+**Last Updated:** 2026-02-01 (Third review: CoreLetRecExpr, unlowered Divide error, execution test ES module handling, pattern names extraction, indent config)
 
 ## Phase 1: Core Infrastructure
 **Status:** 🔜 Not Started
@@ -9,7 +9,7 @@
 - [ ] Create directory structure `packages/core/src/codegen/es2020/tests/`
 - [ ] Create directory structure `packages/core/src/codegen/es2020/snapshot-tests/`
 - [ ] Create `packages/core/src/codegen/es2020/CLAUDE.md` - Module documentation
-- [ ] Implement `context.ts` - EmitContext type and helper functions
+- [ ] Implement `context.ts` - EmitContext type and helper functions (include indentString config)
 - [ ] Implement `reserved-words.ts` - JS reserved words set and escapeIdentifier()
 - [ ] Implement `emit-operators.ts` - Precedence table and needsParens()
 - [ ] Implement `tests/test-helpers.ts` - createTestContext(), generateExpr()
@@ -36,6 +36,7 @@
 - [ ] Handle Add, Subtract, Multiply, Modulo
 - [ ] Handle IntDivide (Math.trunc)
 - [ ] Handle FloatDivide (direct division)
+- [ ] Handle unlowered Divide (throw internal error - typechecker bug)
 - [ ] Handle Equal, NotEqual (primitive vs composite detection via TypeEnv)
 - [ ] Implement `getExprType()` helper for $eq detection using TypeEnv and declarationTypes
 - [ ] Handle comparison operators (LessThan, LessEqual, etc.)
@@ -88,7 +89,7 @@
 - [ ] Implement CoreLet with pattern destructuring
 - [ ] Implement CoreLet with mutable: true
 - [ ] Implement CoreLet with recursive: true
-- [ ] Implement CoreLetRecExpr (mutual recursion)
+- [ ] Implement CoreLetRecExpr (mutual recursion in expression context - IIFE with let declarations)
 - [ ] Track needsRefHelper usage
 - [ ] Write `tests/expressions.test.ts` - Let section
 
@@ -118,7 +119,8 @@
 - [ ] Create `emit-declarations.ts` with DI setup
 - [ ] Implement CoreLetDecl emission
 - [ ] Handle exported declarations (collect exports)
-- [ ] Handle pattern destructuring in declarations
+- [ ] Implement `extractPatternNames()` helper for pattern destructuring exports
+- [ ] Handle pattern destructuring in declarations (export all bound names)
 - [ ] Implement CoreLetRecGroup emission (use let declarations for forward references)
 - [ ] Implement CoreTypeDecl emission (variant constructors only)
 - [ ] Handle record types (no output)
@@ -179,17 +181,17 @@
 
 - [ ] Create `snapshot-tests/test-helpers.ts` - compileFixture()
 - [ ] Create `snapshot-tests/expressions.vf` fixture
-- [ ] Create `snapshot-tests/expressions.test.ts`
+- [ ] Create `snapshot-tests/snapshot-expressions.test.ts` (match parser naming convention)
 - [ ] Create `snapshot-tests/declarations.vf` fixture
-- [ ] Create `snapshot-tests/declarations.test.ts`
+- [ ] Create `snapshot-tests/snapshot-declarations.test.ts`
 - [ ] Create `snapshot-tests/patterns.vf` fixture
-- [ ] Create `snapshot-tests/patterns.test.ts`
+- [ ] Create `snapshot-tests/snapshot-patterns.test.ts`
 - [ ] Create `snapshot-tests/functions.vf` fixture
-- [ ] Create `snapshot-tests/functions.test.ts`
+- [ ] Create `snapshot-tests/snapshot-functions.test.ts`
 - [ ] Create `snapshot-tests/data-structures.vf` fixture
-- [ ] Create `snapshot-tests/data-structures.test.ts`
+- [ ] Create `snapshot-tests/snapshot-data-structures.test.ts`
 - [ ] Create `snapshot-tests/real-world.vf` fixture
-- [ ] Create `snapshot-tests/real-world.test.ts`
+- [ ] Create `snapshot-tests/snapshot-real-world.test.ts`
 - [ ] Generate and review initial snapshots
 
 ## Phase 14B: Execution Tests (NEW)
@@ -198,6 +200,7 @@
 Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 
 - [ ] Create `tests/execution-test-helpers.ts` - compileAndRun() using vm.createContext()
+- [ ] Implement export statement stripping for vm execution (ES modules not supported in vm)
 - [ ] Create `tests/execution.test.ts`
 - [ ] Test curried function application
 - [ ] Test pattern matching with guards
@@ -237,19 +240,19 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 |-------|--------|-------|
 | 1. Core Infrastructure | 🔜 | 0/10 |
 | 2. Literals & Variables | 🔜 | 0/9 |
-| 3. Operators | 🔜 | 0/13 |
+| 3. Operators | 🔜 | 0/14 |
 | 4. Functions | 🔜 | 0/4 |
 | 5. Patterns | 🔜 | 0/11 |
 | 6. Match Expressions | 🔜 | 0/6 |
 | 7. Let & Mutability | 🔜 | 0/9 |
 | 8. Records & Variants | 🔜 | 0/9 |
 | 9. Annotations | 🔜 | 0/3 |
-| 10. Declarations | 🔜 | 0/19 |
+| 10. Declarations | 🔜 | 0/20 |
 | 11. Generator Integration | 🔜 | 0/15 |
 | 12. Structural Equality | 🔜 | 0/7 |
 | 13. Unit Tests | 🔜 | 0/6 |
 | 14. Snapshot Tests | 🔜 | 0/14 |
-| 14B. Execution Tests | 🔜 | 0/14 |
+| 14B. Execution Tests | 🔜 | 0/15 |
 | 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 0/162 tasks complete (0%)
+**Overall:** 0/165 tasks complete (0%)
