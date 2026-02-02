@@ -1,6 +1,6 @@
 # ES2020 Code Generator Implementation Plan
 
-**Last Updated:** 2026-02-01 (Second review: CoreApp.args semantics, string escaping, export strategy, mutual recursion)
+**Last Updated:** 2026-02-01 (Third review: CoreLetRecExpr, unlowered Divide error, pattern export collection, execution test ES module handling, indent config)
 
 ## Overview
 
@@ -123,13 +123,20 @@ Track statement vs expression context for proper emission:
 interface EmitContext {
     mode: "statement" | "expression";
     indentLevel: number;
+    indentString: string;        // Default: "  " (2 spaces)
     precedence: number;
     needsEqHelper: boolean;
     needsRefHelper: boolean;
     env: TypeEnv;
     declarationTypes: Map<string, Type>;
+    exportedNames: Set<string>;  // Collected during declaration emission
 }
 ```
+
+**Indentation Strategy:**
+- Default: 2 spaces per level
+- Top-level declarations at indent 0
+- IIFE bodies and match cases indent +1 level
 
 ### 4. Runtime Helpers
 Emit only when needed:
@@ -163,6 +170,7 @@ Append `$` suffix: `class` → `class$`
 | CoreUnitLit | `undefined` |
 | CoreVar | `x`, `class$` (escaped) |
 | CoreLet | IIFE or const (context-dependent) |
+| CoreLetRecExpr | IIFE with let declarations (mutual recursion in expressions) |
 | CoreLambda | `(x) => body` |
 | CoreApp | `f(a)(b)(c)` (curried) - Note: `args` is always a single-element array |
 | CoreMatch | IIFE with if-chain |
@@ -201,6 +209,7 @@ Append `$` suffix: `class` → `class$`
 | Add | `a + b` |
 | Subtract | `a - b` |
 | Multiply | `a * b` |
+| Divide | **ERROR** (should never appear - must be lowered by typechecker) |
 | IntDivide | `Math.trunc(a / b)` |
 | FloatDivide | `a / b` |
 | Modulo | `a % b` |
@@ -274,12 +283,14 @@ Append `$` suffix: `class` → `class$`
 - Fixture files (following parser snapshot test pattern)
 - Test helpers (`compileFixture()` that goes source → JS)
 - Generate snapshots
+- **Naming Convention:** Use `snapshot-*.test.ts` pattern to match parser convention
 
 ### Phase 10: Execution Tests
 - End-to-end tests that execute generated JS using Node's `vm` module (sandboxed)
 - Verify runtime semantics (currying, pattern matching, etc.)
 - Test edge cases (NaN equality, integer division truncation, etc.)
 - **Note:** Test helper must handle module-level declarations, not just expressions
+- **ES Module Handling:** Generated code uses `export { }` which isn't supported by `vm.runInContext`. Solution: Strip the final `export { ... }` statement before execution, as declarations are already available in the vm context.
 
 ### Phase 11: Structural Equality
 - $eq helper implementation
@@ -396,6 +407,17 @@ Track during expression emission:
 ### Error Handling
 - Unknown AST node kind → throw internal compiler error with node details
 - Invalid/malformed TypedModule → throw internal compiler error (should never happen if typechecker is correct)
+- Unlowered `Divide` operator → throw internal compiler error (typechecker must lower to IntDivide/FloatDivide)
+
+### Pattern Export Collection
+When a declaration uses pattern destructuring, all bound names must be exported:
+
+```javascript
+// let (a, b) = tuple;  →  exports { a, b }
+// let { x, y } = rec;  →  exports { x, y }
+```
+
+Implement `extractPatternNames(pattern: CorePattern): string[]` helper to collect all variable names from a pattern.
 
 ## Non-Goals (MVP)
 

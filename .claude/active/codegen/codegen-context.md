@@ -1,6 +1,6 @@
 # Code Generator Context
 
-**Last Updated:** 2026-02-01 (Second review: added CoreApp semantics, string escaping details, export handling)
+**Last Updated:** 2026-02-01 (Third review: CoreLetRecExpr, unlowered Divide error, execution test ES module handling, pattern names extraction)
 
 ## Critical Reference Files
 
@@ -59,7 +59,8 @@ interface GenerateResult {
 
 ### Expressions
 - CoreIntLit, CoreFloatLit, CoreStringLit, CoreBoolLit, CoreUnitLit
-- CoreVar, CoreLet, CoreLetRecExpr
+- CoreVar, CoreLet
+- **CoreLetRecExpr** - Mutually recursive let in expression context (distinct from CoreLetRecGroup at declaration level)
 - CoreLambda, CoreApp
 - CoreMatch (with CoreMatchCase)
 - CoreRecord, CoreRecordAccess, CoreRecordUpdate
@@ -84,7 +85,7 @@ interface GenerateResult {
 ```typescript
 type CoreBinaryOp =
     | "Add" | "Subtract" | "Multiply"
-    | "Divide"      // Pre-lowering (desugarer output)
+    | "Divide"      // Pre-lowering (desugarer output) - SHOULD NEVER REACH CODEGEN
     | "IntDivide"   // Post-lowering (Math.trunc)
     | "FloatDivide" // Post-lowering (IEEE 754)
     | "Modulo"
@@ -220,6 +221,9 @@ const $eq = (a, b) => {
 - Zero-arg variant constructors: emit as object literal, not function
 - All type-only imports: emit nothing (no empty import statement)
 - Mutual recursion: use `let` declarations for forward references
+- CoreLetRecExpr (expression context): emit as IIFE with let declarations
+- Unlowered `Divide`: throw internal error (typechecker bug)
+- Pattern destructuring exports: extract all bound names from pattern
 
 ## String Escape Rules
 
@@ -368,6 +372,10 @@ export function compileAndRun(source: string, resultExpr?: string): unknown {
     const typedModule = typeCheck(coreModule);
     const { code } = generate(typedModule, { filename: "test.vf" });
 
+    // Strip the export statement for vm execution
+    // Generated code ends with `export { name1, name2 };` which isn't valid in vm context
+    const executableCode = code.replace(/^export\s*\{[^}]*\}\s*;\s*$/m, "");
+
     // Execute in sandboxed context
     const context = vm.createContext({
         // Provide minimal globals needed by generated code
@@ -382,7 +390,7 @@ export function compileAndRun(source: string, resultExpr?: string): unknown {
 
     // Run generated code, then evaluate result expression
     // The generated code defines variables that become accessible in context
-    vm.runInContext(code, context);
+    vm.runInContext(executableCode, context);
 
     // If resultExpr provided, evaluate it; otherwise return undefined
     if (resultExpr) {
