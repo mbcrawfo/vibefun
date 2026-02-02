@@ -90,9 +90,14 @@ export function escapeString(str: string): string {
             case "\v":
                 result += "\\v";
                 break;
-            case "\0":
-                result += "\\0";
+            case "\0": {
+                // When null byte is followed by a digit, use \x00 to avoid
+                // invalid octal escape sequences (e.g., \01 would be octal)
+                const next = str.charAt(i + 1);
+                const needsHex = next >= "0" && next <= "9";
+                result += needsHex ? "\\x00" : "\\0";
                 break;
+            }
             default:
                 // U+2028 (Line Separator) and U+2029 (Paragraph Separator)
                 // These are valid in JS strings but MUST be escaped in string literals
