@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Review updates - vm module, CLAUDE.md)
+**Last Updated:** 2026-02-01 (Reviewed: added $eq detection tasks, ExternalOverload, type-only import edge case)
 
 ## Phase 1: Core Infrastructure
 **Status:** 🔜 Not Started
@@ -35,7 +35,8 @@
 - [ ] Handle Add, Subtract, Multiply, Modulo
 - [ ] Handle IntDivide (Math.trunc)
 - [ ] Handle FloatDivide (direct division)
-- [ ] Handle Equal, NotEqual (primitive vs composite detection)
+- [ ] Handle Equal, NotEqual (primitive vs composite detection via TypeEnv)
+- [ ] Implement `getExprType()` helper for $eq detection using TypeEnv and declarationTypes
 - [ ] Handle comparison operators (LessThan, LessEqual, etc.)
 - [ ] Handle LogicalAnd, LogicalOr (short-circuit)
 - [ ] Handle Concat (string +)
@@ -48,7 +49,7 @@
 **Status:** 🔜 Not Started
 
 - [ ] Implement CoreLambda emission (arrow functions)
-- [ ] Implement CoreApp emission (curried calls)
+- [ ] Implement CoreApp emission (curried calls, handle multi-element `args` array)
 - [ ] Implement CoreTuple emission (as arrays)
 - [ ] Write `tests/expressions.test.ts` - Functions section
 
@@ -122,11 +123,13 @@
 - [ ] Handle record types (no output)
 - [ ] Handle type aliases (no output)
 - [ ] Implement CoreExternalDecl emission
+- [ ] Handle ExternalOverload bindings (same jsName, different type signatures)
 - [ ] Handle dotted JS names (Math.floor)
 - [ ] Handle module imports
 - [ ] Implement CoreExternalTypeDecl (no output)
 - [ ] Implement CoreImportDecl emission
 - [ ] Handle type-only import filtering
+- [ ] Handle ALL type-only imports (emit no import statement)
 - [ ] Handle import path extension (.js)
 - [ ] Write `tests/declarations.test.ts`
 
@@ -154,9 +157,10 @@
 - [ ] Implement $eq helper generation in runtime-helpers.ts
 - [ ] Track needsEqHelper during emission
 - [ ] Emit $eq only when needed
-- [ ] Handle primitive equality (use ===)
-- [ ] Handle composite equality (use $eq)
-- [ ] Write equality edge case tests
+- [ ] Handle primitive equality (use ===) - Int, Float, String, Bool, Unit
+- [ ] Handle composite equality (use $eq) - records, variants, tuples, lists
+- [ ] Handle type variable case (conservatively use $eq)
+- [ ] Write equality edge case tests (NaN, refs, nested structures)
 
 ## Phase 13: Unit Test Completion
 **Status:** 🔜 Not Started
@@ -227,19 +231,19 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 |-------|--------|-------|
 | 1. Core Infrastructure | 🔜 | 0/10 |
 | 2. Literals & Variables | 🔜 | 0/8 |
-| 3. Operators | 🔜 | 0/12 |
+| 3. Operators | 🔜 | 0/13 |
 | 4. Functions | 🔜 | 0/4 |
 | 5. Patterns | 🔜 | 0/11 |
 | 6. Match Expressions | 🔜 | 0/6 |
 | 7. Let & Mutability | 🔜 | 0/9 |
 | 8. Records & Variants | 🔜 | 0/9 |
 | 9. Annotations | 🔜 | 0/3 |
-| 10. Declarations | 🔜 | 0/16 |
+| 10. Declarations | 🔜 | 0/18 |
 | 11. Generator Integration | 🔜 | 0/14 |
-| 12. Structural Equality | 🔜 | 0/6 |
+| 12. Structural Equality | 🔜 | 0/7 |
 | 13. Unit Tests | 🔜 | 0/6 |
 | 14. Snapshot Tests | 🔜 | 0/14 |
 | 14B. Execution Tests | 🔜 | 0/11 |
 | 15. Polish | 🔜 | 0/12 |
 
-**Overall:** 0/151 tasks complete (0%)
+**Overall:** 0/155 tasks complete (0%)
