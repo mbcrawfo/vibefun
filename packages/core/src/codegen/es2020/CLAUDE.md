@@ -43,6 +43,17 @@ All emit functions take `EmitContext` as a parameter for state tracking.
 
 ## Testing
 
-- **Unit tests** in `tests/` directory test individual emission functions
-- **Snapshot tests** in `snapshot-tests/` validate full compilation output
-- **Execution tests** use Node's `vm` module to verify runtime semantics
+Tests are organized following the project's coding standards (colocated with source files):
+
+- **Unit tests** (colocated): `*.test.ts` files alongside source files test individual emission functions
+  - `emit-expressions.test.ts` - Expression emission tests
+  - `emit-declarations.test.ts` - Declaration emission tests
+  - `emit-patterns.test.ts` - Pattern emission tests
+  - `emit-operators.test.ts` - Operator precedence tests
+  - `reserved-words.test.ts` - Reserved word escaping tests
+  - `runtime-helpers.test.ts` - Runtime helper generation tests
+  - `generator.test.ts` - Generator integration tests
+- **Execution tests** in `execution-tests/` - Runtime semantics validation using Node's `vm` module
+- **Snapshot tests** in `snapshot-tests/` - Full compilation output validation (see [CLAUDE.md](./snapshot-tests/CLAUDE.md))
+
+Shared test helpers are in `test-helpers.ts` (for unit tests) and `execution-tests/execution-test-helpers.ts` (for execution tests).

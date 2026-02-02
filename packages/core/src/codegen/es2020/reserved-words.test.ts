@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { escapeIdentifier, isReservedWord, RESERVED_WORDS } from "../reserved-words.js";
+import { escapeIdentifier, isReservedWord, RESERVED_WORDS } from "./reserved-words.js";
 
 describe("Reserved Words", () => {
     describe("RESERVED_WORDS", () => {

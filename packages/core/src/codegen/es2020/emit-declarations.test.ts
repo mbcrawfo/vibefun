@@ -1,10 +1,10 @@
-import type { EmitContext } from "../context.js";
+import type { EmitContext } from "./context.js";
 
 import { describe, expect, it } from "vitest";
 
-import { emitDeclaration, extractPatternNames, setEmitExpr, setEmitPattern } from "../emit-declarations.js";
-import { emitExpr, setEmitMatchPattern, setEmitPattern as setExprEmitPattern } from "../emit-expressions.js";
-import { emitMatchPattern, emitPattern } from "../emit-patterns.js";
+import { emitDeclaration, extractPatternNames, setEmitExpr, setEmitPattern } from "./emit-declarations.js";
+import { emitExpr, setEmitMatchPattern, setEmitPattern as setExprEmitPattern } from "./emit-expressions.js";
+import { emitMatchPattern, emitPattern } from "./emit-patterns.js";
 import {
     aliasTypeDecl,
     binOp,
