@@ -1,6 +1,6 @@
 # Code Generator Task List
 
-**Last Updated:** 2026-02-01 (Reviewed: added $eq detection tasks, ExternalOverload, type-only import edge case)
+**Last Updated:** 2026-02-01 (Second review: string escaping tasks, export collection, mutual recursion, variant constructors)
 
 ## Phase 1: Core Infrastructure
 **Status:** 🔜 Not Started
@@ -22,7 +22,8 @@
 - [ ] Create `emit-expressions.ts` with emitExpr() dispatcher
 - [ ] Implement CoreIntLit emission (including negative wrapping)
 - [ ] Implement CoreFloatLit emission (including Infinity, -Infinity, NaN, -0)
-- [ ] Implement CoreStringLit emission (with proper escaping including U+2028/U+2029)
+- [ ] Implement CoreStringLit emission (with proper escaping)
+- [ ] Implement string escape helper (\\n, \\t, \\r, \\\\, \\", U+2028, U+2029, control chars)
 - [ ] Implement CoreBoolLit emission
 - [ ] Implement CoreUnitLit emission
 - [ ] Implement CoreVar emission (with reserved word escaping)
@@ -49,7 +50,7 @@
 **Status:** 🔜 Not Started
 
 - [ ] Implement CoreLambda emission (arrow functions)
-- [ ] Implement CoreApp emission (curried calls, handle multi-element `args` array)
+- [ ] Implement CoreApp emission (curried calls - note: args is always single-element)
 - [ ] Implement CoreTuple emission (as arrays)
 - [ ] Write `tests/expressions.test.ts` - Functions section
 
@@ -100,8 +101,8 @@
 - [ ] Implement CoreRecordAccess emission (dot notation)
 - [ ] Implement CoreRecordUpdate emission (spread + updates)
 - [ ] Implement CoreVariant emission (tagged objects)
-- [ ] Handle zero-arg constructors (plain objects)
-- [ ] Handle multi-arg constructors (curried functions)
+- [ ] Handle zero-arg constructors (emit as object literal, not function)
+- [ ] Handle multi-arg constructors (emit as curried function returning tagged object)
 - [ ] Write `tests/expressions.test.ts` - Records/Variants section
 
 ## Phase 9: Type Annotations and Unsafe
@@ -118,7 +119,7 @@
 - [ ] Implement CoreLetDecl emission
 - [ ] Handle exported declarations (collect exports)
 - [ ] Handle pattern destructuring in declarations
-- [ ] Implement CoreLetRecGroup emission
+- [ ] Implement CoreLetRecGroup emission (use let declarations for forward references)
 - [ ] Implement CoreTypeDecl emission (variant constructors only)
 - [ ] Handle record types (no output)
 - [ ] Handle type aliases (no output)
@@ -144,7 +145,8 @@
 - [ ] Implement declaration emission loop
 - [ ] Implement runtime helper tracking (needsEqHelper, needsRefHelper)
 - [ ] Implement runtime helper emission (conditional, at top after imports)
-- [ ] Implement export collection and emission
+- [ ] Implement export collection during declaration emission
+- [ ] Implement export statement emission at end of module (`export { ... }`)
 - [ ] Handle empty modules (emit valid JS with just header)
 - [ ] Create `es2020/index.ts` - public API
 - [ ] Update `codegen/index.ts` - target selection
@@ -206,6 +208,9 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 - [ ] Test record structural equality
 - [ ] Test variant structural equality
 - [ ] Test tuple structural equality
+- [ ] Test zero-arg variant constructor usage (None, Nil)
+- [ ] Test mutual recursion (let rec ... and ...)
+- [ ] Test nested pattern matching with variable extraction
 
 ## Phase 15: Polish and Edge Cases
 **Status:** 🔜 Not Started
@@ -215,7 +220,8 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 - [ ] Verify indentation is correct
 - [ ] Test all JavaScript reserved words
 - [ ] Test Unicode identifiers
-- [ ] Test string escape sequences (including U+2028, U+2029)
+- [ ] Test string escape sequences (\\n, \\t, \\r, \\\\, \\", control chars)
+- [ ] Test U+2028 and U+2029 line separator escaping (critical edge case)
 - [ ] Test operator precedence edge cases
 - [ ] Test NaN equality behavior
 - [ ] Test negative zero (-0) handling
@@ -230,7 +236,7 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | Phase | Status | Tasks |
 |-------|--------|-------|
 | 1. Core Infrastructure | 🔜 | 0/10 |
-| 2. Literals & Variables | 🔜 | 0/8 |
+| 2. Literals & Variables | 🔜 | 0/9 |
 | 3. Operators | 🔜 | 0/13 |
 | 4. Functions | 🔜 | 0/4 |
 | 5. Patterns | 🔜 | 0/11 |
@@ -238,12 +244,12 @@ Uses Node's `vm` module for sandboxed execution of generated JavaScript.
 | 7. Let & Mutability | 🔜 | 0/9 |
 | 8. Records & Variants | 🔜 | 0/9 |
 | 9. Annotations | 🔜 | 0/3 |
-| 10. Declarations | 🔜 | 0/18 |
-| 11. Generator Integration | 🔜 | 0/14 |
+| 10. Declarations | 🔜 | 0/19 |
+| 11. Generator Integration | 🔜 | 0/15 |
 | 12. Structural Equality | 🔜 | 0/7 |
 | 13. Unit Tests | 🔜 | 0/6 |
 | 14. Snapshot Tests | 🔜 | 0/14 |
-| 14B. Execution Tests | 🔜 | 0/11 |
-| 15. Polish | 🔜 | 0/12 |
+| 14B. Execution Tests | 🔜 | 0/14 |
+| 15. Polish | 🔜 | 0/13 |
 
-**Overall:** 0/155 tasks complete (0%)
+**Overall:** 0/162 tasks complete (0%)
