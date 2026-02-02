@@ -184,6 +184,26 @@ export function letExpr(
 }
 
 /**
+ * Create a mutually recursive let expression node
+ */
+export function letRecExpr(
+    bindings: Array<{ pattern: CorePattern; value: CoreExpr; mutable?: boolean }>,
+    body: CoreExpr,
+): CoreExpr {
+    return {
+        kind: "CoreLetRecExpr",
+        bindings: bindings.map((b) => ({
+            pattern: b.pattern,
+            value: b.value,
+            mutable: b.mutable ?? false,
+            loc: testLoc(),
+        })),
+        body,
+        loc: testLoc(),
+    };
+}
+
+/**
  * Create a match expression node
  */
 export function matchExpr(
