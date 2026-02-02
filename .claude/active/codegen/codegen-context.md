@@ -1,6 +1,6 @@
 # Code Generator Context
 
-**Last Updated:** 2026-02-01 (Review updates - vm module, CLAUDE.md template)
+**Last Updated:** 2026-02-01 (Reviewed: added ExternalOverload, $eq detection strategy, improved execution test helper)
 
 ## Critical Reference Files
 
@@ -13,6 +13,7 @@
 | `.claude/design/codegen-requirements.md` | Full requirements document |
 | `packages/core/src/parser/snapshot-tests/` | Reference for snapshot test pattern |
 | `packages/core/src/typechecker/division-lowering.test.ts` | Division operator tests (IntDivide/FloatDivide) |
+| `packages/core/src/types/environment.ts` | TypeEnv, ValueBinding (incl. ExternalOverload) |
 
 ## Input Contract: TypedModule
 
@@ -20,7 +21,7 @@
 type TypedModule = {
     module: CoreModule;                    // Desugared AST
     env: TypeEnv;                          // Type environment
-    declarationTypes: Map<string, Type>;   // Inferred types
+    declarationTypes: Map<string, Type>;   // Inferred types for declarations
 };
 
 type CoreModule = {
@@ -29,6 +30,22 @@ type CoreModule = {
     loc: Location;
 };
 ```
+
+### TypeEnv Structure (for $eq detection and external handling)
+
+```typescript
+type TypeEnv = {
+    values: Map<string, ValueBinding>;     // For type lookup
+    types: Map<string, TypeBinding>;       // Variant constructor info
+};
+
+type ValueBinding =
+    | { kind: "Value"; scheme: TypeScheme; loc: Location }
+    | { kind: "External"; scheme: TypeScheme; jsName: string; from?: string; loc: Location }
+    | { kind: "ExternalOverload"; overloads: ExternalOverload[]; jsName: string; from?: string; loc: Location };
+```
+
+**Note:** `ExternalOverload` is used when an external name has multiple type signatures. At codegen time, we only need the `jsName` and `from` fields - type overloading is handled by JavaScript's dynamic dispatch.
 
 ## Output Contract: GenerateResult
 
@@ -298,14 +315,14 @@ import { generate } from "../../index.js";
 
 /**
  * Compile vibefun source and execute in a sandboxed VM context.
- * The last expression's value is captured via a special $result variable.
+ * Handles both single expressions and module-level declarations.
+ *
+ * @param source - Vibefun source code
+ * @param resultExpr - Expression to evaluate for the result (default: last declaration name)
  */
-export function compileAndRun(source: string): unknown {
-    // Wrap source to capture result of last expression
-    const wrappedSource = `let $result = (${source.trim()});`;
-
+export function compileAndRun(source: string, resultExpr?: string): unknown {
     // Compile through full pipeline
-    const lexer = new Lexer(wrappedSource, "test.vf");
+    const lexer = new Lexer(source, "test.vf");
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens, "test.vf");
     const ast = parser.parse();
@@ -322,40 +339,65 @@ export function compileAndRun(source: string): unknown {
         Infinity,
         NaN,
         undefined,
+        console, // For debugging
     });
 
-    // Run generated code and extract result
-    const script = new vm.Script(code + "\n$result;");
-    return script.runInContext(context);
+    // Run generated code, then evaluate result expression
+    // The generated code defines variables that become accessible in context
+    vm.runInContext(code, context);
+
+    // If resultExpr provided, evaluate it; otherwise return undefined
+    if (resultExpr) {
+        return vm.runInContext(resultExpr, context);
+    }
+    return undefined;
+}
+
+/**
+ * Compile and run, expecting a specific named export as result
+ */
+export function compileAndGetExport(source: string, exportName: string): unknown {
+    return compileAndRun(source, exportName);
 }
 ```
 
 ```typescript
 // tests/execution.test.ts
 import { describe, expect, it } from "vitest";
-import { compileAndRun } from "./execution-test-helpers.js";
+import { compileAndRun, compileAndGetExport } from "./execution-test-helpers.js";
 
 describe("Execution Tests", () => {
     it("should correctly evaluate curried function application", () => {
-        const result = compileAndRun(`
+        const result = compileAndGetExport(`
             let add = (x, y) => x + y;
             let add5 = add(5);
-            add5(3)
-        `);
+            let result = add5(3);
+        `, "result");
         expect(result).toBe(8);
     });
 
     it("should handle NaN equality correctly", () => {
-        const result = compileAndRun(`
+        const result = compileAndGetExport(`
             let x = 0.0 / 0.0;
-            x == x
-        `);
+            let result = x == x;
+        `, "result");
         expect(result).toBe(false); // IEEE 754 semantics
     });
 
     it("should truncate integer division toward zero", () => {
-        const result = compileAndRun(`(-7) / 2`);
+        const result = compileAndGetExport(`
+            let result = (-7) / 2;
+        `, "result");
         expect(result).toBe(-3); // Not -4 (floor)
+    });
+
+    it("should handle structural equality for records", () => {
+        const result = compileAndGetExport(`
+            let a = { x: 1, y: 2 };
+            let b = { x: 1, y: 2 };
+            let result = a == b;
+        `, "result");
+        expect(result).toBe(true);
     });
 });
 ```

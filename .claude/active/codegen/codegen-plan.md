@@ -1,6 +1,6 @@
 # ES2020 Code Generator Implementation Plan
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-01 (Reviewed: clarified $eq detection, ExternalOverload, execution tests)
 
 ## Overview
 
@@ -136,6 +136,18 @@ Emit only when needed:
 - `ref()` - for mutable references
 - `$eq()` - for structural equality on composite types
 
+### 5. Structural Equality Detection ($eq)
+**Challenge:** Types are erased at codegen time, but we need to know when to use `$eq` vs `===`.
+
+**Solution:** Use `TypedModule.declarationTypes` and `TypeEnv` to look up operand types during emission:
+1. For `CoreBinOp` with `Equal` or `NotEqual`, examine the left operand's type
+2. If operand is a `CoreVar`, look up its type in `declarationTypes` or `env.values`
+3. Primitive types (Int, Float, String, Bool, Unit) → use `===`
+4. Composite types (records, variants, tuples, lists) → use `$eq`
+5. Type variables that couldn't resolve → conservatively use `$eq`
+
+**Implementation:** Add `getExprType(expr: CoreExpr, ctx: EmitContext): Type | undefined` helper
+
 ### 5. Reserved Word Escaping
 Append `$` suffix: `class` → `class$`
 
@@ -152,7 +164,7 @@ Append `$` suffix: `class` → `class$`
 | CoreVar | `x`, `class$` (escaped) |
 | CoreLet | IIFE or const (context-dependent) |
 | CoreLambda | `(x) => body` |
-| CoreApp | `f(a)(b)(c)` (curried) |
+| CoreApp | `f(a)(b)(c)` (curried) - Note: `args` array may have 1+ elements |
 | CoreMatch | IIFE with if-chain |
 | CoreRecord | `{ field: value }` |
 | CoreRecordAccess | `record.field` |
@@ -178,7 +190,7 @@ Append `$` suffix: `class` → `class$`
 | CoreLetDecl | `const name = value;` |
 | CoreLetRecGroup | Multiple const declarations |
 | CoreTypeDecl | Variant constructors only |
-| CoreExternalDecl | Import + const binding |
+| CoreExternalDecl | Import + const binding (also handle ExternalOverload from TypeEnv) |
 | CoreExternalTypeDecl | (no output) |
 | CoreImportDecl | ES6 import statement |
 
@@ -263,10 +275,11 @@ Append `$` suffix: `class` → `class$`
 - Test helpers (`compileFixture()` that goes source → JS)
 - Generate snapshots
 
-### Phase 10: Execution Tests (NEW)
+### Phase 10: Execution Tests
 - End-to-end tests that execute generated JS using Node's `vm` module (sandboxed)
 - Verify runtime semantics (currying, pattern matching, etc.)
 - Test edge cases (NaN equality, integer division truncation, etc.)
+- **Note:** Test helper must handle module-level declarations, not just expressions
 
 ### Phase 11: Structural Equality
 - $eq helper implementation
@@ -303,6 +316,12 @@ After implementation:
 | Package (`lodash`) | Pass through unchanged |
 | Scoped (`@vibefun/std`) | Pass through unchanged |
 
+### Type-Only Import Handling
+When filtering `CoreImportItem.isType`:
+- If some items are type-only, filter them out
+- If ALL items are type-only, emit **no import statement at all**
+- This prevents empty `import { } from "module.js"` statements
+
 ### Runtime Helper Detection
 Track during expression emission:
 - `needsRefHelper`: Set when encountering `CoreLet` with `mutable: true` OR `CoreUnaryOp` with `op: "Deref"` OR `CoreBinOp` with `op: "RefAssign"`
@@ -311,3 +330,24 @@ Track during expression emission:
 ### Error Handling
 - Unknown AST node kind → throw internal compiler error with node details
 - Invalid/malformed TypedModule → throw internal compiler error (should never happen if typechecker is correct)
+
+## Non-Goals (MVP)
+
+These are explicitly out of scope for this implementation:
+1. **Source maps** - Will be added in a future phase (spec mentions `--source-maps` flag)
+2. **Runtime type checking** - FFI boundary checks deferred
+3. **Multiple ES targets** - Only ES2020 for now (config has commented placeholder)
+4. **Minification** - Output prioritizes readability
+5. **Tree shaking** - Emit all declarations
+
+## Implementation Notes
+
+### Alignment with Language Spec
+The language spec (`docs/spec/12-compilation/codegen.md`) is deliberately implementation-agnostic about representations. This plan makes **concrete implementation choices**:
+- Variants → Tagged objects with `$tag`, `$0`, `$1`...
+- Tuples → JavaScript arrays
+- Records → Plain objects
+- Refs → Objects with `$value`
+- Unit → `undefined`
+
+These choices are valid implementations of the spec's semantic requirements.
