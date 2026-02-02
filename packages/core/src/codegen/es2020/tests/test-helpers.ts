@@ -157,6 +157,50 @@ export function record(fields: Array<{ name: string; value: CoreExpr }>): CoreEx
 }
 
 /**
+ * Create a record node with spread
+ */
+export function recordWithSpread(baseRecord: CoreExpr, fields: Array<{ name: string; value: CoreExpr }>): CoreExpr {
+    const allFields = [
+        { kind: "Spread" as const, expr: baseRecord, loc: testLoc() },
+        ...fields.map((f) => ({
+            kind: "Field" as const,
+            name: f.name,
+            value: f.value,
+            loc: testLoc(),
+        })),
+    ];
+    return {
+        kind: "CoreRecord",
+        fields: allFields,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create a record access node
+ */
+export function recordAccess(record: CoreExpr, field: string): CoreExpr {
+    return { kind: "CoreRecordAccess", record, field, loc: testLoc() };
+}
+
+/**
+ * Create a record update node
+ */
+export function recordUpdate(record: CoreExpr, updates: Array<{ name: string; value: CoreExpr }>): CoreExpr {
+    return {
+        kind: "CoreRecordUpdate",
+        record,
+        updates: updates.map((u) => ({
+            kind: "Field" as const,
+            name: u.name,
+            value: u.value,
+            loc: testLoc(),
+        })),
+        loc: testLoc(),
+    };
+}
+
+/**
  * Create a variant constructor node
  */
 export function variant(constructor: string, args: CoreExpr[]): CoreExpr {
