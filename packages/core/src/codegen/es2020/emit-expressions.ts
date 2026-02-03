@@ -482,6 +482,10 @@ function emitTuple(expr: { kind: "CoreTuple"; elements: CoreExpr[] }, ctx: EmitC
 
 /**
  * Emit a record as a JavaScript object
+ *
+ * Note: The non-null assertions (!) on field.value and field.expr are safe because
+ * the Core AST is guaranteed to be well-formed after type checking. Field nodes
+ * always have `value` set, and Spread nodes always have `expr` set.
  */
 function emitRecord(
     expr: { kind: "CoreRecord"; fields: Array<{ kind: string; name?: string; value?: CoreExpr; expr?: CoreExpr }> },
@@ -513,6 +517,10 @@ function emitRecordAccess(
 
 /**
  * Emit a record update (functional update)
+ *
+ * Note: The non-null assertions (!) on field.value and field.expr are safe because
+ * the Core AST is guaranteed to be well-formed after type checking. Field nodes
+ * always have `value` set, and Spread nodes always have `expr` set.
  */
 function emitRecordUpdate(
     expr: {
