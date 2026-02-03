@@ -130,13 +130,38 @@ export function getIndent(ctx: EmitContext): string {
 }
 
 /**
+ * Clone a context with overrides, preserving getters for shared state
+ *
+ * This is needed because spreading an object with getters converts them
+ * to plain properties, breaking the live connection to shared state.
+ */
+function cloneContext(ctx: EmitContext, overrides: Partial<EmitContext>): EmitContext {
+    const { shared } = ctx;
+    return {
+        ...ctx,
+        ...overrides,
+        shared,
+        // Re-attach getters for backward compatibility
+        get needsEqHelper() {
+            return shared.needsEqHelper;
+        },
+        get needsRefHelper() {
+            return shared.needsRefHelper;
+        },
+        get exportedNames() {
+            return shared.exportedNames;
+        },
+    };
+}
+
+/**
  * Create a new context with incremented indentation
  *
  * @param ctx - Base context
  * @returns New context with indentation level + 1
  */
 export function withIndent(ctx: EmitContext): EmitContext {
-    return { ...ctx, indentLevel: ctx.indentLevel + 1 };
+    return cloneContext(ctx, { indentLevel: ctx.indentLevel + 1 });
 }
 
 /**
@@ -146,7 +171,7 @@ export function withIndent(ctx: EmitContext): EmitContext {
  * @returns New context in expression mode
  */
 export function withExpressionMode(ctx: EmitContext): EmitContext {
-    return { ...ctx, mode: "expression" };
+    return cloneContext(ctx, { mode: "expression" });
 }
 
 /**
@@ -156,7 +181,7 @@ export function withExpressionMode(ctx: EmitContext): EmitContext {
  * @returns New context in statement mode
  */
 export function withStatementMode(ctx: EmitContext): EmitContext {
-    return { ...ctx, mode: "statement" };
+    return cloneContext(ctx, { mode: "statement" });
 }
 
 /**
@@ -167,7 +192,7 @@ export function withStatementMode(ctx: EmitContext): EmitContext {
  * @returns New context with updated precedence
  */
 export function withPrecedence(ctx: EmitContext, precedence: number): EmitContext {
-    return { ...ctx, precedence };
+    return cloneContext(ctx, { precedence });
 }
 
 /**
