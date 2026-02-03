@@ -4,7 +4,7 @@
  * This module handles the emission of all CoreExpr nodes to JavaScript.
  */
 
-import type { CoreExpr } from "../../types/core-ast.js";
+import type { CoreExpr, CorePattern } from "../../types/core-ast.js";
 import type { EmitContext } from "./context.js";
 
 import { markNeedsEqHelper, markNeedsRefHelper, withPrecedence } from "./context.js";
@@ -23,12 +23,12 @@ import { escapeIdentifier } from "./reserved-words.js";
 // =============================================================================
 
 // Forward declaration for pattern emission (set by generator.ts)
-let emitPatternFn: (pattern: unknown, ctx: EmitContext) => string = () => {
+let emitPatternFn: (pattern: CorePattern, ctx: EmitContext) => string = () => {
     throw new Error("emitPatternFn not initialized - setEmitPattern must be called first");
 };
 
 // Forward declaration for extracting pattern names (set by generator.ts)
-let extractPatternNamesFn: (pattern: unknown) => string[] = () => {
+let extractPatternNamesFn: (pattern: CorePattern) => string[] = () => {
     throw new Error("extractPatternNamesFn not initialized - setExtractPatternNames must be called first");
 };
 
@@ -440,7 +440,7 @@ function maybeParens(code: string, innerPrec: number, outerPrec: number): string
 /**
  * Emit a lambda expression
  */
-function emitLambda(expr: { kind: "CoreLambda"; param: unknown; body: CoreExpr }, ctx: EmitContext): string {
+function emitLambda(expr: { kind: "CoreLambda"; param: CorePattern; body: CoreExpr }, ctx: EmitContext): string {
     const paramCode = emitPatternFn(expr.param, ctx);
     const bodyCode = emitExpr(expr.body, withPrecedence(ctx, 0));
 
@@ -563,7 +563,14 @@ function emitVariant(expr: { kind: "CoreVariant"; constructor: string; args: Cor
  * Emit a let expression
  */
 function emitLet(
-    expr: { kind: "CoreLet"; pattern: unknown; value: CoreExpr; body: CoreExpr; mutable: boolean; recursive: boolean },
+    expr: {
+        kind: "CoreLet";
+        pattern: CorePattern;
+        value: CoreExpr;
+        body: CoreExpr;
+        mutable: boolean;
+        recursive: boolean;
+    },
     ctx: EmitContext,
 ): string {
     // For mutable bindings, track ref helper
@@ -595,7 +602,7 @@ function emitLet(
 function emitLetRecExpr(
     expr: {
         kind: "CoreLetRecExpr";
-        bindings: Array<{ pattern: unknown; value: CoreExpr; mutable: boolean }>;
+        bindings: Array<{ pattern: CorePattern; value: CoreExpr; mutable: boolean }>;
         body: CoreExpr;
     },
     ctx: EmitContext,
@@ -629,7 +636,7 @@ function emitLetRecExpr(
 
 // Forward declaration for match pattern emission (set by generator.ts)
 let emitMatchPatternFn: (
-    pattern: unknown,
+    pattern: CorePattern,
     scrutinee: string,
     ctx: EmitContext,
 ) => { condition: string | null; bindings: string[] } = () => {
@@ -660,7 +667,11 @@ export function setEmitMatchPattern(fn: typeof emitMatchPatternFn): void {
  * ```
  */
 function emitMatch(
-    expr: { kind: "CoreMatch"; expr: CoreExpr; cases: Array<{ pattern: unknown; guard?: CoreExpr; body: CoreExpr }> },
+    expr: {
+        kind: "CoreMatch";
+        expr: CoreExpr;
+        cases: Array<{ pattern: CorePattern; guard?: CoreExpr; body: CoreExpr }>;
+    },
     ctx: EmitContext,
 ): string {
     const indent = ctx.indentString.repeat(ctx.indentLevel);
