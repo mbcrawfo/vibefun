@@ -432,7 +432,46 @@ describe("Expression Emission", () => {
             const result = emitExpr(expr, ctx);
             expect(result).toContain("const n = $match;");
             expect(result).toContain("n > 0");
+            // CRITICAL: Bindings must be emitted BEFORE guard evaluation
+            // This prevents ReferenceError when guard references bound variables
+            expect(result.indexOf("const n = $match;")).toBeLessThan(result.indexOf("n > 0"));
             expect(result).toContain('return "positive";');
+        });
+
+        it("should emit tuple pattern bindings before guard evaluation", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("pair"), [
+                {
+                    pattern: tuplePat([varPat("a"), varPat("b")]),
+                    guard: binOp("GreaterThan", varRef("a"), varRef("b")),
+                    body: stringLit("a > b"),
+                },
+                { pattern: wildcardPat(), body: stringLit("a <= b") },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("const a = $match[0];");
+            expect(result).toContain("const b = $match[1];");
+            expect(result).toContain("a > b");
+            // Bindings must come before guard evaluation
+            expect(result.indexOf("const a = $match[0];")).toBeLessThan(result.indexOf("a > b"));
+            expect(result.indexOf("const b = $match[1];")).toBeLessThan(result.indexOf("a > b"));
+        });
+
+        it("should emit variant pattern bindings before guard evaluation", () => {
+            const ctx = createTestContext();
+            const expr = matchExpr(varRef("opt"), [
+                {
+                    pattern: variantPat("Some", [varPat("x")]),
+                    guard: binOp("GreaterThan", varRef("x"), intLit(0)),
+                    body: stringLit("positive value"),
+                },
+                { pattern: wildcardPat(), body: stringLit("none or non-positive") },
+            ]);
+            const result = emitExpr(expr, ctx);
+            expect(result).toContain("const x = $match.$0;");
+            expect(result).toContain("x > 0");
+            // Bindings must come before guard evaluation
+            expect(result.indexOf("const x = $match.$0;")).toBeLessThan(result.indexOf("x > 0"));
         });
 
         it("should emit match with tuple pattern", () => {
