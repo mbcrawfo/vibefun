@@ -395,7 +395,7 @@ function emitBinOp(expr: { kind: "CoreBinOp"; op: string; left: CoreExpr; right:
     }
 
     const leftCode = emitExpr(expr.left, withPrecedence(ctx, prec));
-    const rightCode = emitExpr(expr.right, withPrecedence(ctx, prec + 1)); // +1 for right associativity handling
+    const rightCode = emitExpr(expr.right, withPrecedence(ctx, prec + 1)); // +1 ensures left-associativity (same-precedence right operands get parenthesized)
     const code = `${leftCode} ${jsOp} ${rightCode}`;
 
     return maybeParens(code, prec, ctx.precedence);
