@@ -753,9 +753,13 @@ describe("escapeString", () => {
     });
 
     it("should handle Unicode correctly", () => {
-        // Regular Unicode should pass through
-        expect(escapeString("")).toBe("");
-        expect(escapeString("")).toBe("");
+        // BMP characters should pass through unchanged
+        expect(escapeString("café")).toBe("café");
+        expect(escapeString("日本語")).toBe("日本語");
+        expect(escapeString("Ελληνικά")).toBe("Ελληνικά");
+        // Non-BMP emoji should also pass through
+        expect(escapeString("😀")).toBe("😀");
+        expect(escapeString("hello 🎉 world")).toBe("hello 🎉 world");
         // But line separators must be escaped
         expect(escapeString("\u2028")).toBe("\\u2028");
         expect(escapeString("\u2029")).toBe("\\u2029");
