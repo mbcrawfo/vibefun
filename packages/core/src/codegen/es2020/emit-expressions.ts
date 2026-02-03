@@ -705,22 +705,14 @@ function emitMatch(
         const patternResult = emitMatchPatternFn(matchCase.pattern, "$match", ctx);
         const bodyCode = emitExpr(matchCase.body, withPrecedence(ctx, 0));
 
-        // Build the full condition (pattern + guard)
-        let fullCondition = patternResult.condition;
-
-        if (matchCase.guard !== undefined) {
-            const guardCode = emitExpr(matchCase.guard, withPrecedence(ctx, 0));
-            if (fullCondition !== null) {
-                fullCondition = `${fullCondition} && ${guardCode}`;
-            } else {
-                fullCondition = guardCode;
-            }
-        }
-
         // Generate bindings as variable declarations
         const bindingsCode = patternResult.bindings.join(" ");
 
-        if (fullCondition === null) {
+        // Get pattern condition and guard code separately
+        const patternCondition = patternResult.condition;
+        const guardCode = matchCase.guard !== undefined ? emitExpr(matchCase.guard, withPrecedence(ctx, 0)) : null;
+
+        if (patternCondition === null && guardCode === null) {
             // Unconditional match (wildcard or variable without guard)
             if (bindingsCode) {
                 lines.push(`${indent1}${bindingsCode} return ${bodyCode};`);
@@ -730,12 +722,26 @@ function emitMatch(
             // No need for fallback after unconditional match
             emittedUnconditionalCase = true;
             break;
-        } else {
-            // Conditional match
+        } else if (patternCondition !== null && guardCode === null) {
+            // Pattern condition only (no guard)
             if (bindingsCode) {
-                lines.push(`${indent1}if (${fullCondition}) { ${bindingsCode} return ${bodyCode}; }`);
+                lines.push(`${indent1}if (${patternCondition}) { ${bindingsCode} return ${bodyCode}; }`);
             } else {
-                lines.push(`${indent1}if (${fullCondition}) { return ${bodyCode}; }`);
+                lines.push(`${indent1}if (${patternCondition}) { return ${bodyCode}; }`);
+            }
+        } else if (patternCondition === null && guardCode !== null) {
+            // Guard only (variable/wildcard pattern with guard)
+            // Bindings must be emitted BEFORE guard evaluation
+            lines.push(`${indent1}{ ${bindingsCode} if (${guardCode}) { return ${bodyCode}; } }`);
+        } else {
+            // Both pattern condition and guard
+            // Check pattern first, then emit bindings, then check guard
+            if (bindingsCode) {
+                lines.push(
+                    `${indent1}if (${patternCondition}) { ${bindingsCode} if (${guardCode}) { return ${bodyCode}; } }`,
+                );
+            } else {
+                lines.push(`${indent1}if (${patternCondition} && ${guardCode}) { return ${bodyCode}; }`);
             }
         }
     }
