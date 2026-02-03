@@ -53,10 +53,18 @@ export function compileAndRun(source: string, resultExpr?: string): unknown {
 
     // Execute in sandboxed context
     const context = vm.createContext({
-        // Provide minimal globals needed by generated code
+        // Provide globals needed by generated code
         Math,
         Array,
         Object,
+        String,
+        Number,
+        Boolean,
+        JSON,
+        Error,
+        Map,
+        Set,
+        RegExp,
         Infinity,
         NaN,
         undefined,
