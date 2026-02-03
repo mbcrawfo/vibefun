@@ -684,6 +684,9 @@ function emitMatch(
     lines.push(`(() => {`);
     lines.push(`${indent1}const $match = ${scrutineeCode};`);
 
+    // Track whether we emitted an unconditional case (no need for fallback after)
+    let emittedUnconditionalCase = false;
+
     for (let i = 0; i < expr.cases.length; i++) {
         const matchCase = expr.cases[i];
         if (matchCase === undefined) {
@@ -717,6 +720,7 @@ function emitMatch(
                 lines.push(`${indent1}return ${bodyCode};`);
             }
             // No need for fallback after unconditional match
+            emittedUnconditionalCase = true;
             break;
         } else {
             // Conditional match
@@ -729,13 +733,9 @@ function emitMatch(
     }
 
     // Add exhaustiveness fallback (should be unreachable if typechecker ensures exhaustiveness)
-    const lastCase = expr.cases[expr.cases.length - 1];
-    if (lastCase !== undefined) {
-        const lastPatternResult = emitMatchPatternFn(lastCase.pattern, "$match", ctx);
-        // Only add fallback if the last case has a condition
-        if (lastPatternResult.condition !== null || lastCase.guard !== undefined) {
-            lines.push(`${indent1}throw new Error("Match exhausted");`);
-        }
+    // Only add if no unconditional case was emitted
+    if (!emittedUnconditionalCase) {
+        lines.push(`${indent1}throw new Error("Match exhausted");`);
     }
 
     lines.push(`${indent}})()`);
