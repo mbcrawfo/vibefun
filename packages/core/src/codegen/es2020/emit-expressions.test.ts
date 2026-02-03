@@ -286,6 +286,12 @@ describe("Expression Emission", () => {
                     "Internal error: Unlowered Divide operator reached codegen",
                 );
             });
+
+            it("should emit RefAssign as property assignment expression", () => {
+                const ctx = createTestContext();
+                expect(emitExpr(binOp("RefAssign", varRef("x"), intLit(5)), ctx)).toBe("(x.$value = 5, undefined)");
+                expect(ctx.needsRefHelper).toBe(true);
+            });
         });
 
         describe("Unary operators", () => {
