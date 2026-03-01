@@ -25,4 +25,5 @@ export const FIXTURES = {
     unicode: "unicode.vf",
     withBom: "with-bom.vf",
     pathWithSpaces: "path with spaces/test.vf",
+    lexerError: "lexer-error.vf",
 } as const;

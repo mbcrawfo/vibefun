@@ -47,6 +47,16 @@ program
     .argument("<file>", "Source file to compile")
     .option("-o, --output <path>", "Output file path")
     .option("-e, --emit <type>", "Output type: js, ast, typed-ast", "js")
+    .exitOverride((err) => {
+        if (
+            err.code === "commander.missingArgument" ||
+            err.code === "commander.unknownOption" ||
+            err.code === "commander.invalidArgument"
+        ) {
+            process.exit(EXIT_USAGE_ERROR);
+        }
+        process.exit(err.exitCode);
+    })
     .action((file: string, cmdOptions: CompileCommandOptions) => {
         const globalOptions = program.opts<GlobalOptions>();
 
@@ -83,6 +93,16 @@ program
     .command("check")
     .description("Type check a .vf file without compiling (not yet implemented)")
     .argument("<file>", "Source file to check")
+    .exitOverride((err) => {
+        if (
+            err.code === "commander.missingArgument" ||
+            err.code === "commander.unknownOption" ||
+            err.code === "commander.invalidArgument"
+        ) {
+            process.exit(EXIT_USAGE_ERROR);
+        }
+        process.exit(err.exitCode);
+    })
     .action(() => {
         console.error("The 'check' command is not yet implemented.");
         process.exit(1);
@@ -92,6 +112,16 @@ program
     .command("run")
     .description("Compile and run a .vf file (not yet implemented)")
     .argument("<file>", "Source file to run")
+    .exitOverride((err) => {
+        if (
+            err.code === "commander.missingArgument" ||
+            err.code === "commander.unknownOption" ||
+            err.code === "commander.invalidArgument"
+        ) {
+            process.exit(EXIT_USAGE_ERROR);
+        }
+        process.exit(err.exitCode);
+    })
     .action(() => {
         console.error("The 'run' command is not yet implemented.");
         process.exit(1);
