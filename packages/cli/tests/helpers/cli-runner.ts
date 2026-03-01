@@ -28,7 +28,7 @@ export function runCli(args: string[], options: RunCliOptions = {}): CliResult {
     const result = spawnSync("node", [CLI_PATH, ...args], {
         cwd: options.cwd,
         encoding: "utf-8",
-        env: { ...process.env, ...options.env, NO_COLOR: "1" },
+        env: { ...process.env, NO_COLOR: "1", ...options.env },
     });
 
     return {

@@ -19,7 +19,7 @@
 These directives guide all development work on the vibefun project:
 
 1. **Coding Standards**: Before writing any code, review `.claude/CODING_STANDARDS.md` to understand the project's coding conventions, naming patterns, and best practices
-2. **Vibefun Language Guide**: Before writing any `.vf` code, review `.claude/VIBEFUN_AI_CODING_GUIDE.md` to understand vibefun's syntax, semantics, common patterns, and gotchas. This guide is specifically designed for AI agents writing vibefun code.
+2. **Vibefun Language Guide**: Before writing **any** `.vf` code — including test fixtures, examples, exploration, or verification scripts — **always** review `.claude/VIBEFUN_AI_CODING_GUIDE.md` first. Vibefun has critical syntax differences from other languages (e.g., semicolons are mandatory between declarations). This guide is specifically designed for AI agents writing vibefun code.
 3. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
 4. **Follow the Language Specification**:
     - `./docs/spec/` contains the authoritative language specification for how Vibefun should function.
@@ -142,12 +142,13 @@ npm test -w @vibefun/core
 npm test -w @vibefun/std
 ```
 
-### Vibefun Language Commands (Future)
+### Running the Vibefun CLI
 
 ```bash
-vibefun compile src/main.vf -o dist/main.js
-vibefun check src/main.vf          # Type check only
-vibefun run src/main.vf            # Compile and run
+# After building (npm run build), run the CLI via the workspace script:
+npm run vibefun -- compile src/main.vf -o dist/main.js
+npm run vibefun -- compile src/main.vf --emit ast
+npm run vibefun -- compile src/main.vf --verbose
 ```
 
 ### Project Configuration

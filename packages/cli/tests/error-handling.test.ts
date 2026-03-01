@@ -23,6 +23,7 @@ describe("CLI E2E: Error Handling", () => {
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain("error");
         expect(result.stderr).toContain("VF2");
+        expect(result.stderr).toMatch(/\d+:\d+/); // includes source location
     });
 
     it("returns exit code 1 for type errors", () => {
@@ -31,6 +32,16 @@ describe("CLI E2E: Error Handling", () => {
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain("error");
         expect(result.stderr).toContain("VF4");
+        expect(result.stderr).toMatch(/\d+:\d+/); // includes source location
+    });
+
+    it("returns exit code 1 for lexer errors", () => {
+        const result = runCli(["compile", fixture("lexer-error.vf")]);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain("error");
+        expect(result.stderr).toContain("VF1");
+        expect(result.stderr).toMatch(/\d+:\d+/); // includes source location
     });
 
     it("returns exit code 4 for file not found", () => {
@@ -40,10 +51,10 @@ describe("CLI E2E: Error Handling", () => {
         expect(result.stderr).toContain("not found");
     });
 
-    it("returns exit code 1 for missing argument", () => {
+    it("returns exit code 2 for missing argument", () => {
         const result = runCli(["compile"]);
 
-        expect(result.exitCode).toBe(1); // Commander exits with 1 for missing args
+        expect(result.exitCode).toBe(2); // EXIT_USAGE_ERROR for missing args
         expect(result.stderr).toContain("required");
     });
 
