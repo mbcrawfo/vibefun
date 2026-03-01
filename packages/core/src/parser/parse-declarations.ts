@@ -225,19 +225,29 @@ function parseLetDecl(parser: ParserBase, exported: boolean): Declaration {
     const firstPattern = parsePattern(parser);
 
     // Optional type annotation
+    let typeAnnotation: TypeExpr | undefined;
     if (parser.match("COLON")) {
-        // Skip type annotation for now (will be used by type checker)
-        parseTypeExpr(parser);
+        typeAnnotation = parseTypeExpr(parser);
     }
 
     // Expect =
     parser.expect("OP_EQUALS", "Expected '=' after let pattern");
 
     // Parse value expression
-    const firstValue = parseExpression(parser);
+    let firstValue = parseExpression(parser);
 
-    // Validate mutable bindings use ref() syntax
+    // Validate mutable bindings use ref() syntax (before wrapping)
     validateMutableBinding(parser, firstValue, firstPattern, mutable);
+
+    // Wrap value with type annotation if present
+    if (typeAnnotation) {
+        firstValue = {
+            kind: "TypeAnnotation",
+            expr: firstValue,
+            typeExpr: typeAnnotation,
+            loc: firstValue.loc,
+        };
+    }
 
     // Check for 'and' keyword for mutually recursive bindings
     const nextToken = parser.peek();
@@ -281,16 +291,27 @@ function parseLetDecl(parser: ParserBase, exported: boolean): Declaration {
             const bindingPattern = parsePattern(parser);
 
             // Optional type annotation
+            let andTypeAnnotation: TypeExpr | undefined;
             if (parser.match("COLON")) {
-                parseTypeExpr(parser);
+                andTypeAnnotation = parseTypeExpr(parser);
             }
 
             parser.expect("OP_EQUALS", "Expected '=' after pattern in 'and' binding");
 
-            const bindingValue = parseExpression(parser);
+            let bindingValue = parseExpression(parser);
 
-            // Validate mutable bindings use ref() syntax
+            // Validate mutable bindings use ref() syntax (before wrapping)
             validateMutableBinding(parser, bindingValue, bindingPattern, bindingMutable);
+
+            // Wrap value with type annotation if present
+            if (andTypeAnnotation) {
+                bindingValue = {
+                    kind: "TypeAnnotation",
+                    expr: bindingValue,
+                    typeExpr: andTypeAnnotation,
+                    loc: bindingValue.loc,
+                };
+            }
 
             bindings.push({
                 pattern: bindingPattern,

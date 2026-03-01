@@ -46,8 +46,87 @@ describe("Parser - Declarations", () => {
             expect(decl).toMatchObject({
                 kind: "LetDecl",
                 pattern: { kind: "VarPattern", name: "x" },
+                value: {
+                    kind: "TypeAnnotation",
+                    expr: { kind: "IntLit", value: 42 },
+                    typeExpr: { kind: "TypeConst", name: "Int" },
+                },
+            });
+        });
+
+        it("parses let without type annotation as bare value", () => {
+            const decl = parseDecl("let x = 42;");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "VarPattern", name: "x" },
                 value: { kind: "IntLit", value: 42 },
             });
+            // Ensure value is NOT wrapped in TypeAnnotation
+            if (decl.kind === "LetDecl") {
+                expect(decl.value.kind).not.toBe("TypeAnnotation");
+            }
+        });
+
+        it("parses let rec with type annotation", () => {
+            const decl = parseDecl("let rec f: (Int) -> Int = (n) => n;");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                recursive: true,
+                pattern: { kind: "VarPattern", name: "f" },
+                value: {
+                    kind: "TypeAnnotation",
+                    expr: { kind: "Lambda" },
+                    typeExpr: {
+                        kind: "FunctionType",
+                        params: [{ kind: "TypeConst", name: "Int" }],
+                        return_: { kind: "TypeConst", name: "Int" },
+                    },
+                },
+            });
+        });
+
+        it("parses and binding with type annotation", () => {
+            const module = parseModule("let rec f = (n) => g(n) and g: (Int) -> Int = (n) => f(n);");
+            const decl = module.declarations[0];
+            expect(decl).toBeDefined();
+            expect(decl?.kind).toBe("LetRecGroup");
+            if (decl?.kind === "LetRecGroup") {
+                // First binding (f) has no annotation
+                expect(decl.bindings[0]?.value.kind).not.toBe("TypeAnnotation");
+                // Second binding (g) has annotation
+                expect(decl.bindings[1]?.value).toMatchObject({
+                    kind: "TypeAnnotation",
+                    expr: { kind: "Lambda" },
+                    typeExpr: {
+                        kind: "FunctionType",
+                        params: [{ kind: "TypeConst", name: "Int" }],
+                        return_: { kind: "TypeConst", name: "Int" },
+                    },
+                });
+            }
+        });
+
+        it("parses let expression with type annotation", () => {
+            const module = parseModule("let result = { let x: Int = 42; x; };");
+            const decl = module.declarations[0];
+            expect(decl).toBeDefined();
+            if (decl?.kind === "LetDecl") {
+                // The value is a block containing a let expression
+                expect(decl.value.kind).toBe("Block");
+                if (decl.value.kind === "Block") {
+                    const letExpr = decl.value.exprs[0];
+                    expect(letExpr).toBeDefined();
+                    expect(letExpr).toMatchObject({
+                        kind: "Let",
+                        pattern: { kind: "VarPattern", name: "x" },
+                        value: {
+                            kind: "TypeAnnotation",
+                            expr: { kind: "IntLit", value: 42 },
+                            typeExpr: { kind: "TypeConst", name: "Int" },
+                        },
+                    });
+                }
+            }
         });
 
         it("parses mutable let binding", () => {
@@ -198,9 +277,17 @@ describe("Parser - Declarations", () => {
                 pattern: { kind: "VarPattern", name: "x" },
                 mutable: true,
                 value: {
-                    kind: "App",
-                    func: { kind: "Var", name: "ref" },
-                    args: [{ kind: "IntLit", value: 0 }],
+                    kind: "TypeAnnotation",
+                    expr: {
+                        kind: "App",
+                        func: { kind: "Var", name: "ref" },
+                        args: [{ kind: "IntLit", value: 0 }],
+                    },
+                    typeExpr: {
+                        kind: "TypeApp",
+                        constructor: { kind: "TypeConst", name: "Ref" },
+                        args: [{ kind: "TypeConst", name: "Int" }],
+                    },
                 },
             });
         });
