@@ -4,7 +4,7 @@
  * Handles match expressions, record construction/update, block expressions, and let expressions.
  */
 
-import type { Expr, Location, MatchCase, RecordField } from "../types/index.js";
+import type { Expr, Location, MatchCase, RecordField, TypeExpr } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
 // Forward declarations (injected by aggregator)
@@ -426,16 +426,26 @@ export function parseLetExpr(parser: ParserBase, startLoc: Location): Expr {
     const pattern = parsePatternFn(parser);
 
     // Optional type annotation
+    let typeAnnotation: TypeExpr | undefined;
     if (parser.match("COLON")) {
-        // Skip type annotation for now (will be used by type checker)
-        parseTypeExprFn(parser);
+        typeAnnotation = parseTypeExprFn(parser);
     }
 
     // Expect =
     parser.expect("OP_EQUALS", "Expected '=' after let pattern");
 
     // Parse value expression
-    const value = parseExpressionFn(parser);
+    let value = parseExpressionFn(parser);
+
+    // Wrap value with type annotation if present
+    if (typeAnnotation) {
+        value = {
+            kind: "TypeAnnotation",
+            expr: value,
+            typeExpr: typeAnnotation,
+            loc: value.loc,
+        };
+    }
 
     // Skip optional newlines after value
     while (parser.match("NEWLINE"));

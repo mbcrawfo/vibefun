@@ -205,63 +205,103 @@ exports[`Parser Snapshot - Functions > should parse functions.vf 1`] = `
       },
       "recursive": false,
       "value": {
-        "body": {
-          "kind": "BinOp",
-          "left": {
-            "kind": "Var",
+        "expr": {
+          "body": {
+            "kind": "BinOp",
+            "left": {
+              "kind": "Var",
+              "loc": {
+                "column": 36,
+                "file": "functions.vf",
+                "line": 8,
+                "offset": 171,
+              },
+              "name": "x",
+            },
             "loc": {
               "column": 36,
               "file": "functions.vf",
               "line": 8,
               "offset": 171,
             },
-            "name": "x",
+            "op": "Add",
+            "right": {
+              "kind": "IntLit",
+              "loc": {
+                "column": 40,
+                "file": "functions.vf",
+                "line": 8,
+                "offset": 175,
+              },
+              "value": 1,
+            },
           },
+          "kind": "Lambda",
           "loc": {
-            "column": 36,
+            "column": 31,
             "file": "functions.vf",
             "line": 8,
-            "offset": 171,
+            "offset": 166,
           },
-          "op": "Add",
-          "right": {
-            "kind": "IntLit",
-            "loc": {
-              "column": 40,
-              "file": "functions.vf",
-              "line": 8,
-              "offset": 175,
-            },
-            "value": 1,
-          },
-        },
-        "kind": "Lambda",
-        "loc": {
-          "column": 31,
-          "file": "functions.vf",
-          "line": 8,
-          "offset": 166,
-        },
-        "params": [
-          {
-            "loc": {
-              "column": 31,
-              "file": "functions.vf",
-              "line": 8,
-              "offset": 166,
-            },
-            "pattern": {
-              "kind": "VarPattern",
+          "params": [
+            {
               "loc": {
                 "column": 31,
                 "file": "functions.vf",
                 "line": 8,
                 "offset": 166,
               },
-              "name": "x",
+              "pattern": {
+                "kind": "VarPattern",
+                "loc": {
+                  "column": 31,
+                  "file": "functions.vf",
+                  "line": 8,
+                  "offset": 166,
+                },
+                "name": "x",
+              },
             },
+          ],
+        },
+        "kind": "TypeAnnotation",
+        "loc": {
+          "column": 31,
+          "file": "functions.vf",
+          "line": 8,
+          "offset": 166,
+        },
+        "typeExpr": {
+          "kind": "FunctionType",
+          "loc": {
+            "column": 17,
+            "file": "functions.vf",
+            "line": 8,
+            "offset": 152,
           },
-        ],
+          "params": [
+            {
+              "kind": "TypeConst",
+              "loc": {
+                "column": 17,
+                "file": "functions.vf",
+                "line": 8,
+                "offset": 152,
+              },
+              "name": "Int",
+            },
+          ],
+          "return_": {
+            "kind": "TypeConst",
+            "loc": {
+              "column": 25,
+              "file": "functions.vf",
+              "line": 8,
+              "offset": 160,
+            },
+            "name": "Int",
+          },
+        },
       },
     },
     {
