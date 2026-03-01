@@ -42,17 +42,19 @@ describe("CLI E2E: --emit Modes", () => {
 
     it("does not create file when --emit ast is used", () => {
         const outputPath = tempDir.join("should-not-exist-ast.js");
-        runCli(["compile", fixture("simple.vf"), "--emit", "ast", "-o", outputPath]);
+        const result = runCli(["compile", fixture("simple.vf"), "--emit", "ast", "-o", outputPath]);
 
         // The -o flag is ignored for ast/typed-ast modes
+        expect(result.exitCode).toBe(0);
         expect(tempDir.exists("should-not-exist-ast.js")).toBe(false);
     });
 
     it("does not create file when --emit typed-ast is used", () => {
         const outputPath = tempDir.join("should-not-exist-typed-ast.js");
-        runCli(["compile", fixture("simple.vf"), "--emit", "typed-ast", "-o", outputPath]);
+        const result = runCli(["compile", fixture("simple.vf"), "--emit", "typed-ast", "-o", outputPath]);
 
         // The -o flag is ignored for ast/typed-ast modes
+        expect(result.exitCode).toBe(0);
         expect(tempDir.exists("should-not-exist-typed-ast.js")).toBe(false);
     });
 });
