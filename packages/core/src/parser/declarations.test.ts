@@ -110,22 +110,24 @@ describe("Parser - Declarations", () => {
             const module = parseModule("let result = { let x: Int = 42; x; };");
             const decl = module.declarations[0];
             expect(decl).toBeDefined();
-            if (decl?.kind === "LetDecl") {
-                // The value is a block containing a let expression
-                expect(decl.value.kind).toBe("Block");
-                if (decl.value.kind === "Block") {
-                    const letExpr = decl.value.exprs[0];
-                    expect(letExpr).toBeDefined();
-                    expect(letExpr).toMatchObject({
-                        kind: "Let",
-                        pattern: { kind: "VarPattern", name: "x" },
-                        value: {
-                            kind: "TypeAnnotation",
-                            expr: { kind: "IntLit", value: 42 },
-                            typeExpr: { kind: "TypeConst", name: "Int" },
-                        },
-                    });
-                }
+            expect(decl?.kind).toBe("LetDecl");
+            if (decl?.kind !== "LetDecl") {
+                return;
+            }
+            // The value is a block containing a let expression
+            expect(decl.value.kind).toBe("Block");
+            if (decl.value.kind === "Block") {
+                const letExpr = decl.value.exprs[0];
+                expect(letExpr).toBeDefined();
+                expect(letExpr).toMatchObject({
+                    kind: "Let",
+                    pattern: { kind: "VarPattern", name: "x" },
+                    value: {
+                        kind: "TypeAnnotation",
+                        expr: { kind: "IntLit", value: 42 },
+                        typeExpr: { kind: "TypeConst", name: "Int" },
+                    },
+                });
             }
         });
 
