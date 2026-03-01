@@ -58,6 +58,11 @@ describe("Type annotations on let bindings", () => {
             const result = typecheckSource("let rec f: (Int) -> Int = (n) => n;");
             expect(result.declarationTypes.has("f")).toBe(true);
         });
+
+        it("accepts mutable let with matching Ref<Int> annotation", () => {
+            const result = typecheckSource("let mut x: Ref<Int> = ref(0);");
+            expect(result.declarationTypes.has("x")).toBe(true);
+        });
     });
 
     describe("mismatched annotations", () => {
@@ -76,6 +81,10 @@ describe("Type annotations on let bindings", () => {
         it("rejects let rec with mismatched return type annotation", () => {
             // f is annotated as (Int) -> String but returns Int (n)
             expectDiagnostic(() => typecheckSource("let rec f: (Int) -> String = (n) => n;"), "VF4020");
+        });
+
+        it("rejects mutable let when Ref element type mismatches annotation", () => {
+            expectDiagnostic(() => typecheckSource('let mut x: Ref<Int> = ref("hello");'), "VF4020");
         });
     });
 
