@@ -233,14 +233,12 @@ function parsePrimaryPattern(parser: ParserBase): Pattern {
                     // After parsing (name: String), we should have a TypeAnnotatedPattern
                     // with a VarPattern inside. Extract the field name from it.
                     let fieldName: string;
-                    let fieldPattern: Pattern = pattern;
+                    const fieldPattern: Pattern = pattern;
 
                     if (pattern.kind === "TypeAnnotatedPattern" && pattern.pattern.kind === "VarPattern") {
                         fieldName = pattern.pattern.name;
-                        fieldPattern = pattern;
                     } else if (pattern.kind === "VarPattern") {
                         fieldName = pattern.name;
-                        fieldPattern = pattern;
                     } else {
                         throw parser.error("VF2202", pattern.loc);
                     }
