@@ -93,6 +93,7 @@ vibefun/
 - **Functional style**: Prefer functional programming patterns (pure functions, immutability, composition)
 - **Classes when practical**: Use classes for lexers, parsers, and stateful components when it improves clarity
 - **Node 24.13**: Using modern Node.js features
+- **`@types/node` version policy**: The `@types/node` major version must match the project's Node.js major version (currently 24). When upgrading the Node.js engine version, upgrade `@types/node` to match.
 - **Comprehensive testing**: All code must have thorough test coverage
 
 ### Compilation Pipeline
