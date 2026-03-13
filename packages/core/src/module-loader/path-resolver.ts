@@ -108,7 +108,7 @@ function resolveRealPath(filePath: string): string | null {
         if (error instanceof Error && "code" in error) {
             const code = (error as Error & { code?: string }).code;
             if (code === "ELOOP") {
-                throw new Error(`Circular symlink detected: ${filePath}`);
+                throw new Error(`Circular symlink detected: ${filePath}`, { cause: error });
             }
         }
         return null;

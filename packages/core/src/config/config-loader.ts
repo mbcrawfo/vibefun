@@ -117,7 +117,7 @@ export function loadVibefunConfig(projectRoot: string): VibefunConfig | null {
         return config;
     } catch (error) {
         if (error instanceof SyntaxError) {
-            throw new Error(`Invalid JSON in vibefun.json at ${configPath}: ${error.message}`);
+            throw new Error(`Invalid JSON in vibefun.json at ${configPath}: ${error.message}`, { cause: error });
         }
         throw error;
     }

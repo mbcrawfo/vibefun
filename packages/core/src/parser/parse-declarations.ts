@@ -870,7 +870,7 @@ function parseImportDecl(parser: ParserBase): Declaration {
 function parseReExportDecl(parser: ParserBase): Declaration {
     const startLoc = parser.peek().loc;
 
-    let items: ImportItem[] | null = null;
+    let items: ImportItem[] | null;
 
     // export *
     if (parser.match("OP_STAR")) {

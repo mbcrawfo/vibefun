@@ -76,7 +76,6 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
     const colors = createColors(useColor);
 
     let source = "";
-    let diagnostics: VibefunDiagnostic[] = [];
 
     try {
         // Read source file
@@ -194,7 +193,7 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
     } catch (error) {
         // Handle different error types
         if (error instanceof VibefunDiagnostic) {
-            diagnostics = [error];
+            const diagnostics = [error];
             return formatErrorResult(diagnostics, source, options, timer, colors);
         }
 
