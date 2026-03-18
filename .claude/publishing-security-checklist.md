@@ -10,13 +10,13 @@ This checklist must be completed before publishing any vibefun packages to npm.
 
 ```bash
 # Check if 2FA is enabled
-npm profile get
+pnpm profile get
 
 # Enable 2FA for auth and publishing
-npm profile enable-2fa auth-and-writes
+pnpm profile enable-2fa auth-and-writes
 ```
 
-**Verification:** You should see `tfa: auth-and-writes` in your npm profile.
+**Verification:** You should see `tfa: auth-and-writes` in your pnpm profile.
 
 ### 2. Create Granular Access Tokens
 
@@ -24,7 +24,7 @@ npm profile enable-2fa auth-and-writes
 
 ```bash
 # Create a publish token with minimal permissions
-npm token create --type=publish --scope=@vibefun
+pnpm token create --type=publish --scope=@vibefun
 
 # Or create via web UI:
 # https://www.npmjs.com/settings/[username]/tokens
@@ -45,12 +45,12 @@ echo "//registry.npmjs.org/:_authToken=npm_YOUR_TOKEN_HERE" >> ~/.npmrc
 
 ### 3. Configure npm Profile
 
-Review and update your npm profile:
+Review and update your pnpm profile:
 
 ```bash
-npm profile set email your-email@example.com
-npm profile set fullname "Your Name"
-npm profile set github yourusername
+pnpm profile set email your-email@example.com
+pnpm profile set fullname "Your Name"
+pnpm profile set github yourusername
 ```
 
 ## Pre-Publishing Verification (Every Release)
@@ -61,17 +61,17 @@ npm profile set github yourusername
 
 ```bash
 # Build all packages first
-npm run build
+pnpm run build
 
 # Check each workspace package
 cd packages/core
-npm pack --dry-run
+pnpm pack --dry-run
 
 cd ../cli
-npm pack --dry-run
+pnpm pack --dry-run
 
 cd ../stdlib
-npm pack --dry-run
+pnpm pack --dry-run
 ```
 
 **What to check:**
@@ -88,14 +88,14 @@ npm pack --dry-run
 Ensure all tests pass before publishing:
 
 ```bash
-npm run verify
+pnpm run verify
 ```
 
 This runs:
-- Type checking (`npm run check`)
-- Linting (`npm run lint`)
-- All tests (`npm test`)
-- Format verification (`npm run format:check`)
+- Type checking (`pnpm run check`)
+- Linting (`pnpm run lint`)
+- All tests (`pnpm test`)
+- Format verification (`pnpm run format:check`)
 
 **All checks must pass before publishing.**
 
@@ -105,12 +105,12 @@ Ensure version numbers follow semantic versioning:
 
 ```bash
 # Check current versions
-npm version --workspaces
+pnpm version --workspaces
 
 # Bump version (if needed)
-npm version patch --workspace=@vibefun/core
-npm version patch --workspace=@vibefun/cli
-npm version patch --workspace=@vibefun/stdlib
+pnpm version patch --workspace=@vibefun/core
+pnpm version patch --workspace=@vibefun/cli
+pnpm version patch --workspace=@vibefun/stdlib
 ```
 
 **Semantic Versioning:**
@@ -148,12 +148,12 @@ grep provenance .npmrc
 
 ```bash
 # Publish each workspace with provenance
-npm publish --workspace=@vibefun/core --provenance --access=public
-npm publish --workspace=@vibefun/cli --provenance --access=public
-npm publish --workspace=@vibefun/stdlib --provenance --access=public
+pnpm publish --workspace=@vibefun/core --provenance --access=public
+pnpm publish --workspace=@vibefun/cli --provenance --access=public
+pnpm publish --workspace=@vibefun/stdlib --provenance --access=public
 
 # OR publish all workspaces at once
-npm publish --workspaces --provenance --access=public
+pnpm publish --workspaces --provenance --access=public
 ```
 
 **Important flags:**
@@ -164,12 +164,12 @@ npm publish --workspaces --provenance --access=public
 
 ```bash
 # Check that packages were published correctly
-npm view @vibefun/core
-npm view @vibefun/cli
-npm view @vibefun/stdlib
+pnpm view @vibefun/core
+pnpm view @vibefun/cli
+pnpm view @vibefun/stdlib
 
 # Verify provenance statement exists
-npm view @vibefun/core --json | grep attestations
+pnpm view @vibefun/core --json | grep attestations
 ```
 
 ### 11. Test Installation
@@ -180,13 +180,13 @@ Test that published packages can be installed:
 # Create a test directory
 mkdir /tmp/vibefun-test
 cd /tmp/vibefun-test
-npm init -y
+pnpm init -y
 
 # Install published packages
-npm install @vibefun/core @vibefun/cli @vibefun/stdlib
+pnpm install @vibefun/core @vibefun/cli @vibefun/stdlib
 
 # Test CLI
-npx vibefun --version
+pnpm dlx vibefun --version
 
 # Clean up
 cd -
@@ -224,13 +224,13 @@ gh release create v0.1.0 --title "v0.1.0" --notes "Release notes here"
 
 ```bash
 # List all tokens
-npm token list
+pnpm token list
 
 # Revoke old tokens
-npm token revoke <token-id>
+pnpm token revoke <token-id>
 
 # Create new token
-npm token create --type=publish --scope=@vibefun
+pnpm token create --type=publish --scope=@vibefun
 ```
 
 **Rotation schedule:**
@@ -242,7 +242,7 @@ npm token create --type=publish --scope=@vibefun
 
 ```bash
 # Check download stats
-npm view @vibefun/core downloads
+pnpm view @vibefun/core downloads
 
 # Or use npm-stat.com:
 # https://npm-stat.com/charts.html?package=@vibefun/core
@@ -258,10 +258,10 @@ Subscribe to security advisories for your packages:
 
 ```bash
 # Set up email notifications
-npm profile set email your-email@example.com
+pnpm profile set email your-email@example.com
 
 # Check for vulnerabilities
-npm audit
+pnpm audit
 ```
 
 ## Emergency: Unpublishing
@@ -270,29 +270,29 @@ npm audit
 
 ```bash
 # Only use in emergencies (security issue, accidental publish)
-npm unpublish @vibefun/core@0.1.0
+pnpm unpublish @vibefun/core@0.1.0
 
 # For complete removal (very disruptive)
-npm unpublish @vibefun/core --force
+pnpm unpublish @vibefun/core --force
 ```
 
 **Better alternative:** Deprecate instead:
 
 ```bash
-npm deprecate @vibefun/core@0.1.0 "Security vulnerability, please upgrade to 0.1.1"
+pnpm deprecate @vibefun/core@0.1.0 "Security vulnerability, please upgrade to 0.1.1"
 ```
 
 ## CI/CD Publishing (Future)
 
 When setting up automated publishing via GitHub Actions:
 
-1. **Add npm token to GitHub Secrets**
+1. **Add pnpm token to GitHub Secrets**
    - Go to repository settings → Secrets → Actions
    - Add `NPM_TOKEN` secret with automation token
 
 2. **Create publish workflow** (`.github/workflows/publish.yml`):
    ```yaml
-   name: Publish to npm
+   name: Publish to npm registry
    on:
      release:
        types: [created]
@@ -305,14 +305,16 @@ When setting up automated publishing via GitHub Actions:
          id-token: write  # Required for provenance
        steps:
          - uses: actions/checkout@v4
+         - uses: pnpm/action-setup@v4
          - uses: actions/setup-node@v4
            with:
              node-version: '24.x'
              registry-url: 'https://registry.npmjs.org'
-         - run: npm ci
-         - run: npm run build
-         - run: npm run verify
-         - run: npm publish --workspaces --provenance --access=public
+             cache: 'pnpm'
+         - run: pnpm install --frozen-lockfile
+         - run: pnpm run build
+         - run: pnpm run verify
+         - run: pnpm publish --workspaces --provenance --access=public
            env:
              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
    ```
@@ -325,13 +327,13 @@ Before every publish, verify:
 
 - [ ] 2FA enabled on npm account
 - [ ] Using granular access token (not password)
-- [ ] `npm pack --dry-run` reviewed for all packages
-- [ ] `npm run verify` passes
+- [ ] `pnpm pack --dry-run` reviewed for all packages
+- [ ] `pnpm run verify` passes
 - [ ] Version numbers bumped correctly
 - [ ] CHANGELOG.md updated
 - [ ] `provenance=true` in .npmrc
 - [ ] Published with `--provenance` flag
-- [ ] Verified published packages with `npm view`
+- [ ] Verified published packages with `pnpm view`
 - [ ] Tested installation in clean environment
 - [ ] Git tag created and pushed
 - [ ] GitHub release created
@@ -341,5 +343,5 @@ Before every publish, verify:
 - [npm security best practices](https://github.com/bodadotsh/npm-security-best-practices)
 - [npm provenance documentation](https://docs.npmjs.com/generating-provenance-statements)
 - [npm 2FA documentation](https://docs.npmjs.com/configuring-two-factor-authentication)
-- [npm tokens documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens)
+- [pnpm tokens documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens)
 - [Semantic versioning](https://semver.org/)

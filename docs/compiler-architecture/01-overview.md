@@ -357,11 +357,11 @@ vibefun/
 Every code change must pass:
 
 ```bash
-npm run verify    # Runs all checks below
-npm run check     # TypeScript type checking
-npm run lint      # ESLint
-npm test          # All tests
-npm run format    # Prettier formatting
+pnpm run verify    # Runs all checks below
+pnpm run check     # TypeScript type checking
+pnpm run lint      # ESLint
+pnpm test          # All tests
+pnpm run format    # Prettier formatting
 ```
 
 ### Testing Strategy

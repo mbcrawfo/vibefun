@@ -20,10 +20,10 @@ cd "$CLAUDE_PROJECT_DIR" || {
 echo "Running Claude Code pre-commit verification..." >&2
 
 # Run verification checks
-if ! npm run verify 2>&1; then
+if ! pnpm run verify 2>&1; then
     echo "❌ Commit blocked: Verification failed" >&2
     echo "Commits by Claude Code must have passing type checks, linting, and tests." >&2
-    echo "Run 'npm run verify' to see detailed output." >&2
+    echo "Run 'pnpm run verify' to see detailed output." >&2
     exit 2
 fi
 

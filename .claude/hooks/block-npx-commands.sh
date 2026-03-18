@@ -14,15 +14,15 @@ fi
 echo "Do not use npx commands - only use commands from package.json" >&2
 
 if [[ "$CMD" =~ eslint ]]; then
-    echo "Use \`npm run lint\` instead of \`npx eslint\`" >&2
+    echo "Use \`pnpm run lint\` instead of \`npx eslint\`" >&2
 fi
 
 if [[ "$CMD" =~ prettier ]]; then
-    echo "Use \`npm run format\` instead of \`npx prettier\`" >&2
+    echo "Use \`pnpm run format\` instead of \`npx prettier\`" >&2
 fi
 
 if [[ "$CMD" =~ vitest ]]; then
-    echo "Use \`npm run test\` instead of \`npx vitest\`" >&2
+    echo "Use \`pnpm run test\` instead of \`npx vitest\`" >&2
 fi
 
 exit 2
