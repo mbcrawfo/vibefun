@@ -227,10 +227,10 @@ Before submitting code, verify:
 - [ ] Imports are from index.ts (not direct implementation files)
 - [ ] Files under 1,000 lines (or exception documented at top of file)
 - [ ] Comprehensive test coverage
-- [ ] All tests pass: `npm run test`
-- [ ] Type checking passes: `npm run check`
-- [ ] Linting passes: `npm run lint`
-- [ ] Code is formatted: `npm run format`
+- [ ] All tests pass: `pnpm run test`
+- [ ] Type checking passes: `pnpm run check`
+- [ ] Linting passes: `pnpm run lint`
+- [ ] Code is formatted: `pnpm run format`
 - [ ] Error messages are helpful and include locations
 - [ ] Documentation updated (if API changes)
 
@@ -240,14 +240,14 @@ After making any code changes:
 
 ```bash
 # Run all checks (recommended)
-npm run verify
+pnpm run verify
 
 # Or run individually:
-npm run check      # Type checking
-npm run lint       # Linting
-npm run test       # Tests
-npm run format:check # Check formatting (read-only)
-npm run format     # Format code (modifies files)
+pnpm run check      # Type checking
+pnpm run lint       # Linting
+pnpm run test       # Tests
+pnpm run format:check # Check formatting (read-only)
+pnpm run format     # Format code (modifies files)
 ```
 
 ## File Structure
@@ -334,7 +334,7 @@ When splitting a large file:
 2. **Extract to separate files**: Create focused modules
 3. **Use dependency injection**: Pass dependencies as parameters to avoid circular imports
 4. **Create index.ts**: Re-export public API to maintain existing imports
-5. **Run tests**: Verify no behavior changes with `npm run verify`
+5. **Run tests**: Verify no behavior changes with `pnpm run verify`
 
 Example refactoring patterns:
 

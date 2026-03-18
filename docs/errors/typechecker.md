@@ -1,5 +1,5 @@
 <!-- THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY. -->
-<!-- Run 'npm run docs:errors' to regenerate. -->
+<!-- Run 'pnpm run docs:errors' to regenerate. -->
 
 
 # Type Checker Errors

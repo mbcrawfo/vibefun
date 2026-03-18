@@ -806,7 +806,7 @@ error[VF4001]: Type mismatch
 
 ### 8.9 Build System Edge Cases
 
-- **Monorepo workspaces**: npm/pnpm workspaces - follow symlinks correctly
+- **Monorepo workspaces**: pnpm workspaces - follow symlinks correctly
 - **pnpm strict mode**: Symlinked node_modules - resolve through symlinks
 - **Yarn PnP**: Plug'n'Play - not supported, must use node_modules
 - **Bundled dependencies**: node_modules/pkg/node_modules - searched correctly

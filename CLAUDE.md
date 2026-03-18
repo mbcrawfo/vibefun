@@ -31,11 +31,11 @@ These directives guide all development work on the vibefun project:
    - Edge cases and error conditions
    - Type checking validation
 6. **Quality Checks**: After implementing any changes, always run the following in order:
-   - `npm run check` - Type checking
-   - `npm run lint` - Linting
-   - `npm test` - Tests
-   - `npm run format` - Code formatting with Prettier
-   - OR use the convenience command: `npm run verify` (runs all checks)
+   - `pnpm run check` - Type checking
+   - `pnpm run lint` - Linting
+   - `pnpm test` - Tests
+   - `pnpm run format` - Code formatting with Prettier
+   - OR use the convenience command: `pnpm run verify` (runs all checks)
 
 
 ### Starting Large Tasks
@@ -59,7 +59,7 @@ When exiting plan mode with an accepted plan:
 
 ## Project Structure
 
-The project uses **npm workspaces** to organize code into independently publishable packages:
+The project uses **pnpm workspaces** to organize code into independently publishable packages:
 
 ```[task-name]
 vibefun/
@@ -117,39 +117,39 @@ vibefun/
 
 ```bash
 # Build all packages
-npm run build
-npm run build:watch      # Watch mode (all packages)
+pnpm run build
+pnpm run build:watch      # Watch mode (all packages)
 
 # Build specific workspace
-npm run build -w @vibefun/core
-npm run build -w @vibefun/cli
+pnpm --filter @vibefun/core run build
+pnpm --filter @vibefun/cli run build
 
 # Quality checks (run after every change)
-npm run check            # Type checking (all workspaces)
-npm run lint             # Linting (all packages)
-npm test                 # Run tests (all packages)
-npm run format           # Format code (all packages)
+pnpm run check            # Type checking (all workspaces)
+pnpm run lint             # Linting (all packages)
+pnpm test                 # Run tests (all packages)
+pnpm run format           # Format code (all packages)
 
 # All checks at once
-npm run verify           # Run all checks (read-only)
+pnpm run verify           # Run all checks (read-only)
 
 # Testing
-npm test                 # Run all tests
-npm run test:watch       # Watch mode
-npm run test:coverage    # With coverage report
+pnpm test                 # Run all tests
+pnpm run test:watch       # Watch mode
+pnpm run test:coverage    # With coverage report
 
 # Workspace-specific testing
-npm test -w @vibefun/core
-npm test -w @vibefun/std
+pnpm --filter @vibefun/core test
+pnpm --filter @vibefun/std test
 ```
 
 ### Running the Vibefun CLI
 
 ```bash
-# After building (npm run build), run the CLI via the workspace script:
-npm run vibefun -- compile src/main.vf -o dist/main.js
-npm run vibefun -- compile src/main.vf --emit ast
-npm run vibefun -- compile src/main.vf --verbose
+# After building (pnpm run build), run the CLI via the workspace script:
+pnpm run vibefun compile src/main.vf -o dist/main.js
+pnpm run vibefun compile src/main.vf --emit ast
+pnpm run vibefun compile src/main.vf --verbose
 ```
 
 ### Project Configuration

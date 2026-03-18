@@ -129,7 +129,7 @@ it("should report VF4XXX when ...", () => {
 After adding codes, regenerate the documentation:
 
 ```bash
-npm run docs:errors
+pnpm run docs:errors
 ```
 
 Verify the new code appears correctly in `docs/errors/{phase}.md`.
@@ -172,8 +172,8 @@ Before committing a new diagnostic code:
 - [ ] Related codes are linked (if applicable)
 - [ ] Tests verify the code is thrown correctly
 - [ ] Tests check message content and location
-- [ ] Documentation regenerated with `npm run docs:errors`
-- [ ] `npm run docs:errors:check` passes
+- [ ] Documentation regenerated with `pnpm run docs:errors`
+- [ ] `pnpm run docs:errors:check` passes
 
 ## Internal vs User-Facing Errors
 

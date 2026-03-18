@@ -37,18 +37,18 @@ snapshot-tests/
 
 ```bash
 # Run all snapshot tests
-npm test -w @vibefun/core -- snapshot
+pnpm --filter @vibefun/core test -- snapshot
 
 # Run specific snapshot test
-npm test -w @vibefun/core -- snapshot-expressions
+pnpm --filter @vibefun/core test -- snapshot-expressions
 
 # Update snapshots after intentional changes
-npm test -w @vibefun/core -- snapshot -u
+pnpm --filter @vibefun/core test -- snapshot -u
 ```
 
 ## When to Update Snapshots
 
-Update snapshots (`npm test -- -u`) when:
+Update snapshots (`pnpm test -- -u`) when:
 
 - Code generation output format changes intentionally
 - New features are added that affect output

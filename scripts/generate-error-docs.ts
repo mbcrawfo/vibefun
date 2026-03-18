@@ -8,8 +8,8 @@
  * with code definitions.
  *
  * Usage:
- *   npm run docs:errors         # Generate docs
- *   npm run docs:errors:check   # Check if docs are up to date (CI)
+ *   pnpm run docs:errors         # Generate docs
+ *   pnpm run docs:errors:check   # Check if docs are up to date (CI)
  *
  * The --check flag is used in CI to fail the build if docs are stale.
  */
@@ -73,7 +73,7 @@ const DOCS_DIR = path.join(process.cwd(), "docs", "errors");
 
 // Header comment for generated files
 const GENERATED_HEADER = `<!-- THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY. -->
-<!-- Run 'npm run docs:errors' to regenerate. -->
+<!-- Run 'pnpm run docs:errors' to regenerate. -->
 
 `;
 
@@ -347,7 +347,7 @@ function checkDocs(): boolean {
     if (!allUpToDate) {
         console.error("");
         console.error("Error documentation is out of date!");
-        console.error("Run 'npm run docs:errors' to regenerate.");
+        console.error("Run 'pnpm run docs:errors' to regenerate.");
         console.error("");
         console.error("Changed files:");
         for (const file of changedFiles) {
