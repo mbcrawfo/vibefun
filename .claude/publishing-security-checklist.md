@@ -10,13 +10,13 @@ This checklist must be completed before publishing any vibefun packages to npm.
 
 ```bash
 # Check if 2FA is enabled
-pnpm profile get
+npm profile get
 
 # Enable 2FA for auth and publishing
-pnpm profile enable-2fa auth-and-writes
+npm profile enable-2fa auth-and-writes
 ```
 
-**Verification:** You should see `tfa: auth-and-writes` in your pnpm profile.
+**Verification:** You should see `tfa: auth-and-writes` in your npm profile.
 
 ### 2. Create Granular Access Tokens
 
@@ -24,7 +24,7 @@ pnpm profile enable-2fa auth-and-writes
 
 ```bash
 # Create a publish token with minimal permissions
-pnpm token create --type=publish --scope=@vibefun
+npm token create --type=publish --scope=@vibefun
 
 # Or create via web UI:
 # https://www.npmjs.com/settings/[username]/tokens
@@ -45,12 +45,12 @@ echo "//registry.npmjs.org/:_authToken=npm_YOUR_TOKEN_HERE" >> ~/.npmrc
 
 ### 3. Configure npm Profile
 
-Review and update your pnpm profile:
+Review and update your npm profile:
 
 ```bash
-pnpm profile set email your-email@example.com
-pnpm profile set fullname "Your Name"
-pnpm profile set github yourusername
+npm profile set email your-email@example.com
+npm profile set fullname "Your Name"
+npm profile set github yourusername
 ```
 
 ## Pre-Publishing Verification (Every Release)
@@ -105,12 +105,12 @@ Ensure version numbers follow semantic versioning:
 
 ```bash
 # Check current versions
-pnpm version --workspaces
+npm version --workspaces
 
 # Bump version (if needed)
-pnpm version patch --workspace=@vibefun/core
-pnpm version patch --workspace=@vibefun/cli
-pnpm version patch --workspace=@vibefun/stdlib
+npm version patch --workspace=@vibefun/core
+npm version patch --workspace=@vibefun/cli
+npm version patch --workspace=@vibefun/stdlib
 ```
 
 **Semantic Versioning:**
@@ -224,13 +224,13 @@ gh release create v0.1.0 --title "v0.1.0" --notes "Release notes here"
 
 ```bash
 # List all tokens
-pnpm token list
+npm token list
 
 # Revoke old tokens
-pnpm token revoke <token-id>
+npm token revoke <token-id>
 
 # Create new token
-pnpm token create --type=publish --scope=@vibefun
+npm token create --type=publish --scope=@vibefun
 ```
 
 **Rotation schedule:**
@@ -258,7 +258,7 @@ Subscribe to security advisories for your packages:
 
 ```bash
 # Set up email notifications
-pnpm profile set email your-email@example.com
+npm profile set email your-email@example.com
 
 # Check for vulnerabilities
 pnpm audit
@@ -270,23 +270,23 @@ pnpm audit
 
 ```bash
 # Only use in emergencies (security issue, accidental publish)
-pnpm unpublish @vibefun/core@0.1.0
+npm unpublish @vibefun/core@0.1.0
 
 # For complete removal (very disruptive)
-pnpm unpublish @vibefun/core --force
+npm unpublish @vibefun/core --force
 ```
 
 **Better alternative:** Deprecate instead:
 
 ```bash
-pnpm deprecate @vibefun/core@0.1.0 "Security vulnerability, please upgrade to 0.1.1"
+npm deprecate @vibefun/core@0.1.0 "Security vulnerability, please upgrade to 0.1.1"
 ```
 
 ## CI/CD Publishing (Future)
 
 When setting up automated publishing via GitHub Actions:
 
-1. **Add pnpm token to GitHub Secrets**
+1. **Add npm token to GitHub Secrets**
    - Go to repository settings → Secrets → Actions
    - Add `NPM_TOKEN` secret with automation token
 
@@ -343,5 +343,5 @@ Before every publish, verify:
 - [npm security best practices](https://github.com/bodadotsh/npm-security-best-practices)
 - [npm provenance documentation](https://docs.npmjs.com/generating-provenance-statements)
 - [npm 2FA documentation](https://docs.npmjs.com/configuring-two-factor-authentication)
-- [pnpm tokens documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens)
+- [npm tokens documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens)
 - [Semantic versioning](https://semver.org/)
