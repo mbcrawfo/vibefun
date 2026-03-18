@@ -291,6 +291,7 @@ When setting up automated publishing via GitHub Actions:
    - Add `NPM_TOKEN` secret with automation token
 
 2. **Create publish workflow** (`.github/workflows/publish.yml`):
+
    ```yaml
    name: Publish to npm registry
    on:
@@ -343,5 +344,5 @@ Before every publish, verify:
 - [npm security best practices](https://github.com/bodadotsh/npm-security-best-practices)
 - [npm provenance documentation](https://docs.npmjs.com/generating-provenance-statements)
 - [npm 2FA documentation](https://docs.npmjs.com/configuring-two-factor-authentication)
-- [npm tokens documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens)
+- [npm access tokens documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens)
 - [Semantic versioning](https://semver.org/)

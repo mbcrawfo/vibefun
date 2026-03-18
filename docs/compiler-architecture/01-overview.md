@@ -332,9 +332,9 @@ Authoritative definitions:
 
 ### Build System
 
-- **npm workspaces** - Monorepo management
+- **pnpm workspaces** - Monorepo management
 - **tsup** - TypeScript bundling
-- **npm scripts** - Build orchestration
+- **pnpm scripts** - Build orchestration
 
 ### Project Structure
 
