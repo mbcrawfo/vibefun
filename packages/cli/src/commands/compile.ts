@@ -388,7 +388,7 @@ function formatFileSuccessResult(
 /**
  * Format a successful compilation result when output goes to stdout
  */
-function formatStdoutSuccessResult(
+export function formatStdoutSuccessResult(
     code: string,
     filename: string,
     options: CompileOptions,

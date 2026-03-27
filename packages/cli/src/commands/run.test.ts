@@ -66,6 +66,27 @@ describe("run command", () => {
         });
     });
 
+    describe("file read errors", () => {
+        it("returns IO error as JSON for file not found", () => {
+            const result = run(join(testDir, "missing.vf"), { json: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            expect(result.stderr).toBeDefined();
+            const output = JSON.parse(result.stderr!);
+            expect(output.success).toBe(false);
+            expect(output.error.code).toBe("ENOENT");
+        });
+
+        it("returns IO error for directory instead of file", () => {
+            mkdirSync(join(testDir, "adir.vf"), { recursive: true });
+
+            const result = run(join(testDir, "adir.vf"), { noColor: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            expect(result.stderr).toContain("directory");
+        });
+    });
+
     describe("options", () => {
         it("shows timing when --verbose is used", () => {
             const inputPath = createTestFile("verbose.vf", "let x = 42;");
