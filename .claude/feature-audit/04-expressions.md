@@ -140,13 +140,11 @@ Block bodies like `{ counter := !counter + 1; !counter; }` fail with `Internal e
 
 | Category | Count | Issue |
 |----------|-------|-------|
-| If-then-else | 4 | Exhaustiveness checker rejects all if-then-else expressions (tests 27-30) |
+| If-then-else | 4 | Exhaustiveness checker rejects all if-then-else expressions, tests 27-30 (includes if-without-else at top level) |
 | Match/Variants | 1 | Built-in variant constructors (Some/None) not defined in generated JS (test 31) |
 | Variable shadowing | 1 | Code generator emits duplicate `const` declarations (test 6) |
 | Multi-arg call syntax | 1 | Compiler requires curried call `f(a)(b)` instead of spec-allowed `f(a, b)` (test 42) |
 | Side-effect blocks | 1 | Blocks reject non-let expressions except as final expression (test 46) |
-| Zero-param lambdas | 1 | `() => expr` crashes compiler (discovered in tests 24/25 workarounds) |
-| If without else at top-level | 1 | Parser rejects `if` at top level even with else (test 30) |
 
 ### Critical Issues
 1. **If-then-else completely broken**: All if-then-else expressions fail with a spurious exhaustiveness error, blocking a fundamental control flow feature.
