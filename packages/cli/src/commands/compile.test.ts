@@ -7,12 +7,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Timer } from "../utils/timer.js";
 import {
     compile,
     compilePipeline,
     EXIT_COMPILATION_ERROR,
     EXIT_IO_ERROR,
     EXIT_SUCCESS,
+    formatStdoutSuccessResult,
     isStdinInput,
     STDIN_FILENAME,
 } from "./compile.js";
@@ -362,6 +364,231 @@ describe("compile command", () => {
             expect(result.exitCode).toBe(EXIT_SUCCESS);
             const output = readOutputFile("stdin-output.js");
             expect(output).toContain("export {};");
+        });
+    });
+
+    describe("verbose error output", () => {
+        it("includes timing in verbose error output", () => {
+            const inputPath = createTestFile("verbose-error.vf", "let x =");
+
+            const result = compile(inputPath, { verbose: true, noColor: true });
+
+            expect(result.exitCode).toBe(EXIT_COMPILATION_ERROR);
+            expect(result.stderr).toBeDefined();
+            expect(result.stderr).toContain("lexer:");
+            expect(result.stderr).toContain("error");
+        });
+
+        it("includes timing in verbose JSON error output", () => {
+            const inputPath = createTestFile("verbose-json-error.vf", "let x =");
+
+            const result = compile(inputPath, { verbose: true, json: true });
+
+            expect(result.exitCode).toBe(EXIT_COMPILATION_ERROR);
+            expect(result.stderr).toBeDefined();
+            const output = JSON.parse(result.stderr!);
+            expect(output.success).toBe(false);
+            expect(output.timing).toBeDefined();
+        });
+    });
+
+    describe("compilePipeline verbose and json", () => {
+        it("includes timing in verbose ast emit", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", { emit: "ast", verbose: true });
+
+            expect(result.kind).toBe("emit");
+            if (result.kind === "emit") {
+                expect(result.output).toContain("lexer:");
+            }
+        });
+
+        it("includes timing in verbose typed-ast emit", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", { emit: "typed-ast", verbose: true });
+
+            expect(result.kind).toBe("emit");
+            if (result.kind === "emit") {
+                expect(result.output).toContain("lexer:");
+            }
+        });
+
+        it("formats JSON error with verbose timing", () => {
+            const result = compilePipeline("let x =", "test.vf", { json: true, verbose: true });
+
+            expect(result.kind).toBe("error");
+            if (result.kind === "error") {
+                const output = JSON.parse(result.result.stderr!);
+                expect(output.timing).toBeDefined();
+            }
+        });
+
+        it("includes verbose timing in success code generation", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", { verbose: true });
+
+            expect(result.kind).toBe("success");
+            if (result.kind === "success") {
+                expect(result.timer).toBeDefined();
+            }
+        });
+
+        it("includes json timing in ast emit", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", { emit: "ast", json: true, verbose: true });
+
+            expect(result.kind).toBe("emit");
+            if (result.kind === "emit") {
+                const parsed = JSON.parse(result.output);
+                expect(parsed.timing).toBeDefined();
+            }
+        });
+
+        it("includes json timing in typed-ast emit", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", {
+                emit: "typed-ast",
+                json: true,
+                verbose: true,
+            });
+
+            expect(result.kind).toBe("emit");
+            if (result.kind === "emit") {
+                const parsed = JSON.parse(result.output);
+                expect(parsed.timing).toBeDefined();
+            }
+        });
+
+        it("returns error for json errors without verbose", () => {
+            const result = compilePipeline("let x =", "test.vf", { json: true });
+
+            expect(result.kind).toBe("error");
+            if (result.kind === "error") {
+                const output = JSON.parse(result.result.stderr!);
+                expect(output.success).toBe(false);
+                expect(output.timing).toBeUndefined();
+            }
+        });
+    });
+
+    describe("write error handling", () => {
+        it("returns IO error when output directory is a file", () => {
+            const inputPath = createTestFile("write-fail.vf", "let x = 42;");
+            // Create a file where a directory would be needed
+            const blockerPath = join(testDir, "blocker");
+            writeFileSync(blockerPath, "not a dir");
+            const outputPath = join(blockerPath, "out.js");
+
+            const result = compile(inputPath, { output: outputPath, noColor: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            expect(result.stderr).toBeDefined();
+        });
+
+        it("returns IO error as JSON for write failures", () => {
+            const inputPath = createTestFile("write-fail-json.vf", "let x = 42;");
+            const blockerPath = join(testDir, "blocker2");
+            writeFileSync(blockerPath, "not a dir");
+            const outputPath = join(blockerPath, "out.js");
+
+            const result = compile(inputPath, { output: outputPath, json: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            expect(result.stderr).toBeDefined();
+            const output = JSON.parse(result.stderr!);
+            expect(output.success).toBe(false);
+            expect(output.error).toBeDefined();
+        });
+    });
+
+    describe("file read error handling", () => {
+        it("returns IO error as JSON for file not found", () => {
+            const result = compile(join(testDir, "missing.vf"), { json: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            expect(result.stderr).toBeDefined();
+            const output = JSON.parse(result.stderr!);
+            expect(output.success).toBe(false);
+            expect(output.error.code).toBe("ENOENT");
+        });
+
+        it("returns IO error for directory instead of file", () => {
+            mkdirSync(join(testDir, "adir.vf"), { recursive: true });
+
+            const result = compile(join(testDir, "adir.vf"), { noColor: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            expect(result.stderr).toContain("directory");
+        });
+
+        it("returns IO error as JSON for directory instead of file", () => {
+            mkdirSync(join(testDir, "adir2.vf"), { recursive: true });
+
+            const result = compile(join(testDir, "adir2.vf"), { json: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+            const output = JSON.parse(result.stderr!);
+            expect(output.success).toBe(false);
+        });
+    });
+
+    describe("formatStdoutSuccessResult", () => {
+        it("returns compiled code on stdout", () => {
+            const timer = new Timer();
+            const result = formatStdoutSuccessResult("const x = 42;", STDIN_FILENAME, {}, timer);
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            expect(result.stdout).toBe("const x = 42;");
+        });
+
+        it("includes code in JSON output", () => {
+            const timer = new Timer();
+            const result = formatStdoutSuccessResult("const x = 42;", STDIN_FILENAME, { json: true }, timer);
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            const output = JSON.parse(result.stdout!);
+            expect(output.success).toBe(true);
+            expect(output.code).toBe("const x = 42;");
+        });
+
+        it("includes timing in JSON verbose output", () => {
+            const timer = new Timer();
+            timer.start("test");
+            timer.stop();
+            const result = formatStdoutSuccessResult(
+                "const x = 42;",
+                STDIN_FILENAME,
+                { json: true, verbose: true },
+                timer,
+            );
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            const output = JSON.parse(result.stdout!);
+            expect(output.timing).toBeDefined();
+            expect(output.code).toBe("const x = 42;");
+        });
+
+        it("sends timing to stderr in verbose mode", () => {
+            const timer = new Timer();
+            timer.start("test");
+            timer.stop();
+            const result = formatStdoutSuccessResult("const x = 42;", STDIN_FILENAME, { verbose: true }, timer);
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            expect(result.stdout).toBe("const x = 42;");
+            expect(result.stderr).toBeDefined();
+            expect(result.stderr).toContain("Total:");
+        });
+
+        it("does not send timing in verbose+quiet mode", () => {
+            const timer = new Timer();
+            timer.start("test");
+            timer.stop();
+            const result = formatStdoutSuccessResult(
+                "const x = 42;",
+                STDIN_FILENAME,
+                { verbose: true, quiet: true },
+                timer,
+            );
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            expect(result.stdout).toBe("const x = 42;");
+            expect(result.stderr).toBeUndefined();
         });
     });
 
