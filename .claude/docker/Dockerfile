@@ -61,7 +61,7 @@ ENV COREPACK_HOME=/opt/corepack
 RUN mkdir -p /opt/corepack \
     && corepack enable \
     && corepack prepare pnpm@10.32.1 --activate \
-    && chmod -R 755 /opt/corepack
+    && chmod -R 775 /opt/corepack
 
 # ---------------------------------------------------------------------------
 # 5. Claude Code (native binary install)
