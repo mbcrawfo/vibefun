@@ -345,7 +345,7 @@ describe("compile command", () => {
 
     describe("stdout output (stdin mode)", () => {
         it("outputs JS to stdout when compiling from stdin with no --output", () => {
-            // Simulate stdin by passing undefined and directly using compilePipeline
+            // Test via compilePipeline since actual stdin can't be simulated in unit tests
             const pipelineResult = compilePipeline("let x = 42;", STDIN_FILENAME);
 
             expect(pipelineResult.kind).toBe("success");
@@ -354,15 +354,14 @@ describe("compile command", () => {
             }
         });
 
-        it("writes to file when stdin with --output", () => {
-            const outputPath = join(testDir, "stdin-output.js");
-            // Create a temp file to simulate compile with stdin path but --output set
-            const inputPath = createTestFile("stdin-test.vf", "let x = 42;");
+        it("writes to file when file input with custom --output path", () => {
+            const outputPath = join(testDir, "custom-output.js");
+            const inputPath = createTestFile("custom-test.vf", "let x = 42;");
 
             const result = compile(inputPath, { output: outputPath, quiet: true });
 
             expect(result.exitCode).toBe(EXIT_SUCCESS);
-            const output = readOutputFile("stdin-output.js");
+            const output = readOutputFile("custom-output.js");
             expect(output).toContain("export {};");
         });
     });

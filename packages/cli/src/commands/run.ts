@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 
 import { createColors, shouldUseColor } from "../utils/colors.js";
 import { isNodeError, readSourceFile, readStdin } from "../utils/file-io.js";
+import { formatFsErrorMessage } from "../utils/format-fs-error.js";
 import {
     compilePipeline,
     EXIT_INTERNAL_ERROR,
@@ -72,7 +73,7 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
         }
     } catch (error) {
         if (isNodeError(error)) {
-            return formatFsError(error, filename, options, colors);
+            return formatFsResult(error, filename, options, colors);
         }
         throw error;
     }
@@ -114,7 +115,7 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
 /**
  * Format a file system error for the run command
  */
-function formatFsError(
+function formatFsResult(
     error: NodeJS.ErrnoException,
     path: string,
     options: RunOptions,
@@ -135,24 +136,4 @@ function formatFsError(
     }
 
     return { exitCode: EXIT_IO_ERROR, stderr: message };
-}
-
-/**
- * Format a file system error message
- */
-function formatFsErrorMessage(
-    error: NodeJS.ErrnoException,
-    path: string,
-    colors: ReturnType<typeof createColors>,
-): string {
-    switch (error.code) {
-        case "ENOENT":
-            return colors.red(`error: File not found: ${path}`);
-        case "EACCES":
-            return colors.red(`error: Permission denied: ${path}`);
-        case "EISDIR":
-            return colors.red(`error: Expected file, got directory: ${path}`);
-        default:
-            return colors.red(`error: ${error.message}`);
-    }
 }
