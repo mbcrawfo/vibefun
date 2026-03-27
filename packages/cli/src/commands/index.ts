@@ -22,3 +22,5 @@ export {
     EXIT_IO_ERROR,
     EXIT_INTERNAL_ERROR,
 } from "./compile.js";
+
+export { run, type RunOptions, type RunResult } from "./run.js";
