@@ -113,6 +113,21 @@ export function writeAtomic(path: string, content: string): void {
 }
 
 /**
+ * Read all of stdin synchronously with BOM stripping and line ending normalization
+ *
+ * Blocks until stdin is closed (EOF / Ctrl+D).
+ * Uses file descriptor 0 for synchronous reading.
+ */
+export function readStdin(): ReadResult {
+    const raw = readFileSync(0, "utf-8");
+    const hadBom = raw.startsWith(UTF8_BOM);
+    const stripped = hadBom ? raw.slice(1) : raw;
+    const content = normalizeLineEndings(stripped);
+
+    return { content, hadBom };
+}
+
+/**
  * Check if an error is a Node.js filesystem error
  */
 export function isNodeError(error: unknown): error is NodeJS.ErrnoException {

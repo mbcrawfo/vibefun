@@ -11,7 +11,7 @@ import { desugarModule, generate, Lexer, Parser, typeCheck, VibefunDiagnostic } 
 import { countNodes, serializeSurfaceAst, serializeTypedAst } from "../output/ast-json.js";
 import { formatDiagnosticHuman, formatDiagnosticsJson, formatSuccessJson } from "../output/diagnostic.js";
 import { createColors, shouldUseColor } from "../utils/colors.js";
-import { isNodeError, readSourceFile, writeAtomic } from "../utils/file-io.js";
+import { isNodeError, readSourceFile, readStdin, writeAtomic } from "../utils/file-io.js";
 import { Timer } from "../utils/timer.js";
 
 /**
@@ -61,13 +61,50 @@ export interface CompileResult {
 }
 
 /**
- * Compile a vibefun source file
- *
- * @param inputPath - Path to the .vf source file
- * @param options - Compile options
- * @returns Compile result with exit code and output
+ * Synthetic filename used when reading from stdin
  */
-export function compile(inputPath: string, options: CompileOptions = {}): CompileResult {
+export const STDIN_FILENAME = "<stdin>";
+
+/**
+ * Check if the input should be read from stdin
+ */
+export function isStdinInput(inputPath: string | undefined): boolean {
+    return inputPath === undefined || inputPath === "-";
+}
+
+/**
+ * Result of the compilation pipeline (no I/O)
+ */
+export interface PipelineSuccess {
+    readonly kind: "success";
+    readonly code: string;
+    readonly timer: Timer;
+}
+
+export interface PipelineEmit {
+    readonly kind: "emit";
+    readonly output: string;
+    readonly timer: Timer;
+}
+
+export interface PipelineError {
+    readonly kind: "error";
+    readonly result: CompileResult;
+}
+
+export type PipelineResult = PipelineSuccess | PipelineEmit | PipelineError;
+
+/**
+ * Run the compilation pipeline on source code without performing any I/O.
+ *
+ * Returns the compiled JS code, an AST emit result, or an error.
+ * Used by both the compile and run commands.
+ *
+ * @param source - Source code to compile
+ * @param filename - Filename for error reporting
+ * @param options - Compile options (emit, verbose, json, quiet, color, noColor)
+ */
+export function compilePipeline(source: string, filename: string, options: CompileOptions = {}): PipelineResult {
     const timer = new Timer();
     const useColor = shouldUseColor({
         ...(options.color === true ? { color: true } : {}),
@@ -75,36 +112,27 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
     });
     const colors = createColors(useColor);
 
-    let source = "";
-
     try {
-        // Read source file
-        timer.start("read");
-        const readResult = readSourceFile(inputPath);
-        source = readResult.content;
-        timer.stop();
-
         // Lexer
         timer.start("lexer");
-        const lexer = new Lexer(source, inputPath);
+        const lexer = new Lexer(source, filename);
         const tokens = lexer.tokenize();
         timer.addMetadata("tokens", tokens.length);
         timer.stop();
 
         // Parser
         timer.start("parser");
-        const parser = new Parser(tokens, inputPath);
+        const parser = new Parser(tokens, filename);
         const ast = parser.parse();
         timer.addMetadata("nodes", countNodes(ast));
         timer.stop();
 
         // Handle --emit ast (surface AST, before desugaring)
         if (options.emit === "ast") {
-            const output = serializeSurfaceAst(ast, inputPath);
+            const output = serializeSurfaceAst(ast, filename);
             timer.stop();
 
             if (options.json && options.verbose) {
-                // Combine AST output with timing
                 const timings = timer.getTimings();
                 const combined = {
                     ...JSON.parse(output),
@@ -117,18 +145,22 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
                         })),
                     },
                 };
-                return { exitCode: EXIT_SUCCESS, stdout: JSON.stringify(combined, null, 2) };
+                return {
+                    kind: "emit",
+                    output: JSON.stringify(combined, null, 2),
+                    timer,
+                };
             }
 
             if (options.verbose && !options.quiet) {
                 return {
-                    exitCode: EXIT_SUCCESS,
-                    stdout: output,
-                    stderr: timer.formatVerbose(inputPath),
+                    kind: "emit",
+                    output: `${output}\n${timer.formatVerbose(filename)}`,
+                    timer,
                 };
             }
 
-            return { exitCode: EXIT_SUCCESS, stdout: output };
+            return { kind: "emit", output, timer };
         }
 
         // Desugarer
@@ -143,7 +175,7 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
 
         // Handle --emit typed-ast
         if (options.emit === "typed-ast") {
-            const output = serializeTypedAst(typedModule, inputPath);
+            const output = serializeTypedAst(typedModule, filename);
             timer.stop();
 
             if (options.json && options.verbose) {
@@ -159,60 +191,36 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
                         })),
                     },
                 };
-                return { exitCode: EXIT_SUCCESS, stdout: JSON.stringify(combined, null, 2) };
+                return {
+                    kind: "emit",
+                    output: JSON.stringify(combined, null, 2),
+                    timer,
+                };
             }
 
             if (options.verbose && !options.quiet) {
                 return {
-                    exitCode: EXIT_SUCCESS,
-                    stdout: output,
-                    stderr: timer.formatVerbose(inputPath),
+                    kind: "emit",
+                    output: `${output}\n${timer.formatVerbose(filename)}`,
+                    timer,
                 };
             }
 
-            return { exitCode: EXIT_SUCCESS, stdout: output };
+            return { kind: "emit", output, timer };
         }
 
         // Code Generator (default: --emit js)
         timer.start("codegen");
-        const { code } = generate(typedModule, { filename: inputPath });
+        const { code } = generate(typedModule, { filename });
         timer.addMetadata("bytes", code.length);
         timer.setOutputBytes(code.length);
         timer.stop();
 
-        // Determine output path
-        const outputPath = options.output ?? getDefaultOutputPath(inputPath);
-
-        // Write output atomically
-        timer.start("write");
-        writeAtomic(outputPath, code);
-        timer.stop();
-
-        // Format success output
-        return formatSuccessResult(inputPath, outputPath, options, timer, colors);
+        return { kind: "success", code, timer };
     } catch (error) {
-        // Handle different error types
         if (error instanceof VibefunDiagnostic) {
             const diagnostics = [error];
-            return formatErrorResult(diagnostics, source, options, timer, colors);
-        }
-
-        if (isNodeError(error)) {
-            // File system error
-            const message = formatFsError(error, inputPath, colors);
-            if (options.json) {
-                const output = {
-                    success: false,
-                    error: {
-                        code: error.code,
-                        message: error.message,
-                        path: inputPath,
-                    },
-                    ...(options.verbose ? { timing: timer.toJSON() } : {}),
-                };
-                return { exitCode: EXIT_IO_ERROR, stderr: JSON.stringify(output, null, 2) };
-            }
-            return { exitCode: EXIT_IO_ERROR, stderr: message };
+            return { kind: "error", result: formatErrorResult(diagnostics, source, options, timer, colors) };
         }
 
         // Internal error (unexpected)
@@ -228,11 +236,111 @@ export function compile(inputPath: string, options: CompileOptions = {}): Compil
                 },
                 ...(options.verbose ? { timing: timer.toJSON() } : {}),
             };
-            return { exitCode: EXIT_INTERNAL_ERROR, stderr: JSON.stringify(output, null, 2) };
+            return {
+                kind: "error",
+                result: { exitCode: EXIT_INTERNAL_ERROR, stderr: JSON.stringify(output, null, 2) },
+            };
         }
 
-        return { exitCode: EXIT_INTERNAL_ERROR, stderr: colors.red(message) };
+        return {
+            kind: "error",
+            result: { exitCode: EXIT_INTERNAL_ERROR, stderr: colors.red(message) },
+        };
     }
+}
+
+/**
+ * Compile a vibefun source file
+ *
+ * @param inputPath - Path to the .vf source file, or undefined/"-" to read from stdin
+ * @param options - Compile options
+ * @returns Compile result with exit code and output
+ */
+export function compile(inputPath: string | undefined, options: CompileOptions = {}): CompileResult {
+    const useColor = shouldUseColor({
+        ...(options.color === true ? { color: true } : {}),
+        ...(options.noColor === true ? { noColor: true } : {}),
+    });
+    const colors = createColors(useColor);
+    const fromStdin = isStdinInput(inputPath);
+    // When fromStdin is false, inputPath is guaranteed to be a string
+    // because isStdinInput() only returns false when inputPath is a non-"-" string
+    const filename: string = fromStdin ? STDIN_FILENAME : (inputPath as string);
+
+    // Read source
+    let source: string;
+    try {
+        if (fromStdin) {
+            source = readStdin().content;
+        } else {
+            source = readSourceFile(filename).content;
+        }
+    } catch (error) {
+        if (isNodeError(error)) {
+            const message = formatFsError(error, filename, colors);
+            if (options.json) {
+                const output = {
+                    success: false,
+                    error: {
+                        code: error.code,
+                        message: error.message,
+                        path: filename,
+                    },
+                };
+                return { exitCode: EXIT_IO_ERROR, stderr: JSON.stringify(output, null, 2) };
+            }
+            return { exitCode: EXIT_IO_ERROR, stderr: message };
+        }
+        throw error;
+    }
+
+    // Run compilation pipeline
+    const pipelineResult = compilePipeline(source, filename, options);
+
+    if (pipelineResult.kind === "error") {
+        return pipelineResult.result;
+    }
+
+    if (pipelineResult.kind === "emit") {
+        // --emit ast or --emit typed-ast: output goes to stdout
+        return { exitCode: EXIT_SUCCESS, stdout: pipelineResult.output };
+    }
+
+    // --emit js (default): write to file or stdout
+    const { code, timer } = pipelineResult;
+
+    // If output path specified, or input is from a file with no explicit output -> write to file
+    if (options.output || !fromStdin) {
+        const outputPath = options.output ?? getDefaultOutputPath(filename);
+
+        try {
+            timer.start("write");
+            writeAtomic(outputPath, code);
+            timer.stop();
+        } catch (error) {
+            if (isNodeError(error)) {
+                const message = formatFsError(error, outputPath, colors);
+                if (options.json) {
+                    const output = {
+                        success: false,
+                        error: {
+                            code: error.code,
+                            message: error.message,
+                            path: outputPath,
+                        },
+                    };
+                    return { exitCode: EXIT_IO_ERROR, stderr: JSON.stringify(output, null, 2) };
+                }
+                return { exitCode: EXIT_IO_ERROR, stderr: message };
+            }
+            throw error;
+        }
+
+        return formatFileSuccessResult(filename, outputPath, options, timer, colors);
+    }
+
+    // stdin with no --output: emit JS to stdout
+    return formatStdoutSuccessResult(code, filename, options, timer);
 }
 
 /**
@@ -246,9 +354,9 @@ function getDefaultOutputPath(inputPath: string): string {
 }
 
 /**
- * Format a successful compilation result
+ * Format a successful compilation result when output was written to a file
  */
-function formatSuccessResult(
+function formatFileSuccessResult(
     inputPath: string,
     outputPath: string,
     options: CompileOptions,
@@ -275,6 +383,36 @@ function formatSuccessResult(
     lines.push(`${colors.cyan("✓")} Compiled ${inputPath} → ${outputPath}`);
 
     return { exitCode: EXIT_SUCCESS, stdout: lines.join("\n") };
+}
+
+/**
+ * Format a successful compilation result when output goes to stdout
+ */
+function formatStdoutSuccessResult(
+    code: string,
+    filename: string,
+    options: CompileOptions,
+    timer: Timer,
+): CompileResult {
+    if (options.json) {
+        const timings = options.verbose ? timer.getTimings() : undefined;
+        const output = formatSuccessJson(undefined, timings);
+        // For JSON mode with stdout output, include the code in the JSON
+        const parsed = JSON.parse(output);
+        parsed.code = code;
+        return { exitCode: EXIT_SUCCESS, stdout: JSON.stringify(parsed, null, 2) };
+    }
+
+    // Output JS to stdout, timing info to stderr
+    if (options.verbose && !options.quiet) {
+        return {
+            exitCode: EXIT_SUCCESS,
+            stdout: code,
+            stderr: timer.formatVerbose(filename),
+        };
+    }
+
+    return { exitCode: EXIT_SUCCESS, stdout: code };
 }
 
 /**
