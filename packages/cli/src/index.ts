@@ -8,7 +8,7 @@ import type { EmitType } from "./commands/index.js";
 
 import { Command, CommanderError } from "commander";
 
-import { compile, EXIT_USAGE_ERROR } from "./commands/index.js";
+import { compile, EXIT_USAGE_ERROR, run } from "./commands/index.js";
 
 /**
  * Exit override for Commander commands that maps usage errors to EXIT_USAGE_ERROR (2).
@@ -106,12 +106,29 @@ program
 
 program
     .command("run")
-    .description("Compile and run a .vf file (not yet implemented)")
-    .argument("<file>", "Source file to run")
+    .description("Compile and run a .vf file")
+    .argument("[file]", 'Source file to run (reads stdin if omitted or "-")')
     .exitOverride(handleCommanderExit)
-    .action(() => {
-        console.error("The 'run' command is not yet implemented.");
-        process.exit(1);
+    .action((file: string | undefined) => {
+        const globalOptions = program.opts<GlobalOptions>();
+
+        const result = run(file, {
+            ...(globalOptions.quiet === true ? { quiet: true } : {}),
+            ...(globalOptions.verbose === true ? { verbose: true } : {}),
+            ...(globalOptions.json === true ? { json: true } : {}),
+            ...(globalOptions.color === true ? { color: true } : {}),
+            ...(globalOptions.noColor === true ? { noColor: true } : {}),
+        });
+
+        // Output results (note: script stdout/stderr are inherited, not captured)
+        if (result.stdout) {
+            console.log(result.stdout);
+        }
+        if (result.stderr) {
+            console.error(result.stderr);
+        }
+
+        process.exit(result.exitCode);
     });
 
 // Handle unknown commands
