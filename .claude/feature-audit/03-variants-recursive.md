@@ -138,7 +138,7 @@
 **Severity**: Critical
 **Affects**: `None` and any no-data variant constructor used in function call position or with type annotations
 **Description**: Using `None` as a function argument or in `let x: Option<Int> = None;` triggers "Internal error: Function type must have at least one parameter". The type checker attempts to treat `None` as a function type but it has zero parameters.
-**Tests**: #6, #8, #37-39
+**Tests**: #6, #8, #37, #38, #39 (5 tests)
 
 ### Bug 3: Codegen does not emit constructors for built-in types unless explicitly defined
 **Severity**: Medium
@@ -166,15 +166,15 @@
 
 ## Summary
 - **Total**: 50 tests
-- **Pass**: 27
-- **Fail**: 20
-- **Inconclusive**: 3
+- **Pass**: 26
+- **Fail**: 22
+- **Inconclusive**: 2
 
 ### Pass/Fail by Category
 | Category | Pass | Fail | Inconclusive |
 |----------|------|------|--------------|
 | Simple Enum Variants | 1 | 2 | 0 |
-| Data-Carrying (Built-in) | 3 | 2 | 0 |
+| Data-Carrying (Built-in) | 4 | 2 | 0 |
 | Data-Carrying (User-Defined) | 0 | 6 | 0 |
 | Generic Variants | 4 | 0 | 0 |
 | Constructors as Values | 3 | 0 | 0 |
@@ -185,13 +185,12 @@
 | Recursive Types | 1 | 5 | 0 |
 | Unguarded Recursion | 0 | 1 | 0 |
 | Mutually Recursive Types | 2 | 1 | 0 |
-| Union Types | 0 | 2 | 2 |
+| Union Types | 0 | 3 | 1 |
 | Built-in vs User-Defined | 0 | 1 | 0 |
-| **Variant (non-Option/Result) Match** | 2 | 0 | 0 |
 
 ### Root Cause Analysis
 Most failures trace back to two dominant root causes:
 1. **User-defined constructors not in scope** (Bug 1) - affects 14 tests. Only `Some`/`None`/`Ok`/`Err` are hardcoded as known constructors.
-2. **No-data constructor internal error** (Bug 2) - affects 4 tests. `None`, `Nil`, `Zero` etc. cannot be passed as function arguments or used with type annotations.
+2. **No-data constructor internal error** (Bug 2) - affects 5 tests (#6, #8, #37-39). `None`, `Nil`, `Zero` etc. cannot be passed as function arguments or used with type annotations.
 
 If these two bugs were fixed, the estimated pass count would rise from 27 to approximately 43-45.

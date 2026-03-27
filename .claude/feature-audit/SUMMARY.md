@@ -9,8 +9,9 @@
 | Metric | Count |
 |--------|-------|
 | **Total Tests** | 704 |
-| **Pass** | 371 (52.7%) |
-| **Fail** | 333 (47.3%) |
+| **Pass** | 370 (52.6%) |
+| **Fail** | 332 (47.2%) |
+| **Inconclusive** | 2 (0.3%) |
 
 ## Results by Section
 
@@ -20,7 +21,7 @@
 | Primitive Types | 03-primitive-types.md | 33 | 3 | 36 | 92% |
 | Tuples | 03-tuples.md | 3 | 15 | 18 | 17% |
 | Records & Subtyping | 03-records-subtyping.md | 26 | 7 | 33 | 79% |
-| Variants & Recursive Types | 03-variants-recursive.md | 27 | 23 | 50 | 54% |
+| Variants & Recursive Types | 03-variants-recursive.md | 26 | 22 | 50 | 52% |
 | Type Inference & Generics | 03-inference-generics.md | 35 | 13 | 48 | 73% |
 | Expressions | 04-expressions.md | 42 | 8 | 50 | 84% |
 | Pattern Matching | 05-pattern-matching.md | 45 | 9 | 54 | 83% |
