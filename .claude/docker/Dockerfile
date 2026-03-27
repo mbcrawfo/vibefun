@@ -1,3 +1,18 @@
+# ===========================================================================
+# Claude Code Development Container
+#
+# Provides a sandboxed environment for running Claude Code with
+# --dangerously-skip-permissions. Includes Node.js 24.x, pnpm, GitHub CLI,
+# and Claude Code (native binary).
+#
+# Supports two modes:
+#   - Mount mode (default): host repo bind-mounted to /workspace
+#   - Clone mode (--clone):  repo cloned fresh into /workspace
+#
+# The entrypoint starts as root to fix SSH socket permissions, then drops
+# to the 'claude' user via setpriv for all remaining operations.
+# ===========================================================================
+
 FROM ubuntu:24.04
 
 # Avoid interactive prompts during package installation
@@ -76,14 +91,12 @@ RUN chmod +x /entrypoint.sh
 # ---------------------------------------------------------------------------
 # 8. Non-root user (Ubuntu 24.04 ships with ubuntu:1000 user)
 # ---------------------------------------------------------------------------
-RUN usermod -l vfdev -d /home/vfdev -m ubuntu \
-    && groupmod -n vfdev ubuntu \
-    && mkdir -p /vibefun && chown vfdev:vfdev /vibefun
+RUN usermod -l claude -d /home/claude -m ubuntu \
+    && groupmod -n claude ubuntu \
+    && mkdir -p /workspace && chown claude:claude /workspace
 
 # ---------------------------------------------------------------------------
 # 9. Working directory and entrypoint
-#    Entrypoint starts as root to fix SSH socket permissions, then drops to
-#    vfdev via setpriv (see entrypoint.sh).
 # ---------------------------------------------------------------------------
-WORKDIR /vibefun
+WORKDIR /workspace
 ENTRYPOINT ["/entrypoint.sh"]

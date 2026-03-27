@@ -2,20 +2,24 @@
 set -euo pipefail
 
 # ===========================================================================
-# claude-docker.sh - Launch vibefun development container with Claude Code
+# claude-docker.sh - Launch Claude Code in a sandboxed Docker container
 #
 # Usage:
 #   ./claude-docker.sh [options] [-- claude-args...]
 #
 # Options:
-#   --rebuild       Force rebuild of the Docker image
-#   --branch NAME   Clone a specific git branch in the container
-#   --help          Show this help message
+#   --clone [BRANCH]  Clone repo instead of mounting host directory.
+#                     Requires REPO_URL env var. Optional BRANCH name
+#                     checks out the branch (creating it if needed).
+#   --rebuild         Force rebuild of the Docker image
+#   --help            Show this help message
 #
 # Environment variables (optional):
 #   CLAUDE_CODE_OAUTH_TOKEN  Claude OAuth token (priority 1)
 #   ANTHROPIC_API_KEY        Anthropic API key (priority 2)
+#   REPO_URL                 Repository URL (required with --clone)
 #
+# By default, mounts the current repository to /workspace in the container.
 # Everything after -- is passed to Claude Code as additional arguments.
 # ===========================================================================
 
@@ -23,7 +27,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_NAME="vibefun-claude"
 IMAGE_TAG="latest"
 REBUILD=false
-BRANCH=""
+CLONE_MODE=false
+CLONE_BRANCH=""
 CLAUDE_ARGS=()
 
 # ---------------------------------------------------------------------------
@@ -31,20 +36,21 @@ CLAUDE_ARGS=()
 # ---------------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --clone)
+            CLONE_MODE=true
+            shift
+            # Consume optional branch name (if next arg doesn't start with --)
+            if [[ $# -gt 0 && "$1" != --* ]]; then
+                CLONE_BRANCH="$1"
+                shift
+            fi
+            ;;
         --rebuild)
             REBUILD=true
             shift
             ;;
-        --branch)
-            if [[ $# -lt 2 ]]; then
-                echo "Error: --branch requires a branch name"
-                exit 1
-            fi
-            BRANCH="$2"
-            shift 2
-            ;;
         --help)
-            head -20 "$0" | grep '^#' | sed 's/^# \?//'
+            head -25 "$0" | grep '^#' | sed 's/^# \?//'
             exit 0
             ;;
         --)
@@ -130,21 +136,39 @@ GIT_USER_EMAIL=$(git config user.email 2>/dev/null || echo "")
 DOCKER_ENV_ARGS+=(-e "GIT_USER_NAME=${GIT_USER_NAME:-Developer}")
 DOCKER_ENV_ARGS+=(-e "GIT_USER_EMAIL=${GIT_USER_EMAIL:-dev@localhost}")
 
-# Repository URL
-REPO_URL=$(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo "git@github.com:mbcrawfo/vibefun.git")
-DOCKER_ENV_ARGS+=(-e "REPO_URL=${REPO_URL}")
-
-# Branch (if specified)
-if [ -n "$BRANCH" ]; then
-    DOCKER_ENV_ARGS+=(-e "REPO_BRANCH=${BRANCH}")
-    echo "=> Branch: ${BRANCH}"
-fi
-
 # Terminal
 DOCKER_ENV_ARGS+=(-e "TERM=${TERM:-xterm-256color}")
 
 # ---------------------------------------------------------------------------
-# 4. SSH agent forwarding (platform-specific)
+# 4. Mode-specific setup (mount vs clone)
+# ---------------------------------------------------------------------------
+DOCKER_WORKSPACE_ARGS=()
+
+if $CLONE_MODE; then
+    # Clone mode: require REPO_URL, pass it to container
+    REPO_URL="${REPO_URL:-}"
+    if [ -z "$REPO_URL" ]; then
+        echo "Error: REPO_URL environment variable is required with --clone."
+        echo "Usage: REPO_URL=git@github.com:user/repo.git ./claude-docker.sh --clone [branch]"
+        exit 1
+    fi
+    DOCKER_ENV_ARGS+=(-e "MOUNT_MODE=clone")
+    DOCKER_ENV_ARGS+=(-e "REPO_URL=${REPO_URL}")
+    if [ -n "$CLONE_BRANCH" ]; then
+        DOCKER_ENV_ARGS+=(-e "CLONE_BRANCH=${CLONE_BRANCH}")
+        echo "=> Clone mode: ${REPO_URL} (branch: ${CLONE_BRANCH})"
+    else
+        echo "=> Clone mode: ${REPO_URL}"
+    fi
+else
+    # Mount mode: bind-mount host repo to /workspace
+    DOCKER_ENV_ARGS+=(-e "MOUNT_MODE=host")
+    DOCKER_WORKSPACE_ARGS+=(-v "${SCRIPT_DIR}:/workspace")
+    echo "=> Mount mode: ${SCRIPT_DIR} -> /workspace"
+fi
+
+# ---------------------------------------------------------------------------
+# 5. SSH agent forwarding (platform-specific)
 # ---------------------------------------------------------------------------
 DOCKER_SSH_ARGS=()
 
@@ -168,7 +192,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Mount host Claude Code settings (read-only)
+# 6. Mount host Claude Code settings (read-only) + session persistence
 # ---------------------------------------------------------------------------
 DOCKER_MOUNT_ARGS=()
 
@@ -182,13 +206,22 @@ if [ -f "$HOME/.claude/statusline.sh" ]; then
     echo "=> Mounting host statusline script"
 fi
 
+# Session persistence: use a dedicated host directory for container Claude state
+# This enables `claude --resume` across container runs
+CLAUDE_DATA_DIR="$HOME/.claude-docker"
+mkdir -p "$CLAUDE_DATA_DIR"
+DOCKER_MOUNT_ARGS+=(-v "$CLAUDE_DATA_DIR:/home/claude/.claude")
+echo "=> Session persistence: ${CLAUDE_DATA_DIR}"
+
 # ---------------------------------------------------------------------------
-# 6. Launch container
+# 7. Launch container
 # ---------------------------------------------------------------------------
 echo ""
-echo "=> Starting vibefun-claude container..."
+echo "=> Starting ${IMAGE_NAME} container..."
 echo "   Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-echo "   The container is ephemeral -- push changes before exiting!"
+if $CLONE_MODE; then
+    echo "   The container is ephemeral -- push changes before exiting!"
+fi
 echo ""
 
 exec docker run -it --rm \
@@ -196,5 +229,6 @@ exec docker run -it --rm \
     "${DOCKER_ENV_ARGS[@]}" \
     "${DOCKER_SSH_ARGS[@]+"${DOCKER_SSH_ARGS[@]}"}" \
     "${DOCKER_MOUNT_ARGS[@]+"${DOCKER_MOUNT_ARGS[@]}"}" \
+    "${DOCKER_WORKSPACE_ARGS[@]+"${DOCKER_WORKSPACE_ARGS[@]}"}" \
     "${IMAGE_NAME}:${IMAGE_TAG}" \
     "${CLAUDE_ARGS[@]+"${CLAUDE_ARGS[@]}"}"
