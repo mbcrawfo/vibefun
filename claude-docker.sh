@@ -17,7 +17,7 @@ set -euo pipefail
 # Environment variables (optional):
 #   CLAUDE_CODE_OAUTH_TOKEN  Claude OAuth token (priority 1)
 #   ANTHROPIC_API_KEY        Anthropic API key (priority 2)
-#   REPO_URL                 Repository URL (required with --clone)
+#   REPO_URL                 Repository URL (overrides git remote detection)
 #
 # By default, mounts the current repository to /workspace in the container.
 # Everything after -- is passed to Claude Code as additional arguments.
@@ -145,10 +145,13 @@ DOCKER_ENV_ARGS+=(-e "TERM=${TERM:-xterm-256color}")
 DOCKER_WORKSPACE_ARGS=()
 
 if $CLONE_MODE; then
-    # Clone mode: require REPO_URL, pass it to container
-    REPO_URL="${REPO_URL:-}"
-    if [ -z "$REPO_URL" ]; then
-        echo "Error: REPO_URL environment variable is required with --clone."
+    # Clone mode: auto-detect repo URL from git, fall back to REPO_URL env var
+    if [ -z "${REPO_URL:-}" ]; then
+        REPO_URL=$(git remote get-url origin 2>/dev/null) || true
+    fi
+    if [ -z "${REPO_URL:-}" ]; then
+        echo "Error: Could not detect repository URL from git remote."
+        echo "Either run from a git repository or set REPO_URL manually."
         echo "Usage: REPO_URL=git@github.com:user/repo.git ./claude-docker.sh --clone [branch]"
         exit 1
     fi
@@ -225,7 +228,6 @@ fi
 echo ""
 
 exec docker run -it --rm \
-    --name vibefun-claude \
     "${DOCKER_ENV_ARGS[@]}" \
     "${DOCKER_SSH_ARGS[@]+"${DOCKER_SSH_ARGS[@]}"}" \
     "${DOCKER_MOUNT_ARGS[@]+"${DOCKER_MOUNT_ARGS[@]}"}" \
