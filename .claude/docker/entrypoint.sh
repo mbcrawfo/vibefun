@@ -28,6 +28,8 @@ if [ "$(id -u)" = "0" ]; then
             PROXY_SOCK="/tmp/ssh-agent-proxy.sock"
             socat UNIX-LISTEN:"$PROXY_SOCK",fork,user=claude,mode=600 \
                   UNIX-CONNECT:"$SSH_AUTH_SOCK" &
+            sleep 0.1
+            [ -S "$PROXY_SOCK" ] || echo "   Warning: SSH proxy socket creation may have failed"
             export SSH_AUTH_SOCK="$PROXY_SOCK"
         else
             # macOS Docker Desktop: safe to change ownership
@@ -91,16 +93,21 @@ fi
 mkdir -p "$HOME/.claude"
 
 # Decode base64-encoded credentials from Keychain extraction
-if [ -n "${CLAUDE_CREDENTIALS_B64:-}" ]; then
+# Skip if credentials already exist in persistent storage (may have fresher tokens)
+if [ -n "${CLAUDE_CREDENTIALS_B64:-}" ] && [ ! -f "$HOME/.claude/.credentials.json" ]; then
     echo "$CLAUDE_CREDENTIALS_B64" | base64 -d > "$HOME/.claude/.credentials.json"
     chmod 600 "$HOME/.claude/.credentials.json"
     echo "=> Wrote Claude Code credentials to credentials file"
+elif [ -f "$HOME/.claude/.credentials.json" ]; then
+    echo "=> Using existing credentials from persistent storage"
 fi
 
 # ---------------------------------------------------------------------------
 # 5. Claude Code first-run state (skip onboarding, trust /workspace)
 # ---------------------------------------------------------------------------
-cat > "$HOME/.claude.json" <<'INIT_JSON'
+# Only write first-run state if it doesn't exist (preserves state across persistent sessions)
+if [ ! -f "$HOME/.claude.json" ]; then
+    cat > "$HOME/.claude.json" <<'INIT_JSON'
 {
   "hasCompletedOnboarding": true,
   "lastOnboardingVersion": "1.0.9",
@@ -123,7 +130,10 @@ cat > "$HOME/.claude.json" <<'INIT_JSON'
   }
 }
 INIT_JSON
-echo "=> Pre-populated Claude Code first-run state (onboarding + trust)"
+    echo "=> Pre-populated Claude Code first-run state (onboarding + trust)"
+else
+    echo "=> Using existing Claude Code state"
+fi
 
 # ---------------------------------------------------------------------------
 # 6. Claude Code user settings (from host mounts)
