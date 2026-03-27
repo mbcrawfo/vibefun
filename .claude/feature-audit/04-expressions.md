@@ -133,8 +133,8 @@ Block bodies like `{ counter := !counter + 1; !counter; }` fail with `Internal e
 
 ## Summary
 - Total: 50 tests
-- Pass: 40
-- Fail: 10
+- Pass: 42
+- Fail: 8
 
 ### Failures by Category
 

@@ -190,7 +190,7 @@
 | **Variant (non-Option/Result) Match** | 2 | 0 | 0 |
 
 ### Root Cause Analysis
-Most failures (20 of 20) trace back to two root causes:
+Most failures trace back to two dominant root causes:
 1. **User-defined constructors not in scope** (Bug 1) - affects 14 tests. Only `Some`/`None`/`Ok`/`Err` are hardcoded as known constructors.
 2. **No-data constructor internal error** (Bug 2) - affects 4 tests. `None`, `Nil`, `Zero` etc. cannot be passed as function arguments or used with type annotations.
 

@@ -27,8 +27,8 @@
 |---|---------|---------------|-----------|--------|-------|
 | 6 | `external from "module" { ... }` block syntax | `external-declarations.md` (External Blocks) | positive | **FAIL** | Compiles and generates correct `import { join } from "node:path"` but `join("hello", "world")` curried to `join("hello")`, outputting `hello` instead of `hello/world`. Multi-param currying bug. |
 | 24 | `external from "module"` with single-param function | `external-declarations.md` (External Blocks) | positive | PASS | `basename("/foo/bar/baz.txt")` from `node:path` works correctly, returns `baz.txt` |
-| 33 | Single `external name: Type = "jsName" from "module"` | `external-declarations.md` (Single External Declarations) | positive | **FAIL** (multi-param) / PASS (single-param) | Single-param version (`dirname`) works. Multi-param version (`join`) has currying bug. |
-| 33b | Single-param external from module | `external-declarations.md` (Single External Declarations) | positive | PASS | `external dirname: (String) -> String = "dirname" from "node:path"` works correctly |
+| 33 | Single external from module (multi-param) | `external-declarations.md` (Single External Declarations) | positive | **FAIL** | Multi-param version (`join`) has currying bug -- only first arg passed to JS function. |
+| 33b | Single external from module (single-param) | `external-declarations.md` (Single External Declarations) | positive | PASS | `external dirname: (String) -> String = "dirname" from "node:path"` works correctly |
 
 ### Unsafe Blocks
 
@@ -87,9 +87,9 @@
 
 ## Summary
 
-- **Total**: 32 tests
-- **Pass**: 18
-- **Fail**: 14
+- **Total**: 39 tests
+- **Pass**: 23
+- **Fail**: 16
 
 ### Critical Issues
 

@@ -105,9 +105,9 @@ These test the underlying operators that the namespace functions would wrap.
 
 ## Summary
 
-- **Total tests**: 56 (50 namespace function tests + 6 supplementary tests)
-- **Pass**: 6
-- **Fail**: 50
+- **Total tests**: 62 (50 namespace function tests + 6 supplementary tests + 6 additional float/comparison tests)
+- **Pass**: 8
+- **Fail**: 54
 
 ### Root Cause Analysis
 

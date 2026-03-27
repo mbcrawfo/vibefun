@@ -8,9 +8,9 @@
 
 | Metric | Count |
 |--------|-------|
-| **Total Tests** | 703 |
-| **Pass** | 371 (52.8%) |
-| **Fail** | 332 (47.2%) |
+| **Total Tests** | 704 |
+| **Pass** | 371 (52.7%) |
+| **Fail** | 333 (47.3%) |
 
 ## Results by Section
 
@@ -27,7 +27,7 @@
 | Functions | 06-functions.md | 27 | 6 | 33 | 82% |
 | Mutable References | 07-mutable-references.md | 11 | 20 | 31 | 35% |
 | Error Handling | 09-error-handling.md | 8 | 17 | 25 | 32% |
-| JS Interop & Modules | 10-js-interop.md | 23 | 15 | 38 | 61% |
+| JS Interop & Modules | 10-js-interop.md | 23 | 16 | 39 | 59% |
 | Stdlib: List | 11-stdlib-list.md | 11 | 22 | 33 | 33% |
 | Stdlib: Option | 11-stdlib-option.md | 1 | 30 | 31 | 3% |
 | Stdlib: Result | 11-stdlib-result.md | 29 | 18 | 47 | 62% |

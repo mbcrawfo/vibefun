@@ -100,8 +100,8 @@
 
 ## Summary
 
-- **Total: 28 tests**
-- **Pass: 21**
+- **Total: 33 tests**
+- **Pass: 26**
 - **Fail: 7**
 
 ### Critical Failures

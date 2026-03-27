@@ -102,9 +102,9 @@ These test the underlying language features needed to implement Result functions
 
 ## Summary
 
-- **Total**: 38 tests
-- **Pass**: 23
-- **Fail**: 15
+- **Total**: 47 tests
+- **Pass**: 29
+- **Fail**: 18
 
 ### Failure Categories
 
