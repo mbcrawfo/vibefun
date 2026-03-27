@@ -12,6 +12,7 @@ import { countNodes, serializeSurfaceAst, serializeTypedAst } from "../output/as
 import { formatDiagnosticHuman, formatDiagnosticsJson, formatSuccessJson } from "../output/diagnostic.js";
 import { createColors, shouldUseColor } from "../utils/colors.js";
 import { isNodeError, readSourceFile, readStdin, writeAtomic } from "../utils/file-io.js";
+import { formatFsErrorMessage } from "../utils/format-fs-error.js";
 import { Timer } from "../utils/timer.js";
 
 /**
@@ -277,7 +278,7 @@ export function compile(inputPath: string | undefined, options: CompileOptions =
         }
     } catch (error) {
         if (isNodeError(error)) {
-            const message = formatFsError(error, filename, colors);
+            const message = formatFsErrorMessage(error, filename, colors);
             if (options.json) {
                 const output = {
                     success: false,
@@ -319,7 +320,7 @@ export function compile(inputPath: string | undefined, options: CompileOptions =
             timer.stop();
         } catch (error) {
             if (isNodeError(error)) {
-                const message = formatFsError(error, outputPath, colors);
+                const message = formatFsErrorMessage(error, outputPath, colors);
                 if (options.json) {
                     const output = {
                         success: false,
@@ -442,20 +443,4 @@ function formatErrorResult(
     }
 
     return { exitCode: EXIT_COMPILATION_ERROR, stderr: errorMessages };
-}
-
-/**
- * Format a file system error message
- */
-function formatFsError(error: NodeJS.ErrnoException, path: string, colors: ReturnType<typeof createColors>): string {
-    switch (error.code) {
-        case "ENOENT":
-            return colors.red(`error: File not found: ${path}`);
-        case "EACCES":
-            return colors.red(`error: Permission denied: ${path}`);
-        case "EISDIR":
-            return colors.red(`error: Expected file, got directory: ${path}`);
-        default:
-            return colors.red(`error: ${error.message}`);
-    }
 }

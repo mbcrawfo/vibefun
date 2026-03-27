@@ -9,4 +9,6 @@ export { shouldUseColor, createColors } from "./colors.js";
 export type { ColorOptions, ColorFunctions } from "./colors.js";
 
 export { stripBom, normalizeLineEndings, readSourceFile, readStdin, writeAtomic, isNodeError } from "./file-io.js";
+
+export { formatFsErrorMessage } from "./format-fs-error.js";
 export type { ReadResult } from "./file-io.js";
