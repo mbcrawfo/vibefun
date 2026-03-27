@@ -12,10 +12,23 @@ set -euo pipefail
 # 0. Drop privileges: fix SSH socket perms as root, then re-exec as vfdev
 # ---------------------------------------------------------------------------
 if [ "$(id -u)" = "0" ]; then
-    # Fix SSH agent socket permissions if mounted (Docker Desktop uses root-owned socket)
+    # Fix SSH agent socket permissions if mounted.
+    # On Linux, the socket is a direct bind-mount of the host file — chown/chmod
+    # would mutate the host socket, breaking SSH for other host users. Instead,
+    # use socat to create a user-owned proxy socket.
+    # On macOS Docker Desktop, the socket is VM-managed and safe to chown.
     if [ -S "${SSH_AUTH_SOCK:-}" ]; then
-        chown vfdev:vfdev "$SSH_AUTH_SOCK"
-        chmod 600 "$SSH_AUTH_SOCK"
+        if command -v socat &>/dev/null && [ ! -e /run/host-services/ssh-auth.sock ]; then
+            # Linux: proxy the socket so the host file is untouched
+            PROXY_SOCK="/tmp/ssh-agent-proxy.sock"
+            socat UNIX-LISTEN:"$PROXY_SOCK",fork,user=vfdev,mode=600 \
+                  UNIX-CONNECT:"$SSH_AUTH_SOCK" &
+            export SSH_AUTH_SOCK="$PROXY_SOCK"
+        else
+            # macOS Docker Desktop: safe to change ownership
+            chown vfdev:vfdev "$SSH_AUTH_SOCK"
+            chmod 600 "$SSH_AUTH_SOCK"
+        fi
     fi
 
     # Re-exec this script as vfdev with all args preserved
@@ -128,6 +141,8 @@ echo "=> Updating Claude Code..."
 claude update 2>/dev/null || {
     echo "   Update failed, using pre-installed version: $(claude --version 2>/dev/null || echo 'unknown')"
 }
+# Clear bash's command hash so subsequent invocations use the updated binary
+hash -r
 
 # ---------------------------------------------------------------------------
 # 8. Clone repository
