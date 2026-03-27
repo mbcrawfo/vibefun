@@ -10,12 +10,14 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # 1. Core apt packages
 # ---------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        util-linux \
         git \
         jq \
         bc \
         curl \
         ca-certificates \
         openssh-client \
+        socat \
         gnupg \
     && rm -rf /var/lib/apt/lists/*
 

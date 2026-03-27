@@ -163,8 +163,8 @@ elif [ -n "${SSH_AUTH_SOCK:-}" ]; then
     )
     echo "=> SSH agent: forwarding via \$SSH_AUTH_SOCK (Linux)"
 else
-    echo "=> Warning: No SSH agent detected. Git SSH operations may fail."
-    echo "   The container can fall back to HTTPS with GH_TOKEN for git operations."
+    echo "=> Warning: No SSH agent detected. Git clone over SSH will fail."
+    echo "   Set SSH_AUTH_SOCK or use Docker Desktop's built-in SSH forwarding."
 fi
 
 # ---------------------------------------------------------------------------
