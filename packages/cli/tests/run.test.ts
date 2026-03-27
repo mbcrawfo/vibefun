@@ -35,6 +35,25 @@ describe("CLI E2E: Run Command", () => {
 
             expect(result.exitCode).toBe(0);
         });
+
+        it("actually executes the compiled JS and captures stdout", () => {
+            const result = runCli(["run", fixture("hello.vf")]);
+
+            expect(result.exitCode).toBe(0);
+            expect(result.stdout).toContain("hello from vibefun");
+        });
+
+        it("executes code from stdin and captures stdout", () => {
+            const source = [
+                'external console_log: (String) -> Unit = "console.log";',
+                'let _ = unsafe { console_log("stdin output") };',
+            ].join("\n");
+
+            const result = runCli(["run"], { stdin: source });
+
+            expect(result.exitCode).toBe(0);
+            expect(result.stdout).toContain("stdin output");
+        });
     });
 
     describe("compilation errors", () => {
