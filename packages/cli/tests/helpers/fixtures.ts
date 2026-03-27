@@ -19,6 +19,7 @@ export const FIXTURES = {
     simple: "simple.vf",
     empty: "empty.vf",
     commentsOnly: "comments-only.vf",
+    hello: "hello.vf",
     parseError: "parse-error.vf",
     typeError: "type-error.vf",
     multiError: "multi-error.vf",

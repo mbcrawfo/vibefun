@@ -1,0 +1,3 @@
+// A program that produces observable output
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log("hello from vibefun") };
