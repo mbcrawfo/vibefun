@@ -14,7 +14,8 @@ set -euo pipefail
 if [ "$(id -u)" = "0" ]; then
     # Fix SSH agent socket permissions if mounted (Docker Desktop uses root-owned socket)
     if [ -S "${SSH_AUTH_SOCK:-}" ]; then
-        chmod 666 "$SSH_AUTH_SOCK"
+        chown vfdev:vfdev "$SSH_AUTH_SOCK"
+        chmod 600 "$SSH_AUTH_SOCK"
     fi
 
     # Re-exec this script as vfdev with all args preserved
@@ -62,10 +63,9 @@ fi
 # ---------------------------------------------------------------------------
 mkdir -p "$HOME/.claude"
 
-if [ -n "${CLAUDE_CREDENTIALS:-}" ]; then
-    # Write credentials extracted from macOS Keychain to the fallback file
-    # Claude Code reads this when macOS Keychain is unavailable (i.e., Linux)
-    echo "$CLAUDE_CREDENTIALS" > "$HOME/.claude/.credentials.json"
+# Decode base64-encoded credentials from Keychain extraction
+if [ -n "${CLAUDE_CREDENTIALS_B64:-}" ]; then
+    echo "$CLAUDE_CREDENTIALS_B64" | base64 -d > "$HOME/.claude/.credentials.json"
     chmod 600 "$HOME/.claude/.credentials.json"
     echo "=> Wrote Claude Code credentials to credentials file"
 fi
@@ -151,14 +151,20 @@ pnpm install --frozen-lockfile
 # ---------------------------------------------------------------------------
 # 10. Claude Code authentication check
 # ---------------------------------------------------------------------------
-if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CREDENTIALS:-}" ]; then
-    echo ""
-    echo "============================================================"
-    echo "  No Claude Code credentials detected."
-    echo "  Please authenticate interactively:"
-    echo "============================================================"
-    echo ""
-    claude auth login
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CREDENTIALS_B64:-}" ]; then
+    if [ -t 0 ]; then
+        echo ""
+        echo "============================================================"
+        echo "  No Claude Code credentials detected."
+        echo "  Please authenticate interactively:"
+        echo "============================================================"
+        echo ""
+        claude auth login
+    else
+        echo "=> Error: No Claude credentials and not running interactively."
+        echo "   Set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY, or run with -it."
+        exit 1
+    fi
 fi
 
 # ---------------------------------------------------------------------------
