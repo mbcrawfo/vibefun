@@ -68,10 +68,10 @@ These functions were listed in the audit task but do not appear in the String mo
 
 1. **String basics work well**: String literals, concatenation with `&`, empty strings, equality, and inequality all work correctly.
 
-2. **All String module namespace functions are unimplemented**: Every `String.xxx(...)` call fails with `error[VF4100]: Undefined variable 'String'`. The compiler does not bind `String` as a module namespace. This affects all 18 spec'd functions (length, concat, fromInt, fromFloat, toUpperCase, toLowerCase, trim, split, contains, startsWith, endsWith, toInt, toFloat) plus the 5 additional functions tested (indexOf, substring, replace, padStart, padEnd).
+2. **All tested String module namespace functions are unimplemented**: Every `String.xxx(...)` call fails with `error[VF4100]: Undefined variable 'String'`. The compiler does not bind `String` as a module namespace. This affects all 13 spec-defined functions tested (length, concat, fromInt, fromFloat, toUpperCase, toLowerCase, trim, split, contains, startsWith, endsWith, toInt, toFloat) and 5 additional non-spec functions from the task list (indexOf, substring, replace, padStart, padEnd), for 18 total failing namespace-function tests.
 
 3. **All escape sequences work**: `\n`, `\t`, `\\`, `\"`, `\x41`, and `\u0041` all compile and produce correct output.
 
 4. **Spec gap**: The task listed `indexOf`, `substring`, `replace`, `padStart`, and `padEnd` as String module functions but these do not appear in the spec file (`docs/spec/11-stdlib/string.md`). They cannot be tested anyway since the String namespace is unresolved.
 
-5. **Workaround available**: String-to-int/float conversion can be done via `external` declarations (e.g., `external intToStr: (Int) -> String = "String";`), but native `String.fromInt` etc. do not work.
+5. **Workarounds available**: Some conversions can be done via `external` declarations (for example, `external intToStr: (Int) -> String = "String";` for Int to String). Native `String.fromInt`, `String.toInt`, `String.toFloat`, etc. do not currently work because the `String` namespace is unresolved.

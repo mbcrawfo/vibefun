@@ -100,15 +100,15 @@
 
 ## Summary
 
-- **Total**: 29 tests
-- **Pass**: 22
-- **Fail**: 7
+- **Total**: 33 tests
+- **Pass**: 27
+- **Fail**: 6
 
 ### Failure Breakdown
 
 | Category | Failures | Description |
 |----------|----------|-------------|
-| Uncurried multi-arg calls | 3 (#6, #8, #8-3arg) | `f(a, b)` syntax rejected despite spec saying it should work as sugar for `f(a)(b)` |
+| Uncurried multi-arg calls | 2 (#6, #8) | `f(a, b)` syntax rejected despite spec saying it should work as sugar for `f(a)(b)` |
 | if/then/else exhaustiveness | 2 (#10a, #12a) | ALL if/then/else expressions fail with "Non-exhaustive pattern match" error. This is a fundamental bug not specific to functions but heavily impacts the function spec examples. Even `if true then 1 else 2` fails. |
 | Explicit generic syntax | 1 (#19) | `<T>(x: T): T => x` syntax not supported by parser |
 | Zero-parameter lambda | 1 (#24) | `() => 42` causes internal compiler error |

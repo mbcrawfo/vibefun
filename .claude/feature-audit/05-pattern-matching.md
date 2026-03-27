@@ -111,8 +111,8 @@
 
 ## Summary
 
-- **Total**: 40 tests
-- **Pass**: 31
+- **Total**: 54 tests
+- **Pass**: 45
 - **Fail**: 9
 
 ## Bugs Found

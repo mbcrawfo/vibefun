@@ -62,9 +62,9 @@ All `List.*` function calls fail with **`error[VF4100]: Undefined variable 'List
 
 ## Summary
 
-- **Total**: 28 tests
-- **Pass**: 10
-- **Fail**: 18
+- **Total**: 33 tests
+- **Pass**: 11
+- **Fail**: 22
 
 ### Key Findings
 
@@ -72,7 +72,7 @@ All `List.*` function calls fail with **`error[VF4100]: Undefined variable 'List
 
 2. **List spread is limited**: The spec shows `[0, ...nums, 4]` as valid syntax (spread in middle/start position), but the compiler only supports spread at the END of a list literal (e.g., `[0, 1, ...xs]`). Spread at the start or middle fails with `Undefined variable 'concat'`, suggesting the codegen for non-tail spread positions is not implemented.
 
-3. **ALL List module functions are unimplemented**: Every `List.*` namespace call (`List.map`, `List.filter`, `List.fold`, etc.) fails with `Undefined variable 'List'`. The `List` module namespace is not bound in the compiler's scope. This affects all 17 tested List functions.
+3. **ALL List module functions are unimplemented**: Every `List.*` namespace call (`List.map`, `List.filter`, `List.fold`, etc.) fails with `Undefined variable 'List'`. The `List` module namespace is not bound in the compiler's scope. This affects all 19 tested List function calls.
 
 4. **Pattern matching on lists works well**: Empty list match, specific-length match, and spread patterns (`[x, ...rest]`, `[a, b, ...rest]`) all work correctly. However, the `h :: t` cons pattern syntax is NOT supported in match arms (only the `[h, ...t]` spread syntax works).
 
