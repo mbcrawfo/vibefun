@@ -145,7 +145,7 @@ DOCKER_ENV_ARGS+=(-e "TERM=${TERM:-xterm-256color}")
 DOCKER_WORKSPACE_ARGS=()
 
 if $CLONE_MODE; then
-    # Clone mode: auto-detect repo URL from git, fall back to REPO_URL env var
+    # Clone mode: use REPO_URL env var if set, otherwise auto-detect from git remote
     if [ -z "${REPO_URL:-}" ]; then
         REPO_URL=$(git remote get-url origin 2>/dev/null) || true
     fi
