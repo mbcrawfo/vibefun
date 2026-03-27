@@ -36,6 +36,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --branch)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --branch requires a branch name"
+                exit 1
+            fi
             BRANCH="$2"
             shift 2
             ;;
@@ -95,7 +99,9 @@ elif [[ "$(uname)" == "Darwin" ]]; then
     # Try to extract OAuth credentials from macOS Keychain
     CLAUDE_CREDENTIALS=$(security find-generic-password -s "Claude Code-credentials" -a "$USER" -w 2>/dev/null) || true
     if [ -n "$CLAUDE_CREDENTIALS" ]; then
-        DOCKER_ENV_ARGS+=(-e "CLAUDE_CREDENTIALS=${CLAUDE_CREDENTIALS}")
+        # Base64 encode to safely pass JSON through environment variables
+        CLAUDE_CREDENTIALS_B64=$(echo -n "$CLAUDE_CREDENTIALS" | base64)
+        DOCKER_ENV_ARGS+=(-e "CLAUDE_CREDENTIALS_B64=${CLAUDE_CREDENTIALS_B64}")
         echo "=> Claude auth: extracted credentials from macOS Keychain"
     else
         echo "=> Warning: No Claude Code credentials found."

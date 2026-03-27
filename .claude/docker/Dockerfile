@@ -3,6 +3,9 @@ FROM ubuntu:24.04
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Ensure pipeline failures are caught (curl | bash patterns)
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # ---------------------------------------------------------------------------
 # 1. Core apt packages
 # ---------------------------------------------------------------------------
@@ -45,10 +48,10 @@ RUN mkdir -p /opt/corepack \
 
 # ---------------------------------------------------------------------------
 # 5. Claude Code (native binary install)
-#    Installs to /root/.local/, then symlink to /usr/local/bin for all users
+#    Installs to /root/.local/, then copy resolved binary to /usr/local/bin
 # ---------------------------------------------------------------------------
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- stable \
-    && cp /root/.local/share/claude/versions/* /usr/local/bin/claude \
+    && cp -L /root/.local/bin/claude /usr/local/bin/claude \
     && chmod 755 /usr/local/bin/claude
 
 # ---------------------------------------------------------------------------
