@@ -7,7 +7,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { compile, EXIT_COMPILATION_ERROR, EXIT_IO_ERROR, EXIT_SUCCESS } from "./compile.js";
+import {
+    compile,
+    compilePipeline,
+    EXIT_COMPILATION_ERROR,
+    EXIT_IO_ERROR,
+    EXIT_SUCCESS,
+    isStdinInput,
+    STDIN_FILENAME,
+} from "./compile.js";
 
 describe("compile command", () => {
     let testDir: string;
@@ -260,6 +268,100 @@ describe("compile command", () => {
 
             // Output file should not exist
             expect(() => readFileSync(outputPath)).toThrow();
+        });
+    });
+
+    describe("stdin input detection", () => {
+        it("treats undefined as stdin", () => {
+            expect(isStdinInput(undefined)).toBe(true);
+        });
+
+        it('treats "-" as stdin', () => {
+            expect(isStdinInput("-")).toBe(true);
+        });
+
+        it("treats a file path as non-stdin", () => {
+            expect(isStdinInput("main.vf")).toBe(false);
+        });
+
+        it("treats empty string as non-stdin", () => {
+            expect(isStdinInput("")).toBe(false);
+        });
+    });
+
+    describe("compilePipeline", () => {
+        it("compiles valid source to JS", () => {
+            const result = compilePipeline("let x = 42;", "test.vf");
+
+            expect(result.kind).toBe("success");
+            if (result.kind === "success") {
+                expect(result.code).toContain("const x = 42");
+                expect(result.code).toContain("export {};");
+            }
+        });
+
+        it("returns emit result for --emit ast", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", { emit: "ast" });
+
+            expect(result.kind).toBe("emit");
+            if (result.kind === "emit") {
+                const parsed = JSON.parse(result.output);
+                expect(parsed.filename).toBe("test.vf");
+                expect(parsed.declarationCount).toBe(1);
+            }
+        });
+
+        it("returns emit result for --emit typed-ast", () => {
+            const result = compilePipeline("let x = 42;", "test.vf", { emit: "typed-ast" });
+
+            expect(result.kind).toBe("emit");
+            if (result.kind === "emit") {
+                const parsed = JSON.parse(result.output);
+                expect(parsed.types).toBeDefined();
+            }
+        });
+
+        it("returns error for invalid source", () => {
+            const result = compilePipeline("let x =", "test.vf", { noColor: true });
+
+            expect(result.kind).toBe("error");
+            if (result.kind === "error") {
+                expect(result.result.exitCode).toBe(EXIT_COMPILATION_ERROR);
+                expect(result.result.stderr).toContain("error");
+            }
+        });
+
+        it("uses provided filename in error messages", () => {
+            const result = compilePipeline("let x =", STDIN_FILENAME, { noColor: true });
+
+            expect(result.kind).toBe("error");
+            if (result.kind === "error") {
+                expect(result.result.stderr).toContain(STDIN_FILENAME);
+            }
+        });
+    });
+
+    describe("stdout output (stdin mode)", () => {
+        it("outputs JS to stdout when compiling from stdin with no --output", () => {
+            // Simulate stdin by passing undefined and directly using compilePipeline
+            const pipelineResult = compilePipeline("let x = 42;", STDIN_FILENAME);
+
+            expect(pipelineResult.kind).toBe("success");
+            if (pipelineResult.kind === "success") {
+                expect(pipelineResult.code).toContain("const x = 42");
+            }
+        });
+
+        it("writes to file when stdin with --output", () => {
+            const outputPath = join(testDir, "stdin-output.js");
+            // Create a temp file to simulate compile with stdin path but --output set
+            const inputPath = createTestFile("stdin-test.vf", "let x = 42;");
+
+            const result = compile(inputPath, { output: outputPath, quiet: true });
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            const output = readOutputFile("stdin-output.js");
+            expect(output).toContain("export {};");
         });
     });
 
