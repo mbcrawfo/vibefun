@@ -2,14 +2,19 @@
 set -euo pipefail
 
 # ===========================================================================
-# Vibefun Docker Sandbox - Entrypoint
+# Claude Code Development Container - Entrypoint
 #
-# Starts as root to fix SSH socket permissions, then drops to the vfdev user
-# for all remaining operations. Claude Code runs as non-root (vfdev).
+# Provides a sandboxed environment with Node.js 24.x, pnpm, and Claude Code.
+# Starts as root to fix SSH socket permissions, then drops to the 'claude'
+# user for all remaining operations.
+#
+# Modes (controlled by MOUNT_MODE env var):
+#   - host  (default): /workspace is bind-mounted from host, skip clone
+#   - clone:           clone REPO_URL into /workspace, install deps
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# 0. Drop privileges: fix SSH socket perms as root, then re-exec as vfdev
+# 0. Drop privileges: fix SSH socket perms as root, then re-exec as claude
 # ---------------------------------------------------------------------------
 if [ "$(id -u)" = "0" ]; then
     # Fix SSH agent socket permissions if mounted.
@@ -21,39 +26,48 @@ if [ "$(id -u)" = "0" ]; then
         if command -v socat &>/dev/null && [ ! -e /run/host-services/ssh-auth.sock ]; then
             # Linux: proxy the socket so the host file is untouched
             PROXY_SOCK="/tmp/ssh-agent-proxy.sock"
-            socat UNIX-LISTEN:"$PROXY_SOCK",fork,user=vfdev,mode=600 \
+            socat UNIX-LISTEN:"$PROXY_SOCK",fork,user=claude,mode=600 \
                   UNIX-CONNECT:"$SSH_AUTH_SOCK" &
             export SSH_AUTH_SOCK="$PROXY_SOCK"
         else
             # macOS Docker Desktop: safe to change ownership
-            chown vfdev:vfdev "$SSH_AUTH_SOCK"
+            chown claude:claude "$SSH_AUTH_SOCK"
             chmod 600 "$SSH_AUTH_SOCK"
         fi
     fi
 
-    # Re-exec this script as vfdev with all args preserved
-    exec setpriv --reuid=vfdev --regid=vfdev --init-groups \
-        env HOME=/home/vfdev "$0" "$@"
+    # Re-exec this script as claude with all args preserved
+    exec setpriv --reuid=claude --regid=claude --init-groups \
+        env HOME=/home/claude "$0" "$@"
 fi
 
-# --- Everything below runs as vfdev (non-root) ---
+# --- Everything below runs as claude (non-root) ---
 
 # Ensure user-local bin is on PATH (for claude update installs)
 export PATH="$HOME/.local/bin:$PATH"
 
+MOUNT_MODE="${MOUNT_MODE:-host}"
+
 # ---------------------------------------------------------------------------
-# 1. SSH known_hosts for github.com
+# 1. SSH known_hosts for github.com (skip for HTTPS-only clone)
 # ---------------------------------------------------------------------------
-mkdir -p "$HOME/.ssh"
-chmod 700 "$HOME/.ssh"
+NEEDS_SSH=true
+if [ "$MOUNT_MODE" = "clone" ] && [[ "${REPO_URL:-}" == https://* ]]; then
+    NEEDS_SSH=false
+fi
 
-# Start with baked-in keys (always available, no network needed)
-cp /etc/ssh/github_known_hosts "$HOME/.ssh/known_hosts"
+if [ "$NEEDS_SSH" = true ]; then
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
 
-# Try a fresh scan to pick up any key rotations
-ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+    # Start with baked-in keys (always available, no network needed)
+    cp /etc/ssh/github_known_hosts "$HOME/.ssh/known_hosts"
 
-chmod 600 "$HOME/.ssh/known_hosts"
+    # Try a fresh scan to pick up any key rotations
+    ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+
+    chmod 600 "$HOME/.ssh/known_hosts"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Git user configuration
@@ -84,7 +98,7 @@ if [ -n "${CLAUDE_CREDENTIALS_B64:-}" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Claude Code first-run state (skip onboarding, trust /vibefun)
+# 5. Claude Code first-run state (skip onboarding, trust /workspace)
 # ---------------------------------------------------------------------------
 cat > "$HOME/.claude.json" <<'INIT_JSON'
 {
@@ -93,7 +107,7 @@ cat > "$HOME/.claude.json" <<'INIT_JSON'
   "numStartups": 1,
   "hasAcknowledgedCostThreshold": true,
   "projects": {
-    "/vibefun": {
+    "/workspace": {
       "hasTrustDialogAccepted": true,
       "hasCompletedProjectOnboarding": true,
       "allowedTools": [],
@@ -145,26 +159,42 @@ claude update 2>/dev/null || {
 hash -r
 
 # ---------------------------------------------------------------------------
-# 8. Clone repository
+# 8. Workspace setup (clone or mount)
 # ---------------------------------------------------------------------------
-REPO_URL="${REPO_URL:-git@github.com:mbcrawfo/vibefun.git}"
+if [ "$MOUNT_MODE" = "clone" ]; then
+    # Clone mode: require REPO_URL, clone to /workspace, optionally checkout branch
+    if [ -z "${REPO_URL:-}" ]; then
+        echo "=> Error: REPO_URL is required in clone mode."
+        echo "   Usage: REPO_URL=git@github.com:user/repo.git ./claude-docker.sh --clone"
+        exit 1
+    fi
 
-echo "=> Cloning ${REPO_URL}..."
-if [ -n "${REPO_BRANCH:-}" ]; then
-    git clone --branch "$REPO_BRANCH" "$REPO_URL" /vibefun
+    echo "=> Cloning ${REPO_URL}..."
+    git clone "$REPO_URL" /workspace
+
+    if [ -n "${CLONE_BRANCH:-}" ]; then
+        cd /workspace
+        if git checkout "$CLONE_BRANCH" 2>/dev/null; then
+            echo "=> Checked out existing branch: ${CLONE_BRANCH}"
+        else
+            git checkout -b "$CLONE_BRANCH"
+            echo "=> Created new branch: ${CLONE_BRANCH}"
+        fi
+    fi
+
+    # Install dependencies
+    cd /workspace
+    echo "=> Installing dependencies with pnpm..."
+    pnpm install --frozen-lockfile
 else
-    git clone "$REPO_URL" /vibefun
+    # Mount mode: host repo is already at /workspace
+    echo "=> Using host-mounted workspace at /workspace"
 fi
 
-# ---------------------------------------------------------------------------
-# 9. Install dependencies
-# ---------------------------------------------------------------------------
-cd /vibefun
-echo "=> Installing dependencies with pnpm..."
-pnpm install --frozen-lockfile
+cd /workspace
 
 # ---------------------------------------------------------------------------
-# 10. Claude Code authentication check
+# 9. Claude Code authentication check
 # ---------------------------------------------------------------------------
 if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CREDENTIALS_B64:-}" ]; then
     if [ -t 0 ]; then
@@ -183,12 +213,14 @@ if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [
 fi
 
 # ---------------------------------------------------------------------------
-# 11. Launch Claude Code
+# 10. Launch Claude Code
 # ---------------------------------------------------------------------------
 echo ""
 echo "=> Launching Claude Code with --dangerously-skip-permissions"
-echo "   Working directory: /vibefun"
-echo "   Warning: Container is ephemeral (--rm). Push changes before exiting!"
+echo "   Working directory: /workspace"
+if [ "$MOUNT_MODE" = "clone" ]; then
+    echo "   Warning: Container is ephemeral (--rm). Push changes before exiting!"
+fi
 echo ""
 
 exec claude --dangerously-skip-permissions "$@"
