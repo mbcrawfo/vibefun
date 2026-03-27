@@ -2,7 +2,19 @@
  * CLI commands
  */
 
-export { compile, type CompileOptions, type CompileResult, type EmitType } from "./compile.js";
+export {
+    compile,
+    compilePipeline,
+    isStdinInput,
+    STDIN_FILENAME,
+    type CompileOptions,
+    type CompileResult,
+    type EmitType,
+    type PipelineError,
+    type PipelineResult,
+    type PipelineSuccess,
+    type PipelineEmit,
+} from "./compile.js";
 export {
     EXIT_SUCCESS,
     EXIT_COMPILATION_ERROR,

@@ -51,11 +51,11 @@ describe("CLI E2E: Error Handling", () => {
         expect(result.stderr).toContain("not found");
     });
 
-    it("returns exit code 2 for missing argument", () => {
-        const result = runCli(["compile"]);
+    it("compiles from stdin when no file argument is given", () => {
+        const result = runCli(["compile"], { stdin: "let x = 42;" });
 
-        expect(result.exitCode).toBe(2); // EXIT_USAGE_ERROR for missing args
-        expect(result.stderr).toContain("required");
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("Vibefun compiled output");
     });
 
     it("does not leave partial file on compilation error", () => {

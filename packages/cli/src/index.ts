@@ -58,11 +58,11 @@ program
 program
     .command("compile")
     .description("Compile a .vf file to JavaScript")
-    .argument("<file>", "Source file to compile")
+    .argument("[file]", 'Source file to compile (reads stdin if omitted or "-")')
     .option("-o, --output <path>", "Output file path")
     .option("-e, --emit <type>", "Output type: js, ast, typed-ast", "js")
     .exitOverride(handleCommanderExit)
-    .action((file: string, cmdOptions: CompileCommandOptions) => {
+    .action((file: string | undefined, cmdOptions: CompileCommandOptions) => {
         const globalOptions = program.opts<GlobalOptions>();
 
         // Validate emit option

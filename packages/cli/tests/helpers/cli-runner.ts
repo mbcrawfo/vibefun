@@ -19,6 +19,8 @@ export interface CliResult {
 export interface RunCliOptions {
     cwd?: string;
     env?: Record<string, string>;
+    /** Content to pipe to stdin */
+    stdin?: string;
 }
 
 /**
@@ -29,6 +31,7 @@ export function runCli(args: string[], options: RunCliOptions = {}): CliResult {
         cwd: options.cwd,
         encoding: "utf-8",
         env: { ...process.env, NO_COLOR: "1", ...options.env },
+        ...(options.stdin !== undefined ? { input: options.stdin } : {}),
     });
 
     return {
