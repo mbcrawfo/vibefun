@@ -5,14 +5,7 @@
  * data literals, lambdas, blocks, pipes, evaluation order.
  */
 
-import {
-    expectCompileError,
-    expectCompiles,
-    expectRunOutput,
-    skip,
-    withOutput,
-    withOutputs,
-} from "../framework/helpers.js";
+import { expectCompileError, expectCompiles, expectRunOutput, withOutput, withOutputs } from "../framework/helpers.js";
 import { test } from "../framework/runner.js";
 
 const S = "04-expressions";
@@ -135,17 +128,27 @@ test(S, "04-expressions/basic-expressions.md", "string concat rejects non-string
 
 // --- Control Flow ---
 
-test(S, "04-expressions/control-flow.md", "if-then-else expression", () => skip("if-then-else is currently broken"));
+test(S, "04-expressions/control-flow.md", "if-then-else expression", () =>
+    expectRunOutput(withOutput(`let x = if true then "yes" else "no";`, `x`), "yes"),
+);
 
 test(S, "04-expressions/control-flow.md", "if-then-else with same types required", () =>
-    skip("if-then-else is currently broken"),
+    expectCompileError(`let x = if true then 42 else "hello";`),
 );
 
 test(S, "04-expressions/control-flow.md", "if without else returns Unit", () =>
-    skip("if-then-else is currently broken"),
+    expectCompiles(`let x = if true then ();`),
 );
 
-test(S, "04-expressions/control-flow.md", "nested if-else chains", () => skip("if-then-else is currently broken"));
+test(S, "04-expressions/control-flow.md", "nested if-else chains", () =>
+    expectRunOutput(
+        withOutput(
+            `let x = 5;\nlet result = if x > 10 then "big" else if x > 0 then "positive" else "non-positive";`,
+            `result`,
+        ),
+        "positive",
+    ),
+);
 
 test(S, "04-expressions/control-flow.md", "match expression with variants", () =>
     expectRunOutput(

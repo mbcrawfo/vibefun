@@ -16,12 +16,11 @@ export function printSummary(report: Report): void {
     console.log("\n=== Vibefun Spec Validation Report ===");
     console.log(`Timestamp: ${report.timestamp}\n`);
 
-    const colWidths = { section: 30, pass: 6, fail: 6, skip: 6, error: 6, total: 6 };
+    const colWidths = { section: 30, pass: 6, fail: 6, error: 6, total: 6 };
     const header = [
         "Section".padEnd(colWidths.section),
         "Pass".padStart(colWidths.pass),
         "Fail".padStart(colWidths.fail),
-        "Skip".padStart(colWidths.skip),
         "Error".padStart(colWidths.error),
         "Total".padStart(colWidths.total),
     ].join("  ");
@@ -34,7 +33,6 @@ export function printSummary(report: Report): void {
             section.section.padEnd(colWidths.section),
             String(section.pass).padStart(colWidths.pass),
             String(section.fail).padStart(colWidths.fail),
-            String(section.skip).padStart(colWidths.skip),
             String(section.error).padStart(colWidths.error),
             String(section.total).padStart(colWidths.total),
         ].join("  ");
@@ -46,7 +44,6 @@ export function printSummary(report: Report): void {
         "TOTAL".padEnd(colWidths.section),
         String(report.totals.pass).padStart(colWidths.pass),
         String(report.totals.fail).padStart(colWidths.fail),
-        String(report.totals.skip).padStart(colWidths.skip),
         String(report.totals.error).padStart(colWidths.error),
         String(report.totals.total).padStart(colWidths.total),
     ].join("  ");
@@ -75,8 +72,6 @@ function statusIcon(status: TestStatus): string {
             return "[PASS]";
         case "fail":
             return "[FAIL]";
-        case "skip":
-            return "[SKIP]";
         case "error":
             return "[ERR!]";
     }
@@ -92,20 +87,18 @@ export function formatSummaryMarkdown(report: Report): string {
     lines.push("## Vibefun Spec Validation Report");
     lines.push("");
     lines.push(
-        `**${report.totals.pass}** passed, **${report.totals.fail}** failed, **${report.totals.skip}** skipped, **${report.totals.error}** errors out of **${report.totals.total}** tests`,
+        `**${report.totals.pass}** passed, **${report.totals.fail}** failed, **${report.totals.error}** errors out of **${report.totals.total}** tests`,
     );
     lines.push("");
-    lines.push("| Section | Pass | Fail | Skip | Error | Total |");
-    lines.push("|---------|-----:|-----:|-----:|------:|------:|");
+    lines.push("| Section | Pass | Fail | Error | Total |");
+    lines.push("|---------|-----:|-----:|------:|------:|");
 
     for (const section of report.sections) {
-        lines.push(
-            `| ${section.section} | ${section.pass} | ${section.fail} | ${section.skip} | ${section.error} | ${section.total} |`,
-        );
+        lines.push(`| ${section.section} | ${section.pass} | ${section.fail} | ${section.error} | ${section.total} |`);
     }
 
     lines.push(
-        `| **TOTAL** | **${report.totals.pass}** | **${report.totals.fail}** | **${report.totals.skip}** | **${report.totals.error}** | **${report.totals.total}** |`,
+        `| **TOTAL** | **${report.totals.pass}** | **${report.totals.fail}** | **${report.totals.error}** | **${report.totals.total}** |`,
     );
     lines.push("");
     lines.push(`_Generated at ${report.timestamp}_`);
@@ -126,15 +119,13 @@ function formatDetailedMarkdown(report: Report): string {
     // Summary table
     lines.push("## Summary");
     lines.push("");
-    lines.push("| Section | Pass | Fail | Skip | Error | Total |");
-    lines.push("|---------|-----:|-----:|-----:|------:|------:|");
+    lines.push("| Section | Pass | Fail | Error | Total |");
+    lines.push("|---------|-----:|-----:|------:|------:|");
     for (const section of report.sections) {
-        lines.push(
-            `| ${section.section} | ${section.pass} | ${section.fail} | ${section.skip} | ${section.error} | ${section.total} |`,
-        );
+        lines.push(`| ${section.section} | ${section.pass} | ${section.fail} | ${section.error} | ${section.total} |`);
     }
     lines.push(
-        `| **TOTAL** | **${report.totals.pass}** | **${report.totals.fail}** | **${report.totals.skip}** | **${report.totals.error}** | **${report.totals.total}** |`,
+        `| **TOTAL** | **${report.totals.pass}** | **${report.totals.fail}** | **${report.totals.error}** | **${report.totals.total}** |`,
     );
     lines.push("");
 
@@ -163,8 +154,6 @@ function markdownStatusIcon(status: TestStatus): string {
             return "PASS";
         case "fail":
             return "FAIL";
-        case "skip":
-            return "SKIP";
         case "error":
             return "ERROR";
     }
@@ -186,12 +175,12 @@ export function writeReport(report: Report, dir: string): void {
     summaryLines.push("");
     for (const section of report.sections) {
         summaryLines.push(
-            `${section.section}: ${section.pass} pass, ${section.fail} fail, ${section.skip} skip, ${section.error} error (${section.total} total)`,
+            `${section.section}: ${section.pass} pass, ${section.fail} fail, ${section.error} error (${section.total} total)`,
         );
     }
     summaryLines.push("");
     summaryLines.push(
-        `TOTAL: ${report.totals.pass} pass, ${report.totals.fail} fail, ${report.totals.skip} skip, ${report.totals.error} error (${report.totals.total} total)`,
+        `TOTAL: ${report.totals.pass} pass, ${report.totals.fail} fail, ${report.totals.error} error (${report.totals.total} total)`,
     );
     writeFileSync(join(dir, "summary.txt"), summaryLines.join("\n"), "utf-8");
 
@@ -208,7 +197,7 @@ export function writeReport(report: Report, dir: string): void {
  * Format a brief summary line for the report totals.
  */
 export function formatTotalsLine(report: Report): string {
-    return `${report.totals.pass} passed, ${report.totals.fail} failed, ${report.totals.skip} skipped, ${report.totals.error} errors (${report.totals.total} total)`;
+    return `${report.totals.pass} passed, ${report.totals.fail} failed, ${report.totals.error} errors (${report.totals.total} total)`;
 }
 
 /**

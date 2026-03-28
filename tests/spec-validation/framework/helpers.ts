@@ -182,13 +182,6 @@ export function expectRuns(source: string): TestResult {
     };
 }
 
-/**
- * Return a skip result with a reason.
- */
-export function skip(reason: string): TestResult {
-    return { status: "skip", message: reason };
-}
-
 // --- Temp directory helpers for multi-file tests ---
 
 /**
