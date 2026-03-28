@@ -5,8 +5,8 @@
  * equality/aliasing, value restriction.
  */
 
-import { expectCompileError, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { expectCompileError, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "07-mutable-references";
 

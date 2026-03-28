@@ -5,8 +5,8 @@
  * runtime behavior of compiled code.
  */
 
-import { compileSource, expectRunOutput, expectRuns, withOutput } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { compileSource, expectRunOutput, expectRuns, withOutput } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "12-compilation";
 

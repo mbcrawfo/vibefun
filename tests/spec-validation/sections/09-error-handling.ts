@@ -5,8 +5,8 @@
  * panic, Result/Option types.
  */
 
-import { expectRunOutput, expectRuntimeError, withOutput } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { expectRunOutput, expectRuntimeError, withOutput } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "09-error-handling";
 

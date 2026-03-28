@@ -3,7 +3,8 @@
     "compilerOptions": {
         "rootDir": ".",
         "outDir": "../../dist/tests-spec-validation",
-        "composite": true
+        "composite": true,
+        "rewriteRelativeImportExtensions": true
     },
     "include": ["**/*.ts"],
     "exclude": ["node_modules"]

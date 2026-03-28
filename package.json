@@ -20,7 +20,7 @@
         "clean": "pnpm -r --if-present run clean",
         "docs:errors": "node --experimental-strip-types scripts/generate-error-docs.ts",
         "docs:errors:check": "node --experimental-strip-types scripts/generate-error-docs.ts --check",
-        "spec:validate": "node dist/tests-spec-validation/run.js",
+        "spec:validate": "node --experimental-strip-types tests/spec-validation/run.ts",
         "vibefun": "node packages/cli/dist/index.js"
     },
     "keywords": [

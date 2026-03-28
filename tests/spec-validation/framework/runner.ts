@@ -2,7 +2,7 @@
  * Test registry and executor for spec validation.
  */
 
-import type { Report, RunOptions, SectionSummary, SpecTest, TestRecord } from "./types.js";
+import type { Report, RunOptions, SectionSummary, SpecTest, TestRecord } from "./types.ts";
 
 /** Global test registry */
 const tests: SpecTest[] = [];
