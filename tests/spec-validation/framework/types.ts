@@ -3,12 +3,12 @@
  */
 
 /** Status of a single test */
-export type TestStatus = "pass" | "fail" | "skip" | "error";
+export type TestStatus = "pass" | "fail" | "error";
 
 /** Result from running a single spec test */
 export interface TestResult {
     status: TestStatus;
-    /** Brief reason for fail/skip/error */
+    /** Brief reason for fail/error */
     message?: string;
 }
 
@@ -37,7 +37,6 @@ export interface SectionSummary {
     section: string;
     pass: number;
     fail: number;
-    skip: number;
     error: number;
     total: number;
     tests: TestRecord[];
@@ -50,7 +49,6 @@ export interface Report {
     totals: {
         pass: number;
         fail: number;
-        skip: number;
         error: number;
         total: number;
     };

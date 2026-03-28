@@ -61,7 +61,6 @@ export function runAll(options: RunOptions = {}): Report {
             section: sectionName,
             pass: 0,
             fail: 0,
-            skip: 0,
             error: 0,
             total: sectionTests.length,
             tests: [],
@@ -94,11 +93,10 @@ export function runAll(options: RunOptions = {}): Report {
         sections.push(summary);
     }
 
-    const totals = { pass: 0, fail: 0, skip: 0, error: 0, total: 0 };
+    const totals = { pass: 0, fail: 0, error: 0, total: 0 };
     for (const s of sections) {
         totals.pass += s.pass;
         totals.fail += s.fail;
-        totals.skip += s.skip;
         totals.error += s.error;
         totals.total += s.total;
     }

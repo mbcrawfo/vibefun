@@ -39,14 +39,4 @@ if n <= 1 then 1 else n * factorial(n - 1)
 
 ## Broken Features
 
-When a language feature is currently broken, tests that specifically validate that feature should be skipped rather than left to fail:
-
-```typescript
-import { skip } from "../framework/helpers.js";
-
-test(S, "specRef", "test name", () =>
-    skip("if-then-else is currently broken"),
-);
-```
-
-Tests that are NOT testing the broken feature but were incidentally using it should be rewritten to avoid the broken feature entirely.
+Spec validation tests cannot be skipped. Every test either passes or fails -- a failure means the feature is not yet implemented or is broken, which is valuable signal. Tests that are NOT testing the broken feature but were incidentally using it should be rewritten to avoid the broken feature entirely.
