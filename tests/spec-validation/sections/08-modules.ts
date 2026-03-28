@@ -56,10 +56,12 @@ function moduleTest(
                 message: `Expected successful run, got exit code ${result.exitCode}`,
             };
         }
-        if (expected && !result.stdout.includes(expected)) {
+        const actual = result.stdout.trim();
+        const wanted = expected?.trim();
+        if (wanted !== undefined && actual !== wanted) {
             return {
                 status: "fail",
-                message: `Expected output to contain "${expected}", got "${result.stdout.trim()}"`,
+                message: `Expected output "${wanted}", got "${actual}"`,
             };
         }
         return { status: "pass" };
