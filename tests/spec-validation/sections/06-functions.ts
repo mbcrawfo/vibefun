@@ -263,8 +263,10 @@ let result = add(1, 2, 3);`,
 test(S, "06-functions.md", "recursive function without rec is error", () =>
     expectCompileError(
         `let factorial = (n: Int): Int =>
-  if n <= 1 then 1
-  else n * factorial(n - 1);`,
+  match n {
+    | x when x <= 1 => 1
+    | x => x * factorial(x - 1)
+  };`,
     ),
 );
 

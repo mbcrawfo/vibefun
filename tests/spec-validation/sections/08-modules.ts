@@ -316,11 +316,11 @@ let y = x;`,
 test(S, "08-modules.md", "exported external declaration", () =>
     moduleTest(
         {
-            "ffi.vf": `export external math_floor: (Float) -> Float = "Math.floor";`,
+            "ffi.vf": `export external math_floor: (Float) -> Int = "Math.floor";`,
             "main.vf": `import { math_floor } from './ffi';
 external console_log: (String) -> Unit = "console.log";
 let result = unsafe { math_floor(3.7) };
-let _ = unsafe { console_log(String.fromFloat(result)) };`,
+let _ = unsafe { console_log(String.fromInt(result)) };`,
         },
         "main.vf",
         "output",
