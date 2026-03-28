@@ -141,3 +141,56 @@ obj.counter := 5;`,
         "5",
     ),
 );
+
+// --- Additional Mutable Reference Tests ---
+
+test(S, "07-mutable-references.md", "closure captures ref (makeCounter pattern)", () =>
+    expectRunOutput(
+        withOutput(
+            `let makeCounter = () => {
+  let mut count = ref(0);
+  let increment = () => {
+    count := !count + 1;
+    !count;
+  };
+  increment;
+};
+let counter = makeCounter();
+let a = counter();
+let b = counter();
+let c = counter();`,
+            `String.fromInt(c)`,
+        ),
+        "3",
+    ),
+);
+
+test(S, "07-mutable-references.md", "multiple updates to same ref", () =>
+    expectRunOutput(
+        withOutput(
+            `let mut x = ref(0);
+x := 1;
+x := 2;
+x := 3;`,
+            `String.fromInt(!x)`,
+        ),
+        "3",
+    ),
+);
+
+test(S, "07-mutable-references.md", "ref in list", () =>
+    expectCompiles(
+        `let mut a = ref(1);
+let mut b = ref(2);
+let refs = [a, b];`,
+    ),
+);
+
+test(S, "07-mutable-references.md", "polymorphic ref forbidden by value restriction", () =>
+    expectCompileError(
+        `type Option<T> = Some(T) | None;
+let mut x = ref(None);
+x := Some(42);
+x := Some("hello");`,
+    ),
+);

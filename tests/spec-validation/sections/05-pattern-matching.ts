@@ -5,7 +5,7 @@
  * nested patterns, guards, or-patterns, exhaustiveness checking.
  */
 
-import { compileSource, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.ts";
+import { expectCompileError, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.ts";
 import { test } from "../framework/runner.ts";
 
 const S = "05-pattern-matching";
@@ -343,22 +343,14 @@ test(S, "05-pattern-matching/exhaustiveness.md", "exhaustive match on list with 
     ),
 );
 
-test(S, "05-pattern-matching/exhaustiveness.md", "non-exhaustive match produces warning or error", () => {
-    const result = compileSource(
+test(S, "05-pattern-matching/exhaustiveness.md", "non-exhaustive match produces warning or error", () =>
+    expectCompileError(
         `type Option<T> = Some(T) | None;
 let f = (o: Option<Int>) => match o {
   | Some(x) => x
 };`,
-    );
-    // The compiler should reject non-exhaustive patterns (missing None case).
-    if (result.exitCode === 1) {
-        return { status: "pass" };
-    }
-    return {
-        status: "fail",
-        message: `Expected compile error (exit 1) for non-exhaustive match, got exit code ${result.exitCode}`,
-    };
-});
+    ),
+);
 
 test(S, "05-pattern-matching/exhaustiveness.md", "wildcard catches all Int values", () =>
     expectCompiles(
@@ -379,5 +371,177 @@ let result = match pair {
             `result`,
         ),
         "3",
+    ),
+);
+
+// --- Additional Pattern Matching Tests ---
+
+test(S, "05-pattern-matching/advanced-patterns.md", "or-pattern cannot bind variables", () =>
+    expectCompileError(
+        `type Option<T> = Some(T) | None;
+let f = (o: Option<Int>) => match o {
+  | Some(x) | None => 0
+};`,
+    ),
+);
+
+test(S, "05-pattern-matching/advanced-patterns.md", "or-pattern nested in constructor", () =>
+    expectRunOutput(
+        withOutput(
+            `type Result<T, E> = Ok(T) | Err(E);
+let x: Result<String, String> = Ok("a");
+let result = match x {
+  | Ok("a" | "b") => "matched"
+  | Ok(_) => "other"
+  | Err(_) => "error"
+};`,
+            `result`,
+        ),
+        "matched",
+    ),
+);
+
+test(S, "05-pattern-matching/exhaustiveness.md", "guards do not affect exhaustiveness", () =>
+    expectCompileError(
+        `let classify = (n: Int) => match n {
+  | x when x > 0 => "positive"
+  | x when x < 0 => "negative"
+};`,
+    ),
+);
+
+test(S, "05-pattern-matching/data-patterns.md", "record pattern with field rename", () =>
+    expectRunOutput(
+        withOutput(
+            `let p = { name: "Alice", age: 30 };
+let result = match p {
+  | { name: n } => n
+};`,
+            `result`,
+        ),
+        "Alice",
+    ),
+);
+
+test(S, "05-pattern-matching/data-patterns.md", "record pattern with keyword field binding", () =>
+    expectRunOutput(
+        withOutput(
+            `let node = { type: "identifier", value: "x" };
+let result = match node {
+  | { type: t, value: v } => t & ": " & v
+};`,
+            `result`,
+        ),
+        "identifier: x",
+    ),
+);
+
+test(S, "05-pattern-matching/data-patterns.md", "list spread not at end is error", () =>
+    expectCompileError(
+        `let f = (xs: List<Int>) => match xs {
+  | [a, ...middle, z] => a
+  | _ => 0
+};`,
+    ),
+);
+
+test(S, "05-pattern-matching/advanced-patterns.md", "nested variant in list", () =>
+    expectRunOutput(
+        withOutput(
+            `type Option<T> = Some(T) | None;
+let xs: List<Option<Int>> = [Some(1), Some(2)];
+let result = match xs {
+  | [Some(a), Some(b), ...rest] => String.fromInt(a + b)
+  | _ => "other"
+};`,
+            `result`,
+        ),
+        "3",
+    ),
+);
+
+test(S, "05-pattern-matching/advanced-patterns.md", "nested list in variant", () =>
+    expectRunOutput(
+        withOutput(
+            `type Result<T, E> = Ok(T) | Err(E);
+let x: Result<List<Int>, String> = Ok([10, 20, 30]);
+let result = match x {
+  | Ok([first, ...rest]) => String.fromInt(first)
+  | Ok([]) => "empty"
+  | Err(e) => e
+};`,
+            `result`,
+        ),
+        "10",
+    ),
+);
+
+test(S, "05-pattern-matching/advanced-patterns.md", "nested record in list", () =>
+    expectRunOutput(
+        withOutput(
+            `let items = [{ name: "Alice" }, { name: "Bob" }];
+let result = match items {
+  | [{ name }, ...rest] => name
+  | [] => "empty"
+};`,
+            `result`,
+        ),
+        "Alice",
+    ),
+);
+
+test(S, "05-pattern-matching/exhaustiveness.md", "tuple pattern with literal values", () =>
+    expectRunOutput(
+        withOutput(
+            `let classify = (pair: (Int, Int)) => match pair {
+  | (0, 0) => "origin"
+  | (0, _) => "y-axis"
+  | (_, 0) => "x-axis"
+  | _ => "general"
+};
+let result = classify((0, 0));`,
+            `result`,
+        ),
+        "origin",
+    ),
+);
+
+test(S, "05-pattern-matching/data-patterns.md", "multiple list length patterns", () =>
+    expectRunOutput(
+        withOutput(
+            `let describe = (xs: List<Int>) => match xs {
+  | [] => "empty"
+  | [_] => "one"
+  | [_, _] => "two"
+  | _ => "many"
+};
+let result = describe([1, 2]);`,
+            `result`,
+        ),
+        "two",
+    ),
+);
+
+test(S, "05-pattern-matching/advanced-patterns.md", "failing guard falls through to next pattern", () =>
+    expectRunOutput(
+        withOutput(
+            `let classify = (n: Int) => match n {
+  | x when x > 100 => "big"
+  | x when x > 0 => "positive"
+  | _ => "other"
+};
+let result = classify(50);`,
+            `result`,
+        ),
+        "positive",
+    ),
+);
+
+test(S, "05-pattern-matching/exhaustiveness.md", "unreachable pattern after wildcard", () =>
+    expectCompileError(
+        `let f = (n: Int) => match n {
+  | _ => "any"
+  | 0 => "zero"
+};`,
     ),
 );

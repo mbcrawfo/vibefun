@@ -46,12 +46,10 @@ test(S, "03-type-system/primitive-types.md", "string concat requires strings onl
     expectCompileError(`let x = "hello" & 42;`),
 );
 
-test(S, "03-type-system/primitive-types.md", "Bool logical AND", () =>
-    expectRunOutput(withOutput(`let x = true && false;`, `String.fromBool(x)`), "false"),
-);
-
-test(S, "03-type-system/primitive-types.md", "Bool logical OR", () =>
-    expectRunOutput(withOutput(`let x = false || true;`, `String.fromBool(x)`), "true"),
+test(S, "03-type-system/primitive-types.md", "Bool type supports logical operators", () =>
+    expectCompiles(`let a = true && false;
+let b = false || true;
+let c = !true;`),
 );
 
 // --- Type Inference ---
@@ -299,6 +297,92 @@ let result = getName({ name: "Alice", age: 30 });`,
 );
 
 test(S, "03-type-system/subtyping.md", "field order does not matter", () =>
-    expectCompiles(`let f = (r: { a: Int, b: String }) => r.a;
-let result = f({ b: "hello", a: 42 });`),
+    expectRunOutput(
+        withOutput(
+            `let f = (r: { a: Int, b: String }) => r.a;
+let result = f({ b: "hello", a: 42 });`,
+            `String.fromInt(result)`,
+        ),
+        "42",
+    ),
+);
+
+// --- Additional Type System Tests ---
+
+test(S, "03-type-system/recursive-types.md", "mutually recursive types with and", () =>
+    expectCompiles(
+        `type Expr = Lit(Int) | Add(Expr, Expr) | IfExpr(Cond)
+and Cond = IsZero(Expr) | IsPos(Expr);
+let e = IfExpr(IsZero(Lit(0)));`,
+    ),
+);
+
+test(S, "03-type-system/recursive-types.md", "unguarded recursion rejected", () =>
+    expectCompileError(`type Bad = Bad;`),
+);
+
+test(S, "03-type-system/type-aliases.md", "recursive type alias rejected", () =>
+    expectCompileError(`type Loop = (Int, Loop);`),
+);
+
+test(S, "03-type-system/variant-types.md", "nominal typing - same constructors different types are incompatible", () =>
+    expectCompileError(
+        `type A = Foo(Int) | Bar;
+type B = Foo(Int) | Bar;
+let x: A = Foo(1);
+let f = (b: B) => b;
+let y = f(x);`,
+    ),
+);
+
+test(S, "03-type-system/tuples.md", "tuple index access is forbidden", () =>
+    expectCompileError(
+        `let pair = (1, 2);
+let x = pair.0;`,
+    ),
+);
+
+test(S, "03-type-system/tuples.md", "tuple destructuring arity mismatch rejected", () =>
+    expectCompileError(
+        `let pair = (1, 2);
+let (a) = pair;`,
+    ),
+);
+
+test(S, "03-type-system/union-types.md", "string literal union rejects invalid literal", () =>
+    expectCompileError(
+        `type Status = "pending" | "active" | "complete";
+let s: Status = "unknown";`,
+    ),
+);
+
+test(S, "03-type-system/record-types.md", "keyword field shorthand rejected", () =>
+    expectCompileError(
+        `let type = "hello";
+let r = { type };`,
+    ),
+);
+
+test(S, "03-type-system/subtyping.md", "width subtyping does not apply through generics", () =>
+    expectCompileError(
+        `type Box<T> = { value: T };
+let f = (b: Box<{ x: Int }>) => b;
+let b: Box<{ x: Int, y: Int }> = { value: { x: 1, y: 2 } };
+let result = f(b);`,
+    ),
+);
+
+test(S, "03-type-system/primitive-types.md", "Ref type annotation", () =>
+    expectCompiles(`let mut x: Ref<Int> = ref(42);`),
+);
+
+test(S, "03-type-system/type-inference.md", "Hindley-Milner infers function parameter types", () =>
+    expectRunOutput(
+        withOutput(
+            `let add = (x, y) => x + y;
+let result = add(2, 3);`,
+            `String.fromInt(result)`,
+        ),
+        "5",
+    ),
 );

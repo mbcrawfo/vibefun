@@ -96,3 +96,44 @@ let result = safeSqrt(9.0);`,
         "3",
     ),
 );
+
+// --- Additional JavaScript Interop Tests ---
+
+test(S, "10-javascript-interop/unsafe-blocks.md", "nested unsafe blocks allowed", () =>
+    expectRunOutput(
+        withOutput(
+            `external math_abs: (Int) -> Int = "Math.abs";
+let result = unsafe {
+  let inner = unsafe { math_abs(-5) };
+  inner;
+};`,
+            `String.fromInt(result)`,
+        ),
+        "5",
+    ),
+);
+
+test(S, "10-javascript-interop/external-declarations.md", "generic external declaration", () =>
+    expectCompiles(`external json_stringify: <T>(T) -> String = "JSON.stringify";`),
+);
+
+test(S, "10-javascript-interop/external-declarations.md", "exported external declaration", () =>
+    expectCompiles(`export external console_log: (String) -> Unit = "console.log";`),
+);
+
+test(S, "10-javascript-interop/unsafe-blocks.md", "try-catch in unsafe block", () =>
+    expectRunOutput(
+        withOutput(
+            `external json_parse: (String) -> Int = "JSON.parse";
+let result = unsafe {
+  try {
+    json_parse("not json");
+  } catch (e) {
+    0;
+  }
+};`,
+            `String.fromInt(result)`,
+        ),
+        "0",
+    ),
+);

@@ -114,10 +114,12 @@ test(S, "02-lexical-structure/tokens.md", "basic float literal", () =>
     expectRunOutput(withOutput(`let x = 3.14;`, `String.fromFloat(x)`), "3.14"),
 );
 
-test(S, "02-lexical-structure/tokens.md", "scientific notation float", () => expectCompiles(`let x = 1e10;`));
+test(S, "02-lexical-structure/tokens.md", "scientific notation float", () =>
+    expectRunOutput(withOutput(`let x = 1e10;`, `String.fromFloat(x)`), "10000000000"),
+);
 
 test(S, "02-lexical-structure/tokens.md", "scientific notation with negative exponent", () =>
-    expectCompiles(`let x = 3.14e-2;`),
+    expectRunOutput(withOutput(`let x = 3.14e-2;`, `String.fromFloat(x)`), "0.0314"),
 );
 
 // --- String Literals ---
@@ -218,3 +220,103 @@ test(S, "02-lexical-structure/operators.md", "list cons operator", () => expectC
 test(S, "02-lexical-structure/operators.md", "unary minus operator", () =>
     expectRunOutput(withOutput(`let x = -42;`, `String.fromInt(x)`), "-42"),
 );
+
+test(S, "02-lexical-structure/operators.md", "composition operators compile", () =>
+    expectCompiles(
+        `let f = (x: Int) => x + 1;
+let g = (x: Int) => x * 2;
+let h = f >> g;
+let i = f << g;`,
+    ),
+);
+
+test(S, "02-lexical-structure/operators.md", "reference operators compile", () =>
+    expectCompiles(
+        `let mut x = ref(0);
+let y = !x;
+x := 1;`,
+    ),
+);
+
+test(S, "02-lexical-structure/operators.md", "spread operator in list", () =>
+    expectCompiles(
+        `let xs = [1, 2];
+let ys = [0, ...xs];`,
+    ),
+);
+
+// --- Additional Keyword Tests ---
+
+test(S, "02-lexical-structure/tokens.md", "match keyword cannot be variable name", () =>
+    expectCompileError(`let match = 42;`),
+);
+
+test(S, "02-lexical-structure/tokens.md", "type keyword cannot be variable name", () =>
+    expectCompileError(`let type = 42;`),
+);
+
+test(S, "02-lexical-structure/tokens.md", "while keyword cannot be variable name", () =>
+    expectCompileError(`let while = 42;`),
+);
+
+test(S, "02-lexical-structure/tokens.md", "reserved future keyword async rejected", () =>
+    expectCompileError(`let async = 42;`),
+);
+
+test(S, "02-lexical-structure/tokens.md", "reserved future keyword await rejected", () =>
+    expectCompileError(`let await = 42;`),
+);
+
+test(S, "02-lexical-structure/tokens.md", "reserved future keyword return rejected", () =>
+    expectCompileError(`let return = 42;`),
+);
+
+// --- Additional Number Error Cases ---
+
+test(S, "02-lexical-structure/tokens.md", "invalid hex digit error", () => expectCompileError(`let x = 0xGG;`));
+
+test(S, "02-lexical-structure/tokens.md", "invalid binary digit error", () => expectCompileError(`let x = 0b1012;`));
+
+test(S, "02-lexical-structure/tokens.md", "leading decimal without integer error", () =>
+    expectCompileError(`let x = .5;`),
+);
+
+test(S, "02-lexical-structure/tokens.md", "trailing decimal without fraction error", () =>
+    expectCompileError(`let x = 5.;`),
+);
+
+// --- Additional String Error Cases ---
+
+test(S, "02-lexical-structure/tokens.md", "incomplete hex escape error", () =>
+    expectCompileError(`let x = "\\x4";`, "VF1"),
+);
+
+test(S, "02-lexical-structure/tokens.md", "incomplete unicode escape error", () =>
+    expectCompileError(`let x = "\\u03";`, "VF1"),
+);
+
+test(S, "02-lexical-structure/tokens.md", "unterminated long unicode escape error", () =>
+    expectCompileError(`let x = "\\u{12";`, "VF1"),
+);
+
+test(S, "02-lexical-structure/tokens.md", "out-of-range unicode escape error", () =>
+    expectCompileError(`let x = "\\u{110000}";`, "VF1"),
+);
+
+// --- Additional Escape Sequence Tests ---
+
+test(S, "02-lexical-structure/tokens.md", "tab escape in string", () =>
+    expectRunOutput(withOutput(`let x = "a\\tb";`, `x`), "a\tb"),
+);
+
+test(S, "02-lexical-structure/tokens.md", "backslash escape in string", () =>
+    expectRunOutput(withOutput(`let x = "a\\\\b";`, `x`), "a\\b"),
+);
+
+test(S, "02-lexical-structure/tokens.md", "double quote escape in string", () =>
+    expectRunOutput(withOutput(`let x = "say \\"hi\\"";`, `x`), 'say "hi"'),
+);
+
+// --- Identifier Edge Cases ---
+
+test(S, "02-lexical-structure/tokens.md", "emoji identifier", () => expectCompiles(`let \u{1F680} = 42;`));

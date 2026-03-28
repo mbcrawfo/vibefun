@@ -110,3 +110,51 @@ let result = match x {
         "42",
     ),
 );
+
+// --- Additional Error Handling Tests ---
+
+test(S, "09-error-handling.md", "integer modulo by zero panics", () => expectRuntimeError(`let x: Int = 1 % 0;`));
+
+test(S, "09-error-handling.md", "NaN self-equality is false", () =>
+    expectRunOutput(
+        withOutput(
+            `let nan = 0.0 / 0.0;
+let result = nan == nan;`,
+            `String.fromBool(result)`,
+        ),
+        "false",
+    ),
+);
+
+test(S, "09-error-handling.md", "Infinity plus one is still Infinity", () =>
+    expectRunOutput(
+        withOutput(
+            `let inf = 1.0 / 0.0;
+let result = inf + 1.0;`,
+            `String.fromFloat(result)`,
+        ),
+        "Infinity",
+    ),
+);
+
+test(S, "09-error-handling.md", "Infinity minus Infinity is NaN", () =>
+    expectRunOutput(
+        withOutput(
+            `let inf = 1.0 / 0.0;
+let result = inf - inf;`,
+            `String.fromFloat(result)`,
+        ),
+        "NaN",
+    ),
+);
+
+test(S, "09-error-handling.md", "Infinity comparison with finite number", () =>
+    expectRunOutput(
+        withOutput(
+            `let inf = 1.0 / 0.0;
+let result = inf > 1000000.0;`,
+            `String.fromBool(result)`,
+        ),
+        "true",
+    ),
+);

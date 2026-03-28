@@ -157,3 +157,51 @@ let name = match c {
         "green",
     ),
 );
+
+// --- Additional Desugaring Tests ---
+
+test(S, "12-compilation/desugaring.md", "list literal desugars to cons chain", () =>
+    expectRunOutput(
+        withOutput(
+            `let xs = [1, 2, 3];
+let len = List.length(xs);`,
+            `String.fromInt(len)`,
+        ),
+        "3",
+    ),
+);
+
+test(S, "12-compilation/desugaring.md", "pipe operator desugars to function application", () =>
+    expectRunOutput(
+        withOutput(
+            `let double = (x: Int) => x * 2;
+let result = 5 |> double;`,
+            `String.fromInt(result)`,
+        ),
+        "10",
+    ),
+);
+
+test(S, "12-compilation/desugaring.md", "composition desugars to lambda", () =>
+    expectRunOutput(
+        withOutput(
+            `let inc = (x: Int) => x + 1;
+let dbl = (x: Int) => x * 2;
+let f = inc >> dbl;
+let result = f(3);`,
+            `String.fromInt(result)`,
+        ),
+        "8",
+    ),
+);
+
+test(S, "12-compilation/desugaring.md", "record update desugars preserving fields", () =>
+    expectRunOutput(
+        withOutput(
+            `let p = { name: "Alice", age: 30, city: "NYC" };
+let p2 = { ...p, age: 31 };`,
+            `p2.name & " " & String.fromInt(p2.age) & " " & p2.city`,
+        ),
+        "Alice 31 NYC",
+    ),
+);
