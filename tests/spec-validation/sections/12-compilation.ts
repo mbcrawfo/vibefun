@@ -160,25 +160,27 @@ let name = match c {
 
 // --- Additional Desugaring Tests ---
 
-test(S, "12-compilation/desugaring.md", "list literal desugars to cons chain", () =>
+test(S, "12-compilation/desugaring.md", "list literal desugars and supports cons prepend", () =>
     expectRunOutput(
         withOutput(
             `let xs = [1, 2, 3];
-let len = List.length(xs);`,
-            `String.fromInt(len)`,
+let ys = 0 :: xs;`,
+            `String.fromInt(List.length(ys))`,
         ),
-        "3",
+        "4",
     ),
 );
 
-test(S, "12-compilation/desugaring.md", "pipe operator desugars to function application", () =>
+test(S, "12-compilation/desugaring.md", "pipe operator chains desugar correctly", () =>
     expectRunOutput(
         withOutput(
-            `let double = (x: Int) => x * 2;
-let result = 5 |> double;`,
+            `let add1 = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let sub3 = (x: Int) => x - 3;
+let result = 5 |> add1 |> double |> sub3;`,
             `String.fromInt(result)`,
         ),
-        "10",
+        "9",
     ),
 );
 

@@ -357,10 +357,7 @@ let s: Status = "unknown";`,
 );
 
 test(S, "03-type-system/record-types.md", "keyword field shorthand rejected", () =>
-    expectCompileError(
-        `let type = "hello";
-let r = { type };`,
-    ),
+    expectCompileError(`let r = { type };`),
 );
 
 test(S, "03-type-system/subtyping.md", "width subtyping does not apply through generics", () =>
