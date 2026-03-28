@@ -16,7 +16,14 @@ test(S, "10-javascript-interop/external-declarations.md", "external function dec
 );
 
 test(S, "10-javascript-interop/external-declarations.md", "external with module import", () =>
-    expectCompiles(`external readFile: (String) -> String = "readFileSync" from "node:fs";`),
+    expectRunOutput(
+        withOutput(
+            `external basename: (String) -> String = "basename" from "node:path";
+let result = unsafe { basename("/tmp/file.txt") };`,
+            `result`,
+        ),
+        "file.txt",
+    ),
 );
 
 test(S, "10-javascript-interop/external-declarations.md", "external block syntax", () =>
