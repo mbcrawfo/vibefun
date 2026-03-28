@@ -37,46 +37,29 @@ These directives guide all development work on the vibefun project:
    - `pnpm run format` - Code formatting with Prettier
    - OR use the convenience command: `pnpm run verify` (runs all checks)
 
-
-### Starting Large Tasks
-
-Do not include time estimates during planning.
-
-When exiting plan mode with an accepted plan:
-
-1. **Create Task Directory**: `mkdir -p .claude/active/[task-name]/`
-2. **Create Documents**:
-   - `[task-name]-plan.md` - The accepted plan
-   - `[task-name]-context.md` - Key files, decisions
-   - `[task-name]-tasks.md` - Checklist of work
-3. **Update Regularly**: Mark tasks complete immediately upon finishing.
-
-### Continuing Tasks
-
-- Check `.claude/active/[task-name]/` for existing tasks
-- Read all three files before proceeding
-- Update "Last Updated" timestamps
-
 ## Project Structure
 
 The project uses **pnpm workspaces** to organize code into independently publishable packages:
 
-```[task-name]
+```
 vibefun/
-├── .claude/              # Project plans and documentation
-│   ├── design/           # Design documents
-│   └── active/           # Active task tracking
-│       └── [task-name]/  # Task-specific plan files
+├── examples/                    # Example vibefun programs
+├── docs/                        # User facing and system documentation
+│   ├── cli/                     # vibefun cli commands and options
+│   ├── compiler-architecture/   # Architectural design docs for the vibefun compiler
+│   ├── errors/                  # Reference for error codes produced by the compiler (auto-generated from source code)
+│   └── spec/                    # Full vibefun language specification
 ├── packages/
-│   ├── core/             # @vibefun/core - Compiler library
-│   │   └── src/          # Lexer, parser, types, and utilities
-│   ├── cli/              # @vibefun/cli - Command-line interface
-│   │   └── src/          # CLI implementation using commander
-│   └── stdlib/           # @vibefun/std - Standard library
-│       └── src/          # Standard library implementation
-├── examples/             # Example vibefun programs
-├── tsconfig.base.json    # Shared TypeScript configuration
-└── package.json          # Workspace root configuration
+│   ├── core/                    # @vibefun/core - Compiler library
+│   │   └── src/                 # Lexer, parser, types, and utilities
+│   ├── cli/                     # @vibefun/cli - Command-line interface
+│   │   └── src/                 # CLI implementation using commander
+│   └── stdlib/                  # @vibefun/std - Standard library
+│       └── src/                 # Standard library implementation
+├── tests/
+│   └── spec-validation/         # Test suite validating the implementation of language features
+├── tsconfig.base.json           # Shared TypeScript configuration
+└── package.json                 # Workspace root configuration
 ```
 
 ### Workspace Packages
@@ -98,6 +81,8 @@ vibefun/
 - **Comprehensive testing**: All code must have thorough test coverage
 
 ### Compilation Pipeline
+
+See the [compiler architecture docs](./docs/compiler-architecture/) for compiler design details.
 
 1. **Lexer**: Tokenize `.vf` source files
 2. **Parser**: Build AST using recursive descent
@@ -126,22 +111,28 @@ pnpm --filter @vibefun/core run build
 pnpm --filter @vibefun/cli run build
 
 # Quality checks (run after every change)
-pnpm run check            # Type checking (all workspaces)
-pnpm run lint             # Linting (all packages)
-pnpm test                 # Run tests (all packages)
-pnpm run format           # Format code (all packages)
+pnpm run check                   # Type checking (all workspaces)
+pnpm run lint                    # Linting (all packages)
+pnpm test                        # Run tests (all packages)
+pnpm run format                  # Format code (all packages)
 
 # All checks at once
-pnpm run verify           # Run all checks (read-only)
+pnpm run verify                  # Run all checks (read-only)
 
 # Testing
-pnpm test                 # Run all tests
-pnpm run test:watch       # Watch mode
-pnpm run test:coverage    # With coverage report
+pnpm test                        # Run all tests
+pnpm run test:watch              # Watch mode
+pnpm run test:coverage           # With coverage report
 
 # Workspace-specific testing
 pnpm --filter @vibefun/core test
 pnpm --filter @vibefun/std test
+
+# Regenerate error code docs (run after adding/changing/removing error codes)
+pnpm docs:errors
+
+# Spec validation - check the functionality of language features
+pnpm spec:validate --verbose
 ```
 
 ### Running the Vibefun CLI
@@ -168,16 +159,6 @@ pnpm run vibefun compile src/main.vf --verbose
 3. **Type checking tests**: Ensure type errors are caught correctly
 4. **Code generation tests**: Verify JavaScript output
 5. **Example programs**: Real-world usage examples
-
-## Open Questions & Future Considerations
-
-1. **Effect system**: How to handle async/await and side effects?
-2. **Type classes**: Add trait/interface system for ad-hoc polymorphism?
-3. **Module system**: More sophisticated namespace handling?
-4. **Optimizations**: Tail call optimization feasibility in JavaScript?
-5. **REPL**: Interactive development environment?
-6. **Language server**: IDE integration with LSP?
-7. **Package manager**: Dependency management system?
 
 ## Important Notes
 
