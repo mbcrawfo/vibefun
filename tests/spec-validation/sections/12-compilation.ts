@@ -71,11 +71,11 @@ let y = x + 1;`,
             message: `Compilation failed with exit code ${result.exitCode}`,
         };
     }
-    // Check that output contains JavaScript-like code
-    if (!result.stdout.includes("const") && !result.stdout.includes("let") && !result.stdout.includes("var")) {
+    // Check that output contains the expected generated variable declarations
+    if (!result.stdout.includes("x") || !result.stdout.includes("42")) {
         return {
             status: "fail",
-            message: "Output does not appear to contain JavaScript",
+            message: `Output does not contain expected generated code, got: ${result.stdout.trim().slice(0, 200)}`,
         };
     }
     return { status: "pass" };
