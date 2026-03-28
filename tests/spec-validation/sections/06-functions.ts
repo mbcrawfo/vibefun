@@ -5,7 +5,7 @@
  * mutual recursion, higher-order functions, lambdas, composition.
  */
 
-import { expectRunOutput, withOutput } from "../framework/helpers.ts";
+import { expectCompileError, expectRunOutput, withOutput } from "../framework/helpers.ts";
 import { test } from "../framework/runner.ts";
 
 const S = "06-functions";
@@ -248,5 +248,63 @@ let result = dblThenInc(5);`,
             `String.fromInt(result)`,
         ),
         "11",
+    ),
+);
+
+// --- Negative Tests ---
+
+test(S, "06-functions.md", "over-application is compile error", () =>
+    expectCompileError(
+        `let add = (x: Int, y: Int) => x + y;
+let result = add(1, 2, 3);`,
+    ),
+);
+
+test(S, "06-functions.md", "recursive function without rec is error", () =>
+    expectCompileError(
+        `let factorial = (n: Int): Int =>
+  if n <= 1 then 1
+  else n * factorial(n - 1);`,
+    ),
+);
+
+// --- Closure ---
+
+test(S, "06-functions.md", "closure captures outer variable", () =>
+    expectRunOutput(
+        withOutput(
+            `let x = 10;
+let addX = (y: Int) => x + y;
+let result = addX(5);`,
+            `String.fromInt(result)`,
+        ),
+        "15",
+    ),
+);
+
+// --- Return Type Annotation ---
+
+test(S, "06-functions.md", "lambda with return type annotation", () =>
+    expectRunOutput(
+        withOutput(
+            `let show = (x: Int): String => String.fromInt(x);
+let result = show(42);`,
+            `result`,
+        ),
+        "42",
+    ),
+);
+
+// --- Mixed Calling Conventions ---
+
+test(S, "06-functions.md", "mixed calling conventions for 3-arg function", () =>
+    expectRunOutput(
+        withOutput(
+            `let add3 = (a: Int, b: Int, c: Int) => a + b + c;
+let result1 = add3(1, 2)(3);
+let result2 = add3(1)(2, 3);`,
+            `String.fromInt(result1) & " " & String.fromInt(result2)`,
+        ),
+        "6 6",
     ),
 );

@@ -212,3 +212,118 @@ let _ = unsafe { console_log(String.fromInt(x)) };`,
         "42",
     ),
 );
+
+// --- Additional Module Tests ---
+
+test(S, "08-modules.md", "type import", () =>
+    moduleTest(
+        {
+            "types.vf": `export type Color = Red | Green | Blue;`,
+            "main.vf": `import type { Color } from './types';
+import { Red } from './types';
+let c: Color = Red;`,
+        },
+        "main.vf",
+        "compiles",
+    ),
+);
+
+test(S, "08-modules.md", "mixed type and value import", () =>
+    moduleTest(
+        {
+            "lib.vf": `export type Color = Red | Green | Blue;
+export let defaultColor = Red;`,
+            "main.vf": `import { type Color, defaultColor } from './lib';
+let c: Color = defaultColor;`,
+        },
+        "main.vf",
+        "compiles",
+    ),
+);
+
+test(S, "08-modules.md", "self-import is error", () => {
+    const dir = createTempDir();
+    try {
+        writeTempFile(
+            dir,
+            "main.vf",
+            `import { x } from './main';
+let x = 42;`,
+        );
+        const result = compileFile("main.vf", dir);
+        if (result.exitCode !== 0) {
+            return { status: "pass" };
+        }
+        return {
+            status: "fail",
+            message: "Expected compile error for self-import, but compilation succeeded",
+        };
+    } finally {
+        cleanupTempDir(dir);
+    }
+});
+
+test(S, "08-modules.md", "export wildcard re-export", () =>
+    moduleTest(
+        {
+            "inner.vf": `export let x = 42;
+export let y = "hello";`,
+            "outer.vf": `export * from './inner';`,
+            "main.vf": `import { x, y } from './outer';
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log(y) };`,
+        },
+        "main.vf",
+        "output",
+        "hello",
+    ),
+);
+
+test(S, "08-modules.md", "import with explicit .vf extension", () =>
+    moduleTest(
+        {
+            "lib.vf": `export let x = 42;`,
+            "main.vf": `import { x } from './lib.vf';
+let y = x;`,
+        },
+        "main.vf",
+        "compiles",
+    ),
+);
+
+test(S, "08-modules.md", "import missing module is error", () => {
+    const dir = createTempDir();
+    try {
+        writeTempFile(
+            dir,
+            "main.vf",
+            `import { x } from './nonexistent';
+let y = x;`,
+        );
+        const result = compileFile("main.vf", dir);
+        if (result.exitCode !== 0) {
+            return { status: "pass" };
+        }
+        return {
+            status: "fail",
+            message: "Expected compile error for missing module, but compilation succeeded",
+        };
+    } finally {
+        cleanupTempDir(dir);
+    }
+});
+
+test(S, "08-modules.md", "exported external declaration", () =>
+    moduleTest(
+        {
+            "ffi.vf": `export external math_floor: (Float) -> Float = "Math.floor";`,
+            "main.vf": `import { math_floor } from './ffi';
+external console_log: (String) -> Unit = "console.log";
+let result = unsafe { math_floor(3.7) };
+let _ = unsafe { console_log(String.fromFloat(result)) };`,
+        },
+        "main.vf",
+        "output",
+        "3",
+    ),
+);

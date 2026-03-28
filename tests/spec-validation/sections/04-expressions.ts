@@ -394,9 +394,148 @@ test(S, "04-expressions/basic-expressions.md", "chained field access", () =>
 // --- Cons Operator ---
 
 test(S, "04-expressions/basic-expressions.md", "cons operator prepends to list", () =>
-    expectCompiles(`let xs = 1 :: [2, 3];`),
+    expectRunOutput(withOutput(`let xs = 1 :: [2, 3];`, `String.fromInt(List.length(xs))`), "3"),
 );
 
 test(S, "04-expressions/basic-expressions.md", "cons is right-associative", () =>
-    expectCompiles(`let xs = 1 :: 2 :: 3 :: [];`),
+    expectRunOutput(withOutput(`let xs = 1 :: 2 :: 3 :: [];`, `String.fromInt(List.length(xs))`), "3"),
+);
+
+// --- Float Arithmetic ---
+
+test(S, "04-expressions/basic-expressions.md", "float addition", () =>
+    expectRunOutput(withOutput(`let x = 1.5 + 2.5;`, `String.fromFloat(x)`), "4"),
+);
+
+test(S, "04-expressions/basic-expressions.md", "float subtraction", () =>
+    expectRunOutput(withOutput(`let x = 5.0 - 2.5;`, `String.fromFloat(x)`), "2.5"),
+);
+
+test(S, "04-expressions/basic-expressions.md", "float multiplication", () =>
+    expectRunOutput(withOutput(`let x = 2.5 * 4.0;`, `String.fromFloat(x)`), "10"),
+);
+
+test(S, "04-expressions/basic-expressions.md", "float division", () =>
+    expectRunOutput(withOutput(`let x = 7.0 / 2.0;`, `String.fromFloat(x)`), "3.5"),
+);
+
+// --- Additional Comparison Operators ---
+
+test(S, "04-expressions/basic-expressions.md", "greater than comparison", () =>
+    expectRunOutput(withOutput(`let x = 2 > 1;`, `String.fromBool(x)`), "true"),
+);
+
+test(S, "04-expressions/basic-expressions.md", "greater than or equal comparison", () =>
+    expectRunOutput(withOutput(`let x = 2 >= 2;`, `String.fromBool(x)`), "true"),
+);
+
+test(S, "04-expressions/basic-expressions.md", "less than or equal comparison", () =>
+    expectRunOutput(withOutput(`let x = 2 <= 2;`, `String.fromBool(x)`), "true"),
+);
+
+// --- Control Flow Edge Cases ---
+
+test(S, "04-expressions/control-flow.md", "while loop with false condition executes zero times", () =>
+    expectRunOutput(
+        withOutput(
+            `let mut x = ref(42);
+while false {
+  x := 0;
+};`,
+            `String.fromInt(!x)`,
+        ),
+        "42",
+    ),
+);
+
+test(S, "04-expressions/control-flow.md", "if without else with non-Unit type is error", () =>
+    expectCompileError(`let x = if true then 42;`),
+);
+
+test(S, "04-expressions/control-flow.md", "nested match as expression", () =>
+    expectRunOutput(
+        withOutput(
+            `type Option<T> = Some(T) | None;
+let x: Option<Int> = Some(5);
+let result = match x {
+  | Some(n) => match n > 0 {
+    | true => "positive"
+    | false => "non-positive"
+  }
+  | None => "none"
+};`,
+            `result`,
+        ),
+        "positive",
+    ),
+);
+
+// --- Block Expression Edge Cases ---
+
+test(S, "04-expressions/functions-composition.md", "block scope isolation", () =>
+    expectCompileError(
+        `let result = {
+  let inner = 42;
+  inner;
+};
+let x = inner;`,
+    ),
+);
+
+// --- Short-Circuit Verification ---
+
+test(S, "04-expressions/evaluation-order.md", "AND short-circuit skips right side", () =>
+    expectRunOutput(
+        withOutput(
+            `let mut counter = ref(0);
+let sideEffect = () => {
+  counter := !counter + 1;
+  true;
+};
+let result = false && sideEffect();`,
+            `String.fromInt(!counter)`,
+        ),
+        "0",
+    ),
+);
+
+test(S, "04-expressions/evaluation-order.md", "OR short-circuit skips right side", () =>
+    expectRunOutput(
+        withOutput(
+            `let mut counter = ref(0);
+let sideEffect = () => {
+  counter := !counter + 1;
+  false;
+};
+let result = true || sideEffect();`,
+            `String.fromInt(!counter)`,
+        ),
+        "0",
+    ),
+);
+
+// --- List Spread Runtime Verification ---
+
+test(S, "04-expressions/data-literals.md", "list spread runtime verification", () =>
+    expectRunOutput(
+        withOutput(
+            `let xs = [2, 3];
+let ys = [1, ...xs];`,
+            `String.fromInt(List.length(ys))`,
+        ),
+        "3",
+    ),
+);
+
+// --- Lambda Edge Cases ---
+
+test(S, "04-expressions/functions-composition.md", "lambda single param without parens", () =>
+    expectRunOutput(
+        withOutput(
+            `let inc = x => x + 1;
+let result: Int = inc(5);`,
+            `String.fromInt(result)`,
+        ),
+        "6",
+    ),
 );
