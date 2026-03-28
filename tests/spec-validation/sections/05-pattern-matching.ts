@@ -5,7 +5,7 @@
  * nested patterns, guards, or-patterns, exhaustiveness checking.
  */
 
-import { expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.js";
+import { compileSource, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.js";
 import { test } from "../framework/runner.js";
 
 const S = "05-pattern-matching";
@@ -211,17 +211,25 @@ test(S, "05-pattern-matching/exhaustiveness.md", "exhaustive match on list with 
 );
 
 test(S, "05-pattern-matching/exhaustiveness.md", "non-exhaustive match produces warning or error", () => {
-    // The spec says non-exhaustive patterns produce a warning
-    // The compiler may either warn (exit 0) or error (exit 1)
-    // Either outcome is acceptable for this validation
-    return { status: "pass" };
+    const result = compileSource(
+        `type Option<T> = Some(T) | None;\nlet f = (o: Option<Int>) => match o {\n  | Some(x) => x\n};`,
+    );
+    // The spec says non-exhaustive patterns produce a warning.
+    // Accept either warning-as-success (exit 0) or hard error (exit 1).
+    if (result.exitCode === 0 || result.exitCode === 1) {
+        return { status: "pass" };
+    }
+    return {
+        status: "fail",
+        message: `Unexpected compiler exit code ${result.exitCode}`,
+    };
 });
 
 test(S, "05-pattern-matching/exhaustiveness.md", "wildcard catches all Int values", () =>
     expectCompiles(`let f = (n: Int) => match n {\n  | 0 => "zero"\n  | _ => "other"\n};`),
 );
 
-test(S, "05-pattern-matching/exhaustiveness.md", "tuple pattern must match arity", () =>
+test(S, "05-pattern-matching/exhaustiveness.md", "tuple pattern matching with correct arity", () =>
     expectRunOutput(
         withOutput(`let pair = (1, 2);\nlet result = match pair {\n  | (a, b) => String.fromInt(a + b)\n};`, `result`),
         "3",

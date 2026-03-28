@@ -10,7 +10,7 @@ import type { CliResult, TestResult } from "./types.js";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 /** Path to the compiled CLI binary */
 const CLI_PATH = resolve(import.meta.dirname, "../../../packages/cli/dist/index.js");
@@ -143,6 +143,15 @@ export function expectRunOutputExact(source: string, expected: string): TestResu
  * Assert that the source compiles but produces a runtime error.
  */
 export function expectRuntimeError(source: string, errorMsg?: string): TestResult {
+    // First verify compilation succeeds - otherwise a compile error would be a false pass
+    const compileResult = compileSource(source);
+    if (compileResult.exitCode !== 0) {
+        return {
+            status: "fail",
+            message: `Expected runtime error but compilation failed with exit code ${compileResult.exitCode}`,
+        };
+    }
+
     const result = runSource(source);
     if (result.exitCode === 0) {
         return {
@@ -196,7 +205,7 @@ export function createTempDir(): string {
  */
 export function writeTempFile(dir: string, relativePath: string, content: string): void {
     const fullPath = join(dir, relativePath);
-    const parent = resolve(fullPath, "..");
+    const parent = dirname(fullPath);
     if (!existsSync(parent)) {
         mkdirSync(parent, { recursive: true });
     }
