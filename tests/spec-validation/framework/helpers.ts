@@ -109,7 +109,7 @@ export function expectCompileError(source: string, errorCode?: string): TestResu
 }
 
 /**
- * Assert that the source compiles and runs successfully, producing expected output.
+ * Assert that the source compiles and runs successfully, producing expected output (exact match, trimmed).
  */
 export function expectRunOutput(source: string, expected: string): TestResult {
     const result = runSource(source);
@@ -119,30 +119,12 @@ export function expectRunOutput(source: string, expected: string): TestResult {
             message: `Expected successful run, got exit code ${result.exitCode}`,
         };
     }
-    if (!result.stdout.includes(expected)) {
+    const actual = result.stdout.trim();
+    const wanted = expected.trim();
+    if (actual !== wanted) {
         return {
             status: "fail",
-            message: `Expected output to contain "${expected}", got "${result.stdout.trim()}"`,
-        };
-    }
-    return { status: "pass" };
-}
-
-/**
- * Assert that the source compiles and runs, producing output matching exactly.
- */
-export function expectRunOutputExact(source: string, expected: string): TestResult {
-    const result = runSource(source);
-    if (result.exitCode !== 0) {
-        return {
-            status: "fail",
-            message: `Expected successful run, got exit code ${result.exitCode}`,
-        };
-    }
-    if (result.stdout.trim() !== expected.trim()) {
-        return {
-            status: "fail",
-            message: `Expected output "${expected.trim()}", got "${result.stdout.trim()}"`,
+            message: `Expected output "${wanted}", got "${actual}"`,
         };
     }
     return { status: "pass" };
