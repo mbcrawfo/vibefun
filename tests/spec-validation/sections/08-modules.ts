@@ -88,8 +88,8 @@ test(S, "08-modules.md", "export type definition", () =>
     moduleTest(
         {
             "types.vf": `export type Color = Red | Green | Blue;`,
-            "main.vf": `import { Color, Red, Green, Blue } from './types';
-let c = Red;`,
+            "main.vf": `import { Color, Red } from './types';
+let c: Color = Red;`,
         },
         "main.vf",
         "compiles",
