@@ -42,6 +42,30 @@ export function runAll(options: RunOptions = {}): Report {
         return true;
     });
 
+    if (filtered.length === 0 && (options.section !== undefined || options.filter !== undefined)) {
+        return {
+            timestamp: new Date().toISOString(),
+            sections: [
+                {
+                    section: options.section ?? "filtered",
+                    pass: 0,
+                    fail: 0,
+                    error: 1,
+                    total: 1,
+                    tests: [
+                        {
+                            name: "filter validation",
+                            specRef: "",
+                            status: "error",
+                            message: "No tests matched the provided --section/--filter options",
+                        },
+                    ],
+                },
+            ],
+            totals: { pass: 0, fail: 0, error: 1, total: 1 },
+        };
+    }
+
     // Group tests by section (preserving registration order)
     const sectionOrder: string[] = [];
     const sectionMap = new Map<string, SpecTest[]>();
