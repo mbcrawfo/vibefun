@@ -149,7 +149,7 @@ function formatDetailedMarkdown(report: Report): string {
 }
 
 function escapeMarkdownCell(text: string): string {
-    return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ");
+    return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 }
 
 function markdownStatusIcon(status: TestStatus): string {
