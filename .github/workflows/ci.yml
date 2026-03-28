@@ -87,3 +87,34 @@ jobs:
           json-summary-path: coverage/coverage-summary.json
           json-final-path: coverage/coverage-final.json
           file-coverage-mode: 'changes'
+
+      - name: Check for spec-relevant changes
+        if: github.event_name == 'pull_request'
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            spec-relevant:
+              - 'packages/**'
+              - 'tests/spec-validation/**'
+
+      - name: Run spec validation
+        if: github.event_name == 'pull_request' && steps.changes.outputs.spec-relevant == 'true'
+        id: spec-validate
+        run: |
+          node dist/tests-spec-validation/run.js --report spec-report --markdown > spec-summary.md
+
+      - name: Upload spec validation report
+        if: github.event_name == 'pull_request' && always() && steps.spec-validate.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-validation-report
+          path: spec-report/
+          retention-days: 30
+
+      - name: Comment spec validation summary
+        if: github.event_name == 'pull_request' && always() && steps.spec-validate.outcome != 'skipped'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: spec-validation
+          path: spec-summary.md

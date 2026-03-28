@@ -18,6 +18,7 @@ export default defineConfig({
                 "**/*.test.ts",
                 "**/*.spec.ts",
                 "scripts/**",
+                "tests/spec-validation/**",
                 "**/vitest.config.ts",
                 "**/coverage/**",
                 // Type-only files with no executable code
