@@ -6,7 +6,6 @@
  *
  * Usage:
  *   pnpm run spec:validate [-- options]
- *   node dist/tests-spec-validation/run.js [options]
  *
  * Options:
  *   --verbose, -v       Print per-test details to stdout
@@ -29,20 +28,20 @@ import {
     printSummary,
     printVerbose,
     writeReport,
-} from "./framework/reporter.js";
-import { runAll } from "./framework/runner.js";
+} from "./framework/reporter.ts";
+import { runAll } from "./framework/runner.ts";
 // Import all section registration modules (side-effect: registers tests)
-import "./sections/02-lexical-structure.js";
-import "./sections/03-type-system.js";
-import "./sections/04-expressions.js";
-import "./sections/05-pattern-matching.js";
-import "./sections/06-functions.js";
-import "./sections/07-mutable-references.js";
-import "./sections/08-modules.js";
-import "./sections/09-error-handling.js";
-import "./sections/10-javascript-interop.js";
-import "./sections/11-stdlib.js";
-import "./sections/12-compilation.js";
+import "./sections/02-lexical-structure.ts";
+import "./sections/03-type-system.ts";
+import "./sections/04-expressions.ts";
+import "./sections/05-pattern-matching.ts";
+import "./sections/06-functions.ts";
+import "./sections/07-mutable-references.ts";
+import "./sections/08-modules.ts";
+import "./sections/09-error-handling.ts";
+import "./sections/10-javascript-interop.ts";
+import "./sections/11-stdlib.ts";
+import "./sections/12-compilation.ts";
 
 const { values } = parseArgs({
     options: {

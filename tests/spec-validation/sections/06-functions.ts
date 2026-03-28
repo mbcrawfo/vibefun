@@ -5,8 +5,8 @@
  * mutual recursion, higher-order functions, lambdas, composition.
  */
 
-import { expectRunOutput, withOutput } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { expectRunOutput, withOutput } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "06-functions";
 

@@ -5,8 +5,8 @@
  * literals (int, float, string, bool, unit), operators, error cases.
  */
 
-import { expectCompileError, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { expectCompileError, expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "02-lexical-structure";
 

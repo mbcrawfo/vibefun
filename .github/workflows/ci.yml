@@ -102,7 +102,7 @@ jobs:
         if: github.event_name == 'pull_request' && steps.changes.outputs.spec-relevant == 'true'
         id: spec-validate
         run: |
-          node dist/tests-spec-validation/run.js --report spec-report --markdown > spec-summary.md
+          pnpm run spec:validate --report spec-report --markdown > spec-summary.md
 
       - name: Upload spec validation report
         if: github.event_name == 'pull_request' && always() && steps.spec-validate.outcome != 'skipped'

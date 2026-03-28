@@ -5,7 +5,7 @@
  * and assertion helpers that return TestResult objects.
  */
 
-import type { CliResult, TestResult } from "./types.js";
+import type { CliResult, TestResult } from "./types.ts";
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";

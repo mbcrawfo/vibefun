@@ -5,8 +5,8 @@
  * Tests stdlib functions available through the compiler's built-in modules.
  */
 
-import { expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { expectCompiles, expectRunOutput, withOutput } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "11-stdlib";
 

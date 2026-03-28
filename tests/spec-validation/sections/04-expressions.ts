@@ -5,8 +5,8 @@
  * data literals, lambdas, blocks, pipes, evaluation order.
  */
 
-import { expectCompileError, expectCompiles, expectRunOutput, withOutput, withOutputs } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { expectCompileError, expectCompiles, expectRunOutput, withOutput, withOutputs } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "04-expressions";
 

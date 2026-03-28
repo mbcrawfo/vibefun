@@ -2,7 +2,7 @@
  * Report formatting and output for spec validation results.
  */
 
-import type { Report, SectionSummary, TestRecord, TestStatus } from "./types.js";
+import type { Report, SectionSummary, TestRecord, TestStatus } from "./types.ts";
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

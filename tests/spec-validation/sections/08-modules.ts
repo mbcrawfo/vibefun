@@ -7,10 +7,10 @@
  * Note: Module tests require actual files on disk, so they use temp directories.
  */
 
-import type { TestResult } from "../framework/types.js";
+import type { TestResult } from "../framework/types.ts";
 
-import { cleanupTempDir, compileFile, createTempDir, runFile, writeTempFile } from "../framework/helpers.js";
-import { test } from "../framework/runner.js";
+import { cleanupTempDir, compileFile, createTempDir, runFile, writeTempFile } from "../framework/helpers.ts";
+import { test } from "../framework/runner.ts";
 
 const S = "08-modules";
 
