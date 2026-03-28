@@ -71,11 +71,11 @@ test(S, "02-lexical-structure/tokens.md", "unicode identifiers", () => expectCom
 // --- Boolean Literals ---
 
 test(S, "02-lexical-structure/tokens.md", "boolean literal true", () =>
-    expectRunOutput(withOutput(`let x = true;`, `if x then "true" else "false"`), "true"),
+    expectRunOutput(withOutput(`let x = true;`, `String.fromBool(x)`), "true"),
 );
 
 test(S, "02-lexical-structure/tokens.md", "boolean literal false", () =>
-    expectRunOutput(withOutput(`let x = false;`, `if x then "true" else "false"`), "false"),
+    expectRunOutput(withOutput(`let x = false;`, `String.fromBool(x)`), "false"),
 );
 
 // --- Integer Literals ---

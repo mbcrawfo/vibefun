@@ -25,7 +25,7 @@ test(S, "03-type-system/primitive-types.md", "String type", () =>
 );
 
 test(S, "03-type-system/primitive-types.md", "Bool type", () =>
-    expectRunOutput(withOutput(`let x: Bool = true;`, `if x then "yes" else "no"`), "yes"),
+    expectRunOutput(withOutput(`let x: Bool = true;`, `String.fromBool(x)`), "true"),
 );
 
 test(S, "03-type-system/primitive-types.md", "Unit type", () => expectCompiles(`let x: Unit = ();`));
@@ -47,11 +47,11 @@ test(S, "03-type-system/primitive-types.md", "string concat requires strings onl
 );
 
 test(S, "03-type-system/primitive-types.md", "Bool logical AND", () =>
-    expectRunOutput(withOutput(`let x = true && false;`, `if x then "true" else "false"`), "false"),
+    expectRunOutput(withOutput(`let x = true && false;`, `String.fromBool(x)`), "false"),
 );
 
 test(S, "03-type-system/primitive-types.md", "Bool logical OR", () =>
-    expectRunOutput(withOutput(`let x = false || true;`, `if x then "true" else "false"`), "true"),
+    expectRunOutput(withOutput(`let x = false || true;`, `String.fromBool(x)`), "true"),
 );
 
 // --- Type Inference ---
