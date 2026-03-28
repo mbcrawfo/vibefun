@@ -27,6 +27,15 @@ export function runVibefun(args: string[], options: { cwd?: string; stdin?: stri
         timeout: 30_000,
     });
 
+    if (result.error !== undefined) {
+        const reason = result.error.message.includes("ETIMEDOUT") ? "timed out" : result.error.message;
+        return {
+            stdout: "",
+            stderr: `Infrastructure error: CLI process ${reason}`,
+            exitCode: -1,
+        };
+    }
+
     return {
         stdout: result.stdout ?? "",
         stderr: result.stderr ?? "",

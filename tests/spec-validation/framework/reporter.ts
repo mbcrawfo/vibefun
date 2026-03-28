@@ -139,13 +139,17 @@ function formatDetailedMarkdown(report: Report): string {
         lines.push("|--------|------|----------------|---------|");
         for (const t of section.tests) {
             const icon = markdownStatusIcon(t.status);
-            const msg = t.message ?? "";
-            lines.push(`| ${icon} | ${t.name} | ${t.specRef} | ${msg} |`);
+            const msg = escapeMarkdownCell(t.message ?? "");
+            lines.push(`| ${icon} | ${escapeMarkdownCell(t.name)} | ${escapeMarkdownCell(t.specRef)} | ${msg} |`);
         }
         lines.push("");
     }
 
     return lines.join("\n");
+}
+
+function escapeMarkdownCell(text: string): string {
+    return text.replace(/\|/g, "\\|").replace(/\n/g, " ");
 }
 
 function markdownStatusIcon(status: TestStatus): string {

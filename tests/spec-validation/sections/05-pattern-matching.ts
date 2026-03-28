@@ -350,14 +350,13 @@ let f = (o: Option<Int>) => match o {
   | Some(x) => x
 };`,
     );
-    // The spec says non-exhaustive patterns produce a warning.
-    // Accept either warning-as-success (exit 0) or hard error (exit 1).
-    if (result.exitCode === 0 || result.exitCode === 1) {
+    // The compiler should reject non-exhaustive patterns (missing None case).
+    if (result.exitCode === 1) {
         return { status: "pass" };
     }
     return {
         status: "fail",
-        message: `Unexpected compiler exit code ${result.exitCode}`,
+        message: `Expected compile error (exit 1) for non-exhaustive match, got exit code ${result.exitCode}`,
     };
 });
 

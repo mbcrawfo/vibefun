@@ -262,7 +262,7 @@ test(S, "03-type-system/recursive-types.md", "recursive variant type", () =>
 let xs = Cons(1, Cons(2, Nil));`),
 );
 
-test(S, "03-type-system/recursive-types.md", "mutually recursive types", () =>
+test(S, "03-type-system/recursive-types.md", "recursive variant type with multiple constructors", () =>
     expectCompiles(`type Expr = Lit(Int) | Add(Expr, Expr) | Neg(Expr);
 let e = Add(Lit(1), Neg(Lit(2)));`),
 );

@@ -33,7 +33,7 @@ export function getTests(): readonly SpecTest[] {
  */
 export function runAll(options: RunOptions = {}): Report {
     const filtered = tests.filter((t) => {
-        if (options.section && !t.section.includes(options.section)) {
+        if (options.section && t.section !== options.section) {
             return false;
         }
         if (options.filter && !t.name.toLowerCase().includes(options.filter.toLowerCase())) {
