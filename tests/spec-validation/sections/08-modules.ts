@@ -182,7 +182,7 @@ test(S, "08-modules.md", "module initializes exactly once", () =>
         },
         "main.vf",
         "output",
-        "84",
+        "init\n84",
     ),
 );
 

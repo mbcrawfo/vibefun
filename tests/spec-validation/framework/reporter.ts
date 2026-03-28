@@ -2,9 +2,10 @@
  * Report formatting and output for spec validation results.
  */
 
-import type { Report, SectionSummary, TestRecord } from "./types.js";
+import type { Report, SectionSummary, TestRecord, TestStatus } from "./types.js";
 
 import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 // --- Console output ---
 
@@ -68,7 +69,7 @@ export function printVerbose(report: Report): void {
     console.log();
 }
 
-function statusIcon(status: string): string {
+function statusIcon(status: TestStatus): string {
     switch (status) {
         case "pass":
             return "[PASS]";
@@ -78,8 +79,6 @@ function statusIcon(status: string): string {
             return "[SKIP]";
         case "error":
             return "[ERR!]";
-        default:
-            return "[????]";
     }
 }
 
@@ -158,7 +157,7 @@ function formatDetailedMarkdown(report: Report): string {
     return lines.join("\n");
 }
 
-function markdownStatusIcon(status: string): string {
+function markdownStatusIcon(status: TestStatus): string {
     switch (status) {
         case "pass":
             return "PASS";
@@ -168,8 +167,6 @@ function markdownStatusIcon(status: string): string {
             return "SKIP";
         case "error":
             return "ERROR";
-        default:
-            return "???";
     }
 }
 
@@ -196,13 +193,13 @@ export function writeReport(report: Report, dir: string): void {
     summaryLines.push(
         `TOTAL: ${report.totals.pass} pass, ${report.totals.fail} fail, ${report.totals.skip} skip, ${report.totals.error} error (${report.totals.total} total)`,
     );
-    writeFileSync(`${dir}/summary.txt`, summaryLines.join("\n"), "utf-8");
+    writeFileSync(join(dir, "summary.txt"), summaryLines.join("\n"), "utf-8");
 
     // details.json - machine-readable
-    writeFileSync(`${dir}/details.json`, JSON.stringify(report, null, 2), "utf-8");
+    writeFileSync(join(dir, "details.json"), JSON.stringify(report, null, 2), "utf-8");
 
     // report.md - detailed markdown
-    writeFileSync(`${dir}/report.md`, formatDetailedMarkdown(report), "utf-8");
+    writeFileSync(join(dir, "report.md"), formatDetailedMarkdown(report), "utf-8");
 
     console.error(`Report written to ${dir}/`);
 }
