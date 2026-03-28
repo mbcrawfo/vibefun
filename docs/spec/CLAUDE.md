@@ -2,6 +2,35 @@
 
 This document explains how to navigate and maintain the Vibefun language specification.
 
+## Spec Validation Tests
+
+**CRITICAL**: The spec validation test suite in `tests/spec-validation/` must stay synchronized with the language specification. Any changes to the spec should have matching updates to the validation tests.
+
+### When to Update Validation Tests
+
+Update `tests/spec-validation/sections/` whenever you:
+
+1. **Add a new language feature to the spec** - Add corresponding validation tests
+2. **Change existing behavior** - Update tests to match new expected behavior
+3. **Remove a feature** - Remove or update the corresponding tests
+4. **Add new edge cases or error conditions** - Add tests covering them
+5. **Change error codes or messages** - Update tests that check for specific error codes
+
+### Validation Test Structure
+
+Tests are organized by spec section in `tests/spec-validation/sections/`:
+- Each section file (e.g., `02-lexical-structure.ts`) corresponds to a spec section
+- Tests include a `specRef` field pointing to the relevant spec file
+- Tests validate by compiling/running actual `.vf` code through the CLI
+
+### Running Validation Tests
+
+```bash
+pnpm run spec:validate              # Summary report
+pnpm run spec:validate --verbose    # Per-test details
+pnpm run spec:validate --report dir # Write report files
+```
+
 ## Quick Start: Finding Information
 
 **Start with [.agent-map.md](./.agent-map.md)**
