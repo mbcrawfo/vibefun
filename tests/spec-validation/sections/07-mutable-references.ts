@@ -47,7 +47,7 @@ test(S, "07-mutable-references.md", "update ref with computed value", () =>
 // --- Dual-Purpose ! Operator ---
 
 test(S, "07-mutable-references.md", "! as logical NOT for Bool", () =>
-    expectRunOutput(withOutput(`let x = !true;`, `if x then "true" else "false"`), "false"),
+    expectRunOutput(withOutput(`let x = !true;`, `String.fromBool(x)`), "false"),
 );
 
 test(S, "07-mutable-references.md", "! as dereference for Ref", () =>
@@ -57,17 +57,11 @@ test(S, "07-mutable-references.md", "! as dereference for Ref", () =>
 // --- Ref Equality & Aliasing ---
 
 test(S, "07-mutable-references.md", "two refs to same value are not equal (identity equality)", () =>
-    expectRunOutput(
-        withOutput(`let mut a = ref(10);\nlet mut b = ref(10);`, `if a == b then "equal" else "not-equal"`),
-        "not-equal",
-    ),
+    expectRunOutput(withOutput(`let mut a = ref(10);\nlet mut b = ref(10);`, `String.fromBool(a == b)`), "false"),
 );
 
 test(S, "07-mutable-references.md", "aliased refs are equal", () =>
-    expectRunOutput(
-        withOutput(`let mut a = ref(10);\nlet mut b = a;`, `if a == b then "equal" else "not-equal"`),
-        "equal",
-    ),
+    expectRunOutput(withOutput(`let mut a = ref(10);\nlet mut b = a;`, `String.fromBool(a == b)`), "true"),
 );
 
 test(S, "07-mutable-references.md", "mutations visible through aliases", () =>

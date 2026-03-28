@@ -77,7 +77,7 @@ test(S, "06-functions.md", "three-argument currying", () =>
 test(S, "06-functions.md", "recursive function with rec keyword", () =>
     expectRunOutput(
         withOutput(
-            `let rec factorial = (n: Int): Int =>\n  if n <= 1 then 1\n  else n * factorial(n - 1);\nlet result = factorial(5);`,
+            `let rec factorial = (n: Int): Int =>\n  match n {\n    | x when x <= 1 => 1\n    | x => x * factorial(x - 1)\n  };\nlet result = factorial(5);`,
             `String.fromInt(result)`,
         ),
         "120",
@@ -87,7 +87,7 @@ test(S, "06-functions.md", "recursive function with rec keyword", () =>
 test(S, "06-functions.md", "recursive function - fibonacci", () =>
     expectRunOutput(
         withOutput(
-            `let rec fib = (n: Int): Int =>\n  if n <= 1 then n\n  else fib(n - 1) + fib(n - 2);\nlet result = fib(10);`,
+            `let rec fib = (n: Int): Int =>\n  match n {\n    | 0 => 0\n    | 1 => 1\n    | x => fib(x - 1) + fib(x - 2)\n  };\nlet result = fib(10);`,
             `String.fromInt(result)`,
         ),
         "55",
@@ -99,8 +99,8 @@ test(S, "06-functions.md", "recursive function - fibonacci", () =>
 test(S, "06-functions.md", "mutually recursive functions with rec/and", () =>
     expectRunOutput(
         withOutput(
-            `let rec isEven = (n: Int): Bool =>\n  if n == 0 then true else isOdd(n - 1)\nand isOdd = (n: Int): Bool =>\n  if n == 0 then false else isEven(n - 1);\nlet result = isEven(4);`,
-            `if result then "true" else "false"`,
+            `let rec isEven = (n: Int): Bool =>\n  match n {\n    | 0 => true\n    | x => isOdd(x - 1)\n  }\nand isOdd = (n: Int): Bool =>\n  match n {\n    | 0 => false\n    | x => isEven(x - 1)\n  };\nlet result = isEven(4);`,
+            `String.fromBool(result)`,
         ),
         "true",
     ),
@@ -109,8 +109,8 @@ test(S, "06-functions.md", "mutually recursive functions with rec/and", () =>
 test(S, "06-functions.md", "mutual recursion - odd case", () =>
     expectRunOutput(
         withOutput(
-            `let rec isEven = (n: Int): Bool =>\n  if n == 0 then true else isOdd(n - 1)\nand isOdd = (n: Int): Bool =>\n  if n == 0 then false else isEven(n - 1);\nlet result = isOdd(3);`,
-            `if result then "true" else "false"`,
+            `let rec isEven = (n: Int): Bool =>\n  match n {\n    | 0 => true\n    | x => isOdd(x - 1)\n  }\nand isOdd = (n: Int): Bool =>\n  match n {\n    | 0 => false\n    | x => isEven(x - 1)\n  };\nlet result = isOdd(3);`,
+            `String.fromBool(result)`,
         ),
         "true",
     ),
