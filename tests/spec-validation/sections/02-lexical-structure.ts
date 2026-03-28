@@ -13,15 +13,19 @@ const S = "02-lexical-structure";
 // --- Comments ---
 
 test(S, "02-lexical-structure/basic-structure.md", "single-line comments", () =>
-    expectCompiles(`// This is a comment\nlet x = 42;`),
+    expectCompiles(`// This is a comment
+let x = 42;`),
 );
 
 test(S, "02-lexical-structure/basic-structure.md", "multi-line comments", () =>
-    expectCompiles(`/* This is\na multi-line comment */\nlet x = 42;`),
+    expectCompiles(`/* This is
+a multi-line comment */
+let x = 42;`),
 );
 
 test(S, "02-lexical-structure/basic-structure.md", "nested multi-line comments", () =>
-    expectCompiles(`/* outer /* inner */ outer */\nlet x = 42;`),
+    expectCompiles(`/* outer /* inner */ outer */
+let x = 42;`),
 );
 
 test(S, "02-lexical-structure/basic-structure.md", "unterminated multi-line comment error", () =>
@@ -31,15 +35,19 @@ test(S, "02-lexical-structure/basic-structure.md", "unterminated multi-line comm
 // --- Whitespace & Semicolons ---
 
 test(S, "02-lexical-structure/basic-structure.md", "semicolons required between declarations", () =>
-    expectCompiles(`let x = 1;\nlet y = 2;`),
+    expectCompiles(`let x = 1;
+let y = 2;`),
 );
 
 test(S, "02-lexical-structure/basic-structure.md", "missing semicolon is error", () =>
-    expectCompileError(`let x = 1\nlet y = 2`),
+    expectCompileError(`let x = 1
+let y = 2`),
 );
 
 test(S, "02-lexical-structure/basic-structure.md", "multi-line expressions without semicolons", () =>
-    expectCompiles(`let x = 1\n  + 2\n  + 3;`),
+    expectCompiles(`let x = 1
+  + 2
+  + 3;`),
 );
 
 test(S, "02-lexical-structure/basic-structure.md", "empty blocks valid without semicolons", () =>
@@ -135,7 +143,8 @@ test(S, "02-lexical-structure/tokens.md", "long unicode escape in string", () =>
 );
 
 test(S, "02-lexical-structure/tokens.md", "multi-line string literal", () =>
-    expectCompiles(`let x = """hello\nworld""";`),
+    expectCompiles(`let x = """hello
+world""";`),
 );
 
 test(S, "02-lexical-structure/tokens.md", "invalid escape sequence error", () =>
@@ -165,17 +174,28 @@ test(S, "02-lexical-structure/tokens.md", "consecutive underscores in number err
 // --- Operators ---
 
 test(S, "02-lexical-structure/operators.md", "arithmetic operators compile", () =>
-    expectCompiles(`let a = 1 + 2;\nlet b = 3 - 1;\nlet c = 2 * 3;\nlet d = 10 / 2;\nlet e = 7 % 3;`),
+    expectCompiles(`let a = 1 + 2;
+let b = 3 - 1;
+let c = 2 * 3;
+let d = 10 / 2;
+let e = 7 % 3;`),
 );
 
 test(S, "02-lexical-structure/operators.md", "comparison operators compile", () =>
     expectCompiles(
-        `let a = 1 == 2;\nlet b = 1 != 2;\nlet c = 1 < 2;\nlet d = 1 <= 2;\nlet e = 1 > 2;\nlet f = 1 >= 2;`,
+        `let a = 1 == 2;
+let b = 1 != 2;
+let c = 1 < 2;
+let d = 1 <= 2;
+let e = 1 > 2;
+let f = 1 >= 2;`,
     ),
 );
 
 test(S, "02-lexical-structure/operators.md", "logical operators compile", () =>
-    expectCompiles(`let a = true && false;\nlet b = true || false;\nlet c = !true;`),
+    expectCompiles(`let a = true && false;
+let b = true || false;
+let c = !true;`),
 );
 
 test(S, "02-lexical-structure/operators.md", "string concatenation operator", () =>
@@ -184,7 +204,11 @@ test(S, "02-lexical-structure/operators.md", "string concatenation operator", ()
 
 test(S, "02-lexical-structure/operators.md", "pipe operator", () =>
     expectRunOutput(
-        withOutput(`let double = (x: Int) => x * 2;\nlet result = 5 |> double;`, `String.fromInt(result)`),
+        withOutput(
+            `let double = (x: Int) => x * 2;
+let result = 5 |> double;`,
+            `String.fromInt(result)`,
+        ),
         "10",
     ),
 );

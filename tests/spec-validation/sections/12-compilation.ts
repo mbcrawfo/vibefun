@@ -15,7 +15,8 @@ const S = "12-compilation";
 test(S, "12-compilation/desugaring.md", "multi-param lambda desugars to curried form", () =>
     expectRunOutput(
         withOutput(
-            `let add = (a: Int, b: Int, c: Int) => a + b + c;\nlet result = add(1)(2)(3);`,
+            `let add = (a: Int, b: Int, c: Int) => a + b + c;
+let result = add(1)(2)(3);`,
             `String.fromInt(result)`,
         ),
         "6",
@@ -25,7 +26,9 @@ test(S, "12-compilation/desugaring.md", "multi-param lambda desugars to curried 
 test(S, "12-compilation/desugaring.md", "partial application works after desugaring", () =>
     expectRunOutput(
         withOutput(
-            `let add = (a: Int, b: Int) => a + b;\nlet inc = add(1);\nlet result = inc(5);`,
+            `let add = (a: Int, b: Int) => a + b;
+let inc = add(1);
+let result = inc(5);`,
             `String.fromInt(result)`,
         ),
         "6",
@@ -37,7 +40,12 @@ test(S, "12-compilation/desugaring.md", "partial application works after desugar
 test(S, "12-compilation/desugaring.md", "while loop desugars correctly", () =>
     expectRunOutput(
         withOutput(
-            `let mut sum = ref(0);\nlet mut i = ref(0);\nwhile !i < 5 {\n  sum := !sum + !i;\n  i := !i + 1;\n};`,
+            `let mut sum = ref(0);
+let mut i = ref(0);
+while !i < 5 {
+  sum := !sum + !i;
+  i := !i + 1;
+};`,
             `String.fromInt(!sum)`,
         ),
         "10",
@@ -53,7 +61,10 @@ test(S, "12-compilation/desugaring.md", "string & operator desugars correctly", 
 // --- Code Generation: JavaScript Output ---
 
 test(S, "12-compilation/code-generation.md", "compiles to JavaScript successfully", () => {
-    const result = compileSource(`let x = 42;\nlet y = x + 1;`);
+    const result = compileSource(
+        `let x = 42;
+let y = x + 1;`,
+    );
     if (result.exitCode !== 0) {
         return {
             status: "fail",
@@ -71,14 +82,21 @@ test(S, "12-compilation/code-generation.md", "compiles to JavaScript successfull
 });
 
 test(S, "12-compilation/code-generation.md", "generated JS is valid and executable", () =>
-    expectRuns(`let x = 42;\nlet y = x + 1;`),
+    expectRuns(
+        `let x = 42;
+let y = x + 1;`,
+    ),
 );
 
 // --- Code Generation: Function Compilation ---
 
 test(S, "12-compilation/code-generation.md", "functions compile to callable JS", () =>
     expectRunOutput(
-        withOutput(`let add = (a: Int, b: Int) => a + b;\nlet result = add(10, 20);`, `String.fromInt(result)`),
+        withOutput(
+            `let add = (a: Int, b: Int) => a + b;
+let result = add(10, 20);`,
+            `String.fromInt(result)`,
+        ),
         "30",
     ),
 );
@@ -88,7 +106,12 @@ test(S, "12-compilation/code-generation.md", "functions compile to callable JS",
 test(S, "12-compilation/code-generation.md", "pattern matching compiles correctly", () =>
     expectRunOutput(
         withOutput(
-            `type Shape = Circle(Float) | Rect(Float, Float);\nlet area = (s: Shape): String => match s {\n  | Circle(r) => "circle"\n  | Rect(w, h) => "rect"\n};\nlet result = area(Circle(5.0));`,
+            `type Shape = Circle(Float) | Rect(Float, Float);
+let area = (s: Shape): String => match s {
+  | Circle(r) => "circle"
+  | Rect(w, h) => "rect"
+};
+let result = area(Circle(5.0));`,
             `result`,
         ),
         "circle",
@@ -107,7 +130,14 @@ test(S, "12-compilation/code-generation.md", "records compile to JS objects", ()
 // --- Code Generation: Lists ---
 
 test(S, "12-compilation/code-generation.md", "lists compile and operate correctly", () =>
-    expectRunOutput(withOutput(`let xs = [1, 2, 3];\nlet len = List.length(xs);`, `String.fromInt(len)`), "3"),
+    expectRunOutput(
+        withOutput(
+            `let xs = [1, 2, 3];
+let len = List.length(xs);`,
+            `String.fromInt(len)`,
+        ),
+        "3",
+    ),
 );
 
 // --- Code Generation: Variants ---
@@ -115,7 +145,13 @@ test(S, "12-compilation/code-generation.md", "lists compile and operate correctl
 test(S, "12-compilation/code-generation.md", "variant constructors compile correctly", () =>
     expectRunOutput(
         withOutput(
-            `type Color = Red | Green | Blue;\nlet c = Green;\nlet name = match c {\n  | Red => "red"\n  | Green => "green"\n  | Blue => "blue"\n};`,
+            `type Color = Red | Green | Blue;
+let c = Green;
+let name = match c {
+  | Red => "red"
+  | Green => "green"
+  | Blue => "blue"
+};`,
             `name`,
         ),
         "green",

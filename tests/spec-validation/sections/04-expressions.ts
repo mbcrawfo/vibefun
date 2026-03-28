@@ -35,27 +35,49 @@ test(S, "04-expressions/basic-expressions.md", "variable reference", () =>
 );
 
 test(S, "04-expressions/basic-expressions.md", "variable shadowing", () =>
-    expectRunOutput(withOutput(`let x = 1;\nlet x = 2;`, `String.fromInt(x)`), "2"),
+    expectRunOutput(
+        withOutput(
+            `let x = 1;
+let x = 2;`,
+            `String.fromInt(x)`,
+        ),
+        "2",
+    ),
 );
 
 // --- Function Calls ---
 
 test(S, "04-expressions/basic-expressions.md", "single-argument function call", () =>
     expectRunOutput(
-        withOutput(`let double = (x: Int) => x * 2;\nlet result = double(5);`, `String.fromInt(result)`),
+        withOutput(
+            `let double = (x: Int) => x * 2;
+let result = double(5);`,
+            `String.fromInt(result)`,
+        ),
         "10",
     ),
 );
 
 test(S, "04-expressions/basic-expressions.md", "multi-argument function call", () =>
     expectRunOutput(
-        withOutput(`let add = (x: Int, y: Int) => x + y;\nlet result = add(3, 4);`, `String.fromInt(result)`),
+        withOutput(
+            `let add = (x: Int, y: Int) => x + y;
+let result = add(3, 4);`,
+            `String.fromInt(result)`,
+        ),
         "7",
     ),
 );
 
 test(S, "04-expressions/basic-expressions.md", "no-argument function call", () =>
-    expectRunOutput(withOutput(`let greet = () => "hi";\nlet result = greet();`, `result`), "hi"),
+    expectRunOutput(
+        withOutput(
+            `let greet = () => "hi";
+let result = greet();`,
+            `result`,
+        ),
+        "hi",
+    ),
 );
 
 // --- Arithmetic Operators ---
@@ -143,7 +165,8 @@ test(S, "04-expressions/control-flow.md", "if without else returns Unit", () =>
 test(S, "04-expressions/control-flow.md", "nested if-else chains", () =>
     expectRunOutput(
         withOutput(
-            `let x = 5;\nlet result = if x > 10 then "big" else if x > 0 then "positive" else "non-positive";`,
+            `let x = 5;
+let result = if x > 10 then "big" else if x > 0 then "positive" else "non-positive";`,
             `result`,
         ),
         "positive",
@@ -153,7 +176,13 @@ test(S, "04-expressions/control-flow.md", "nested if-else chains", () =>
 test(S, "04-expressions/control-flow.md", "match expression with variants", () =>
     expectRunOutput(
         withOutput(
-            `type Color = Red | Green | Blue;\nlet c = Green;\nlet result = match c {\n  | Red => "red"\n  | Green => "green"\n  | Blue => "blue"\n};`,
+            `type Color = Red | Green | Blue;
+let c = Green;
+let result = match c {
+  | Red => "red"
+  | Green => "green"
+  | Blue => "blue"
+};`,
             `result`,
         ),
         "green",
@@ -162,13 +191,22 @@ test(S, "04-expressions/control-flow.md", "match expression with variants", () =
 
 test(S, "04-expressions/control-flow.md", "while loop", () =>
     expectRunOutput(
-        withOutputs(`let mut i = ref(0);\nwhile !i < 3 {\n  i := !i + 1;\n};`, [`String.fromInt(!i)`]),
+        withOutputs(
+            `let mut i = ref(0);
+while !i < 3 {
+  i := !i + 1;
+};`,
+            [`String.fromInt(!i)`],
+        ),
         "3",
     ),
 );
 
 test(S, "04-expressions/control-flow.md", "while loop returns Unit", () =>
-    expectCompiles(`let mut i = ref(0);\nlet result: Unit = while !i < 5 { i := !i + 1; };`),
+    expectCompiles(
+        `let mut i = ref(0);
+let result: Unit = while !i < 5 { i := !i + 1; };`,
+    ),
 );
 
 // --- Data Literals ---
@@ -186,36 +224,68 @@ test(S, "04-expressions/data-literals.md", "mixed type list rejected", () =>
 );
 
 test(S, "04-expressions/data-literals.md", "list spread", () =>
-    expectCompiles(`let xs = [1, 2];\nlet ys = [0, ...xs, 3];`),
+    expectCompiles(
+        `let xs = [1, 2];
+let ys = [0, ...xs, 3];`,
+    ),
 );
 
 test(S, "04-expressions/data-literals.md", "tuple literal", () => expectCompiles(`let pair = (1, "hello");`));
 
 test(S, "04-expressions/data-literals.md", "record spread (immutable update)", () =>
-    expectRunOutput(withOutput(`let p = { x: 1, y: 2 };\nlet p2 = { ...p, y: 10 };`, `String.fromInt(p2.y)`), "10"),
+    expectRunOutput(
+        withOutput(
+            `let p = { x: 1, y: 2 };
+let p2 = { ...p, y: 10 };`,
+            `String.fromInt(p2.y)`,
+        ),
+        "10",
+    ),
 );
 
 // --- Lambda Expressions ---
 
 test(S, "04-expressions/functions-composition.md", "lambda with single param", () =>
-    expectRunOutput(withOutput(`let inc = (x: Int) => x + 1;\nlet result = inc(5);`, `String.fromInt(result)`), "6"),
+    expectRunOutput(
+        withOutput(
+            `let inc = (x: Int) => x + 1;
+let result = inc(5);`,
+            `String.fromInt(result)`,
+        ),
+        "6",
+    ),
 );
 
 test(S, "04-expressions/functions-composition.md", "lambda with multiple params", () =>
     expectRunOutput(
-        withOutput(`let add = (x: Int, y: Int) => x + y;\nlet result = add(3, 4);`, `String.fromInt(result)`),
+        withOutput(
+            `let add = (x: Int, y: Int) => x + y;
+let result = add(3, 4);`,
+            `String.fromInt(result)`,
+        ),
         "7",
     ),
 );
 
 test(S, "04-expressions/functions-composition.md", "lambda with no params", () =>
-    expectRunOutput(withOutput(`let f = () => "hello";\nlet result = f();`, `result`), "hello"),
+    expectRunOutput(
+        withOutput(
+            `let f = () => "hello";
+let result = f();`,
+            `result`,
+        ),
+        "hello",
+    ),
 );
 
 test(S, "04-expressions/functions-composition.md", "lambda with block body", () =>
     expectRunOutput(
         withOutput(
-            `let f = (x: Int) => {\n  let doubled = x * 2;\n  doubled + 1;\n};\nlet result = f(5);`,
+            `let f = (x: Int) => {
+  let doubled = x * 2;
+  doubled + 1;
+};
+let result = f(5);`,
             `String.fromInt(result)`,
         ),
         "11",
@@ -226,7 +296,14 @@ test(S, "04-expressions/functions-composition.md", "lambda with block body", () 
 
 test(S, "04-expressions/functions-composition.md", "block expression returns last value", () =>
     expectRunOutput(
-        withOutput(`let result = {\n  let a = 1;\n  let b = 2;\n  a + b;\n};`, `String.fromInt(result)`),
+        withOutput(
+            `let result = {
+  let a = 1;
+  let b = 2;
+  a + b;
+};`,
+            `String.fromInt(result)`,
+        ),
         "3",
     ),
 );
@@ -238,7 +315,13 @@ test(S, "04-expressions/functions-composition.md", "empty block returns Unit", (
 test(S, "04-expressions/functions-composition.md", "nested blocks", () =>
     expectRunOutput(
         withOutput(
-            `let result = {\n  let a = {\n    let b = 10;\n    b * 2;\n  };\n  a + 1;\n};`,
+            `let result = {
+  let a = {
+    let b = 10;
+    b * 2;
+  };
+  a + 1;
+};`,
             `String.fromInt(result)`,
         ),
         "21",
@@ -249,7 +332,11 @@ test(S, "04-expressions/functions-composition.md", "nested blocks", () =>
 
 test(S, "04-expressions/functions-composition.md", "pipe operator basic", () =>
     expectRunOutput(
-        withOutput(`let double = (x: Int) => x * 2;\nlet result = 5 |> double;`, `String.fromInt(result)`),
+        withOutput(
+            `let double = (x: Int) => x * 2;
+let result = 5 |> double;`,
+            `String.fromInt(result)`,
+        ),
         "10",
     ),
 );
@@ -257,7 +344,9 @@ test(S, "04-expressions/functions-composition.md", "pipe operator basic", () =>
 test(S, "04-expressions/functions-composition.md", "pipe operator chaining", () =>
     expectRunOutput(
         withOutput(
-            `let add1 = (x: Int) => x + 1;\nlet double = (x: Int) => x * 2;\nlet result = 5 |> add1 |> double;`,
+            `let add1 = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let result = 5 |> add1 |> double;`,
             `String.fromInt(result)`,
         ),
         "12",
@@ -269,7 +358,10 @@ test(S, "04-expressions/functions-composition.md", "pipe operator chaining", () 
 test(S, "04-expressions/functions-composition.md", "forward composition >>", () =>
     expectRunOutput(
         withOutput(
-            `let add1 = (x: Int) => x + 1;\nlet double = (x: Int) => x * 2;\nlet f = add1 >> double;\nlet result = f(5);`,
+            `let add1 = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let f = add1 >> double;
+let result = f(5);`,
             `String.fromInt(result)`,
         ),
         "12",
@@ -279,7 +371,10 @@ test(S, "04-expressions/functions-composition.md", "forward composition >>", () 
 test(S, "04-expressions/functions-composition.md", "backward composition <<", () =>
     expectRunOutput(
         withOutput(
-            `let add1 = (x: Int) => x + 1;\nlet double = (x: Int) => x * 2;\nlet f = add1 << double;\nlet result = f(5);`,
+            `let add1 = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let f = add1 << double;
+let result = f(5);`,
             `String.fromInt(result)`,
         ),
         "11",

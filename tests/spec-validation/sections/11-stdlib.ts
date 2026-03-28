@@ -47,7 +47,8 @@ test(S, "11-stdlib/numeric.md", "Int.fromFloat truncation", () =>
 test(S, "11-stdlib/list.md", "List.map", () =>
     expectRunOutput(
         withOutput(
-            `let xs = [1, 2, 3];\nlet doubled = List.map(xs, (x: Int) => x * 2);`,
+            `let xs = [1, 2, 3];
+let doubled = List.map(xs, (x: Int) => x * 2);`,
             `String.fromInt(List.head(doubled))`,
         ),
         "2",
@@ -57,7 +58,9 @@ test(S, "11-stdlib/list.md", "List.map", () =>
 test(S, "11-stdlib/list.md", "List.filter", () =>
     expectRunOutput(
         withOutput(
-            `let xs = [1, 2, 3, 4, 5];\nlet evens = List.filter(xs, (x: Int) => x % 2 == 0);\nlet first = List.head(evens);`,
+            `let xs = [1, 2, 3, 4, 5];
+let evens = List.filter(xs, (x: Int) => x % 2 == 0);
+let first = List.head(evens);`,
             `String.fromInt(first)`,
         ),
         "2",
@@ -65,19 +68,40 @@ test(S, "11-stdlib/list.md", "List.filter", () =>
 );
 
 test(S, "11-stdlib/list.md", "List.head", () =>
-    expectRunOutput(withOutput(`let xs = [42, 1, 2];\nlet h = List.head(xs);`, `String.fromInt(h)`), "42"),
+    expectRunOutput(
+        withOutput(
+            `let xs = [42, 1, 2];
+let h = List.head(xs);`,
+            `String.fromInt(h)`,
+        ),
+        "42",
+    ),
 );
 
-test(S, "11-stdlib/list.md", "List.tail", () => expectCompiles(`let xs = [1, 2, 3];\nlet rest = List.tail(xs);`));
+test(S, "11-stdlib/list.md", "List.tail", () =>
+    expectCompiles(
+        `let xs = [1, 2, 3];
+let rest = List.tail(xs);`,
+    ),
+);
 
 test(S, "11-stdlib/list.md", "List.length", () =>
-    expectRunOutput(withOutput(`let xs = [1, 2, 3];\nlet n = List.length(xs);`, `String.fromInt(n)`), "3"),
+    expectRunOutput(
+        withOutput(
+            `let xs = [1, 2, 3];
+let n = List.length(xs);`,
+            `String.fromInt(n)`,
+        ),
+        "3",
+    ),
 );
 
 test(S, "11-stdlib/list.md", "List.reverse", () =>
     expectRunOutput(
         withOutput(
-            `let xs = [1, 2, 3];\nlet rev = List.reverse(xs);\nlet first = List.head(rev);`,
+            `let xs = [1, 2, 3];
+let rev = List.reverse(xs);
+let first = List.head(rev);`,
             `String.fromInt(first)`,
         ),
         "3",
@@ -87,7 +111,8 @@ test(S, "11-stdlib/list.md", "List.reverse", () =>
 test(S, "11-stdlib/list.md", "List.fold", () =>
     expectRunOutput(
         withOutput(
-            `let xs = [1, 2, 3, 4, 5];\nlet sum = List.fold(xs, 0, (acc: Int, x: Int) => acc + x);`,
+            `let xs = [1, 2, 3, 4, 5];
+let sum = List.fold(xs, 0, (acc: Int, x: Int) => acc + x);`,
             `String.fromInt(sum)`,
         ),
         "15",
@@ -97,7 +122,10 @@ test(S, "11-stdlib/list.md", "List.fold", () =>
 test(S, "11-stdlib/list.md", "List.concat", () =>
     expectRunOutput(
         withOutput(
-            `let a = [1, 2];\nlet b = [3, 4];\nlet c = List.concat(a, b);\nlet len = List.length(c);`,
+            `let a = [1, 2];
+let b = [3, 4];
+let c = List.concat(a, b);
+let len = List.length(c);`,
             `String.fromInt(len)`,
         ),
         "4",
@@ -105,7 +133,14 @@ test(S, "11-stdlib/list.md", "List.concat", () =>
 );
 
 test(S, "11-stdlib/list.md", "empty list", () =>
-    expectRunOutput(withOutput(`let xs: List<Int> = [];\nlet n = List.length(xs);`, `String.fromInt(n)`), "0"),
+    expectRunOutput(
+        withOutput(
+            `let xs: List<Int> = [];
+let n = List.length(xs);`,
+            `String.fromInt(n)`,
+        ),
+        "0",
+    ),
 );
 
 // --- Math Functions ---
@@ -113,7 +148,8 @@ test(S, "11-stdlib/list.md", "empty list", () =>
 test(S, "11-stdlib/math.md", "Math.sqrt", () =>
     expectRunOutput(
         withOutput(
-            `external math_sqrt: (Float) -> Float = "Math.sqrt";\nlet result = unsafe { math_sqrt(9.0) };`,
+            `external math_sqrt: (Float) -> Float = "Math.sqrt";
+let result = unsafe { math_sqrt(9.0) };`,
             `String.fromFloat(result)`,
         ),
         "3",
@@ -123,7 +159,8 @@ test(S, "11-stdlib/math.md", "Math.sqrt", () =>
 test(S, "11-stdlib/math.md", "Math.floor", () =>
     expectRunOutput(
         withOutput(
-            `external math_floor: (Float) -> Float = "Math.floor";\nlet result = unsafe { math_floor(3.7) };`,
+            `external math_floor: (Float) -> Float = "Math.floor";
+let result = unsafe { math_floor(3.7) };`,
             `String.fromFloat(result)`,
         ),
         "3",
@@ -133,7 +170,8 @@ test(S, "11-stdlib/math.md", "Math.floor", () =>
 test(S, "11-stdlib/math.md", "Math.ceil", () =>
     expectRunOutput(
         withOutput(
-            `external math_ceil: (Float) -> Float = "Math.ceil";\nlet result = unsafe { math_ceil(3.2) };`,
+            `external math_ceil: (Float) -> Float = "Math.ceil";
+let result = unsafe { math_ceil(3.2) };`,
             `String.fromFloat(result)`,
         ),
         "4",
@@ -143,7 +181,8 @@ test(S, "11-stdlib/math.md", "Math.ceil", () =>
 test(S, "11-stdlib/math.md", "Math.abs", () =>
     expectRunOutput(
         withOutput(
-            `external math_abs: (Float) -> Float = "Math.abs";\nlet result = unsafe { math_abs(-5.0) };`,
+            `external math_abs: (Float) -> Float = "Math.abs";
+let result = unsafe { math_abs(-5.0) };`,
             `String.fromFloat(result)`,
         ),
         "5",

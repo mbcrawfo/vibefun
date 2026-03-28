@@ -57,26 +57,45 @@ test(S, "03-type-system/primitive-types.md", "Bool logical OR", () =>
 // --- Type Inference ---
 
 test(S, "03-type-system/type-inference.md", "basic type inference for let bindings", () =>
-    expectCompiles(`let x = 42;\nlet y = "hello";\nlet z = true;`),
+    expectCompiles(`let x = 42;
+let y = "hello";
+let z = true;`),
 );
 
 test(S, "03-type-system/type-inference.md", "function type inference", () =>
     expectRunOutput(
-        withOutput(`let add = (x: Int, y: Int) => x + y;\nlet result = add(2, 3);`, `String.fromInt(result)`),
+        withOutput(
+            `let add = (x: Int, y: Int) => x + y;
+let result = add(2, 3);`,
+            `String.fromInt(result)`,
+        ),
         "5",
     ),
 );
 
 test(S, "03-type-system/type-inference.md", "polymorphic identity function", () =>
-    expectRunOutput(withOutput(`let id = <T>(x: T): T => x;\nlet a = id(42);\nlet b = id("hello");`, `b`), "hello"),
+    expectRunOutput(
+        withOutput(
+            `let id = <T>(x: T): T => x;
+let a = id(42);
+let b = id("hello");`,
+            `b`,
+        ),
+        "hello",
+    ),
 );
 
 test(S, "03-type-system/type-inference.md", "let-polymorphism generalization", () =>
-    expectCompiles(`let id = (x) => x;\nlet a = id(42);\nlet b = id("hello");`),
+    expectCompiles(`let id = (x) => x;
+let a = id(42);
+let b = id("hello");`),
 );
 
 test(S, "03-type-system/type-inference.md", "value restriction on non-syntactic values", () =>
-    expectCompileError(`let id = (x) => x;\nlet f = id(id);\nlet a = f(42);\nlet b = f("hello");`),
+    expectCompileError(`let id = (x) => x;
+let f = id(id);
+let a = f(42);
+let b = f("hello");`),
 );
 
 // --- Record Types ---
@@ -95,13 +114,25 @@ test(S, "03-type-system/record-types.md", "chained field access", () =>
 
 test(S, "03-type-system/record-types.md", "record immutable update (spread)", () =>
     expectRunOutput(
-        withOutput(`let p = { name: "Alice", age: 30 };\nlet p2 = { ...p, age: 31 };`, `String.fromInt(p2.age)`),
+        withOutput(
+            `let p = { name: "Alice", age: 30 };
+let p2 = { ...p, age: 31 };`,
+            `String.fromInt(p2.age)`,
+        ),
         "31",
     ),
 );
 
 test(S, "03-type-system/record-types.md", "record field shorthand", () =>
-    expectRunOutput(withOutput(`let name = "Bob";\nlet age = 25;\nlet p = { name, age };`, `p.name`), "Bob"),
+    expectRunOutput(
+        withOutput(
+            `let name = "Bob";
+let age = 25;
+let p = { name, age };`,
+            `p.name`,
+        ),
+        "Bob",
+    ),
 );
 
 test(S, "03-type-system/record-types.md", "trailing comma in record", () =>
@@ -110,30 +141,42 @@ test(S, "03-type-system/record-types.md", "trailing comma in record", () =>
 
 test(S, "03-type-system/record-types.md", "width subtyping - extra fields allowed", () =>
     expectCompiles(
-        `let greet = (p: { name: String }) => p.name;\nlet detailed = { name: "Alice", age: 30, city: "NYC" };\nlet result = greet(detailed);`,
+        `let greet = (p: { name: String }) => p.name;
+let detailed = { name: "Alice", age: 30, city: "NYC" };
+let result = greet(detailed);`,
     ),
 );
 
 test(S, "03-type-system/record-types.md", "missing required fields rejected", () =>
     expectCompileError(
-        `let greet = (p: { name: String, age: Int }) => p.name;\nlet partial = { name: "Alice" };\nlet result = greet(partial);`,
+        `let greet = (p: { name: String, age: Int }) => p.name;
+let partial = { name: "Alice" };
+let result = greet(partial);`,
     ),
 );
 
 // --- Variant Types ---
 
 test(S, "03-type-system/variant-types.md", "variant type definition and construction", () =>
-    expectCompiles(`type Color = Red | Green | Blue;\nlet c = Red;`),
+    expectCompiles(`type Color = Red | Green | Blue;
+let c = Red;`),
 );
 
 test(S, "03-type-system/variant-types.md", "variant with data", () =>
-    expectCompiles(`type Option<T> = Some(T) | None;\nlet x = Some(42);\nlet y: Option<Int> = None;`),
+    expectCompiles(`type Option<T> = Some(T) | None;
+let x = Some(42);
+let y: Option<Int> = None;`),
 );
 
 test(S, "03-type-system/variant-types.md", "variant pattern matching", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;\nlet x = Some(42);\nlet result = match x {\n  | Some(v) => String.fromInt(v)\n  | None => "none"\n};`,
+            `type Option<T> = Some(T) | None;
+let x = Some(42);
+let result = match x {
+  | Some(v) => String.fromInt(v)
+  | None => "none"
+};`,
             `result`,
         ),
         "42",
@@ -141,19 +184,23 @@ test(S, "03-type-system/variant-types.md", "variant pattern matching", () =>
 );
 
 test(S, "03-type-system/variant-types.md", "variant constructors are functions", () =>
-    expectCompiles(`type Option<T> = Some(T) | None;\nlet wrap = Some;\nlet x = wrap(42);`),
+    expectCompiles(`type Option<T> = Some(T) | None;
+let wrap = Some;
+let x = wrap(42);`),
 );
 
 // --- Generic Types ---
 
 test(S, "03-type-system/generic-types.md", "generic type definition", () =>
-    expectCompiles(`type Box<T> = { value: T };\nlet b: Box<Int> = { value: 42 };`),
+    expectCompiles(`type Box<T> = { value: T };
+let b: Box<Int> = { value: 42 };`),
 );
 
 test(S, "03-type-system/generic-types.md", "generic function", () =>
     expectRunOutput(
         withOutput(
-            `let first = <A, B>(a: A, b: B): A => a;\nlet result = first(42, "hello");`,
+            `let first = <A, B>(a: A, b: B): A => a;
+let result = first(42, "hello");`,
             `String.fromInt(result)`,
         ),
         "42",
@@ -162,7 +209,10 @@ test(S, "03-type-system/generic-types.md", "generic function", () =>
 
 test(S, "03-type-system/generic-types.md", "invariant type parameters", () =>
     expectCompileError(
-        `type Box<T> = { value: T };\nlet f = (b: Box<Int>) => b.value;\nlet b: Box<Float> = { value: 3.14 };\nlet result = f(b);`,
+        `type Box<T> = { value: T };
+let f = (b: Box<Int>) => b.value;
+let b: Box<Float> = { value: 3.14 };
+let result = f(b);`,
     ),
 );
 
@@ -171,7 +221,14 @@ test(S, "03-type-system/generic-types.md", "invariant type parameters", () =>
 test(S, "03-type-system/tuples.md", "tuple construction", () => expectCompiles(`let pair = (1, "hello");`));
 
 test(S, "03-type-system/tuples.md", "tuple destructuring", () =>
-    expectRunOutput(withOutput(`let pair = (42, "hello");\nlet (a, b) = pair;`, `String.fromInt(a)`), "42"),
+    expectRunOutput(
+        withOutput(
+            `let pair = (42, "hello");
+let (a, b) = pair;`,
+            `String.fromInt(a)`,
+        ),
+        "42",
+    ),
 );
 
 test(S, "03-type-system/tuples.md", "triple tuple", () => expectCompiles(`let triple = (1, "two", true);`));
@@ -179,7 +236,14 @@ test(S, "03-type-system/tuples.md", "triple tuple", () => expectCompiles(`let tr
 test(S, "03-type-system/tuples.md", "nested tuples", () => expectCompiles(`let nested = ((1, 2), (3, 4));`));
 
 test(S, "03-type-system/tuples.md", "single element is not a tuple (just grouping)", () =>
-    expectRunOutput(withOutput(`let x = (42);\nlet y: Int = x;`, `String.fromInt(y)`), "42"),
+    expectRunOutput(
+        withOutput(
+            `let x = (42);
+let y: Int = x;`,
+            `String.fromInt(y)`,
+        ),
+        "42",
+    ),
 );
 
 test(S, "03-type-system/tuples.md", "unit is zero-element tuple", () => expectCompiles(`let x: Unit = ();`));
@@ -187,24 +251,32 @@ test(S, "03-type-system/tuples.md", "unit is zero-element tuple", () => expectCo
 // --- Union Types ---
 
 test(S, "03-type-system/union-types.md", "string literal union type", () =>
-    expectCompiles(`type Status = "pending" | "active" | "complete";\nlet s: Status = "pending";`),
+    expectCompiles(`type Status = "pending" | "active" | "complete";
+let s: Status = "pending";`),
 );
 
 // --- Recursive Types ---
 
 test(S, "03-type-system/recursive-types.md", "recursive variant type", () =>
-    expectCompiles(`type IntList = Nil | Cons(Int, IntList);\nlet xs = Cons(1, Cons(2, Nil));`),
+    expectCompiles(`type IntList = Nil | Cons(Int, IntList);
+let xs = Cons(1, Cons(2, Nil));`),
 );
 
 test(S, "03-type-system/recursive-types.md", "mutually recursive types", () =>
-    expectCompiles(`type Expr = Lit(Int) | Add(Expr, Expr) | Neg(Expr);\nlet e = Add(Lit(1), Neg(Lit(2)));`),
+    expectCompiles(`type Expr = Lit(Int) | Add(Expr, Expr) | Neg(Expr);
+let e = Add(Lit(1), Neg(Lit(2)));`),
 );
 
 // --- Type Aliases ---
 
 test(S, "03-type-system/type-aliases.md", "type alias is transparent", () =>
     expectRunOutput(
-        withOutput(`type UserId = Int;\nlet id: UserId = 42;\nlet doubled: Int = id * 2;`, `String.fromInt(doubled)`),
+        withOutput(
+            `type UserId = Int;
+let id: UserId = 42;
+let doubled: Int = id * 2;`,
+            `String.fromInt(doubled)`,
+        ),
         "84",
     ),
 );
@@ -218,7 +290,8 @@ test(S, "03-type-system/type-aliases.md", "generic type alias", () =>
 test(S, "03-type-system/subtyping.md", "record width subtyping in function calls", () =>
     expectRunOutput(
         withOutput(
-            `let getName = (r: { name: String }) => r.name;\nlet result = getName({ name: "Alice", age: 30 });`,
+            `let getName = (r: { name: String }) => r.name;
+let result = getName({ name: "Alice", age: 30 });`,
             `result`,
         ),
         "Alice",
@@ -226,5 +299,6 @@ test(S, "03-type-system/subtyping.md", "record width subtyping in function calls
 );
 
 test(S, "03-type-system/subtyping.md", "field order does not matter", () =>
-    expectCompiles(`let f = (r: { a: Int, b: String }) => r.a;\nlet result = f({ b: "hello", a: 42 });`),
+    expectCompiles(`let f = (r: { a: Int, b: String }) => r.a;
+let result = f({ b: "hello", a: 42 });`),
 );
