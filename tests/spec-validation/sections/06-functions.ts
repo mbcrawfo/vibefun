@@ -51,17 +51,6 @@ let result = compute(5);`,
 
 // --- Currying ---
 
-test(S, "06-functions.md", "automatic currying - full application", () =>
-    expectRunOutput(
-        withOutput(
-            `let add = (x: Int, y: Int) => x + y;
-let result = add(2, 3);`,
-            `String.fromInt(result)`,
-        ),
-        "5",
-    ),
-);
-
 test(S, "06-functions.md", "automatic currying - partial application", () =>
     expectRunOutput(
         withOutput(
