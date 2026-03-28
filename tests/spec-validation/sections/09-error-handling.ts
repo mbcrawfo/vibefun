@@ -33,7 +33,12 @@ test(S, "09-error-handling.md", "negative float division by zero returns -Infini
 test(S, "09-error-handling.md", "Result type - Ok variant", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);\nlet x: Result<Int, String> = Ok(42);\nlet result = match x {\n  | Ok(v) => String.fromInt(v)\n  | Err(e) => e\n};`,
+            `type Result<T, E> = Ok(T) | Err(E);
+let x: Result<Int, String> = Ok(42);
+let result = match x {
+  | Ok(v) => String.fromInt(v)
+  | Err(e) => e
+};`,
             `result`,
         ),
         "42",
@@ -43,7 +48,12 @@ test(S, "09-error-handling.md", "Result type - Ok variant", () =>
 test(S, "09-error-handling.md", "Result type - Err variant", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);\nlet x: Result<Int, String> = Err("failed");\nlet result = match x {\n  | Ok(v) => String.fromInt(v)\n  | Err(e) => e\n};`,
+            `type Result<T, E> = Ok(T) | Err(E);
+let x: Result<Int, String> = Err("failed");
+let result = match x {
+  | Ok(v) => String.fromInt(v)
+  | Err(e) => e
+};`,
             `result`,
         ),
         "failed",
@@ -55,7 +65,12 @@ test(S, "09-error-handling.md", "Result type - Err variant", () =>
 test(S, "09-error-handling.md", "Option type - Some variant", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;\nlet x = Some(42);\nlet result = match x {\n  | Some(v) => String.fromInt(v)\n  | None => "none"\n};`,
+            `type Option<T> = Some(T) | None;
+let x = Some(42);
+let result = match x {
+  | Some(v) => String.fromInt(v)
+  | None => "none"
+};`,
             `result`,
         ),
         "42",
@@ -65,7 +80,12 @@ test(S, "09-error-handling.md", "Option type - Some variant", () =>
 test(S, "09-error-handling.md", "Option type - None variant", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;\nlet x: Option<Int> = None;\nlet result = match x {\n  | Some(v) => String.fromInt(v)\n  | None => "none"\n};`,
+            `type Option<T> = Some(T) | None;
+let x: Option<Int> = None;
+let result = match x {
+  | Some(v) => String.fromInt(v)
+  | None => "none"
+};`,
             `result`,
         ),
         "none",
@@ -77,7 +97,14 @@ test(S, "09-error-handling.md", "Option type - None variant", () =>
 test(S, "09-error-handling.md", "nested Result in Option", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;\ntype Result<T, E> = Ok(T) | Err(E);\nlet x: Option<Result<Int, String>> = Some(Ok(42));\nlet result = match x {\n  | Some(Ok(v)) => String.fromInt(v)\n  | Some(Err(e)) => e\n  | None => "none"\n};`,
+            `type Option<T> = Some(T) | None;
+type Result<T, E> = Ok(T) | Err(E);
+let x: Option<Result<Int, String>> = Some(Ok(42));
+let result = match x {
+  | Some(Ok(v)) => String.fromInt(v)
+  | Some(Err(e)) => e
+  | None => "none"
+};`,
             `result`,
         ),
         "42",
