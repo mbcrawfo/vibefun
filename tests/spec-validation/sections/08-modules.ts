@@ -248,7 +248,7 @@ test(S, "08-modules.md", "self-import is error", () => {
             dir,
             "main.vf",
             `import { x } from './main';
-let x = 42;`,
+export let x = 42;`,
         );
         const result = compileFile("main.vf", dir);
         if (result.exitCode !== 0) {

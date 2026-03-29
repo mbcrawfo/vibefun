@@ -47,9 +47,15 @@ test(S, "03-type-system/primitive-types.md", "string concat requires strings onl
 );
 
 test(S, "03-type-system/primitive-types.md", "Bool type supports logical operators", () =>
-    expectCompiles(`let a = true && false;
+    expectRunOutput(
+        withOutput(
+            `let a = true && false;
 let b = false || true;
-let c = !true;`),
+let c = !true;`,
+            `String.fromBool((a || b) && !c)`,
+        ),
+        "true",
+    ),
 );
 
 // --- Type Inference ---
@@ -345,7 +351,7 @@ let x = pair.0;`,
 test(S, "03-type-system/tuples.md", "tuple destructuring arity mismatch rejected", () =>
     expectCompileError(
         `let pair = (1, 2);
-let (a) = pair;`,
+let (a, b, c) = pair;`,
     ),
 );
 
