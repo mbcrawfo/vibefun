@@ -375,9 +375,7 @@ let result = f(b);`,
     ),
 );
 
-test(S, "03-type-system/primitive-types.md", "Ref type annotation", () =>
-    expectCompiles(`let mut x: Ref<Int> = ref(42);`),
-);
+test(S, "07-mutable-references.md", "Ref type annotation", () => expectCompiles(`let mut x: Ref<Int> = ref(42);`));
 
 test(S, "03-type-system/type-inference.md", "Hindley-Milner infers function parameter types", () =>
     expectRunOutput(
