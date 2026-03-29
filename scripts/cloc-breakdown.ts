@@ -27,7 +27,7 @@ interface ClocEntry {
 interface ClocByFileOutput {
     header: { cloc_url: string; cloc_version: string; n_files: number; n_lines: number };
     SUM: ClocEntry;
-    [filePath: string]: ClocEntry | ClocByFileOutput["header"] | ClocEntry;
+    [filePath: string]: ClocEntry | ClocByFileOutput["header"];
 }
 
 interface Counts {
@@ -84,11 +84,21 @@ function addCounts(target: Counts, entry: ClocEntry): void {
 }
 
 function runCloc(): ClocByFileOutput {
-    const stdout = execSync("cloc --vcs=git --json --by-file --hide-rate", {
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-    });
-    return JSON.parse(stdout) as ClocByFileOutput;
+    try {
+        const stdout = execSync("cloc --vcs=git --json --by-file --hide-rate", {
+            encoding: "utf-8",
+            maxBuffer: 10 * 1024 * 1024,
+        });
+        return JSON.parse(stdout) as ClocByFileOutput;
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("ENOENT")) {
+            console.error("Error: 'cloc' command not found. Please install cloc:");
+            console.error("  brew install cloc  (macOS)");
+            console.error("  apt install cloc   (Debian/Ubuntu)");
+            process.exit(1);
+        }
+        throw error;
+    }
 }
 
 interface LanguageRow {
