@@ -18,7 +18,7 @@ const S = "08-modules";
 function moduleTest(
     files: Record<string, string>,
     mainFile: string,
-    check: "compiles" | "runs" | "output",
+    check: "compiles" | "compileError" | "runs" | "output",
     expected?: string,
 ): TestResult {
     const dir = createTempDir();
@@ -35,6 +35,17 @@ function moduleTest(
             return {
                 status: "fail",
                 message: `Expected compilation success, got exit code ${result.exitCode}`,
+            };
+        }
+
+        if (check === "compileError") {
+            const result = compileFile(mainFile, dir);
+            if (result.exitCode !== 0) {
+                return { status: "pass" };
+            }
+            return {
+                status: "fail",
+                message: `Expected compile error, but compilation succeeded`,
             };
         }
 
@@ -241,27 +252,16 @@ let c: Color = defaultColor;`,
     ),
 );
 
-test(S, "08-modules.md", "self-import is error", () => {
-    const dir = createTempDir();
-    try {
-        writeTempFile(
-            dir,
-            "main.vf",
-            `import { x } from './main';
+test(S, "08-modules.md", "self-import is error", () =>
+    moduleTest(
+        {
+            "main.vf": `import { x } from './main';
 export let x = 42;`,
-        );
-        const result = compileFile("main.vf", dir);
-        if (result.exitCode !== 0) {
-            return { status: "pass" };
-        }
-        return {
-            status: "fail",
-            message: "Expected compile error for self-import, but compilation succeeded",
-        };
-    } finally {
-        cleanupTempDir(dir);
-    }
-});
+        },
+        "main.vf",
+        "compileError",
+    ),
+);
 
 test(S, "08-modules.md", "export wildcard re-export", () =>
     moduleTest(
@@ -291,27 +291,16 @@ let y = x;`,
     ),
 );
 
-test(S, "08-modules.md", "import missing module is error", () => {
-    const dir = createTempDir();
-    try {
-        writeTempFile(
-            dir,
-            "main.vf",
-            `import { x } from './nonexistent';
+test(S, "08-modules.md", "import missing module is error", () =>
+    moduleTest(
+        {
+            "main.vf": `import { x } from './nonexistent';
 let y = x;`,
-        );
-        const result = compileFile("main.vf", dir);
-        if (result.exitCode !== 0) {
-            return { status: "pass" };
-        }
-        return {
-            status: "fail",
-            message: "Expected compile error for missing module, but compilation succeeded",
-        };
-    } finally {
-        cleanupTempDir(dir);
-    }
-});
+        },
+        "main.vf",
+        "compileError",
+    ),
+);
 
 test(S, "08-modules.md", "exported external declaration", () =>
     moduleTest(
