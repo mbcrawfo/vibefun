@@ -13,7 +13,7 @@ Section 11 tests the standard library modules: String, Int, Float, List, Option,
 - **Spec reference:** `docs/spec/11-stdlib/string.md`, `docs/spec/11-stdlib/numeric.md`, `docs/spec/11-stdlib/list.md`, `docs/spec/11-stdlib/option.md`, `docs/spec/11-stdlib/result.md`, `docs/spec/11-stdlib/math.md`
 - **Scope estimate:** Large (1-3 days)
 - **Complexity:** High
-- **Notes:** The fix requires either: (a) modifying the desugarer or typechecker to recognize module-qualified identifiers (e.g., when a `RecordAccess` target is a known stdlib module name, rewrite it to a flat `CoreVar("String.fromInt")` call), or (b) implementing a proper module system where `String`, `List`, `Int`, `Float`, `Option`, `Result` are actual module-like namespace objects in the type environment. This is the single most impactful issue -- fixing it unblocks all 52 failing tests at the type-checking stage.
+- **Notes:** The fix requires either: (a) modifying the desugarer or typechecker to recognize module-qualified identifiers (e.g., when a `RecordAccess` target is a known stdlib module name, rewrite it to a flat `CoreVar("String.fromInt")` call), or (b) implementing a proper module system where `String`, `List`, `Int`, `Float`, `Option`, `Result` are actual module-like namespace objects in the type environment. This is the single most impactful issue -- fixing it removes the dominant early blocker for all 52 failing tests (though Categories 3/4/5/6 introduce additional typechecker-level failures that would surface afterward).
 
 ### Category 2: Missing Code Generation for Stdlib Functions
 

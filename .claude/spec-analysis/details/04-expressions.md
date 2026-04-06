@@ -32,7 +32,7 @@ The 12 passing tests are either string-only runtime tests (which don't need `Str
 ### Category 2: Zero-Argument Lambda Not Implemented (Internal Error, Exit Code 5)
 
 - **Tests affected:** no-argument function call, lambda with no params, AND short-circuit skips right side, OR short-circuit skips right side (4 tests)
-- **Root cause:** The parser correctly parses `() => expr` as a Lambda with 0 parameters. However, the desugarer's `curryLambda` function (`desugarer/curryLambda.ts:33`) explicitly throws `Error("Lambda with zero parameters")` when `params.length === 0`. The Core AST `CoreLambda` type requires exactly one `param: CorePattern`, so there is no representation for zero-param lambdas. The spec (`04-expressions/functions-composition.md`) explicitly shows `() => 42;` as valid syntax. The fix requires either: (a) desugaring `() => expr` to a lambda with a unit pattern parameter `(_: Unit) => expr`, or (b) extending the Core AST.
+- **Root cause:** The parser correctly parses `() => expr` as a Lambda with 0 parameters. However, the desugarer's `curryLambda` function (`desugarer/curryLambda.ts:34`) explicitly throws `Error("Lambda with zero parameters")` when `params.length === 0`. The Core AST `CoreLambda` type requires exactly one `param: CorePattern`, so there is no representation for zero-param lambdas. The spec (`04-expressions/functions-composition.md`) explicitly shows `() => 42;` as valid syntax. The fix requires either: (a) desugaring `() => expr` to a lambda with a unit pattern parameter `(_: Unit) => expr`, or (b) extending the Core AST.
 - **Spec reference:** `04-expressions/functions-composition.md` -- Lambda Syntax section shows `() => 42;` as valid.
 - **Scope estimate:** Small (1-2 hours)
 - **Complexity:** Low
@@ -41,7 +41,7 @@ The 12 passing tests are either string-only runtime tests (which don't need `Str
 ### Category 3: Empty Block Expression Not Implemented (Internal Error, Exit Code 5)
 
 - **Tests affected:** empty block returns Unit (1 test)
-- **Root cause:** The desugarer's `desugarBlock` function (`desugarer/desugarBlock.ts:32`) throws `Error("Empty block expression")` when the block has zero expressions. The spec (`04-expressions/functions-composition.md`) states that `{}` has type `Unit` and evaluates to `()`. The fix is to handle `exprs.length === 0` by returning a `CoreUnitLit` instead of throwing.
+- **Root cause:** The desugarer's `desugarBlock` function (`desugarer/desugarBlock.ts:32`) throws `Error("Empty block expression")` throws `Error("Empty block expression")` when the block has zero expressions. The spec (`04-expressions/functions-composition.md`) states that `{}` has type `Unit` and evaluates to `()`. The fix is to handle `exprs.length === 0` by returning a `CoreUnitLit` instead of throwing.
 - **Spec reference:** `04-expressions/functions-composition.md` -- Empty Blocks section: "An empty block `{}` has type `Unit` and evaluates to `()`".
 - **Scope estimate:** Small (1-2 hours)
 - **Complexity:** Low

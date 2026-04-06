@@ -53,10 +53,8 @@ These items require design decisions before implementation can proceed:
 - **Tradeoff:** Postfix avoids type-directed parsing ambiguity. Prefix matches ML-family convention.
 - **Impact:** Affects all mutable reference tests (Group 3c). Must be decided before implementing Group 3c.
 
-### D2. Should `f(a, b)` Auto-Desugar to `f(a)(b)`?
-- **Current state:** Multi-arg calls are not desugared. Curried calls `f(a)(b)` work.
-- **Spec position:** Yes, they are equivalent. `f(a, b)` is sugar for `f(a)(b)`.
-- **Impact:** Affects Group 4. The spec is clear on this, so it's more of a confirmation than an open question.
+### ~~D2. `f(a, b)` Auto-Desugaring to `f(a)(b)`~~ — Resolved
+The spec is explicit that `f(a, b)` is sugar for `f(a)(b)` (see `docs/spec/06-functions.md`). This is not an open decision — it is an implementation task tracked as Group 4.
 
 ## Infrastructure Issues (not language features)
 

@@ -63,7 +63,7 @@
 - **Explicit type parameters:** Independent of all groups.
 - **String literal unions:** Independent of all groups.
 - **Lambda destructuring:** Independent of all groups.
-- **Division-by-zero checks:** Fully independent -- no prerequisites at all.
+- **Division-by-zero checks:** Implementation is fully independent (no code prerequisites), but the tests also need Group 1 for output verification.
 - **Record width subtyping:** Should be addressed alongside Group 2 (type declaration validation).
 - **Nullary constructor crash:** Independent, but may affect Group 9 edge cases.
 - **Test fixture type redefinition:** Independent test authoring fix.
