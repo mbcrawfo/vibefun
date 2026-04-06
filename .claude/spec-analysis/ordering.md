@@ -13,7 +13,7 @@ Throughout this document, "tests unblocked" means "tests where **at least one** 
 
 ---
 
-## Phase 1: Quick Wins & Prerequisites (~4-6 hours)
+## Phase 1: Quick Wins & Prerequisites (~6-8 hours)
 
 These are small, independent fixes with no dependencies that enable downstream phases.
 
@@ -133,7 +133,7 @@ Part of the module system completion. Depends on Phase 6.
 
 | Phase | Items | Est. Effort | Blocker Removed For |
 |-------|-------|-------------|---------------------|
-| 1 - Prerequisites | Bool exhaustiveness, multi-arg calls, zero-arg lambda, empty block, wildcard in let, div-by-zero, nullary crash | ~4-6 hours | ~10 directly + enables Phase 2 |
+| 1 - Prerequisites | Bool exhaustiveness, multi-arg calls, zero-arg lambda, empty block, wildcard in let, div-by-zero, nullary crash | ~6-8 hours | ~10 directly + enables Phase 2 |
 | 2 - Stdlib Resolution | Name resolution, builtin gaps, concat fix, stdlib runtime, test fixtures | ~3-5 days | ~150+ tests (with overlap caveats) |
 | 3 - Core Features | User types, `!` disambiguation, float ops | ~3-5 days | ~30-40 tests |
 | 4 - Supporting | Nested mut, top-level exprs, block statements | ~1-2 days | ~10-15 tests |

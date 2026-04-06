@@ -2,7 +2,7 @@
 
 ## Summary
 
-Section 09 covers error handling semantics including division by zero behavior, IEEE 754 float special values (NaN, Infinity), and the Result/Option algebraic data types for error handling. All 14 tests fail (0 pass). The failures stem from four distinct root causes, with the most impactful being the inability to resolve module-qualified builtin function names (e.g., `String.fromInt`), which blocks 10 of the 14 tests. The remaining failures are caused by missing runtime division-by-zero checks (2 tests), arithmetic/comparison operators being restricted to Int only (3 tests, overlapping with String issue), and unary negation being restricted to Int only (1 test, also overlapping with String issue).
+Section 09 covers error handling semantics including division by zero behavior, IEEE 754 float special values (NaN, Infinity), and the Result/Option algebraic data types for error handling. All 14 tests fail (0 pass). The failures stem from five distinct root causes, with the most impactful being the inability to resolve module-qualified builtin function names (e.g., `String.fromInt`), which blocks 10 of the 14 tests. The remaining failures are caused by missing runtime division-by-zero checks (2 tests), arithmetic/comparison operators being restricted to Int only (3 tests, overlapping with String issue), and unary negation being restricted to Int only (1 test, also overlapping with String issue).
 
 ## Failure Categories
 

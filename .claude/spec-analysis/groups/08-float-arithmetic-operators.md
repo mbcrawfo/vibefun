@@ -7,7 +7,7 @@ Arithmetic operators (`+`, `-`, `*`, `%`) and comparison operators (`<`, `<=`, `
 04-expressions, 09-error-handling
 
 ## Affected Tests (count)
-~7 tests directly (most also blocked by stdlib name resolution).
+~8 tests directly (most also blocked by stdlib name resolution).
 
 ## Details
 The typechecker's `getBinOpTypes` function hardcodes `Add`, `Subtract`, `Multiply`, `Modulo`, `LessThan`, `LessEqual`, `GreaterThan`, `GreaterEqual` to `Int`. The `Divide` operator's polymorphic handling can serve as a template for fixing the others.

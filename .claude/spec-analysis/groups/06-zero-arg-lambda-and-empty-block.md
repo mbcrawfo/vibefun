@@ -2,7 +2,7 @@
 
 ## Root Issue
 Two related "not yet implemented" cases in the desugarer that throw internal errors (exit code 5):
-1. `() => expr` throws "Lambda with zero parameters" in `curryLambda.ts:33`
+1. `() => expr` throws "Lambda with zero parameters" in `curryLambda.ts:34`
 2. `{}` (empty block) throws "Empty block expression" in `desugarBlock.ts:32`
 
 Both are cases where the parser produces valid AST but the desugarer doesn't handle the edge case.
