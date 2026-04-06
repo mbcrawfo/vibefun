@@ -41,7 +41,7 @@ The 12 passing tests are either string-only runtime tests (which don't need `Str
 ### Category 3: Empty Block Expression Not Implemented (Internal Error, Exit Code 5)
 
 - **Tests affected:** empty block returns Unit (1 test)
-- **Root cause:** The desugarer's `desugarBlock` function (`desugarer/desugarBlock.ts:32`) throws `Error("Empty block expression")` throws `Error("Empty block expression")` when the block has zero expressions. The spec (`04-expressions/functions-composition.md`) states that `{}` has type `Unit` and evaluates to `()`. The fix is to handle `exprs.length === 0` by returning a `CoreUnitLit` instead of throwing.
+- **Root cause:** The desugarer's `desugarBlock` function (`desugarer/desugarBlock.ts:32`) throws `Error("Empty block expression")` when the block has zero expressions. The spec (`04-expressions/functions-composition.md`) states that `{}` has type `Unit` and evaluates to `()`. The fix is to handle `exprs.length === 0` by returning a `CoreUnitLit` instead of throwing.
 - **Spec reference:** `04-expressions/functions-composition.md` -- Empty Blocks section: "An empty block `{}` has type `Unit` and evaluates to `()`".
 - **Scope estimate:** Small (1-2 hours)
 - **Complexity:** Low

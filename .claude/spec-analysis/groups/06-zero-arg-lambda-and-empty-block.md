@@ -11,7 +11,7 @@ Both are cases where the parser produces valid AST but the desugarer doesn't han
 02-lexical-structure, 04-expressions, 06-functions, 07-mutable-references
 
 ## Affected Tests (count)
-~6 tests directly.
+~7 tests directly.
 
 ## Details
 **Zero-arg lambda**: The `CoreLambda` type requires exactly one `param: CorePattern`, so zero-param lambdas have no representation. The fix is to desugar `() => expr` to a lambda with a unit pattern parameter `(_: Unit) => expr`.

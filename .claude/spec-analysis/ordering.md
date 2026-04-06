@@ -33,7 +33,7 @@ Return `CoreUnitLit` for empty blocks instead of throwing. Small (~30 min).
 Support `CoreWildcardPattern` in the typechecker's `inferLet`. Small (~1 hour). Needed by the while loop desugarer and `let _ = expr;` patterns.
 
 ### 1.6 Division-by-zero runtime checks
-Add zero-divisor guards for integer division and modulo in codegen. Small (~1 hour). Fully independent, no prerequisites. Quick win to fix 2 tests.
+Add zero-divisor guards for integer division and modulo in codegen. Small (~1 hour). Fully independent, no prerequisites. Removes a blocker for 2 tests (which also need Group 1 for output verification).
 
 ### 1.7 Nullary constructor type annotation crash
 Fix `typeToString` to handle zero-parameter function types. Small (~1 hour). Eliminates internal errors (exit code 5) across multiple sections.
