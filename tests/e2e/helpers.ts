@@ -12,7 +12,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,8 +95,10 @@ export function runFile(filePath: string, cwd?: string): CliResult {
 
 /**
  * Create a temporary project directory populated with `files`. Keys are
- * paths relative to the project root. Returns the absolute project path
- * and a dispose function that deletes the whole tree.
+ * paths relative to the project root. Symlinks the repo's `node_modules`
+ * into the project so `@vibefun/std` (and any other workspace packages)
+ * resolve when `node` executes the compiled output. Returns the absolute
+ * project path and a dispose function that deletes the whole tree.
  */
 export function createTempProject(files: Record<string, string>): { dir: string; dispose: () => void } {
     const dir = mkdtempSync(join(tmpdir(), "vibefun-e2e-"));
@@ -104,6 +106,13 @@ export function createTempProject(files: Record<string, string>): { dir: string;
         const full = join(dir, relPath);
         mkdirSync(dirname(full), { recursive: true });
         writeFileSync(full, content, "utf-8");
+    }
+    try {
+        symlinkSync(join(REPO_ROOT, "node_modules"), join(dir, "node_modules"), "dir");
+    } catch {
+        // If the symlink fails (e.g. platform limitation) leave it —
+        // tests that don't import @vibefun/std still work, and tests
+        // that do will surface a clear runtime MODULE_NOT_FOUND.
     }
     return {
         dir,

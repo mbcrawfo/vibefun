@@ -286,19 +286,33 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             return env;
 
         case "CoreImportDecl": {
-            // @vibefun/std is the only package currently served by the
-            // signature registry. Imports from user modules (relative
-            // paths) become typecheckable in phase 2.9 when the multi-
-            // file CLI pipeline goes live; until then we leave them as
-            // trusted no-ops so single-file programs continue to compile.
-            if (decl.from !== STDLIB_PACKAGE) {
-                return env;
-            }
-
             const newEnv: TypeEnv = {
                 values: new Map(env.values),
                 types: env.types,
             };
+
+            // For non-stdlib imports (relative paths, other packages),
+            // we bind each imported name to a fresh polymorphic type
+            // variable. This is deliberately unsound as a transitional
+            // position: the multi-file CLI pipeline is wired (phase 2.9)
+            // but cross-module export tracking lives in a later phase.
+            // The bind still lets user programs compile and run; runtime
+            // errors surface if the imported name doesn't actually exist
+            // in the target module.
+            if (decl.from !== STDLIB_PACKAGE) {
+                for (const item of decl.items) {
+                    if (item.isType) continue;
+                    const boundName = item.alias ?? item.name;
+                    const tvar = freshTypeVar(0);
+                    const tvarId = tvar.type === "Var" ? tvar.id : 0;
+                    newEnv.values.set(boundName, {
+                        kind: "Value",
+                        scheme: { vars: [tvarId], type: tvar },
+                        loc: decl.loc,
+                    });
+                }
+                return newEnv;
+            }
 
             for (const item of decl.items) {
                 // Type-only imports don't introduce value bindings.
