@@ -5,15 +5,41 @@
  * - No spread: [1, 2, 3] => Cons(1, Cons(2, Cons(3, Nil)))
  * - Spread at end: [1, 2, ...rest] => Cons(1, Cons(2, rest))
  * - Just spread: [...rest] => rest
- * - Complex spreads: [...xs, 1, ...ys] => concat(xs, Cons(1, ys))
+ * - Complex spreads: [...xs, 1, ...ys] => __std__.List.concat(xs)(Cons(1, ys))
+ *
+ * Concat calls are emitted as curried single-argument CoreApp chains
+ * against the compiler-hidden `__std__.List.concat` reference (phase 2.5).
  */
 
 import type { Expr, Location } from "../types/ast.js";
-import type { CoreApp, CoreIntLit, CoreVar, CoreVariant } from "../types/core-ast.js";
+import type { CoreApp, CoreExpr, CoreIntLit, CoreRecordAccess, CoreVar, CoreVariant } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
 import { desugar } from "./desugarer.js";
+
+/**
+ * Assert that `expr` is a curried `__std__.List.concat(left)(right)` call and
+ * return the two segment expressions. The desugarer produces this shape for
+ * every list spread that can't be handled by the end-spread fast path.
+ */
+function expectConcatCall(expr: CoreExpr): [CoreExpr, CoreExpr] {
+    expect(expr.kind).toBe("CoreApp");
+    const outer = expr as CoreApp;
+    expect(outer.args).toHaveLength(1);
+    expect(outer.func.kind).toBe("CoreApp");
+    const inner = outer.func as CoreApp;
+    expect(inner.args).toHaveLength(1);
+    expect(inner.func.kind).toBe("CoreRecordAccess");
+    const concatField = inner.func as CoreRecordAccess;
+    expect(concatField.field).toBe("concat");
+    expect(concatField.record.kind).toBe("CoreRecordAccess");
+    const listField = concatField.record as CoreRecordAccess;
+    expect(listField.field).toBe("List");
+    expect(listField.record.kind).toBe("CoreVar");
+    expect((listField.record as CoreVar).name).toBe("__std__");
+    return [inner.args[0] as CoreExpr, outer.args[0] as CoreExpr];
+}
 
 const testLoc: Location = {
     file: "test.vf",
@@ -133,21 +159,14 @@ describe("List Spread - Spread at Beginning", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
+        const [first, second] = expectConcatCall(desugar(list));
 
-        // Should be: concat(xs, Cons(1, Nil))
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect(app.func.kind).toBe("CoreVar");
-        expect((app.func as CoreVar).name).toBe("concat");
-        expect(app.args).toHaveLength(2);
+        // First segment: xs
+        expect(first.kind).toBe("CoreVar");
+        expect((first as CoreVar).name).toBe("xs");
 
-        // First arg: xs
-        expect(app.args[0]!.kind).toBe("CoreVar");
-        expect((app.args[0] as CoreVar).name).toBe("xs");
-
-        // Second arg: Cons(1, Nil)
-        const secondArg = app.args[1]! as CoreVariant;
+        // Second segment: Cons(1, Nil)
+        const secondArg = second as CoreVariant;
         expect(secondArg.kind).toBe("CoreVariant");
         expect(secondArg.constructor).toBe("Cons");
         expect((secondArg.args[0] as CoreIntLit).value).toBe(1);
@@ -165,14 +184,8 @@ describe("List Spread - Spread at Beginning", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
-
-        // Should be: concat(xs, Cons(1, Cons(2, Nil)))
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
-
-        const secondArg = app.args[1]! as CoreVariant;
+        const [, second] = expectConcatCall(desugar(list));
+        const secondArg = second as CoreVariant;
         expect(secondArg.constructor).toBe("Cons");
         expect((secondArg.args[0] as CoreIntLit).value).toBe(1);
         const innerVariant = secondArg.args[1]! as CoreVariant;
@@ -192,14 +205,9 @@ describe("List Spread - Multiple Spreads", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
-
-        // Should be: concat(xs, ys)
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
-        expect((app.args[0] as CoreVar).name).toBe("xs");
-        expect((app.args[1] as CoreVar).name).toBe("ys");
+        const [first, second] = expectConcatCall(desugar(list));
+        expect((first as CoreVar).name).toBe("xs");
+        expect((second as CoreVar).name).toBe("ys");
     });
 
     it("should desugar [...xs, 1, ...ys] using concat", () => {
@@ -213,25 +221,13 @@ describe("List Spread - Multiple Spreads", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
+        const [outerFirst, outerSecond] = expectConcatCall(desugar(list));
+        expect((outerFirst as CoreVar).name).toBe("xs");
 
-        // Should be: concat(xs, concat(Cons(1, Nil), ys))
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
-        expect((app.args[0] as CoreVar).name).toBe("xs");
-
-        const innerConcat = app.args[1]! as CoreApp;
-        expect(innerConcat.kind).toBe("CoreApp");
-        expect((innerConcat.func as CoreVar).name).toBe("concat");
-
-        // Middle segment: Cons(1, Nil)
-        const middleSegment = innerConcat.args[0]! as CoreVariant;
-        expect(middleSegment.constructor).toBe("Cons");
-        expect((middleSegment.args[0] as CoreIntLit).value).toBe(1);
-
-        // Last segment: ys
-        expect((innerConcat.args[1] as CoreVar).name).toBe("ys");
+        const [middleSegment, lastSegment] = expectConcatCall(outerSecond);
+        expect((middleSegment as CoreVariant).constructor).toBe("Cons");
+        expect(((middleSegment as CoreVariant).args[0] as CoreIntLit).value).toBe(1);
+        expect((lastSegment as CoreVar).name).toBe("ys");
     });
 
     it("should desugar [...xs, 1, ...ys, 2] using concat", () => {
@@ -246,12 +242,14 @@ describe("List Spread - Multiple Spreads", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
-
-        // Should be concat(xs, concat(Cons(1, Nil), concat(ys, Cons(2, Nil))))
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
+        // Shape: concat(xs)(concat(Cons(1, Nil))(concat(ys)(Cons(2, Nil))))
+        const [first, rest1] = expectConcatCall(desugar(list));
+        expect((first as CoreVar).name).toBe("xs");
+        const [second, rest2] = expectConcatCall(rest1);
+        expect((second as CoreVariant).constructor).toBe("Cons");
+        const [third, fourth] = expectConcatCall(rest2);
+        expect((third as CoreVar).name).toBe("ys");
+        expect((fourth as CoreVariant).constructor).toBe("Cons");
     });
 
     it("should desugar [1, ...xs, 2, ...ys, 3] using concat", () => {
@@ -267,16 +265,12 @@ describe("List Spread - Multiple Spreads", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
-
-        // Multiple concats
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
+        // Outer must be a concat call — the shape is nested and nontrivial.
+        expectConcatCall(desugar(list));
     });
 });
 
-describe("List Spread - Multiple Spreads", () => {
+describe("List Spread - Three+ Spreads", () => {
     it("should desugar [...xs, ...ys, ...zs] with three spreads", () => {
         const list: Expr = {
             kind: "List",
@@ -288,19 +282,12 @@ describe("List Spread - Multiple Spreads", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
-
-        // Should be: concat(xs, concat(ys, zs))
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
-        expect((app.args[0] as CoreVar).name).toBe("xs");
-
-        const innerConcat = app.args[1]! as CoreApp;
-        expect(innerConcat.kind).toBe("CoreApp");
-        expect((innerConcat.func as CoreVar).name).toBe("concat");
-        expect((innerConcat.args[0] as CoreVar).name).toBe("ys");
-        expect((innerConcat.args[1] as CoreVar).name).toBe("zs");
+        // concat(xs)(concat(ys)(zs))
+        const [first, rest] = expectConcatCall(desugar(list));
+        expect((first as CoreVar).name).toBe("xs");
+        const [second, third] = expectConcatCall(rest);
+        expect((second as CoreVar).name).toBe("ys");
+        expect((third as CoreVar).name).toBe("zs");
     });
 
     it("should desugar [1, ...xs, 2, ...ys, 3, ...zs, 4] with three spreads", () => {
@@ -318,12 +305,7 @@ describe("List Spread - Multiple Spreads", () => {
             loc: testLoc,
         };
 
-        const result = desugar(list);
-
-        // Complex nested concats
-        expect(result.kind).toBe("CoreApp");
-        const app = result as CoreApp;
-        expect((app.func as CoreVar).name).toBe("concat");
+        expectConcatCall(desugar(list));
     });
 });
 

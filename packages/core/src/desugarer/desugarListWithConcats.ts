@@ -58,11 +58,32 @@ export function desugarListWithConcats(
         if (!segment) {
             throw new Error(`Empty segment at index ${i}`);
         }
-        // concat(segment, result) - concat is curried, so: concat(segment)(result)
+        // __std__.List.concat(segment)(result) — compiler-hidden qualified
+        // reference (Package D, phase 2.5). The desugarer synthesizes this
+        // access path so list spread works without the user writing an
+        // explicit `import { concat } from "@vibefun/std"`. The codegen
+        // auto-injects the corresponding `__std__` import.
+        const concatRef: CoreExpr = {
+            kind: "CoreRecordAccess",
+            record: {
+                kind: "CoreRecordAccess",
+                record: { kind: "CoreVar", name: "__std__", loc },
+                field: "List",
+                loc,
+            },
+            field: "concat",
+            loc,
+        };
+        const partial: CoreExpr = {
+            kind: "CoreApp",
+            func: concatRef,
+            args: [segment],
+            loc,
+        };
         result = {
             kind: "CoreApp",
-            func: { kind: "CoreVar", name: "concat", loc },
-            args: [segment, result],
+            func: partial,
+            args: [result],
             loc,
         };
     }

@@ -10,15 +10,34 @@
  */
 
 import type { TypedModule } from "../../typechecker/typechecker.js";
-import type { CoreExternalDecl, CoreImportDecl, CoreModule } from "../../types/core-ast.js";
+import type { CoreExpr, CoreExternalDecl, CoreImportDecl, CoreModule } from "../../types/core-ast.js";
 import type { EmitContext } from "./context.js";
 import type { MatchPatternResult } from "./emit-patterns.js";
 
+import { visitExpr } from "../../utils/ast-transform.js";
 import { createContext } from "./context.js";
 import * as Declarations from "./emit-declarations.js";
 import * as Expressions from "./emit-expressions.js";
 import * as Patterns from "./emit-patterns.js";
 import { generateRuntimeHelpers } from "./runtime-helpers.js";
+
+/**
+ * Names that @vibefun/std provides and are *ambient* in user code — they
+ * are reachable via the typechecker's builtin env (or pre-seeded as
+ * `__std__`), so the user never writes an explicit import for them. When
+ * the emitted JS references any of these, we auto-inject a matching
+ * `import { … } from "@vibefun/std"` so the runtime resolves correctly.
+ */
+const STDLIB_AMBIENT_RUNTIME_NAMES: ReadonlySet<string> = new Set([
+    "__std__",
+    "Cons",
+    "Nil",
+    "Some",
+    "None",
+    "Ok",
+    "Err",
+]);
+const STDLIB_PACKAGE = "@vibefun/std";
 
 // =============================================================================
 // Dependency Injection Initialization
@@ -192,6 +211,14 @@ function generateImports(module: CoreModule, _ctx: EmitContext): string {
         }
     }
 
+    // Auto-inject imports for any stdlib-ambient runtime name referenced by
+    // the emitted JS (e.g. `__std__` from desugarer-synthesized list-spread
+    // concat, or a variant constructor like `Some` used in user code). The
+    // typechecker resolves these against the ambient env or `__std__`
+    // binding, but the emitted JS still needs a real module import for the
+    // runtime to locate the symbol.
+    collectSynthesizedStdlibImports(module, importsByModule);
+
     // Generate import statements
     const lines: string[] = [];
 
@@ -203,6 +230,61 @@ function generateImports(module: CoreModule, _ctx: EmitContext): string {
     }
 
     return lines.join("\n");
+}
+
+/**
+ * Walk the module tree and add synthetic @vibefun/std imports for every
+ * stdlib-ambient runtime name that appears as a reachable `CoreVar`.
+ * Deduplication with user-written imports happens through addOrMergeImport.
+ */
+function collectSynthesizedStdlibImports(module: CoreModule, importsByModule: Map<string, TrackedImport[]>): void {
+    // Names a user-declared variant type already binds locally (the typedecl
+    // emits an inline `const Some = …`). Auto-importing the same name from
+    // @vibefun/std would trigger a JS re-declaration error.
+    const userDefinedNames = new Set<string>();
+    for (const decl of module.declarations) {
+        if (decl.kind === "CoreTypeDecl" && decl.definition.kind === "CoreVariantTypeDef") {
+            for (const ctor of decl.definition.constructors) {
+                userDefinedNames.add(ctor.name);
+            }
+        }
+    }
+
+    const referenced = new Set<string>();
+    const check = (expr: CoreExpr): void => {
+        if (
+            expr.kind === "CoreVar" &&
+            STDLIB_AMBIENT_RUNTIME_NAMES.has(expr.name) &&
+            !userDefinedNames.has(expr.name)
+        ) {
+            referenced.add(expr.name);
+        }
+    };
+    for (const decl of module.declarations) {
+        switch (decl.kind) {
+            case "CoreLetDecl":
+                visitExpr(decl.value, check);
+                break;
+            case "CoreLetRecGroup":
+                for (const binding of decl.bindings) {
+                    visitExpr(binding.value, check);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (referenced.size === 0) return;
+
+    let items = importsByModule.get(STDLIB_PACKAGE);
+    if (!items) {
+        items = [];
+        importsByModule.set(STDLIB_PACKAGE, items);
+    }
+    for (const name of referenced) {
+        addOrMergeImport(items, { name, alias: undefined, isType: false });
+    }
 }
 
 /**
