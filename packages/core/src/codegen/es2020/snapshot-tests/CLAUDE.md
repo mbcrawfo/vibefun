@@ -1,81 +1,36 @@
-# Snapshot Tests for ES2020 Code Generator
+# Snapshot Tests for ES2020 Codegen
 
-This directory contains snapshot tests that capture the generated JavaScript output for various Vibefun programs.
+Captures the generated JavaScript for representative Vibefun programs so unintended changes to output trigger test failures.
 
-## Purpose
+Each `snapshot-*.test.ts` pairs with a `.vf` fixture and uses the shared `compileFixture()` helper in `test-helpers.ts`, which runs the full pipeline (lexer → parser → desugarer → typechecker → codegen) and returns the generated JS.
 
-Snapshot tests validate the complete code generation output by:
-
-1. Compiling `.vf` fixture files through the full pipeline (lexer → parser → desugarer → typechecker → codegen)
-2. Capturing the generated JavaScript as a snapshot
-3. Comparing future runs against these snapshots to detect unintended changes
-
-## Directory Structure
-
-```
-snapshot-tests/
-├── __snapshots__/           # Vitest snapshot files (auto-generated)
-│   └── *.test.ts.snap       # Snapshot data
-├── *.vf                     # Fixture files (Vibefun source code)
-├── snapshot-*.test.ts       # Test files that compile fixtures
-├── test-helpers.ts          # Shared compilation helper
-└── CLAUDE.md                # This file
-```
-
-## Fixture Files
+## Fixtures
 
 | File | Coverage |
 |------|----------|
-| `expressions.vf` | Literals, operators, lambdas, function application |
+| `expressions.vf` | Literals, operators, lambdas, application |
 | `declarations.vf` | Let bindings, type declarations, exports |
 | `patterns.vf` | Pattern matching, destructuring |
 | `data-structures.vf` | Records, tuples, variants |
 | `functions.vf` | Curried functions, recursion |
 | `real-world.vf` | Realistic usage patterns |
 
-## Running Snapshot Tests
+## Running / Updating
 
 ```bash
-# Run all snapshot tests
-pnpm --filter @vibefun/core test -- snapshot
-
-# Run specific snapshot test
-pnpm --filter @vibefun/core test -- snapshot-expressions
-
-# Update snapshots after intentional changes
-pnpm --filter @vibefun/core test -- snapshot -u
+pnpm --filter @vibefun/core test -- snapshot             # run all
+pnpm --filter @vibefun/core test -- snapshot-expressions # one category
+pnpm --filter @vibefun/core test -- snapshot -u          # update after an intentional change
 ```
 
-## When to Update Snapshots
+**Always review snapshot diffs before accepting updates.** A surprising diff is almost always a codegen regression, not a stale snapshot.
 
-Update snapshots (`pnpm test -- -u`) when:
+## Adding a Snapshot
 
-- Code generation output format changes intentionally
-- New features are added that affect output
-- Bug fixes change the generated code
+1. Create a `<name>.vf` fixture.
+2. Create `snapshot-<name>.test.ts` using `compileFixture("<name>.vf")` and `expect(code).toMatchSnapshot()`.
+3. Run once to generate the snapshot, then review it before committing.
 
-**Always review snapshot diffs carefully** before updating to ensure changes are intentional.
+## Maintenance
 
-## Adding New Snapshot Tests
-
-1. Create a new `.vf` fixture file with representative Vibefun code
-2. Create a corresponding `snapshot-<name>.test.ts` test file:
-
-```typescript
-import { describe, expect, it } from "vitest";
-import { compileFixture } from "./test-helpers.js";
-
-describe("Codegen Snapshot - <Name>", () => {
-    it("should compile <name>.vf", () => {
-        const { code } = compileFixture("<name>.vf");
-        expect(code).toMatchSnapshot();
-    });
-});
-```
-
-3. Run the test to generate the initial snapshot
-4. Review the generated snapshot file in `__snapshots__/`
-
-## Test Helper
-
-The `compileFixture()` function in `test-helpers.ts` runs the full compilation pipeline on a fixture file and returns the generated JavaScript code. This ensures snapshots capture the real end-to-end output.
+Keep the fixture table in sync with the files on disk. If `test-helpers.ts` or the snapshot directory layout changes, update the description above.

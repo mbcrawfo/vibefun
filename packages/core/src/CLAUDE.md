@@ -4,21 +4,22 @@ This directory contains the Vibefun compiler implementation. Each module handles
 
 ## Module Guide
 
-| Module | Purpose | Docs |
-|--------|---------|------|
-| lexer/ | Tokenization | — |
-| parser/ | AST generation | [CLAUDE.md](./parser/CLAUDE.md) |
-| desugarer/ | Surface syntax → Core AST | — |
-| typechecker/ | Type inference & checking | — |
-| optimizer/ | AST optimizations | — |
-| config/ | Compiler configuration (vibefun.json) | — |
-| module-loader/ | Module discovery & parsing | — |
-| module-resolver/ | Dependency graph & cycle detection | — |
-| diagnostics/ | Error system (VFxxxx codes) | [README](./diagnostics/README.md), [Adding Codes](./diagnostics/codes/README.md) |
-| types/ | Shared type definitions | — |
-| utils/ | Common utilities | — |
+| Module | Purpose |
+|--------|---------|
+| `lexer/` | Tokenization |
+| `parser/` | AST generation |
+| `desugarer/` | Surface syntax → Core AST |
+| `typechecker/` | Type inference & checking (Hindley-Milner) |
+| `optimizer/` | AST optimizations |
+| `codegen/` | JavaScript emission |
+| `config/` | Compiler configuration (`vibefun.json`) |
+| `module-loader/` | Module discovery, parsing, caching |
+| `module-resolver/` | Dependency graph, cycle detection, compile order |
+| `diagnostics/` | Error/warning system (`VFxxxx` codes) |
+| `types/` | Shared type definitions (Surface AST, Core AST, TypeEnv, Token) |
+| `utils/` | Shared AST utilities (visitor, equality, substitution) |
 
-> **Maintenance:** When adding or removing folders in `src/`, update this module guide to keep it accurate.
+Nested `CLAUDE.md` files inside these folders are loaded automatically when you work there — there is no need to enumerate them here.
 
 ## Critical: Error System
 
@@ -26,8 +27,12 @@ When adding compiler errors:
 - **User-facing errors** → `throwDiagnostic("VFxxxx", loc, params)`
 - **Internal bugs** → plain `throw new Error(...)`
 
-See [diagnostics/README.md](./diagnostics/README.md) for full usage guide.
+See `./diagnostics/README.md` for the full usage guide and `./diagnostics/codes/README.md` for the process of adding new codes. After adding or changing codes run `pnpm docs:errors`.
 
 ## Architecture
 
-See [docs/compiler-architecture/](../../../docs/compiler-architecture/) for pipeline overview.
+See `../../../docs/compiler-architecture/` for the pipeline overview.
+
+## Maintenance
+
+When a module folder is added, renamed, or removed under `src/`, update the table above in the same commit. Keep the one-line purpose descriptions accurate.

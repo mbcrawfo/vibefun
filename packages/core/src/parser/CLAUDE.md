@@ -1,33 +1,39 @@
 # Parser Module Structure
 
-The parser is organized into focused modules for maintainability:
+Recursive-descent parser that turns tokens into the Surface AST. Split across focused files for maintainability.
 
 ## Files
 
-- **parser-base.ts** - Base class with parser state and token utilities
-- **parse-expressions.ts** - Expression parsing (precedence climbing)
-- **parse-patterns.ts** - Pattern parsing
-- **parse-types.ts** - Type expression parsing
-- **parse-declarations.ts** - Declaration parsing
-- **parser.ts** - Main `Parser` class that composes all modules
+- `parser-base.ts` — base class with cursor, lookahead, and `check`/`match`/`expect` helpers.
+- `parse-declarations.ts` — top-level declarations (let, type, import, export, external).
+- `parse-expressions.ts` — expression aggregator; wires the expression sub-modules.
+  - `parse-expression-primary.ts` — literals, identifiers, parenthesized / block / record / lambda entry.
+  - `parse-expression-operators.ts` — operator precedence climbing.
+  - `parse-expression-lambda.ts` — lambda and parenthesized-lambda disambiguation.
+  - `parse-expression-complex.ts` — `match`, `let` in expressions, records, block bodies.
+- `parse-patterns.ts` — pattern parsing.
+- `parse-types.ts` — type-expression parsing.
+- `parser.ts` — composes everything; exposes the `Parser` class.
 
 ## Public API
 
-The `Parser` class maintains the same interface:
-- `parse()` - Parse complete module
-- `parseExpression()` - Parse single expression
-- `parsePattern()` - Parse pattern (for tests)
-- `parseTypeExpr()` - Parse type expression (for tests)
+The `Parser` class:
 
-## Circular Dependencies
+- `parse()` — full module.
+- `parseExpression()` — single expression.
+- `parsePattern()`, `parseTypeExpr()` — exposed for tests.
 
-Modules use dependency injection to avoid import cycles. Initialization happens in `parser.ts`:
+## Critical: Dependency Injection Across Files
 
-```typescript
-Expressions.setParsePattern(Patterns.parsePattern);
-Expressions.setParseTypeExpr(Types.parseTypeExpr);
-Declarations.setParseExpression(Expressions.parseExpression);
-// etc.
-```
+The expression, pattern, and type parsers need to call each other, which would create import cycles. Resolution:
 
-All parsing functions take `ParserBase` as their first parameter.
+- Each sub-module exports `setXxx(fn)` setters, initialized to **error-throwing stubs** so a missing wire fails loudly.
+- `parse-expressions.ts` wires the expression sub-modules via `Primary.setComplexParsers`, `Operators.setParsePrimary`, `Lambda.setDependencies`, `Complex.setDependencies`.
+- `parser.ts` injects `parsePattern` and `parseTypeExpr` into `parse-expressions.ts`.
+- Entry points call `initializeOnce()` before delegating.
+
+Every parsing function takes `ParserBase` as its first parameter. When you add a new file, follow this pattern: error-throwing stubs, `setXxx` exporters, wired in the aggregator.
+
+## Maintenance
+
+If sub-files here are added, split, renamed, or removed, update the file list and wiring description above in the same commit.
