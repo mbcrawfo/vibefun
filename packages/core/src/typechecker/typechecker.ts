@@ -9,11 +9,20 @@ import type { Module } from "../types/ast.js";
 import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
+import { throwDiagnostic } from "../diagnostics/index.js";
 import { buildEnvironment } from "./environment.js";
 import { convertTypeExpr, createContext, inferExpr } from "./infer/index.js";
+import { getStdlibModuleSignature, STDLIB_PACKAGE } from "./module-signatures/index.js";
 import { checkPattern } from "./patterns.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
+
+/**
+ * Names that remain ambient for ergonomics (variant constructors) but are
+ * still re-exported by @vibefun/std. An explicit import of any of these
+ * rebinds the local name to the same scheme already present in the env.
+ */
+const STDLIB_AMBIENT_REEXPORTS = new Set(["Cons", "Nil", "Some", "None", "Ok", "Err"]);
 
 // Re-export UnifyContext for consumers
 export type { UnifyContext } from "./unify.js";
@@ -64,6 +73,11 @@ export function typeCheck(module: CoreModule, _options?: TypeCheckOptions): Type
 
     // Map to store inferred types for top-level declarations
     const declarationTypes = new Map<string, Type>();
+
+    // Process imports before declarations so imported names resolve in scope.
+    for (const importDecl of module.imports) {
+        env = typeCheckDeclaration(importDecl, env, declarationTypes);
+    }
 
     // Type check each top-level declaration, threading environment
     for (const decl of module.declarations) {
@@ -271,10 +285,59 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             // Nothing to do here, return unchanged environment
             return env;
 
-        case "CoreImportDecl":
-            // Import declarations are trusted (not verified in this phase)
-            // Nothing to do here, return unchanged environment
-            return env;
+        case "CoreImportDecl": {
+            // @vibefun/std is the only package currently served by the
+            // signature registry. Imports from user modules (relative
+            // paths) become typecheckable in phase 2.9 when the multi-
+            // file CLI pipeline goes live; until then we leave them as
+            // trusted no-ops so single-file programs continue to compile.
+            if (decl.from !== STDLIB_PACKAGE) {
+                return env;
+            }
+
+            const newEnv: TypeEnv = {
+                values: new Map(env.values),
+                types: env.types,
+            };
+
+            for (const item of decl.items) {
+                // Type-only imports don't introduce value bindings.
+                if (item.isType) continue;
+
+                const boundName = item.alias ?? item.name;
+
+                // First: is it a known stdlib module (String, List, ...)?
+                const moduleSig = getStdlibModuleSignature(item.name);
+                if (moduleSig !== null) {
+                    newEnv.values.set(boundName, {
+                        kind: "Value",
+                        scheme: { vars: [], type: moduleSig },
+                        loc: decl.loc,
+                    });
+                    continue;
+                }
+
+                // Second: is it an ambient re-export (variant constructor)?
+                if (STDLIB_AMBIENT_REEXPORTS.has(item.name)) {
+                    const existing = env.values.get(item.name);
+                    if (existing !== undefined) {
+                        newEnv.values.set(boundName, {
+                            ...existing,
+                            loc: decl.loc,
+                        });
+                        continue;
+                    }
+                }
+
+                // Not exported by @vibefun/std.
+                throwDiagnostic("VF5001", decl.loc, {
+                    name: item.name,
+                    path: decl.from,
+                });
+            }
+
+            return newEnv;
+        }
 
         default: {
             const _exhaustive: never = decl;
