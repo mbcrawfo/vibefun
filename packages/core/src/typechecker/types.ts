@@ -119,6 +119,20 @@ export function refType(elementType: Type): Type {
 }
 
 /**
+ * Create a first-class module type.
+ *
+ * Module types are nominal — they unify by `path` alone, never structurally.
+ * `exports` holds a type scheme per exported binding (schemes rather than
+ * plain types because modules expose polymorphic functions).
+ *
+ * @param path - The canonical module path (e.g. "@vibefun/std#List")
+ * @param exports - Map of exported name to its type scheme
+ */
+export function moduleType(path: string, exports: Map<string, TypeScheme>): Type {
+    return { type: "Module", path, exports };
+}
+
+/**
  * Built-in primitive types
  */
 export const primitiveTypes = {
@@ -201,6 +215,16 @@ export function isUnionType(t: Type): t is Type & { type: "Union" } {
 }
 
 /**
+ * Check if a type is a module type
+ *
+ * @param t - The type to check
+ * @returns True if the type is a module type
+ */
+export function isModuleType(t: Type): t is Type & { type: "Module" } {
+    return t.type === "Module";
+}
+
+/**
  * Get all free type variables in a type
  *
  * @param t - The type to inspect
@@ -237,6 +261,16 @@ export function freeTypeVars(t: Type): Set<number> {
                 break;
             case "Tuple":
                 type.elements.forEach(collect);
+                break;
+            case "Ref":
+                collect(type.inner);
+                break;
+            case "Module":
+                // Module exports are fully-generalized schemes — any free vars
+                // inside are bound by the scheme's own quantification, so no
+                // vars escape to the outer scope.
+                break;
+            case "Never":
                 break;
         }
     }
@@ -285,6 +319,13 @@ export function freeTypeVarsAtLevel(t: Type, maxLevel: number): Set<number> {
                 break;
             case "Tuple":
                 type.elements.forEach(collect);
+                break;
+            case "Ref":
+                collect(type.inner);
+                break;
+            case "Module":
+                break;
+            case "Never":
                 break;
         }
     }
@@ -408,6 +449,10 @@ export function typeEquals(t1: Type, t2: Type): boolean {
             const r2 = t2 as Type & { type: "Ref" };
             return typeEquals(t1.inner, r2.inner);
         }
+        case "Module": {
+            const m2 = t2 as Type & { type: "Module" };
+            return t1.path === m2.path;
+        }
         case "Never":
             return true; // Never types are always equal
     }
@@ -461,6 +506,8 @@ export function typeToString(t: Type): string {
             return `(${t.elements.map(typeToString).join(", ")})`;
         case "Ref":
             return `Ref<${typeToString(t.inner)}>`;
+        case "Module":
+            return `module "${t.path}"`;
         case "Never":
             return "Never";
     }

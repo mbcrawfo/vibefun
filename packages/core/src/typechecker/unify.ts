@@ -117,6 +117,10 @@ export function applySubst(subst: Substitution, type: Type): Type {
                 type: "Ref",
                 inner: applySubst(subst, type.inner),
             };
+        case "Module":
+            // Module exports are fully-generalized schemes — substitution does
+            // not need to reach inside them.
+            return type;
         case "Never":
             return type;
     }
@@ -178,6 +182,8 @@ export function occursIn(id: number, type: Type): boolean {
             return type.elements.some((elem) => occursIn(id, elem));
         case "Ref":
             return occursIn(id, type.inner);
+        case "Module":
+            return false;
         case "Never":
             return false;
     }
@@ -304,6 +310,17 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
         return subst;
     }
 
+    // Module type unification (nominal — match by path)
+    if (t1.type === "Module" && t2.type === "Module") {
+        if (t1.path === t2.path) {
+            return emptySubst();
+        }
+        throwDiagnostic("VF4024", ctx.loc, {
+            type1: typeToString(t1),
+            type2: typeToString(t2),
+        });
+    }
+
     // Tuple type unification
     if (t1.type === "Tuple" && t2.type === "Tuple") {
         if (t1.elements.length !== t2.elements.length) {
@@ -427,6 +444,8 @@ function updateLevels(type: Type, maxLevel: number): Type {
                 type: "Ref",
                 inner: updateLevels(type.inner, maxLevel),
             };
+        case "Module":
+            return type;
         case "Never":
             return type;
     }

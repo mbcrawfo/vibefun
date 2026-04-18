@@ -140,6 +140,9 @@ export function substituteTypeVars(type: Type, mapping: Map<number, Type>): Type
                 inner: substituteTypeVars(type.inner, mapping),
             };
 
+        case "Module":
+            return type;
+
         case "Never":
             return type;
     }
