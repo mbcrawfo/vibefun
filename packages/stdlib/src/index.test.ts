@@ -1,24 +1,45 @@
-/**
- * Standard Library Tests
- *
- * Currently stdlib only exports VERSION, so tests are minimal.
- * Comprehensive tests will be added as stdlib functionality grows:
- * - List operations (map, filter, fold)
- * - Option/Result type utilities
- * - String and math utilities
- */
 import { describe, expect, it } from "vitest";
 
-import { VERSION } from "./index.js";
+import * as StdLib from "./index.js";
 
-describe("stdlib", () => {
-    describe("VERSION", () => {
-        it("exports the current version", () => {
-            expect(VERSION).toBe("0.1.0");
-        });
+describe("@vibefun/std index", () => {
+    it("exports VERSION", () => {
+        expect(StdLib.VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+    });
 
-        it("follows semver format", () => {
-            expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+    it("exposes per-module namespaces", () => {
+        expect(typeof StdLib.String.fromInt).toBe("function");
+        expect(typeof StdLib.List.map).toBe("function");
+        expect(typeof StdLib.Option.map).toBe("function");
+        expect(typeof StdLib.Result.map).toBe("function");
+        expect(typeof StdLib.Int.abs).toBe("function");
+        expect(typeof StdLib.Float.abs).toBe("function");
+        expect(typeof StdLib.Math.sqrt).toBe("function");
+    });
+
+    it("exposes top-level variant constructors", () => {
+        expect(StdLib.Some(1)).toEqual({ $tag: "Some", $0: 1 });
+        expect(StdLib.None()).toEqual({ $tag: "None" });
+        expect(StdLib.Ok(1)).toEqual({ $tag: "Ok", $0: 1 });
+        expect(StdLib.Err("bad")).toEqual({ $tag: "Err", $0: "bad" });
+        expect(StdLib.Nil()).toEqual({ $tag: "Nil" });
+        expect(StdLib.Cons(1)(StdLib.Nil())).toEqual({
+            $tag: "Cons",
+            $0: 1,
+            $1: { $tag: "Nil" },
         });
+    });
+
+    it("__std__ aggregate carries every module", () => {
+        const aggregate = StdLib.__std__;
+        expect(aggregate.String).toBe(StdLib.String);
+        expect(aggregate.List).toBe(StdLib.List);
+        expect(aggregate.Option).toBe(StdLib.Option);
+        expect(aggregate.Result).toBe(StdLib.Result);
+        expect(aggregate.Int).toBe(StdLib.Int);
+        expect(aggregate.Float).toBe(StdLib.Float);
+        expect(aggregate.Math).toBe(StdLib.Math);
+        expect(aggregate.Cons).toBe(StdLib.Cons);
+        expect(aggregate.Nil).toBe(StdLib.Nil);
     });
 });
