@@ -1,0 +1,17 @@
+{
+    "name": "@vibefun/e2e-tests",
+    "version": "0.0.0",
+    "private": true,
+    "description": "End-to-end tests that exercise the compiled CLI against multi-package scenarios.",
+    "type": "module",
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest --watch"
+    },
+    "devDependencies": {
+        "@types/node": "24.10.9",
+        "@vibefun/std": "workspace:*",
+        "typescript": "5.9.3",
+        "vitest": "4.1.0"
+    }
+}
