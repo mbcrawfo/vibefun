@@ -60,7 +60,11 @@ importers:
         specifier: 14.0.3
         version: 14.0.3
 
-  packages/core: {}
+  packages/core:
+    devDependencies:
+      '@vibefun/std':
+        specifier: workspace:*
+        version: link:../stdlib
 
   packages/stdlib: {}
 
