@@ -27,3 +27,11 @@ describe("empty block", () => {
         expect(result).toBeUndefined();
     });
 });
+
+describe("while loop", () => {
+    it("should type-check and run a while-false loop (exercises wildcard let)", () => {
+        // The while desugarer emits `let _ = body in loop()`. Until 1.5,
+        // the typechecker rejected wildcard let bindings.
+        expect(compileAndRunSucceeds(`let run = () => { while false { }; };`)).toBe(true);
+    });
+});

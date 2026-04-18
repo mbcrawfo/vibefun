@@ -842,4 +842,70 @@ describe("Type Inference - Generalization Edge Cases", () => {
         // x should have type Int
         expect(result.type).toEqual(primitiveTypes.Int);
     });
+
+    describe("Wildcard pattern", () => {
+        it("should accept `let _ = value; body`", () => {
+            // let _ = 42 in "done"
+            const env = createTestEnv();
+            const ctx = createContext(env);
+
+            const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const body: CoreStringLit = { kind: "CoreStringLit", value: "done", loc: testLoc };
+
+            const expr: CoreLet = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreWildcardPattern", loc: testLoc },
+                value: intLit,
+                body,
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            const result = inferExpr(ctx, expr);
+            expect(result.type).toEqual(primitiveTypes.String);
+        });
+
+        it("should not bind `_` in the body scope", () => {
+            // let _ = 42 in _  -> VF4100: Undefined variable '_'
+            const env = createTestEnv();
+            const ctx = createContext(env);
+
+            const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const underscoreRef: CoreVar = { kind: "CoreVar", name: "_", loc: testLoc };
+
+            const expr: CoreLet = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreWildcardPattern", loc: testLoc },
+                value: intLit,
+                body: underscoreRef,
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+        });
+
+        it("should still reject other non-variable patterns with VF4017", () => {
+            // let 42 = 42 in 1  -> VF4017 (literal pattern still unsupported)
+            const env = createTestEnv();
+            const ctx = createContext(env);
+
+            const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+            const body: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+
+            const expr: CoreLet = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreLiteralPattern", literal: 42, loc: testLoc },
+                value: intLit,
+                body,
+                mutable: false,
+                recursive: false,
+                loc: testLoc,
+            };
+
+            expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+        });
+    });
 });
