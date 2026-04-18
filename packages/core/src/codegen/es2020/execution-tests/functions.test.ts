@@ -87,10 +87,7 @@ describe("lambda expressions", () => {
     });
 });
 
-// NOTE: if-expressions desugar to pattern matching on Bool,
-// and the exhaustiveness checker has issues with Bool matching.
-// These tests are skipped until that's resolved.
-describe.skip("recursive functions", () => {
+describe("recursive functions", () => {
     it("should handle simple recursion", () => {
         const result = compileAndGetExport(
             `let rec factorial = (n) =>
@@ -114,7 +111,7 @@ describe.skip("recursive functions", () => {
     });
 });
 
-describe.skip("if expressions", () => {
+describe("if expressions", () => {
     it("should evaluate simple if-then-else", () => {
         const result = compileAndGetExport(
             `let max = (a, b) => if a > b then a else b;

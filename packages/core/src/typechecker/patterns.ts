@@ -383,11 +383,23 @@ export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrut
         }
     }
 
-    // For literal types, we can't easily check exhaustiveness
-    // (would need to enumerate all possible values)
-    // So we're conservative and require a wildcard/variable pattern
+    // For literal types, we can't generally enumerate all values.
+    // But Bool has exactly two values (true, false); if both literal
+    // patterns are present, the match is exhaustive.
     const hasLiterals = patterns.some((p) => p.kind === "CoreLiteralPattern");
     if (hasLiterals) {
+        if (scrutineeType.type === "Const" && scrutineeType.name === "Bool") {
+            const covered = new Set<boolean>();
+            for (const p of patterns) {
+                if (p.kind === "CoreLiteralPattern" && typeof p.literal === "boolean") {
+                    covered.add(p.literal);
+                }
+            }
+            const missing: string[] = [];
+            if (!covered.has(true)) missing.push("true");
+            if (!covered.has(false)) missing.push("false");
+            return missing;
+        }
         // Non-exhaustive unless there's a catch-all
         return ["<other values>"];
     }
