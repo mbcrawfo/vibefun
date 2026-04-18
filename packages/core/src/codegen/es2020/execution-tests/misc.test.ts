@@ -20,3 +20,10 @@ describe("string operations", () => {
         expect(result).toBe("hello world");
     });
 });
+
+describe("empty block", () => {
+    it("should evaluate empty block to unit", () => {
+        const result = compileAndGetExport(`let x = {};`, "x");
+        expect(result).toBeUndefined();
+    });
+});

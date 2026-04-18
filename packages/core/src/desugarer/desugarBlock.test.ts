@@ -40,10 +40,11 @@ const mockDesugarPattern = (pattern: Pattern, _gen: FreshVarGen): CorePattern =>
 const mockGen = { fresh: () => "$tmp0", reset: () => {} } as FreshVarGen;
 
 describe("desugarBlock", () => {
-    it("should throw on empty block", () => {
-        expect(() => desugarBlock([], testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(
-            "Empty block expression",
-        );
+    it("should desugar empty block to CoreUnitLit", () => {
+        const result = desugarBlock([], testLoc, mockGen, mockDesugar, mockDesugarPattern);
+
+        expect(result.kind).toBe("CoreUnitLit");
+        expect(result.loc).toBe(testLoc);
     });
 
     it("should desugar single expression block", () => {
