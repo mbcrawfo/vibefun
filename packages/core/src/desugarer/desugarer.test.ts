@@ -222,7 +222,8 @@ describe("Desugarer - Function Application", () => {
         expect(app.args[0]!.kind).toBe("CoreIntLit");
     });
 
-    it("should desugar multi-argument applications", () => {
+    it("should desugar multi-argument applications into curried applications", () => {
+        // add(1, 2) desugars to (add(1))(2)
         const expr: Expr = {
             kind: "App",
             func: { kind: "Var", name: "add", loc: testLoc },
@@ -234,9 +235,63 @@ describe("Desugarer - Function Application", () => {
         };
 
         const result = desugar(expr);
+        const outer = result as CoreApp;
 
-        expect(result.kind).toBe("CoreApp");
-        expect((result as CoreApp).args).toHaveLength(2);
+        expect(outer.kind).toBe("CoreApp");
+        expect(outer.args).toHaveLength(1);
+        expect(outer.args[0]!.kind).toBe("CoreIntLit");
+        expect((outer.args[0] as { value: number }).value).toBe(2);
+
+        // Inner: add(1)
+        const inner = outer.func as CoreApp;
+        expect(inner.kind).toBe("CoreApp");
+        expect(inner.func.kind).toBe("CoreVar");
+        expect(inner.args).toHaveLength(1);
+        expect(inner.args[0]!.kind).toBe("CoreIntLit");
+        expect((inner.args[0] as { value: number }).value).toBe(1);
+    });
+
+    it("should desugar three-argument applications into nested curried applications", () => {
+        // add3(1, 2, 3) desugars to ((add3(1))(2))(3)
+        const expr: Expr = {
+            kind: "App",
+            func: { kind: "Var", name: "add3", loc: testLoc },
+            args: [
+                { kind: "IntLit", value: 1, loc: testLoc },
+                { kind: "IntLit", value: 2, loc: testLoc },
+                { kind: "IntLit", value: 3, loc: testLoc },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(expr);
+        const level3 = result as CoreApp;
+        expect((level3.args[0] as { value: number }).value).toBe(3);
+
+        const level2 = level3.func as CoreApp;
+        expect((level2.args[0] as { value: number }).value).toBe(2);
+
+        const level1 = level2.func as CoreApp;
+        expect((level1.args[0] as { value: number }).value).toBe(1);
+        expect(level1.func.kind).toBe("CoreVar");
+    });
+
+    it("should desugar zero-argument applications to App(func, unit)", () => {
+        // f() desugars to f(unit)
+        const expr: Expr = {
+            kind: "App",
+            func: { kind: "Var", name: "f", loc: testLoc },
+            args: [],
+            loc: testLoc,
+        };
+
+        const result = desugar(expr);
+        const app = result as CoreApp;
+
+        expect(app.kind).toBe("CoreApp");
+        expect(app.func.kind).toBe("CoreVar");
+        expect(app.args).toHaveLength(1);
+        expect(app.args[0]!.kind).toBe("CoreUnitLit");
     });
 });
 

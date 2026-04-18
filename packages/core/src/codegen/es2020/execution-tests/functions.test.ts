@@ -19,6 +19,35 @@ describe("curried function application", () => {
         expect(result).toBe(8);
     });
 
+    it("should evaluate multi-argument calls via auto-currying", () => {
+        // f(a, b) desugars to f(a)(b)
+        const result = compileAndGetExport(
+            `let add = (x, y) => x + y;
+            let result = add(2, 3);`,
+            "result",
+        );
+        expect(result).toBe(5);
+    });
+
+    it("should evaluate three-argument calls", () => {
+        const result = compileAndGetExport(
+            `let add3 = (x, y, z) => x + y + z;
+            let result = add3(1, 2, 3);`,
+            "result",
+        );
+        expect(result).toBe(6);
+    });
+
+    it("should evaluate zero-argument function call", () => {
+        // f() desugars to f(unit); () => 42 accepts unit
+        const result = compileAndGetExport(
+            `let answer = () => 42;
+            let result = answer();`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+
     it("should support partial application", () => {
         const result = compileAndGetExport(
             `let multiply = (x, y) => x * y;

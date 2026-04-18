@@ -153,14 +153,24 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
             return curryLambda(patterns, expr.body, expr.loc, gen, desugar, desugarPattern);
         }
 
-        // Function application - desugar function and arguments
-        case "App":
-            return {
-                kind: "CoreApp",
-                func: desugar(expr.func, gen),
-                args: expr.args.map((arg) => desugar(arg, gen)),
-                loc: expr.loc,
-            };
+        // Function application - desugar to single-argument curried applications.
+        // `f(a, b, c)` becomes `((f(a))(b))(c)`; `f()` becomes `f(unit)`.
+        case "App": {
+            const func = desugar(expr.func, gen);
+            const args: CoreExpr[] =
+                expr.args.length === 0
+                    ? [{ kind: "CoreUnitLit", loc: expr.loc }]
+                    : expr.args.map((arg) => desugar(arg, gen));
+            return args.reduce<CoreExpr>(
+                (acc, arg) => ({
+                    kind: "CoreApp",
+                    func: acc,
+                    args: [arg],
+                    loc: expr.loc,
+                }),
+                func,
+            );
+        }
 
         // If-then-else - desugar to match on boolean
         case "If":
