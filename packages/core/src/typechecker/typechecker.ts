@@ -303,11 +303,17 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 for (const item of decl.items) {
                     if (item.isType) continue;
                     const boundName = item.alias ?? item.name;
+                    // Monomorphic placeholder. If this were polymorphic
+                    // every lookup site would get a fresh instantiation,
+                    // so `foo 1` and `foo "x"` would both typecheck in
+                    // the same module — turning the fallback from
+                    // "unknown but consistent" into "accept anything".
+                    // Keep it rank-0 until cross-module export tracking
+                    // lands in a later phase.
                     const tvar = freshTypeVar(0);
-                    const tvarId = tvar.type === "Var" ? tvar.id : 0;
                     newEnv.values.set(boundName, {
                         kind: "Value",
-                        scheme: { vars: [tvarId], type: tvar },
+                        scheme: { vars: [], type: tvar },
                         loc: decl.loc,
                     });
                 }

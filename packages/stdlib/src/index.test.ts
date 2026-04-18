@@ -30,7 +30,7 @@ describe("@vibefun/std index", () => {
         });
     });
 
-    it("__std__ aggregate carries every module", () => {
+    it("__std__ aggregate carries every module and every variant constructor", () => {
         const aggregate = StdLib.__std__;
         expect(aggregate.String).toBe(StdLib.String);
         expect(aggregate.List).toBe(StdLib.List);
@@ -41,5 +41,13 @@ describe("@vibefun/std index", () => {
         expect(aggregate.Math).toBe(StdLib.Math);
         expect(aggregate.Cons).toBe(StdLib.Cons);
         expect(aggregate.Nil).toBe(StdLib.Nil);
+        expect(aggregate.Some).toBe(StdLib.Some);
+        expect(aggregate.None).toBe(StdLib.None);
+        expect(aggregate.Ok).toBe(StdLib.Ok);
+        expect(aggregate.Err).toBe(StdLib.Err);
+    });
+
+    it("__std__ aggregate is frozen so user code can't corrupt compiler-synthesized references", () => {
+        expect(Object.isFrozen(StdLib.__std__)).toBe(true);
     });
 });

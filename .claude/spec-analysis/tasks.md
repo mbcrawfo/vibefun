@@ -16,7 +16,12 @@ Derived from [ordering.md](./ordering.md). For scope, effort, and rationale see 
 Implemented as **Package D** (first-class module values + explicit
 imports from `@vibefun/std`). See `phase-2-options.md` §8 and the plan
 at `../plans/review-claude-spec-analysis-phase-2-opti-distributed-zebra.md`.
-Delivered in 10 sub-phases (2.0–2.10) on the `module-resolution` branch.
+Package D was delivered across 11 sub-phases (2.0 baseline capture, 2.1
+runtime, 2.2 `TModule`, 2.3 signature registry, 2.4 import wiring, 2.5
+`__std__` desugaring, 2.6 ambient removal + fixture wrappers, 2.7
+signature completeness, 2.8 e2e harness, 2.9 multi-file CLI, 2.10 docs
+closeout) on the `module-resolution` branch. The checklist below tracks
+the root-cause groups that Package D remediated:
 
 - [x] 2.1 Module-qualified name resolution (TModule + registry + import handler)
 - [x] 2.2 Missing builtin registrations (String.fromBool, Float.isNaN/isInfinite/isFinite, List.flatten, full Math surface)

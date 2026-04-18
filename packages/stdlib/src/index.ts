@@ -40,7 +40,7 @@ export const Math = MathNs;
  * desugarer references stdlib for synthesized code (list spread, etc.).
  * Not part of the user-facing API surface.
  */
-export const __std__ = {
+export const __std__ = Object.freeze({
     String: StringNs,
     List: ListNs,
     Option: OptionNs,
@@ -54,4 +54,4 @@ export const __std__ = {
     None,
     Ok,
     Err,
-};
+} as const);

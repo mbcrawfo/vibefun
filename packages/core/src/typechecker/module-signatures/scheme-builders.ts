@@ -19,7 +19,10 @@ export type FreshVar = { var: Type; id: number };
  */
 export function freshVar(): FreshVar {
     const v = freshTypeVar();
-    return { var: v, id: isTypeVar(v) ? v.id : 0 };
+    if (!isTypeVar(v)) {
+        throw new Error("freshTypeVar() contract violated: expected a type variable");
+    }
+    return { var: v, id: v.id };
 }
 
 /**

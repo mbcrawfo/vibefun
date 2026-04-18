@@ -361,18 +361,21 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
 }
 
 /**
- * Heuristic: does the source contain any `import … from "path"` where
- * the path is either relative (starts with `./` or `../`) or a non-
- * `@vibefun/std` package? A full parse would be more accurate, but a
- * regex keeps the single-file fast path cheap.
+ * Heuristic: does the source contain any `import … from "./x"` or
+ * `"../x"`? Multi-file emission is scoped to relative imports only —
+ * package imports would let `relative(entryDir, modulePath)` produce
+ * `..` segments that escape both the compile output root and the run
+ * tempdir. A full parse would be more accurate, but a regex keeps the
+ * single-file fast path cheap.
  */
 function hasUserModuleImports(source: string): boolean {
     const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
     let match;
     while ((match = importRegex.exec(source)) !== null) {
         const path = match[1] ?? "";
-        if (path === "@vibefun/std" || path.startsWith("@vibefun/std/")) continue;
-        return true;
+        if (path.startsWith("./") || path.startsWith("../")) {
+            return true;
+        }
     }
     return false;
 }

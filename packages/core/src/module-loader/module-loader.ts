@@ -46,12 +46,11 @@ import {
 const COMPILER_PROVIDED_PACKAGES: ReadonlySet<string> = new Set(["@vibefun/std"]);
 
 function isCompilerProvidedPackage(importPath: string): boolean {
-    if (COMPILER_PROVIDED_PACKAGES.has(importPath)) return true;
-    // Match any subpath (e.g. `@vibefun/std/anything`) just in case.
-    for (const base of COMPILER_PROVIDED_PACKAGES) {
-        if (importPath === base || importPath.startsWith(base + "/")) return true;
-    }
-    return false;
+    // Only the exact bare package name is compiler-backed. Subpaths
+    // like `@vibefun/std/NotAModule` must fall through to normal
+    // resolution so the typechecker can surface VF4700/VF4701 for
+    // unknown modules rather than silently accepting the import.
+    return COMPILER_PROVIDED_PACKAGES.has(importPath);
 }
 
 // =============================================================================
