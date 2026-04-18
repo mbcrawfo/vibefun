@@ -6,12 +6,10 @@ Visitor, equality, analysis, and substitution primitives for the Core AST. Share
 
 `transformExpr(expr, fn)` walks **bottom-up**: children are transformed first, then `fn` is applied to the parent. If your transform depends on state that changes while walking (e.g., "have I seen an unsafe block above me?"), the bottom-up order means you can't rely on parent context during the recursive call. Use `visitExpr` for read-only side effects and `foldExpr` for accumulating values.
 
-## `expr-equality.ts` — α vs Semantic
+## `expr-equality.ts` — Structural, With a Placeholder for Semantic
 
-- `exprEquals` — **α-equivalent**, ignores bound-variable names. This is what the optimizer's fixed-point loop calls, so anything it returns true for is "unchanged" as far as convergence is concerned.
-- `exprEquivalent` — stricter, accounts for more semantic details.
-
-Know which you need; they produce different convergence behavior.
+- `exprEquals` — **structural/deep equality**. Compares node kinds and fields directly (including bound-variable names), so `λx. x` and `λy. y` are NOT equal. This is what the optimizer's fixed-point loop calls, so anything it returns true for is "unchanged" as far as convergence is concerned.
+- `exprEquivalent` — currently **delegates to `exprEquals`** as a placeholder; the intent (per its JSDoc) is to grow into α-equivalence and semantic equivalence. Treat it as a forward-compatible hook; if you add a pass that needs α-equivalence today, implement it in the pass rather than relying on this function.
 
 ## `substitution.ts` — Freshen Before You Substitute
 
