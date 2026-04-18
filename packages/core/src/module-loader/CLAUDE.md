@@ -2,9 +2,9 @@
 
 File I/O, parsing, and caching for `.vf` modules reachable from an entry point. **Pure from graph analysis** — cycle detection, compilation order, and import-level warnings live in the sibling `module-resolver/` module; do not move that logic here.
 
-## Accumulates Errors (Non-Fail-Fast)
+## Accumulates Errors, Then Throws as a Batch
 
-The loader buffers load-time errors in `this.errors` and returns them alongside the loaded modules instead of throwing on the first failure. This is deliberate so users see every broken import in one pass. When you add a new failure mode, keep the pattern — push to the errors array, continue if you can.
+The loader buffers load-time errors in `this.errors` during traversal instead of throwing on the first failure, then calls `throwCollectedErrors()` at the end of `loadModules()` — so users see every broken import in one pass, but the result is still a thrown `VibefunDiagnostic`, not a returned error list. When you add a new failure mode, keep the pattern: push to `this.errors` during traversal, continue if you can, and let the final `throwCollectedErrors()` report them together.
 
 ## Modules Are Keyed By Real Path
 

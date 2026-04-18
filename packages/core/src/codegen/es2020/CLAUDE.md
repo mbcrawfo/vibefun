@@ -1,6 +1,6 @@
 # ES2020 Code Generator
 
-Emits ES2020 JavaScript (plus source maps) from a typed Core module.
+Emits ES2020 JavaScript from a typed Core module.
 
 ## Files
 
@@ -12,7 +12,7 @@ Emits ES2020 JavaScript (plus source maps) from a typed Core module.
 
 ## Public API
 
-`generate(typedModule, options?)` returns `{ code, map? }`. No other exports are part of the public surface.
+`generate(typedModule, options?)` returns `{ code }` and is the main entry point. `index.ts` also re-exports advanced-usage helpers: `createContext`, the `EmitContext` type, `escapeIdentifier`, `isReservedWord`, `RESERVED_WORDS`, and operator-precedence utilities (`PRECEDENCE`, `needsParens`, `getBinaryPrecedence`, `getUnaryPrecedence`, `JS_BINARY_OP`, `JS_UNARY_OP`, `ATOM_PRECEDENCE`, `CALL_PRECEDENCE`, `MEMBER_PRECEDENCE`). Keep `index.ts` in sync with this list.
 
 ## Critical: Circular Dependency Wiring
 

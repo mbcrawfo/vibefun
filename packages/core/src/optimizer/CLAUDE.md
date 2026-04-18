@@ -8,7 +8,7 @@ Every pass **must refuse to optimize inside `CoreUnsafe` blocks**. Check it in b
 
 ## Fixed-Point Convergence Uses `exprEquals`
 
-`optimizer.ts` loops `applySinglePass` until `exprEquals(current, previous)` (α-equivalence, from `utils/expr-equality.ts`) or `maxIterations`. If a pass produces structurally identical but semantically different trees — or mutates nodes in place — convergence detection breaks and the loop spins to the iteration cap. All pass transforms must return fresh nodes.
+`optimizer.ts` loops `applySinglePass` until `exprEquals(current, previous)` (structural/deep equality, from `utils/expr-equality.ts`) or `maxIterations`. If a pass mutates nodes in place — or produces trees that are structurally identical to the input while being semantically different — convergence detection breaks and the loop spins to the iteration cap. All pass transforms must return fresh nodes.
 
 ## Levels Control Pipeline Length, Not Individual Passes
 
