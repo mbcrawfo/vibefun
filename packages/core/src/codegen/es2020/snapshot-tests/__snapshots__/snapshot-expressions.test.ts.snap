@@ -4,6 +4,8 @@ exports[`Codegen Snapshot - Expressions > should compile expressions.vf 1`] = `
 "// Vibefun compiled output
 // Source: expressions.vf
 // Target: ES2020
+const $intDiv = (a, b) => { if (b === 0) throw new Error("Division by zero"); return Math.trunc(a / b); };
+const $intMod = (a, b) => { if (b === 0) throw new Error("Division by zero"); return a % b; };
 const intPositive = 42;
 const intZero = 0;
 const intLarge = 1000000;
@@ -19,8 +21,8 @@ const unitVal = undefined;
 const add = 1 + 2;
 const sub = 5 - 3;
 const mul = 4 * 2;
-const divInt = Math.trunc(7 / 2);
-const modulo = 7 % 3;
+const divInt = $intDiv(7, 2);
+const modulo = $intMod(7, 3);
 const lt = 1 < 2;
 const lte = 1 <= 2;
 const gt = 2 > 1;

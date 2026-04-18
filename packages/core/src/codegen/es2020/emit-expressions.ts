@@ -7,7 +7,13 @@
 import type { CoreExpr, CorePattern } from "../../types/core-ast.js";
 import type { EmitContext } from "./context.js";
 
-import { markNeedsEqHelper, markNeedsRefHelper, withPrecedence } from "./context.js";
+import {
+    markNeedsEqHelper,
+    markNeedsIntDivHelper,
+    markNeedsIntModHelper,
+    markNeedsRefHelper,
+    withPrecedence,
+} from "./context.js";
 import {
     CALL_PRECEDENCE,
     getBinaryPrecedence,
@@ -350,10 +356,22 @@ function emitBinOp(expr: { kind: "CoreBinOp"; op: string; left: CoreExpr; right:
     }
 
     if (op === "IntDivide") {
-        // Math.trunc(a / b)
-        const leftCode = emitExpr(expr.left, withPrecedence(ctx, prec));
-        const rightCode = emitExpr(expr.right, withPrecedence(ctx, prec));
-        const code = `Math.trunc(${leftCode} / ${rightCode})`;
+        // $intDiv(a, b) — integer division with runtime zero-divisor check
+        markNeedsIntDivHelper(ctx);
+        const leftCode = emitExpr(expr.left, withPrecedence(ctx, 0));
+        const rightCode = emitExpr(expr.right, withPrecedence(ctx, 0));
+        const code = `$intDiv(${leftCode}, ${rightCode})`;
+        return maybeParens(code, CALL_PRECEDENCE, ctx.precedence);
+    }
+
+    if (op === "Modulo") {
+        // $intMod(a, b) — integer modulo with runtime zero-divisor check.
+        // Modulo is always Int in current type system (no float %). When
+        // float modulo is added, this branch should narrow to the int case.
+        markNeedsIntModHelper(ctx);
+        const leftCode = emitExpr(expr.left, withPrecedence(ctx, 0));
+        const rightCode = emitExpr(expr.right, withPrecedence(ctx, 0));
+        const code = `$intMod(${leftCode}, ${rightCode})`;
         return maybeParens(code, CALL_PRECEDENCE, ctx.precedence);
     }
 

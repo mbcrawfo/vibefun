@@ -245,12 +245,19 @@ describe("Expression Emission", () => {
                 expect(emitExpr(binOp("Subtract", intLit(5), intLit(3)), ctx)).toBe("5 - 3");
                 expect(emitExpr(binOp("Multiply", intLit(4), intLit(2)), ctx)).toBe("4 * 2");
                 expect(emitExpr(binOp("FloatDivide", floatLit(10.0), floatLit(3.0)), ctx)).toBe("10.0 / 3.0");
-                expect(emitExpr(binOp("Modulo", intLit(7), intLit(3)), ctx)).toBe("7 % 3");
+                expect(emitExpr(binOp("Modulo", intLit(7), intLit(3)), ctx)).toBe("$intMod(7, 3)");
             });
 
-            it("should emit IntDivide with Math.trunc", () => {
+            it("should emit IntDivide via $intDiv runtime helper", () => {
                 const ctx = createTestContext();
-                expect(emitExpr(binOp("IntDivide", intLit(7), intLit(2)), ctx)).toBe("Math.trunc(7 / 2)");
+                expect(emitExpr(binOp("IntDivide", intLit(7), intLit(2)), ctx)).toBe("$intDiv(7, 2)");
+                expect(ctx.shared.needsIntDivHelper).toBe(true);
+            });
+
+            it("should mark $intMod helper as needed when emitting Modulo", () => {
+                const ctx = createTestContext();
+                emitExpr(binOp("Modulo", intLit(7), intLit(3)), ctx);
+                expect(ctx.shared.needsIntModHelper).toBe(true);
             });
 
             it("should emit comparison operators", () => {

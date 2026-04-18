@@ -61,3 +61,27 @@ describe("modulo operations", () => {
         expect(result).toBe(-2);
     });
 });
+
+describe("division by zero", () => {
+    it("should panic at runtime on integer division by zero", () => {
+        expect(() => compileAndGetExport(`let result = 10 / 0;`, "result")).toThrow("Division by zero");
+    });
+
+    it("should panic at runtime on integer division by zero with variable divisor", () => {
+        expect(() => compileAndGetExport(`let d = 0; let result = 10 / d;`, "result")).toThrow("Division by zero");
+    });
+
+    it("should panic at runtime on integer modulo by zero", () => {
+        expect(() => compileAndGetExport(`let result = 10 % 0;`, "result")).toThrow("Division by zero");
+    });
+
+    it("should NOT panic on float division by zero (IEEE 754 produces Infinity)", () => {
+        const result = compileAndGetExport(`let result = 10.0 / 0.0;`, "result");
+        expect(result).toBe(Infinity);
+    });
+
+    it("should NOT panic on float 0/0 (IEEE 754 produces NaN)", () => {
+        const result = compileAndGetExport(`let result = 0.0 / 0.0;`, "result");
+        expect(Number.isNaN(result as number)).toBe(true);
+    });
+});
