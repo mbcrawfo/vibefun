@@ -11,6 +11,7 @@ import type { ExternalOverload, TypeEnv, ValueBinding } from "../types/environme
 import { throwDiagnostic } from "../diagnostics/index.js";
 import { emptyEnv } from "../types/environment.js";
 import { getBuiltinEnv } from "./builtins.js";
+import { getStdlibRootSignature } from "./module-signatures/index.js";
 
 /**
  * Build type environment from a module
@@ -37,6 +38,16 @@ export function buildEnvironment(module: Module): TypeEnv {
             loc: { file: "<builtin>", line: 0, column: 0, offset: 0 },
         });
     }
+
+    // Inject `__std__` — the compiler-reserved root module used for
+    // desugarer-synthesized stdlib references (e.g. list-spread `concat`).
+    // Phase 2.5 wires the desugarer/codegen side; binding it here keeps
+    // the typechecker the single source of truth for the shape.
+    env.values.set("__std__", {
+        kind: "Value",
+        scheme: { vars: [], type: getStdlibRootSignature() },
+        loc: { file: "<builtin>", line: 0, column: 0, offset: 0 },
+    });
 
     // First pass: collect all declarations by name
     const declarationsByName = groupDeclarationsByName(module);

@@ -88,6 +88,23 @@ export function inferRecordAccess(
     let recordType = applySubst(recordResult.subst, recordResult.type);
     let currentSubst = recordResult.subst;
 
+    // Module access: look the field up in the module's exports and
+    // instantiate its scheme at the current level. Modules are never
+    // unified with Record types — they're a nominally distinct kind.
+    if (recordType.type === "Module") {
+        const fieldScheme = recordType.exports.get(expr.field);
+        if (!fieldScheme) {
+            throwDiagnostic("VF5001", expr.loc, {
+                name: expr.field,
+                path: recordType.path,
+            });
+        }
+        return {
+            type: instantiate(fieldScheme, ctx.level),
+            subst: currentSubst,
+        };
+    }
+
     // If the type is a type variable, constrain it to be a record type with the accessed field
     if (recordType.type === "Var") {
         // Create a fresh type variable for the field
