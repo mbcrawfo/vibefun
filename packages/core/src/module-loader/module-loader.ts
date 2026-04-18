@@ -36,6 +36,24 @@ import {
     resolveModulePath,
 } from "./path-resolver.js";
 
+/**
+ * Packages whose types are provided by the compiler (via
+ * module-signatures/) and have no user-level `.vf` source. The loader
+ * must skip resolving these — otherwise it walks node_modules looking
+ * for a file that doesn't exist and surfaces a spurious VF5000. The
+ * typechecker's import handler is authoritative for their bindings.
+ */
+const COMPILER_PROVIDED_PACKAGES: ReadonlySet<string> = new Set(["@vibefun/std"]);
+
+function isCompilerProvidedPackage(importPath: string): boolean {
+    if (COMPILER_PROVIDED_PACKAGES.has(importPath)) return true;
+    // Match any subpath (e.g. `@vibefun/std/anything`) just in case.
+    for (const base of COMPILER_PROVIDED_PACKAGES) {
+        if (importPath === base || importPath.startsWith(base + "/")) return true;
+    }
+    return false;
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -366,12 +384,14 @@ export class ModuleLoader {
         // Check the imports array
         for (const decl of module.imports) {
             if (decl.kind === "ImportDecl") {
+                if (isCompilerProvidedPackage(decl.from)) continue;
                 pending.push({
                     importPath: decl.from,
                     fromFile: modulePath,
                     importLoc: decl.loc,
                 });
             } else if (decl.kind === "ReExportDecl") {
+                if (isCompilerProvidedPackage(decl.from)) continue;
                 // Re-exports also create dependencies
                 pending.push({
                     importPath: decl.from,
@@ -384,6 +404,7 @@ export class ModuleLoader {
         // Also check declarations for re-exports
         for (const decl of module.declarations) {
             if (decl.kind === "ReExportDecl") {
+                if (isCompilerProvidedPackage(decl.from)) continue;
                 pending.push({
                     importPath: decl.from,
                     fromFile: modulePath,

@@ -8,7 +8,7 @@
 import type { CliResult, TestResult } from "./types.ts";
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
@@ -177,10 +177,22 @@ export function expectRuns(source: string): TestResult {
 
 /**
  * Create a unique temp directory for multi-file tests.
+ *
+ * Symlinks the repo's node_modules into the temp directory so
+ * `@vibefun/std` resolves when the compiled JS runs under `node`. Without
+ * this, every section-08 module test fails with ERR_MODULE_NOT_FOUND.
  */
 export function createTempDir(): string {
     const dir = join(tmpdir(), `vf-spec-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(dir, { recursive: true });
+    const repoRoot = resolve(import.meta.dirname, "../../..");
+    try {
+        symlinkSync(join(repoRoot, "node_modules"), join(dir, "node_modules"), "dir");
+    } catch {
+        // Symlink may fail on some platforms (e.g. when node_modules doesn't
+        // exist yet). Tests that don't import @vibefun/std still pass; those
+        // that do will surface a clean runtime error.
+    }
     return dir;
 }
 

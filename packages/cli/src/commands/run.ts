@@ -6,11 +6,15 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { createColors, shouldUseColor } from "../utils/colors.js";
 import { isNodeError, readSourceFile, readStdin } from "../utils/file-io.js";
 import { formatFsErrorMessage } from "../utils/format-fs-error.js";
 import {
+    compileMultiFile,
     compilePipeline,
     EXIT_INTERNAL_ERROR,
     EXIT_IO_ERROR,
@@ -18,6 +22,22 @@ import {
     isStdinInput,
     STDIN_FILENAME,
 } from "./compile.js";
+
+/**
+ * Same heuristic as compile.ts — detect non-`@vibefun/std` imports so
+ * we only take the multi-file tempdir path when the entry truly needs
+ * it. Single-file programs keep their fast stdin-to-node execution.
+ */
+function hasUserModuleImports(source: string): boolean {
+    const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
+    let match;
+    while ((match = importRegex.exec(source)) !== null) {
+        const path = match[1] ?? "";
+        if (path === "@vibefun/std" || path.startsWith("@vibefun/std/")) continue;
+        return true;
+    }
+    return false;
+}
 
 /**
  * Options for the run command
@@ -63,7 +83,7 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
     const fromStdin = isStdinInput(inputPath);
     const filename: string = fromStdin ? STDIN_FILENAME : (inputPath as string);
 
-    // Read source
+    // Read source (either from stdin or from the entry file).
     let source: string;
     try {
         if (fromStdin) {
@@ -76,6 +96,14 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
             return formatFsResult(error, filename, options, colors);
         }
         throw error;
+    }
+
+    // Multi-file path: only when the entry file has relative or user-
+    // package imports. Single-file and @vibefun/std-only programs keep
+    // the fast stdin-to-node path so the run unit/e2e tests around
+    // verbose timing remain unchanged.
+    if (!fromStdin && hasUserModuleImports(source)) {
+        return runMultiFile(filename, options, colors);
     }
 
     // Compile
@@ -98,7 +126,10 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
         stderr = timer.formatVerbose(filename);
     }
 
-    // Execute the compiled JS by piping it to node --input-type=module
+    // Execute the compiled JS by piping it to node --input-type=module.
+    // Node resolves imports (e.g. @vibefun/std) from the process cwd, so
+    // this stdin path requires the user's shell cwd to have a reachable
+    // node_modules — same constraint the spec-validation harness relies on.
     const child = spawnSync("node", ["--input-type=module"], {
         input: code,
         stdio: ["pipe", "inherit", "inherit"],
@@ -110,6 +141,93 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
         exitCode,
         ...(stderr ? { stderr } : {}),
     };
+}
+
+/**
+ * Execute an entry-point `.vf` file along with every transitive module.
+ *
+ * Compiles all reachable modules via compileMultiFile, drops the emitted
+ * JS into a tempdir preserving relative structure, mirrors the workspace's
+ * node_modules via a symlink so `@vibefun/std` (and any other workspace
+ * deps) resolve, then runs the entry JS via `node`. The tempdir is always
+ * cleaned up on exit.
+ */
+function runMultiFile(inputPath: string, options: RunOptions, colors: ReturnType<typeof createColors>): RunResult {
+    // Verify the file exists so we produce a nice FS error rather than
+    // deferring to module-loader's internal machinery.
+    try {
+        readSourceFile(inputPath);
+    } catch (error) {
+        if (isNodeError(error)) {
+            return formatFsResult(error, inputPath, options, colors);
+        }
+        throw error;
+    }
+
+    const compile = compileMultiFile(inputPath, options);
+    if (compile.kind === "error") {
+        return compile.result;
+    }
+
+    // Canonicalize the entry path so it aligns with the module-loader's
+    // canonical keys (which are also resolved via realpath). Needed on
+    // macOS where /tmp resolves to /private/tmp.
+    const entryRealPath = realpathSync(resolve(inputPath));
+    const entryDir = dirname(entryRealPath);
+    const entryRel = relative(entryDir, entryRealPath).replace(/\.vf$/, ".js");
+
+    const runDir = mkdtempSync(join(tmpdir(), "vibefun-run-"));
+    try {
+        // Write each emitted module into the tempdir preserving structure.
+        for (const [relPath, code] of compile.output.outputs) {
+            const absPath = join(runDir, relPath);
+            mkdirSync(dirname(absPath), { recursive: true });
+            writeFileSync(absPath, code, "utf-8");
+        }
+
+        // Symlink the workspace's node_modules so imports like @vibefun/std
+        // resolve via the existing pnpm hoisting. Walks up from cwd to find
+        // the nearest node_modules directory — works for the monorepo and
+        // for external users running inside a project with @vibefun/std
+        // installed.
+        const sourceNodeModules = findNearestNodeModules(process.cwd());
+        if (sourceNodeModules !== null) {
+            try {
+                symlinkSync(sourceNodeModules, join(runDir, "node_modules"), "dir");
+            } catch {
+                // Symlink may fail on some platforms; fall through and let
+                // Node surface a module-not-found error to the user if the
+                // compiled code actually references @vibefun/std.
+            }
+        }
+
+        const entryAbsPath = join(runDir, entryRel);
+        const child = spawnSync("node", [entryAbsPath], {
+            stdio: ["inherit", "inherit", "inherit"],
+            cwd: runDir,
+        });
+
+        const exitCode = child.status ?? EXIT_INTERNAL_ERROR;
+        return { exitCode };
+    } finally {
+        rmSync(runDir, { recursive: true, force: true });
+    }
+}
+
+/** Walk up from `start` until a `node_modules` directory is found. */
+function findNearestNodeModules(start: string): string | null {
+    let cur = resolve(start);
+    for (;;) {
+        const candidate = join(cur, "node_modules");
+        try {
+            if (statSync(candidate).isDirectory()) return candidate;
+        } catch {
+            // not found at this level; keep walking
+        }
+        const parent = dirname(cur);
+        if (parent === cur) return null;
+        cur = parent;
+    }
 }
 
 /**

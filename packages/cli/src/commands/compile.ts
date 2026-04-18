@@ -5,8 +5,17 @@
  * lexer → parser → desugarer → typechecker → codegen
  */
 
-import { basename, dirname, join } from "node:path";
-import { desugarModule, generate, Lexer, Parser, typeCheck, VibefunDiagnostic } from "@vibefun/core";
+import { realpathSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
+import {
+    desugarModule,
+    generate,
+    Lexer,
+    loadAndResolveModules,
+    Parser,
+    typeCheck,
+    VibefunDiagnostic,
+} from "@vibefun/core";
 
 import { countNodes, serializeSurfaceAst, serializeTypedAst } from "../output/ast-json.js";
 import { formatDiagnosticHuman, formatDiagnosticsJson, formatSuccessJson } from "../output/diagnostic.js";
@@ -94,6 +103,27 @@ export interface PipelineError {
 }
 
 export type PipelineResult = PipelineSuccess | PipelineEmit | PipelineError;
+
+/**
+ * Per-module output from a multi-file compile. Keyed by the module's entry-
+ * relative output path (e.g. `main.js`, `utils/helpers.js`).
+ */
+export interface MultiFileOutput {
+    readonly outputs: Map<string, string>;
+    readonly warnings: readonly VibefunDiagnostic[];
+}
+
+export interface MultiFileSuccess {
+    readonly kind: "success";
+    readonly output: MultiFileOutput;
+}
+
+export interface MultiFileError {
+    readonly kind: "error";
+    readonly result: CompileResult;
+}
+
+export type MultiFileResult = MultiFileSuccess | MultiFileError;
 
 /**
  * Run the compilation pipeline on source code without performing any I/O.
@@ -251,6 +281,146 @@ export function compilePipeline(source: string, filename: string, options: Compi
 }
 
 /**
+ * Compile every module reachable from `entryPath` into per-module JS code.
+ *
+ * Wraps `loadAndResolveModules` so callers don't have to manage the graph,
+ * and returns a map of entry-relative output paths to generated JS.
+ *
+ * Scope: surfaces loader / resolver errors as a regular CompileResult so
+ * callers can forward the exit code. AST emit modes (`--emit ast`,
+ * `--emit typed-ast`) are not supported here — those are single-file
+ * concepts. Use compilePipeline for stdin / single-file modes.
+ */
+export function compileMultiFile(entryPath: string, options: CompileOptions = {}): MultiFileResult {
+    const useColor = shouldUseColor({
+        ...(options.color === true ? { color: true } : {}),
+        ...(options.noColor === true ? { noColor: true } : {}),
+    });
+    const colors = createColors(useColor);
+
+    let resolution;
+    try {
+        resolution = loadAndResolveModules(entryPath);
+    } catch (error) {
+        if (error instanceof VibefunDiagnostic) {
+            const timer = new Timer();
+            return {
+                kind: "error",
+                result: formatErrorResult([error], "", options, timer, colors),
+            };
+        }
+        throw error;
+    }
+
+    if (resolution.errors.length > 0) {
+        const timer = new Timer();
+        return {
+            kind: "error",
+            result: formatErrorResult(resolution.errors, "", options, timer, colors),
+        };
+    }
+
+    // Canonicalize via realpath so the entry directory lines up with the
+    // module-loader's canonical path keys — without this, the /tmp →
+    // /private/tmp symlink on macOS causes relative() to escape the entry
+    // directory with leading `..` segments.
+    const entryRealPath = realpathSync(resolve(entryPath));
+    const entryDir = dirname(entryRealPath);
+    const outputs = new Map<string, string>();
+
+    try {
+        for (const modulePath of resolution.compilationOrder) {
+            const surfaceModule = resolution.modules.get(modulePath);
+            if (surfaceModule === undefined) continue;
+
+            const coreAst = desugarModule(surfaceModule);
+            const typedModule = typeCheck(coreAst);
+            const { code } = generate(typedModule, { filename: modulePath });
+
+            const relativePath = relative(entryDir, modulePath);
+            const outputRelative = relativePath.endsWith(".vf")
+                ? relativePath.slice(0, -".vf".length) + ".js"
+                : relativePath + ".js";
+            outputs.set(outputRelative, code);
+        }
+    } catch (error) {
+        if (error instanceof VibefunDiagnostic) {
+            const timer = new Timer();
+            return {
+                kind: "error",
+                result: formatErrorResult([error], "", options, timer, colors),
+            };
+        }
+        throw error;
+    }
+
+    return {
+        kind: "success",
+        output: { outputs, warnings: resolution.warnings },
+    };
+}
+
+/**
+ * Heuristic: does the source contain any `import … from "path"` where
+ * the path is either relative (starts with `./` or `../`) or a non-
+ * `@vibefun/std` package? A full parse would be more accurate, but a
+ * regex keeps the single-file fast path cheap.
+ */
+function hasUserModuleImports(source: string): boolean {
+    const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
+    let match;
+    while ((match = importRegex.exec(source)) !== null) {
+        const path = match[1] ?? "";
+        if (path === "@vibefun/std" || path.startsWith("@vibefun/std/")) continue;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Wrapper around compileMultiFile that writes each per-module JS file
+ * to disk next to its source `.vf` file and returns a CompileResult.
+ * Shared by the `compile` and `run` commands.
+ */
+function compileMultiFileFromEntry(
+    entryPath: string,
+    options: CompileOptions,
+    colors: ReturnType<typeof createColors>,
+): CompileResult {
+    const result = compileMultiFile(entryPath, options);
+    if (result.kind === "error") return result.result;
+
+    const entryRealPath = realpathSync(resolve(entryPath));
+    const entryDir = dirname(entryRealPath);
+    for (const [relPath, code] of result.output.outputs) {
+        const outPath = join(entryDir, relPath);
+        try {
+            writeAtomic(outPath, code);
+        } catch (error) {
+            if (isNodeError(error)) {
+                const message = formatFsErrorMessage(error, outPath, colors);
+                return { exitCode: EXIT_IO_ERROR, stderr: message };
+            }
+            throw error;
+        }
+    }
+
+    if (options.quiet) return { exitCode: EXIT_SUCCESS };
+
+    const mainOutPath = join(entryDir, relative(entryDir, entryRealPath).replace(/\.vf$/, ".js"));
+    const lines: string[] = [`${colors.cyan("✓")} Compiled ${entryPath} → ${mainOutPath}`];
+    if (result.output.outputs.size > 1) {
+        lines.push(`  (${result.output.outputs.size - 1} additional module(s) written alongside)`);
+    }
+    if (result.output.warnings.length > 0) {
+        for (const warning of result.output.warnings) {
+            lines.push(colors.yellow(warning.format()));
+        }
+    }
+    return { exitCode: EXIT_SUCCESS, stdout: lines.join("\n") };
+}
+
+/**
  * Compile a vibefun source file
  *
  * @param inputPath - Path to the .vf source file, or undefined/"-" to read from stdin
@@ -293,6 +463,21 @@ export function compile(inputPath: string | undefined, options: CompileOptions =
             return { exitCode: EXIT_IO_ERROR, stderr: message };
         }
         throw error;
+    }
+
+    // Multi-file path: only when the entry file has relative or user-
+    // package imports. Single-file and @vibefun/std-only programs stay on
+    // the original single-file path so the compile unit tests around
+    // custom --output, JSON output, verbose timing, and IO errors keep
+    // their existing behaviour. AST / typed-AST emit modes always stay
+    // single-file; they operate on one module at a time.
+    if (
+        !fromStdin &&
+        !options.output &&
+        (options.emit === undefined || options.emit === "js") &&
+        hasUserModuleImports(source)
+    ) {
+        return compileMultiFileFromEntry(filename, options, colors);
     }
 
     // Run compilation pipeline

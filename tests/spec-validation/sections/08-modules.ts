@@ -87,7 +87,7 @@ test(S, "08-modules.md", "export let binding", () =>
     moduleTest(
         {
             "lib.vf": `export let x = 42;`,
-            "main.vf": `import { x } from './lib';
+            "main.vf": `import { x } from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(x)) };`,
         },
@@ -101,7 +101,7 @@ test(S, "08-modules.md", "export type definition", () =>
     moduleTest(
         {
             "types.vf": `export type Color = Red | Green | Blue;`,
-            "main.vf": `import { Color, Red } from './types';
+            "main.vf": `import { Color, Red } from "./types";
 let c: Color = Red;`,
         },
         "main.vf",
@@ -113,7 +113,7 @@ test(S, "08-modules.md", "export function", () =>
     moduleTest(
         {
             "math.vf": `export let add = (x: Int, y: Int) => x + y;`,
-            "main.vf": `import { add } from './math';
+            "main.vf": `import { add } from "./math";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(add(2, 3))) };`,
         },
@@ -130,7 +130,7 @@ test(S, "08-modules.md", "named import", () =>
         {
             "lib.vf": `export let x = 42;
 export let y = "hello";`,
-            "main.vf": `import { x, y } from './lib';
+            "main.vf": `import { x, y } from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(y) };`,
         },
@@ -146,7 +146,7 @@ test(S, "08-modules.md", "namespace import with * as", () =>
     moduleTest(
         {
             "lib.vf": `export let x = 42;`,
-            "main.vf": `import * as Lib from './lib';
+            "main.vf": `import * as Lib from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(Lib.x)) };`,
         },
@@ -162,7 +162,7 @@ test(S, "08-modules.md", ".vf extension optional in imports", () =>
     moduleTest(
         {
             "lib.vf": `export let x = 42;`,
-            "main.vf": `import { x } from './lib';
+            "main.vf": `import { x } from "./lib";
 let y = x;`,
         },
         "main.vf",
@@ -178,10 +178,10 @@ test(S, "08-modules.md", "module initializes exactly once", () =>
             "counter.vf": `external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log("init") };
 export let value = 42;`,
-            "a.vf": `import { value } from './counter';
+            "a.vf": `import { value } from "./counter";
 export let a = value;`,
-            "main.vf": `import { value } from './counter';
-import { a } from './a';
+            "main.vf": `import { value } from "./counter";
+import { a } from "./a";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(value + a)) };`,
         },
@@ -197,8 +197,8 @@ test(S, "08-modules.md", "re-export from another module", () =>
     moduleTest(
         {
             "inner.vf": `export let x = 42;`,
-            "outer.vf": `export { x } from './inner';`,
-            "main.vf": `import { x } from './outer';
+            "outer.vf": `export { x } from "./inner";`,
+            "main.vf": `import { x } from "./outer";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(x)) };`,
         },
@@ -214,7 +214,7 @@ test(S, "08-modules.md", "index.vf resolution for directory imports", () =>
     moduleTest(
         {
             "lib/index.vf": `export let x = 42;`,
-            "main.vf": `import { x } from './lib';
+            "main.vf": `import { x } from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(x)) };`,
         },
@@ -230,8 +230,8 @@ test(S, "08-modules.md", "type import", () =>
     moduleTest(
         {
             "types.vf": `export type Color = Red | Green | Blue;`,
-            "main.vf": `import type { Color } from './types';
-import { Red } from './types';
+            "main.vf": `import type { Color } from "./types";
+import { Red } from "./types";
 let c: Color = Red;`,
         },
         "main.vf",
@@ -244,7 +244,7 @@ test(S, "08-modules.md", "mixed type and value import", () =>
         {
             "lib.vf": `export type Color = Red | Green | Blue;
 export let defaultColor = Red;`,
-            "main.vf": `import { type Color, defaultColor } from './lib';
+            "main.vf": `import { type Color, defaultColor } from "./lib";
 let c: Color = defaultColor;`,
         },
         "main.vf",
@@ -255,7 +255,7 @@ let c: Color = defaultColor;`,
 test(S, "08-modules.md", "self-import is error", () =>
     moduleTest(
         {
-            "main.vf": `import { x } from './main';
+            "main.vf": `import { x } from "./main";
 export let x = 42;`,
         },
         "main.vf",
@@ -268,8 +268,8 @@ test(S, "08-modules.md", "export wildcard re-export", () =>
         {
             "inner.vf": `export let x = 42;
 export let y = "hello";`,
-            "outer.vf": `export * from './inner';`,
-            "main.vf": `import { x, y } from './outer';
+            "outer.vf": `export * from "./inner";`,
+            "main.vf": `import { x, y } from "./outer";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(y) };`,
         },
@@ -283,7 +283,7 @@ test(S, "08-modules.md", "import with explicit .vf extension", () =>
     moduleTest(
         {
             "lib.vf": `export let x = 42;`,
-            "main.vf": `import { x } from './lib.vf';
+            "main.vf": `import { x } from "./lib.vf";
 let y = x;`,
         },
         "main.vf",
@@ -294,7 +294,7 @@ let y = x;`,
 test(S, "08-modules.md", "import missing module is error", () =>
     moduleTest(
         {
-            "main.vf": `import { x } from './nonexistent';
+            "main.vf": `import { x } from "./nonexistent";
 let y = x;`,
         },
         "main.vf",
@@ -306,7 +306,7 @@ test(S, "08-modules.md", "exported external declaration", () =>
     moduleTest(
         {
             "ffi.vf": `export external math_floor: (Float) -> Int = "Math.floor";`,
-            "main.vf": `import { math_floor } from './ffi';
+            "main.vf": `import { math_floor } from "./ffi";
 external console_log: (String) -> Unit = "console.log";
 let result = unsafe { math_floor(3.7) };
 let _ = unsafe { console_log(String.fromInt(result)) };`,
