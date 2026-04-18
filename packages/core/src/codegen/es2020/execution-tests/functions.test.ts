@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { compileAndGetExport } from "./execution-test-helpers.js";
+import { compileAndGetExport, compileAndRunSucceeds } from "./execution-test-helpers.js";
 
 describe("curried function application", () => {
     it("should correctly evaluate curried function application", () => {
@@ -50,6 +50,11 @@ describe("lambda expressions", () => {
             "result",
         );
         expect(result).toBe(42);
+    });
+
+    it("should compile zero-parameter lambda", () => {
+        // Definition-only: invocation requires multi-arg call desugaring.
+        expect(compileAndRunSucceeds(`let noop = () => 42;`)).toBe(true);
     });
 });
 

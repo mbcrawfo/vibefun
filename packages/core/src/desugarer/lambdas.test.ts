@@ -529,8 +529,8 @@ describe("Lambda Currying - Source Locations", () => {
     });
 });
 
-describe("Lambda Currying - Error Cases", () => {
-    it("should throw error for zero-parameter lambda", () => {
+describe("Lambda Currying - Zero Parameters", () => {
+    it("should desugar zero-parameter lambda to wildcard-pattern lambda", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [],
@@ -538,6 +538,11 @@ describe("Lambda Currying - Error Cases", () => {
             loc: testLoc,
         };
 
-        expect(() => desugar(lambda)).toThrow("Lambda with zero parameters");
+        const result = desugar(lambda);
+
+        expect(result.kind).toBe("CoreLambda");
+        const coreLambda = result as CoreLambda;
+        expect(coreLambda.param.kind).toBe("CoreWildcardPattern");
+        expect(coreLambda.body.kind).toBe("CoreIntLit");
     });
 });

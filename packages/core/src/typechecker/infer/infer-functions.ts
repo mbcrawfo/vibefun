@@ -39,27 +39,28 @@ export function inferLambda(ctx: InferenceContext, expr: Extract<CoreExpr, { kin
     // Create fresh type variable for parameter
     const paramType = freshTypeVar(ctx.level);
 
-    // Add parameter to environment
-    // Currently only variable patterns are supported in lambda parameters
-    if (expr.param.kind !== "CoreVarPattern") {
+    // Variable and wildcard patterns are supported in lambda parameters.
+    // Wildcard comes from zero-arg lambdas `() => expr` desugaring.
+    if (expr.param.kind !== "CoreVarPattern" && expr.param.kind !== "CoreWildcardPattern") {
         throwDiagnostic("VF4017", expr.loc, {
             feature: "Pattern matching in lambda parameters",
-            hint: "Only simple variable patterns are currently supported",
+            hint: "Only variable or wildcard patterns are currently supported",
         });
     }
-
-    const paramName = expr.param.name;
-    const paramScheme: TypeScheme = { vars: [], type: paramType }; // Monomorphic
 
     const newEnv: TypeEnv = {
         values: new Map(ctx.env.values),
         types: ctx.env.types,
     };
-    newEnv.values.set(paramName, {
-        kind: "Value",
-        scheme: paramScheme,
-        loc: expr.param.loc,
-    });
+
+    if (expr.param.kind === "CoreVarPattern") {
+        const paramScheme: TypeScheme = { vars: [], type: paramType }; // Monomorphic
+        newEnv.values.set(expr.param.name, {
+            kind: "Value",
+            scheme: paramScheme,
+            loc: expr.param.loc,
+        });
+    }
 
     // Infer body type
     const bodyCtx: InferenceContext = { env: newEnv, subst: ctx.subst, level: ctx.level };
