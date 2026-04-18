@@ -27,9 +27,9 @@ export function desugarBlock(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
 ): CoreExpr {
-    // Internal error: Empty block shouldn't happen (parser should catch this)
+    // Empty block evaluates to unit (spec: empty blocks are valid and have Unit type)
     if (exprs.length === 0) {
-        throw new Error("Empty block expression");
+        return { kind: "CoreUnitLit", loc: _loc };
     }
 
     // Single expression - just desugar it

@@ -396,17 +396,22 @@ describe("Block Desugaring - Source Locations", () => {
     });
 });
 
-describe("Block Desugaring - Error Cases", () => {
-    it("should throw error for empty block", () => {
+describe("Block Desugaring - Empty Blocks", () => {
+    it("should desugar empty block to CoreUnitLit", () => {
         const block: Expr = {
             kind: "Block",
             exprs: [],
             loc: testLoc,
         };
 
-        expect(() => desugar(block)).toThrow("Empty block expression");
-    });
+        const result = desugar(block);
 
+        expect(result.kind).toBe("CoreUnitLit");
+        expect(result.loc).toBe(testLoc);
+    });
+});
+
+describe("Block Desugaring - Error Cases", () => {
     it("should throw error for non-let expression in middle of block", () => {
         const block: Expr = {
             kind: "Block",
