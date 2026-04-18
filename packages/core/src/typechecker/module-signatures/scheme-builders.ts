@@ -33,7 +33,11 @@ export function curriedFun(params: Type[], ret: Type): Type {
     if (params.length === 0) return ret;
     let result = ret;
     for (let i = params.length - 1; i >= 0; i--) {
-        result = funType([params[i] as Type], result);
+        const param = params[i];
+        if (param === undefined) {
+            throw new Error("curriedFun() received a sparse parameter list");
+        }
+        result = funType([param], result);
     }
     return result;
 }
