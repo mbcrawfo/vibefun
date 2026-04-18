@@ -28,6 +28,8 @@ export type EmitMode = "statement" | "expression";
 export type SharedState = {
     needsEqHelper: boolean;
     needsRefHelper: boolean;
+    needsIntDivHelper: boolean;
+    needsIntModHelper: boolean;
     exportedNames: Set<string>;
     /** Counter for generating unique wildcard identifiers */
     wildcardCounter: number;
@@ -94,6 +96,8 @@ export function createContext(options: CreateContextOptions): EmitContext {
     const shared: SharedState = {
         needsEqHelper: false,
         needsRefHelper: false,
+        needsIntDivHelper: false,
+        needsIntModHelper: false,
         exportedNames: new Set(),
         wildcardCounter: 0,
     };
@@ -211,6 +215,24 @@ export function markNeedsEqHelper(ctx: EmitContext): void {
  */
 export function markNeedsRefHelper(ctx: EmitContext): void {
     ctx.shared.needsRefHelper = true;
+}
+
+/**
+ * Mark that the $intDiv helper is needed (integer division with zero-divisor check)
+ *
+ * @param ctx - Context to update (mutates shared state!)
+ */
+export function markNeedsIntDivHelper(ctx: EmitContext): void {
+    ctx.shared.needsIntDivHelper = true;
+}
+
+/**
+ * Mark that the $intMod helper is needed (integer modulo with zero-divisor check)
+ *
+ * @param ctx - Context to update (mutates shared state!)
+ */
+export function markNeedsIntModHelper(ctx: EmitContext): void {
+    ctx.shared.needsIntModHelper = true;
 }
 
 /**

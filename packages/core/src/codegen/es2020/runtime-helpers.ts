@@ -59,21 +59,57 @@ export function generateEqHelper(): string {
 }
 
 /**
+ * Generate the $intDiv() helper function
+ *
+ * Integer division with runtime zero-divisor check. Spec
+ * (04-expressions/basic-expressions.md) requires division by zero to
+ * panic at runtime.
+ *
+ * @returns JavaScript code for the $intDiv helper
+ */
+export function generateIntDivHelper(): string {
+    return `const $intDiv = (a, b) => { if (b === 0) throw new Error("Division by zero"); return Math.trunc(a / b); };`;
+}
+
+/**
+ * Generate the $intMod() helper function
+ *
+ * Integer modulo with runtime zero-divisor check.
+ *
+ * @returns JavaScript code for the $intMod helper
+ */
+export function generateIntModHelper(): string {
+    return `const $intMod = (a, b) => { if (b === 0) throw new Error("Division by zero"); return a % b; };`;
+}
+
+/**
  * Generate all needed runtime helpers based on context flags
  *
- * @param needsRef - Whether ref() helper is needed
- * @param needsEq - Whether $eq() helper is needed
+ * @param flags - Which helpers are needed
  * @returns JavaScript code for all needed helpers (empty string if none)
  */
-export function generateRuntimeHelpers(needsRef: boolean, needsEq: boolean): string {
+export function generateRuntimeHelpers(flags: {
+    needsRef: boolean;
+    needsEq: boolean;
+    needsIntDiv: boolean;
+    needsIntMod: boolean;
+}): string {
     const helpers: string[] = [];
 
-    if (needsRef) {
+    if (flags.needsRef) {
         helpers.push(generateRefHelper());
     }
 
-    if (needsEq) {
+    if (flags.needsEq) {
         helpers.push(generateEqHelper());
+    }
+
+    if (flags.needsIntDiv) {
+        helpers.push(generateIntDivHelper());
+    }
+
+    if (flags.needsIntMod) {
+        helpers.push(generateIntModHelper());
     }
 
     if (helpers.length === 0) {

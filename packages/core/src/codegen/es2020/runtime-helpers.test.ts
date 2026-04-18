@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { generateEqHelper, generateRefHelper, generateRuntimeHelpers } from "./runtime-helpers.js";
+import {
+    generateEqHelper,
+    generateIntDivHelper,
+    generateIntModHelper,
+    generateRefHelper,
+    generateRuntimeHelpers,
+} from "./runtime-helpers.js";
 
 describe("Runtime Helpers", () => {
     describe("generateRefHelper", () => {
@@ -66,35 +72,75 @@ describe("Runtime Helpers", () => {
     });
 
     describe("generateRuntimeHelpers", () => {
+        const none = { needsRef: false, needsEq: false, needsIntDiv: false, needsIntMod: false };
+
         it("should return empty string when no helpers needed", () => {
-            const result = generateRuntimeHelpers(false, false);
+            const result = generateRuntimeHelpers(none);
             expect(result).toBe("");
         });
 
         it("should generate only ref when needed", () => {
-            const result = generateRuntimeHelpers(true, false);
+            const result = generateRuntimeHelpers({ ...none, needsRef: true });
             expect(result).toContain("const ref");
             expect(result).not.toContain("const $eq");
         });
 
         it("should generate only $eq when needed", () => {
-            const result = generateRuntimeHelpers(false, true);
+            const result = generateRuntimeHelpers({ ...none, needsEq: true });
             expect(result).not.toContain("const ref");
             expect(result).toContain("const $eq");
         });
 
-        it("should generate both helpers when both needed", () => {
-            const result = generateRuntimeHelpers(true, true);
+        it("should generate both ref and $eq when both needed", () => {
+            const result = generateRuntimeHelpers({ ...none, needsRef: true, needsEq: true });
             expect(result).toContain("const ref");
             expect(result).toContain("const $eq");
         });
 
         it("should separate helpers with newline", () => {
-            const result = generateRuntimeHelpers(true, true);
+            const result = generateRuntimeHelpers({ ...none, needsRef: true, needsEq: true });
             const lines = result.split("\n");
             // ref helper is single line, $eq is multi-line
             expect(lines[0]).toContain("const ref");
             expect(lines[1]).toContain("const $eq");
+        });
+
+        it("should generate $intDiv when needed", () => {
+            const result = generateRuntimeHelpers({ ...none, needsIntDiv: true });
+            expect(result).toContain("const $intDiv");
+            expect(result).toContain("Division by zero");
+        });
+
+        it("should generate $intMod when needed", () => {
+            const result = generateRuntimeHelpers({ ...none, needsIntMod: true });
+            expect(result).toContain("const $intMod");
+            expect(result).toContain("Division by zero");
+        });
+    });
+
+    describe("generateIntDivHelper", () => {
+        it("should throw 'Division by zero' when divisor is 0", () => {
+            const fn = new Function(`${generateIntDivHelper()}; return $intDiv;`)();
+            expect(() => fn(10, 0)).toThrow("Division by zero");
+        });
+
+        it("should truncate toward zero for non-zero divisors", () => {
+            const fn = new Function(`${generateIntDivHelper()}; return $intDiv;`)();
+            expect(fn(7, 2)).toBe(3);
+            expect(fn(-7, 2)).toBe(-3);
+        });
+    });
+
+    describe("generateIntModHelper", () => {
+        it("should throw 'Division by zero' when divisor is 0", () => {
+            const fn = new Function(`${generateIntModHelper()}; return $intMod;`)();
+            expect(() => fn(10, 0)).toThrow("Division by zero");
+        });
+
+        it("should compute remainder for non-zero divisors", () => {
+            const fn = new Function(`${generateIntModHelper()}; return $intMod;`)();
+            expect(fn(7, 3)).toBe(1);
+            expect(fn(-7, 3)).toBe(-1);
         });
     });
 
