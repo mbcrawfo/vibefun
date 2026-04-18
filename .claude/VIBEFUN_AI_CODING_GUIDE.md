@@ -98,6 +98,15 @@ let x = Float.fromInt(5) + 2.0;
 // 7.0 / 2.0 = 3.5
 // -7.0 / 2.0 = -3.5
 
+// Division/modulo by zero:
+// Int: panics at runtime with "Division by zero"
+//   10 / 0    -> runtime panic
+//   10 % 0    -> runtime panic
+// Float: follows IEEE 754 (no panic)
+//   5.0 / 0.0  -> Infinity
+//   -5.0 / 0.0 -> -Infinity
+//   0.0 / 0.0  -> NaN
+
 // Type variable behavior with division:
 // When type cannot be inferred, division defaults to Float (IEEE 754)
 let f = (x, y) => x / y;  // Inferred: (Float, Float) -> Float
