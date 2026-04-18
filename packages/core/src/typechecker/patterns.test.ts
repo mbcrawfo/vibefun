@@ -618,5 +618,42 @@ describe("Pattern Checking", () => {
 
             expect(missing).toEqual([]);
         });
+
+        it("should accept true | false as exhaustive for Bool", () => {
+            const patterns: CorePattern[] = [
+                { kind: "CoreLiteralPattern", literal: true, loc: testLoc },
+                { kind: "CoreLiteralPattern", literal: false, loc: testLoc },
+            ];
+
+            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Bool);
+
+            expect(missing).toEqual([]);
+        });
+
+        it("should detect missing `false` when only `true` is matched on Bool", () => {
+            const patterns: CorePattern[] = [{ kind: "CoreLiteralPattern", literal: true, loc: testLoc }];
+
+            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Bool);
+
+            expect(missing).toEqual(["false"]);
+        });
+
+        it("should detect missing `true` when only `false` is matched on Bool", () => {
+            const patterns: CorePattern[] = [{ kind: "CoreLiteralPattern", literal: false, loc: testLoc }];
+
+            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Bool);
+
+            expect(missing).toEqual(["true"]);
+        });
+
+        it("should still require a catch-all for non-Bool literal patterns", () => {
+            // Regression guard: fix for Bool exhaustiveness must not change
+            // the existing "<other values>" fallback for other literal types.
+            const patterns: CorePattern[] = [{ kind: "CoreLiteralPattern", literal: 1, loc: testLoc }];
+
+            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
+
+            expect(missing).toEqual(["<other values>"]);
+        });
     });
 });

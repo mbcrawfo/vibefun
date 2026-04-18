@@ -3,7 +3,7 @@
 Derived from [ordering.md](./ordering.md). For scope, effort, and rationale see that file.
 
 ## Phase 1: Quick Wins & Prerequisites
-- [ ] 1.1 Boolean exhaustiveness checking
+- [x] 1.1 Boolean exhaustiveness checking
 - [x] 1.2 Multi-argument call desugaring
 - [x] 1.3 Zero-argument lambda
 - [x] 1.4 Empty block expression
