@@ -28,6 +28,10 @@ The `compile` command runs the full compilation pipeline on a `.vf` source file:
 - **File** (default for file input): Writes `.js` file alongside the source (e.g., `main.vf` → `main.js`), or to the path specified by `--output`
 - **stdout** (default for stdin input): When reading from stdin with no `--output`, the compiled JavaScript is written to stdout
 
+### Multi-file projects
+
+When the entry file imports from a relative path (e.g. `import { foo } from "./lib"`), the compiler automatically discovers every reachable `.vf` file via the module resolver and emits one `.js` output per module next to its source. Stdlib-only programs and programs without relative imports keep the fast single-file path; passing `--output` or a non-`js` `--emit` mode also stays on the single-file path (which only writes the entry's output).
+
 ## Options
 
 | Option | Description |

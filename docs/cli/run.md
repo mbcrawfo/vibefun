@@ -12,7 +12,9 @@ vibefun run [file]
 
 The `run` command compiles a `.vf` source file through the full compilation pipeline and immediately executes the resulting JavaScript using Node.js.
 
-The compiled JavaScript is piped to `node --input-type=module` via stdin, so no intermediate files are created on disk.
+For programs that import only `@vibefun/std` (or nothing at all), the compiled JavaScript is piped to `node --input-type=module` via stdin — no intermediate files are created on disk.
+
+For multi-file projects (any `.vf` file that imports from a relative path like `./lib`), the compiler discovers every reachable module, emits one JS file per module into a temporary directory, symlinks the nearest `node_modules` so package imports resolve, and invokes `node` on the entry. The temp directory is cleaned up when the process exits.
 
 ### Input
 
