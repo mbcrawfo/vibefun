@@ -67,15 +67,17 @@ export function generalize(ctx: InferenceContext, type: Type, expr: CoreExpr): T
  * @returns The inferred type and updated substitution
  */
 export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>): InferResult {
-    // Currently only variable patterns are supported in let-bindings
-    if (expr.pattern.kind !== "CoreVarPattern") {
+    // Variable and wildcard patterns are supported in let-bindings. Wildcard
+    // lets (`let _ = expr;`) evaluate the value for its side effects and
+    // introduce no binding — the desugarer uses this shape for while-loop
+    // body sequencing. Other patterns (literal, record, constructor) are
+    // still unsupported.
+    if (expr.pattern.kind !== "CoreVarPattern" && expr.pattern.kind !== "CoreWildcardPattern") {
         throwDiagnostic("VF4017", expr.loc, {
             feature: "Pattern matching in let-bindings",
-            hint: "Only simple variable patterns are currently supported",
+            hint: "Only variable or wildcard patterns are currently supported",
         });
     }
-
-    const varName = expr.pattern.name;
 
     // Mutable let-bindings are not supported yet
     if (expr.mutable) {
@@ -92,8 +94,9 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
     // Track temp type for recursive bindings
     let tempType: Type | null = null;
 
-    // Handle recursive bindings
-    if (expr.recursive) {
+    // Handle recursive bindings (only meaningful for variable patterns;
+    // wildcard recursive would reference nothing, so we simply skip env seeding)
+    if (expr.recursive && expr.pattern.kind === "CoreVarPattern") {
         // For recursive bindings, add a temporary binding with a fresh type variable
         tempType = freshTypeVar(newLevel);
         const tempScheme: TypeScheme = { vars: [], type: tempType };
@@ -102,7 +105,7 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
             types: ctx.env.types,
             values: new Map(ctx.env.values),
         };
-        newEnv.values.set(varName, {
+        newEnv.values.set(expr.pattern.name, {
             kind: "Value",
             scheme: tempScheme,
             loc: expr.loc,
@@ -123,23 +126,28 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
     }
 
-    // Generalize the type of the value
-    const valueScheme = generalize(valueCtx, valueResult.type, expr.value);
-
-    // Add the binding to the environment
-    const newEnv: TypeEnv = {
-        types: ctx.env.types,
-        values: new Map(ctx.env.values),
-    };
-    newEnv.values.set(varName, {
-        kind: "Value",
-        scheme: valueScheme,
-        loc: expr.loc,
-    });
+    // Build the body environment. For variable patterns, bind the name to
+    // the generalized scheme; for wildcard patterns, inherit the parent env.
+    const bodyEnv: TypeEnv =
+        expr.pattern.kind === "CoreVarPattern"
+            ? (() => {
+                  const valueScheme = generalize(valueCtx, valueResult.type, expr.value);
+                  const env: TypeEnv = {
+                      types: ctx.env.types,
+                      values: new Map(ctx.env.values),
+                  };
+                  env.values.set(expr.pattern.name, {
+                      kind: "Value",
+                      scheme: valueScheme,
+                      loc: expr.loc,
+                  });
+                  return env;
+              })()
+            : ctx.env;
 
     // Infer the type of the body with the updated environment
     const bodyCtx: InferenceContext = {
-        env: newEnv,
+        env: bodyEnv,
         subst: valueCtx.subst,
         level: ctx.level, // Back to the original level
     };

@@ -7,7 +7,7 @@ Derived from [ordering.md](./ordering.md). For scope, effort, and rationale see 
 - [x] 1.2 Multi-argument call desugaring
 - [x] 1.3 Zero-argument lambda
 - [x] 1.4 Empty block expression
-- [ ] 1.5 Wildcard pattern in let-bindings
+- [x] 1.5 Wildcard pattern in let-bindings
 - [ ] 1.6 Division-by-zero runtime checks
 - [x] 1.7 Nullary constructor type annotation crash
 
