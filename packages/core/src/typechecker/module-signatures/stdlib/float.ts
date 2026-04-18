@@ -19,6 +19,9 @@ export function getFloatModuleSignature(): Type {
     exports.set("floor", monoScheme(curriedFun([Float], Int)));
     exports.set("ceil", monoScheme(curriedFun([Float], Int)));
     exports.set("abs", monoScheme(curriedFun([Float], Float)));
+    exports.set("isNaN", monoScheme(curriedFun([Float], primitiveTypes.Bool)));
+    exports.set("isInfinite", monoScheme(curriedFun([Float], primitiveTypes.Bool)));
+    exports.set("isFinite", monoScheme(curriedFun([Float], primitiveTypes.Bool)));
 
     return moduleType(FLOAT_MODULE_PATH, exports);
 }

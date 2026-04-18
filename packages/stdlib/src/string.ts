@@ -21,6 +21,8 @@ export const fromFloat = (n: number): string => {
     return String(n);
 };
 
+export const fromBool = (b: boolean): string => (b ? "true" : "false");
+
 export const toUpperCase = (s: string): string => s.toUpperCase();
 
 export const toLowerCase = (s: string): string => s.toLowerCase();

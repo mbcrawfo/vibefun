@@ -17,6 +17,7 @@ export function getStringModuleSignature(): Type {
     exports.set("concat", monoScheme(curriedFun([String, String], String)));
     exports.set("fromInt", monoScheme(curriedFun([Int], String)));
     exports.set("fromFloat", monoScheme(curriedFun([Float], String)));
+    exports.set("fromBool", monoScheme(curriedFun([Bool], String)));
     exports.set("toUpperCase", monoScheme(curriedFun([String], String)));
     exports.set("toLowerCase", monoScheme(curriedFun([String], String)));
     exports.set("trim", monoScheme(curriedFun([String], String)));

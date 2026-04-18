@@ -24,3 +24,9 @@ export const floor = (n: number): number => Math.floor(n);
 export const ceil = (n: number): number => Math.ceil(n);
 
 export const abs = (n: number): number => Math.abs(n);
+
+export const isNaN = (n: number): boolean => Number.isNaN(n);
+
+export const isInfinite = (n: number): boolean => !Number.isFinite(n) && !Number.isNaN(n);
+
+export const isFinite = (n: number): boolean => Number.isFinite(n);
