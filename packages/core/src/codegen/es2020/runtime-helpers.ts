@@ -83,17 +83,22 @@ export function generateIntModHelper(): string {
 }
 
 /**
+ * Flags indicating which runtime helpers a generated module requires.
+ */
+export type RuntimeHelperFlags = {
+    needsRef: boolean;
+    needsEq: boolean;
+    needsIntDiv: boolean;
+    needsIntMod: boolean;
+};
+
+/**
  * Generate all needed runtime helpers based on context flags
  *
  * @param flags - Which helpers are needed
  * @returns JavaScript code for all needed helpers (empty string if none)
  */
-export function generateRuntimeHelpers(flags: {
-    needsRef: boolean;
-    needsEq: boolean;
-    needsIntDiv: boolean;
-    needsIntMod: boolean;
-}): string {
+export function generateRuntimeHelpers(flags: RuntimeHelperFlags): string {
     const helpers: string[] = [];
 
     if (flags.needsRef) {
