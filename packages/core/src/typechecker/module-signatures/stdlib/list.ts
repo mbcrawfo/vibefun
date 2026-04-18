@@ -84,5 +84,11 @@ export function getListModuleSignature(): Type {
         exports.set("concat", scheme([a.id], curriedFun([listType(a.var), listType(a.var)], listType(a.var))));
     }
 
+    // flatten: forall a. List<List<a>> -> List<a>
+    {
+        const a = freshVar();
+        exports.set("flatten", scheme([a.id], curriedFun([listType(listType(a.var))], listType(a.var))));
+    }
+
     return moduleType(LIST_MODULE_PATH, exports);
 }

@@ -111,3 +111,18 @@ export const concat =
         }
         return result;
     };
+
+export const flatten = <A>(xss: List<List<A>>): List<A> => {
+    // Collect all elements into an array, preserving order, then rebuild.
+    const items: A[] = [];
+    let outer: List<List<A>> = xss;
+    while (outer.$tag === "Cons") {
+        let inner: List<A> = outer.$0;
+        while (inner.$tag === "Cons") {
+            items.push(inner.$0);
+            inner = inner.$1;
+        }
+        outer = outer.$1;
+    }
+    return buildFromArray(items);
+};

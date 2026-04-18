@@ -35,10 +35,10 @@ describe("getStdlibModuleSignature", () => {
         }
     });
 
-    it("List module exports all 9 spec functions", () => {
+    it("List module exports all spec functions", () => {
         const sig = expectModule(getStdlibModuleSignature("List"));
         expect(Array.from(sig.exports.keys()).sort()).toEqual(
-            ["concat", "filter", "fold", "foldRight", "head", "length", "map", "reverse", "tail"].sort(),
+            ["concat", "filter", "flatten", "fold", "foldRight", "head", "length", "map", "reverse", "tail"].sort(),
         );
     });
 
@@ -85,9 +85,10 @@ describe("getStdlibModuleSignature", () => {
         expect(sig.exports.has("unwrapOr")).toBe(true);
     });
 
-    it("String module exports all 13 spec functions", () => {
+    it("String module exports all spec functions", () => {
         const sig = expectModule(getStdlibModuleSignature("String"));
-        expect(sig.exports.size).toBe(13);
+        expect(sig.exports.has("fromBool")).toBe(true);
+        expect(sig.exports.size).toBe(14);
     });
 
     it("Int module exports toString/toFloat/abs/max/min", () => {
@@ -95,11 +96,43 @@ describe("getStdlibModuleSignature", () => {
         expect(Array.from(sig.exports.keys()).sort()).toEqual(["abs", "max", "min", "toFloat", "toString"].sort());
     });
 
-    it("Float module exports toString/toInt/round/floor/ceil/abs", () => {
+    it("Float module exports toString/toInt/round/floor/ceil/abs + isNaN/isInfinite/isFinite", () => {
         const sig = expectModule(getStdlibModuleSignature("Float"));
         expect(Array.from(sig.exports.keys()).sort()).toEqual(
-            ["abs", "ceil", "floor", "round", "toInt", "toString"].sort(),
+            ["abs", "ceil", "floor", "isFinite", "isInfinite", "isNaN", "round", "toInt", "toString"].sort(),
         );
+    });
+
+    it("Math module exports constants and trigonometric / logarithmic / utility functions", () => {
+        const sig = expectModule(getStdlibModuleSignature("Math"));
+        for (const name of [
+            "pi",
+            "e",
+            "sin",
+            "cos",
+            "tan",
+            "asin",
+            "acos",
+            "atan",
+            "atan2",
+            "exp",
+            "log",
+            "log10",
+            "log2",
+            "pow",
+            "sqrt",
+            "round",
+            "floor",
+            "ceil",
+            "trunc",
+            "abs",
+            "sign",
+            "min",
+            "max",
+            "random",
+        ]) {
+            expect(sig.exports.has(name), `Math.${name} should be exported`).toBe(true);
+        }
     });
 
     it("returns a fresh signature each call (fresh type vars per import)", () => {
