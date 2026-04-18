@@ -268,7 +268,8 @@ describe("ModuleLoader - edge cases", () => {
 
         it("should handle permission errors on unreadable files", () => {
             // Skip on Windows - chmod doesn't work the same way
-            if (process.platform === "win32") {
+            // Skip when running as root - root can read any file
+            if (process.platform === "win32" || process.getuid?.() === 0) {
                 return;
             }
 
