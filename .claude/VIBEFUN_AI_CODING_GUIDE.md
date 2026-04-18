@@ -708,8 +708,14 @@ import { helper } from './utils';           // ./utils.vf
 import { config } from '../config';         // ../config.vf
 import { component } from '../../components/button';
 
-// Package imports
-import { Option, Result } from 'vibefun/std';
+// Stdlib — imported modules are first-class values. `String`, `List`,
+// `Option`, `Result`, `Int`, `Float`, `Math` are module-typed bindings;
+// access members with dot notation (`String.fromInt(42)`,
+// `List.map(xs)(fn)`). Stdlib functions require an explicit import —
+// there are no ambient globals for them. Variant constructors (`Some`,
+// `None`, `Ok`, `Err`, `Cons`, `Nil`) stay ambient and don't need an
+// import.
+import { String, List, Option, Result, Int, Float, Math } from '@vibefun/std';
 import { Http } from '@myorg/http';
 ```
 
