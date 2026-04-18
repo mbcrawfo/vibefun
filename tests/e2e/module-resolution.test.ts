@@ -8,6 +8,8 @@
 
 import type { CliResult } from "./helpers.js";
 
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { compileFile, createTempProject, runFile } from "./helpers.js";
@@ -69,6 +71,8 @@ describe("relative user-module imports", () => {
         const compileResult = compileFile("main.vf", p.dir);
         expect(compileResult.exitCode).toBe(0);
         // Both .js files should now exist alongside the .vf sources.
+        expect(existsSync(join(p.dir, "main.js"))).toBe(true);
+        expect(existsSync(join(p.dir, "lib.js"))).toBe(true);
         const runResult = runFile("main.vf", p.dir);
         expect(runResult.exitCode).toBe(0);
         expect(runResult.stdout.trim()).toBe("3");
@@ -112,6 +116,8 @@ describe("circular dependency", () => {
         // depending on formatting, so we only assert that the exit code
         // is success (i.e., the warning did not promote to an error).
         expect(compileResult.exitCode).toBe(0);
+        const diagnostics = `${compileResult.stdout}\n${compileResult.stderr}`;
+        expect(diagnostics).toMatch(/VF5900/);
     });
 });
 

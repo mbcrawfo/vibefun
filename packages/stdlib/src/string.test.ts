@@ -34,6 +34,10 @@ describe("String", () => {
         expect(S.fromFloat(-2.5)).toBe("-2.5");
         expect(S.fromFloat(1.0)).toBe("1");
     });
+    it("fromBool stringifies booleans", () => {
+        expect(S.fromBool(true)).toBe("true");
+        expect(S.fromBool(false)).toBe("false");
+    });
     it("toUpperCase / toLowerCase / trim", () => {
         expect(S.toUpperCase("hello")).toBe("HELLO");
         expect(S.toLowerCase("HELLO")).toBe("hello");

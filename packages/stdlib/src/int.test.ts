@@ -16,6 +16,13 @@ describe("Int", () => {
         expect(I.abs(-42)).toBe(42);
         expect(I.abs(0)).toBe(0);
     });
+    it("abs handles integers outside the 32-bit signed range", () => {
+        // Guards against a prior `Math.abs(n) | 0` implementation that
+        // truncated to signed 32-bit and wrapped values beyond ±2^31.
+        expect(I.abs(3_000_000_000)).toBe(3_000_000_000);
+        expect(I.abs(-3_000_000_000)).toBe(3_000_000_000);
+        expect(I.abs(Number.MAX_SAFE_INTEGER)).toBe(Number.MAX_SAFE_INTEGER);
+    });
     it("max / min pick the larger/smaller", () => {
         expect(I.max(10)(20)).toBe(20);
         expect(I.max(5)(3)).toBe(5);

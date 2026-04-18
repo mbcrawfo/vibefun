@@ -7,7 +7,7 @@ export const toString = (n: number): string => String(n);
 
 export const toFloat = (n: number): number => n;
 
-export const abs = (n: number): number => Math.abs(n) | 0;
+export const abs = (n: number): number => Math.abs(n);
 
 export const max =
     (a: number) =>

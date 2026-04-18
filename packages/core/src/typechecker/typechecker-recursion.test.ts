@@ -475,7 +475,10 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expect(result.declarationTypes.has("double")).toBe(true);
         // List.map is no longer an ambient flat-key binding (phase 2.6);
         // stdlib functions are reached through explicit imports from
-        // @vibefun/std. Variant constructors remain ambient.
+        // @vibefun/std. Variant constructors remain ambient, and the
+        // compiler-reserved `__std__` root is pre-bound for desugarer-
+        // synthesized references.
+        expect(result.env.values.has("__std__")).toBe(true);
         expect(result.env.values.has("List.map")).toBe(false);
         expect(result.env.values.has("Cons")).toBe(true);
         expect(result.env.values.has("Nil")).toBe(true);

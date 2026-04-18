@@ -15,4 +15,17 @@ describe("Math", () => {
         expect(M.abs(-2.5)).toBe(2.5);
         expect(M.abs(3.14)).toBe(3.14);
     });
+    it("curried binary functions", () => {
+        expect(M.pow(2)(3)).toBe(8);
+        expect(M.pow(5)(0)).toBe(1);
+        expect(M.atan2(0)(1)).toBe(0);
+        expect(M.min(10)(4)).toBe(4);
+        expect(M.min(-1)(1)).toBe(-1);
+        expect(M.max(10)(4)).toBe(10);
+        expect(M.max(-1)(1)).toBe(1);
+    });
+    it("constants match JS Math", () => {
+        expect(M.pi).toBe(Math.PI);
+        expect(M.e).toBe(Math.E);
+    });
 });

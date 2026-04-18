@@ -130,4 +130,33 @@ describe("run command", () => {
             expect(output.error.code).toBe("ENOENT");
         });
     });
+
+    describe("multi-file execution", () => {
+        it("runs a two-file project via the multi-file path", () => {
+            createTestFile("lib.vf", "export let x = 3;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet _ = x;');
+
+            const result = run(entryPath);
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+        });
+
+        it("returns a compilation error when any module fails to compile", () => {
+            createTestFile("lib.vf", "export let x = broken_ref;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet _ = x;');
+
+            const result = run(entryPath, { noColor: true });
+
+            expect(result.exitCode).toBe(EXIT_COMPILATION_ERROR);
+        });
+
+        it("returns IO error when the entry file does not exist", () => {
+            // Create a sibling so multi-file detection could trigger on
+            // the import path; the entry itself is missing.
+            createTestFile("sibling.vf", "export let x = 1;");
+            const result = run(join(testDir, "missing.vf"), { noColor: true });
+
+            expect(result.exitCode).toBe(EXIT_IO_ERROR);
+        });
+    });
 });

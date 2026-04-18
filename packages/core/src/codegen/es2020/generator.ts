@@ -238,14 +238,24 @@ function generateImports(module: CoreModule, _ctx: EmitContext): string {
  * Deduplication with user-written imports happens through addOrMergeImport.
  */
 function collectSynthesizedStdlibImports(module: CoreModule, importsByModule: Map<string, TrackedImport[]>): void {
-    // Names a user-declared variant type already binds locally (the typedecl
-    // emits an inline `const Some = …`). Auto-importing the same name from
-    // @vibefun/std would trigger a JS re-declaration error.
-    const userDefinedNames = new Set<string>();
+    // Names already bound at the top level of the emitted module. Auto-
+    // importing a colliding name from @vibefun/std would trigger a JS
+    // re-declaration error. Two sources of collision:
+    //   1. User-declared variant types emit an inline `const Some = …`.
+    //   2. Explicit imports from other packages may bring in a value
+    //      named `Some`, `Ok`, etc.
+    const locallyBoundNames = new Set<string>();
+    for (const imp of module.imports) {
+        for (const item of imp.items) {
+            if (!item.isType) {
+                locallyBoundNames.add(item.alias ?? item.name);
+            }
+        }
+    }
     for (const decl of module.declarations) {
         if (decl.kind === "CoreTypeDecl" && decl.definition.kind === "CoreVariantTypeDef") {
             for (const ctor of decl.definition.constructors) {
-                userDefinedNames.add(ctor.name);
+                locallyBoundNames.add(ctor.name);
             }
         }
     }
@@ -255,7 +265,7 @@ function collectSynthesizedStdlibImports(module: CoreModule, importsByModule: Ma
         if (
             expr.kind === "CoreVar" &&
             STDLIB_AMBIENT_RUNTIME_NAMES.has(expr.name) &&
-            !userDefinedNames.has(expr.name)
+            !locallyBoundNames.has(expr.name)
         ) {
             referenced.add(expr.name);
         }

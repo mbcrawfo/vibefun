@@ -616,4 +616,64 @@ describe("compile command", () => {
             expect(output.filename).toBeDefined();
         });
     });
+
+    describe("multi-file compilation", () => {
+        it("emits one .js per .vf when the entry has a relative import", () => {
+            createTestFile("lib.vf", "export let x = 3;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet result = x;');
+
+            const result = compile(entryPath, { quiet: true });
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            expect(readOutputFile("main.js")).toContain("result");
+            expect(readOutputFile("lib.js")).toContain("export");
+        });
+
+        it("reports the multi-file summary when quiet is not set", () => {
+            createTestFile("lib.vf", "export let x = 3;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet result = x;');
+
+            const result = compile(entryPath, {});
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            expect(result.stdout).toMatch(/Compiled/);
+            expect(result.stdout).toMatch(/additional module/);
+        });
+
+        it("stays on the single-file path for @vibefun/std-only imports", () => {
+            const entryPath = createTestFile(
+                "single.vf",
+                'import { String } from "@vibefun/std";\nlet _ = String.fromInt(1);',
+            );
+
+            const result = compile(entryPath, { quiet: true });
+
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            // Only one .js emitted next to the entry.
+            expect(() => readOutputFile("single.js")).not.toThrow();
+        });
+
+        it("stays on the single-file path when --emit ast is requested", () => {
+            createTestFile("lib.vf", "export let x = 3;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet _ = x;');
+
+            const result = compile(entryPath, { emit: "ast" });
+
+            // --emit ast forces the single-file path (no cross-module
+            // resolution). Output is the entry file's AST as JSON, not
+            // a multi-file summary and not sibling .js files.
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+            expect(result.stdout).toMatch(/SurfaceModule|declarations/);
+            expect(() => readOutputFile("lib.js")).toThrow();
+        });
+
+        it("surfaces compilation errors from any module in the graph", () => {
+            createTestFile("lib.vf", "export let x = broken_ref;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet _ = x;');
+
+            const result = compile(entryPath, { quiet: true });
+
+            expect(result.exitCode).toBe(EXIT_COMPILATION_ERROR);
+        });
+    });
 });

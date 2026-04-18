@@ -186,11 +186,11 @@ function runMultiFile(inputPath: string, options: RunOptions, colors: ReturnType
         }
 
         // Symlink the workspace's node_modules so imports like @vibefun/std
-        // resolve via the existing pnpm hoisting. Walks up from cwd to find
-        // the nearest node_modules directory — works for the monorepo and
-        // for external users running inside a project with @vibefun/std
-        // installed.
-        const sourceNodeModules = findNearestNodeModules(process.cwd());
+        // resolve via the existing pnpm hoisting. Walks up from the entry
+        // file's directory (not process.cwd()) so `vibefun run path/to/main.vf`
+        // resolves dependencies relative to the project, regardless of where
+        // the CLI was launched from.
+        const sourceNodeModules = findNearestNodeModules(entryDir);
         if (sourceNodeModules !== null) {
             try {
                 symlinkSync(sourceNodeModules, join(runDir, "node_modules"), "dir");
