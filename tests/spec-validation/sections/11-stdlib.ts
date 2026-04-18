@@ -63,8 +63,7 @@ test(S, "11-stdlib/string.md", "String.split", () =>
 test(S, "11-stdlib/string.md", "String.toInt returns Option", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let result = String.toInt("42");`,
+            `let result = String.toInt("42");`,
             `match result {
   | Some(n) => String.fromInt(n)
   | None => "none"
@@ -77,8 +76,7 @@ let result = String.toInt("42");`,
 test(S, "11-stdlib/string.md", "String.toFloat returns Option", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let result = String.toFloat("3.14");`,
+            `let result = String.toFloat("3.14");`,
             `match result {
   | Some(f) => String.fromFloat(f)
   | None => "none"
@@ -143,8 +141,7 @@ test(S, "11-stdlib/numeric.md", "Float.round", () =>
 test(S, "11-stdlib/list.md", "List.map", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let xs = [1, 2, 3];
+            `let xs = [1, 2, 3];
 let doubled = List.map(xs, (x: Int) => x * 2);
 let first = List.head(doubled);`,
             `match first {
@@ -159,8 +156,7 @@ let first = List.head(doubled);`,
 test(S, "11-stdlib/list.md", "List.filter", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let xs = [1, 2, 3, 4, 5];
+            `let xs = [1, 2, 3, 4, 5];
 let evens = List.filter(xs, (x: Int) => x % 2 == 0);
 let first = List.head(evens);`,
             `match first {
@@ -175,8 +171,7 @@ let first = List.head(evens);`,
 test(S, "11-stdlib/list.md", "List.head returns Option", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let xs = [42, 1, 2];
+            `let xs = [42, 1, 2];
 let h = List.head(xs);`,
             `match h {
   | Some(v) => String.fromInt(v)
@@ -190,8 +185,7 @@ let h = List.head(xs);`,
 test(S, "11-stdlib/list.md", "List.head on empty list returns None", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let xs: List<Int> = [];
+            `let xs: List<Int> = [];
 let h = List.head(xs);`,
             `match h {
   | Some(v) => String.fromInt(v)
@@ -205,8 +199,7 @@ let h = List.head(xs);`,
 test(S, "11-stdlib/list.md", "List.tail returns Option", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let xs = [1, 2, 3];
+            `let xs = [1, 2, 3];
 let t = List.tail(xs);`,
             `match t {
   | Some(rest) => String.fromInt(List.length(rest))
@@ -231,8 +224,7 @@ let n = List.length(xs);`,
 test(S, "11-stdlib/list.md", "List.reverse", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let xs = [1, 2, 3];
+            `let xs = [1, 2, 3];
 let rev = List.reverse(xs);
 let first = List.head(rev);`,
             `match first {
@@ -307,8 +299,7 @@ let n = List.length(xs);`,
 test(S, "11-stdlib/option.md", "Option.map", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let x: Option<Int> = Some(5);
+            `let x: Option<Int> = Some(5);
 let result = Option.map(x, (n: Int) => n * 2);`,
             `match result {
   | Some(v) => String.fromInt(v)
@@ -322,8 +313,7 @@ let result = Option.map(x, (n: Int) => n * 2);`,
 test(S, "11-stdlib/option.md", "Option.flatMap", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let x: Option<Int> = Some(5);
+            `let x: Option<Int> = Some(5);
 let result = Option.flatMap(x, (n: Int) => if n > 0 then Some(n * 2) else None);`,
             `match result {
   | Some(v) => String.fromInt(v)
@@ -337,8 +327,7 @@ let result = Option.flatMap(x, (n: Int) => if n > 0 then Some(n * 2) else None);
 test(S, "11-stdlib/option.md", "Option.getOrElse", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let x: Option<Int> = None;
+            `let x: Option<Int> = None;
 let result = Option.getOrElse(x, 42);`,
             `String.fromInt(result)`,
         ),
@@ -349,8 +338,7 @@ let result = Option.getOrElse(x, 42);`,
 test(S, "11-stdlib/option.md", "Option.isSome", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let x: Option<Int> = Some(5);
+            `let x: Option<Int> = Some(5);
 let result = Option.isSome(x);`,
             `String.fromBool(result)`,
         ),
@@ -361,8 +349,7 @@ let result = Option.isSome(x);`,
 test(S, "11-stdlib/option.md", "Option.isNone", () =>
     expectRunOutput(
         withOutput(
-            `type Option<T> = Some(T) | None;
-let x: Option<Int> = None;
+            `let x: Option<Int> = None;
 let result = Option.isNone(x);`,
             `String.fromBool(result)`,
         ),
@@ -375,8 +362,7 @@ let result = Option.isNone(x);`,
 test(S, "11-stdlib/result.md", "Result.map", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Ok(5);
+            `let x: Result<Int, String> = Ok(5);
 let result = Result.map(x, (n: Int) => n * 2);`,
             `match result {
   | Ok(v) => String.fromInt(v)
@@ -390,8 +376,7 @@ let result = Result.map(x, (n: Int) => n * 2);`,
 test(S, "11-stdlib/result.md", "Result.mapErr", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Err("bad");
+            `let x: Result<Int, String> = Err("bad");
 let result = Result.mapErr(x, (e: String) => "error: " & e);`,
             `match result {
   | Ok(v) => String.fromInt(v)
@@ -405,8 +390,7 @@ let result = Result.mapErr(x, (e: String) => "error: " & e);`,
 test(S, "11-stdlib/result.md", "Result.flatMap", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Ok(5);
+            `let x: Result<Int, String> = Ok(5);
 let result = Result.flatMap(x, (n: Int) => if n > 0 then Ok(n * 2) else Err("negative"));`,
             `match result {
   | Ok(v) => String.fromInt(v)
@@ -420,8 +404,7 @@ let result = Result.flatMap(x, (n: Int) => if n > 0 then Ok(n * 2) else Err("neg
 test(S, "11-stdlib/result.md", "Result.unwrapOr", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Err("failed");
+            `let x: Result<Int, String> = Err("failed");
 let result = Result.unwrapOr(x, 0);`,
             `String.fromInt(result)`,
         ),
@@ -432,8 +415,7 @@ let result = Result.unwrapOr(x, 0);`,
 test(S, "11-stdlib/result.md", "Result.isOk", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Ok(42);
+            `let x: Result<Int, String> = Ok(42);
 let result = Result.isOk(x);`,
             `String.fromBool(result)`,
         ),
@@ -444,8 +426,7 @@ let result = Result.isOk(x);`,
 test(S, "11-stdlib/result.md", "Result.isErr", () =>
     expectRunOutput(
         withOutput(
-            `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Err("bad");
+            `let x: Result<Int, String> = Err("bad");
 let result = Result.isErr(x);`,
             `String.fromBool(result)`,
         ),

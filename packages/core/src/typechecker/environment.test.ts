@@ -255,17 +255,20 @@ describe("Environment Builder - External Overloading", () => {
             expect(env.values.has("Err")).toBe(true);
         });
 
-        it("includes built-in standard library functions", () => {
+        it("exposes __std__ root module binding", () => {
+            // Phase 2.6: stdlib functions are no longer ambient under flat
+            // keys. buildEnvironment instead pre-seeds `__std__`, a Module
+            // whose exports contain every stdlib module. Programs reach
+            // stdlib functions through either an explicit import or this
+            // hidden root (used by desugarer-synthesized references).
             const source = ``;
             const module = parseModule(source);
             const env = buildEnvironment(module);
 
-            expect(env.values.has("List.map")).toBe(true);
-            expect(env.values.has("Option.map")).toBe(true);
-            expect(env.values.has("Result.map")).toBe(true);
-            expect(env.values.has("String.length")).toBe(true);
-            expect(env.values.has("Int.toString")).toBe(true);
-            expect(env.values.has("Float.toString")).toBe(true);
+            expect(env.values.has("__std__")).toBe(true);
+            expect(env.values.has("List.map")).toBe(false);
+            expect(env.values.has("Option.map")).toBe(false);
+            expect(env.values.has("String.length")).toBe(false);
         });
 
         it("includes special functions", () => {

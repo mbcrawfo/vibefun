@@ -4,6 +4,8 @@
 // for JavaScript interop. Many JavaScript APIs have functions with multiple
 // signatures, and vibefun supports declaring all of them.
 
+import { String } from "@vibefun/std";
+
 // ============================================================================
 // Example 1: fetch API
 // ============================================================================

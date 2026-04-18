@@ -80,14 +80,19 @@ describe("typeCheck - Basic Type Checking", () => {
         expect(idType?.type).toBe("Fun");
     });
 
-    it("should have built-in types in environment", () => {
+    it("should have ambient bindings and __std__ in environment", () => {
         const module = createModule([]);
         const result = typeCheck(module);
 
-        // Check that built-ins are present
-        expect(result.env.values.has("List.map")).toBe(true);
-        expect(result.env.values.has("Option.map")).toBe(true);
+        // Stdlib functions moved behind explicit imports (phase 2.6); only
+        // variant constructors, ref/panic, and the hidden __std__ module
+        // remain ambient.
         expect(result.env.values.has("ref")).toBe(true);
+        expect(result.env.values.has("Some")).toBe(true);
+        expect(result.env.values.has("Cons")).toBe(true);
+        expect(result.env.values.has("__std__")).toBe(true);
+        expect(result.env.values.has("List.map")).toBe(false);
+        expect(result.env.values.has("Option.map")).toBe(false);
     });
 
     it("should type check external function declaration", () => {

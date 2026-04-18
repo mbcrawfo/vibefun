@@ -1,6 +1,8 @@
 // External Blocks Example
 // Demonstrates how to wrap JavaScript libraries using external blocks
 
+import { String } from "@vibefun/std";
+
 // ============================================================================
 // Example 1: Console API - Simple external block
 // ============================================================================

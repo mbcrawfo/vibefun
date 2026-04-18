@@ -204,11 +204,26 @@ export function cleanupTempDir(dir: string): void {
 }
 
 /**
+ * Standard stdlib imports prepended to every wrapped spec-validation program.
+ *
+ * As of Phase 2.6, stdlib functions (String.fromInt, List.map, Option.map, ...)
+ * are no longer ambient — they must come through an explicit
+ * `import { … } from "@vibefun/std"`. Injecting the imports at the wrapper
+ * level keeps per-test fixtures terse while giving every test access to the
+ * full function surface.
+ *
+ * Variant constructors (Cons, Nil, Some, None, Ok, Err) remain ambient, so
+ * they are deliberately absent here.
+ */
+const STDLIB_IMPORT = 'import { String, List, Option, Result, Int, Float, Math } from "@vibefun/std";';
+
+/**
  * Wrap code with console.log output boilerplate for runtime assertions.
  * Uses external console_log declaration and unsafe block.
  */
 export function withOutput(code: string, outputExpr: string): string {
     return [
+        STDLIB_IMPORT,
         'external console_log: (String) -> Unit = "console.log";',
         code,
         `let _ = unsafe { console_log(${outputExpr}) };`,
@@ -221,5 +236,5 @@ export function withOutput(code: string, outputExpr: string): string {
  */
 export function withOutputs(code: string, outputExprs: string[]): string {
     const logLines = outputExprs.map((expr, i) => `let _out${i} = unsafe { console_log(${expr}) };`).join("\n");
-    return ['external console_log: (String) -> Unit = "console.log";', code, logLines].join("\n");
+    return [STDLIB_IMPORT, 'external console_log: (String) -> Unit = "console.log";', code, logLines].join("\n");
 }
