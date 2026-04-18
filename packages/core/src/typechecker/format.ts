@@ -19,12 +19,15 @@ export function typeToString(type: Type): string {
             return `'${String.fromCharCode(97 + (type.id % 26))}`; // 'a, 'b, 'c, ...
 
         case "Fun": {
-            const firstParam = type.params[0];
-            if (!firstParam) {
-                throw new Error("Function type must have at least one parameter");
+            // Zero-parameter function types arise from nullary constructors
+            // (e.g. `None`, `Nil`) and zero-arg lambdas; render as `() -> T`.
+            if (type.params.length === 0) {
+                return `() -> ${typeToString(type.return)}`;
             }
             const paramStr =
-                type.params.length === 1 ? typeToString(firstParam) : `(${type.params.map(typeToString).join(", ")})`;
+                type.params.length === 1
+                    ? typeToString(type.params[0] as Type)
+                    : `(${type.params.map(typeToString).join(", ")})`;
             return `${paramStr} -> ${typeToString(type.return)}`;
         }
 

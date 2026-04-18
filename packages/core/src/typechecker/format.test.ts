@@ -121,9 +121,22 @@ describe("typeToString", () => {
             expect(typeToString(f)).toBe("Int -> 'a");
         });
 
-        it("should throw error for empty params", () => {
+        it("should format zero-param function as () -> T", () => {
             const f: Type = { type: "Fun", params: [], return: primitiveTypes.Int };
-            expect(() => typeToString(f)).toThrow("Function type must have at least one parameter");
+            expect(typeToString(f)).toBe("() -> Int");
+        });
+
+        it("should format nested zero-param function types", () => {
+            const inner: Type = { type: "Fun", params: [], return: primitiveTypes.Int };
+            const outer: Type = { type: "Fun", params: [], return: inner };
+            expect(typeToString(outer)).toBe("() -> () -> Int");
+        });
+
+        it("should format zero-param type applied to App return (nullary constructor)", () => {
+            // Mirrors the shape of `None: () -> Option<'t>` from builtins
+            const optionInt = appType(constType("Option"), [primitiveTypes.Int]);
+            const none: Type = { type: "Fun", params: [], return: optionInt };
+            expect(typeToString(none)).toBe("() -> Option<Int>");
         });
     });
 
