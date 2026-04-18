@@ -29,9 +29,18 @@ export function curryLambda(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
 ): CoreExpr {
-    // Internal error: Zero parameters shouldn't happen (parser should catch this)
+    // Zero parameters: synthesize a wildcard-pattern lambda so `() => expr`
+    // becomes a unit-accepting lambda. The parameter is never referenced, so
+    // a wildcard is correct; the typechecker will unify its type with Unit
+    // when the lambda is applied (multi-arg call desugaring emits UnitLit for
+    // `f()`).
     if (params.length === 0) {
-        throw new Error("Lambda with zero parameters");
+        return {
+            kind: "CoreLambda",
+            param: { kind: "CoreWildcardPattern", loc },
+            body: desugar(body, gen),
+            loc,
+        };
     }
 
     // Single parameter - just desugar

@@ -36,11 +36,17 @@ const mockDesugarPattern = (pattern: Pattern, _gen: FreshVarGen): CorePattern =>
 const mockGen = { fresh: () => "$tmp0", reset: () => {} } as FreshVarGen;
 
 describe("curryLambda", () => {
-    it("should throw on zero parameters", () => {
+    it("should desugar zero parameters to wildcard-pattern lambda", () => {
         const body: Expr = { kind: "Var", name: "x", loc: testLoc };
-        expect(() => curryLambda([], body, testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(
-            "Lambda with zero parameters",
-        );
+
+        const result = curryLambda([], body, testLoc, mockGen, mockDesugar, mockDesugarPattern);
+
+        expect(result.kind).toBe("CoreLambda");
+        if (result.kind === "CoreLambda") {
+            expect(result.param.kind).toBe("CoreWildcardPattern");
+            expect(result.param.loc).toBe(testLoc);
+            expect(result.body.kind).toBe("CoreVar");
+        }
     });
 
     it("should desugar single parameter lambda", () => {
