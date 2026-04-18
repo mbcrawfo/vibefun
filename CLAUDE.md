@@ -20,7 +20,7 @@ These directives guide all development work on the vibefun project:
 
 1. **Coding Standards**: Before writing any code, review `.claude/CODING_STANDARDS.md` to understand the project's coding conventions, naming patterns, and best practices
 2. **Vibefun Language Guide**: Before writing **any** `.vf` code — including test fixtures, examples, exploration, or verification scripts — **always** review `.claude/VIBEFUN_AI_CODING_GUIDE.md` first. Vibefun has critical syntax differences from other languages (e.g., semicolons are mandatory between declarations). This guide is specifically designed for AI agents writing vibefun code.
-3. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context.
+3. **Documentation**: Regularly update CLAUDE.md with design decisions and project structure information. Use CLAUDE.md files in subfolders to document additional context — see [Authoring CLAUDE.md Files](#authoring-claudemd-files) below for the rules.
 4. **Follow the Language Specification**:
     - `./docs/spec/` contains the authoritative language specification for how Vibefun should function.
     - If you find a conflict between the code behavior and the language spec, always ask for clarification of the correct behavior.
@@ -36,6 +36,21 @@ These directives guide all development work on the vibefun project:
    - `pnpm test` - Tests
    - `pnpm run format` - Code formatting with Prettier
    - OR use the convenience command: `pnpm run verify` (runs all checks)
+
+## Authoring CLAUDE.md Files
+
+Folder-level `CLAUDE.md` files exist to give AI agents the non-obvious context they need to work safely inside a module (DI wiring, visitor order, pass/cycle semantics, fixture conventions, regeneration steps, etc.). Follow these rules.
+
+**When to add a CLAUDE.md.** Create one when a folder has (a) non-trivial cross-file coupling like dependency injection or visitor wiring, (b) conventions a reader won't infer from the code (fixture layouts, regeneration commands, real-vs-import paths, α-equivalence), or (c) boundaries whose violation causes silent correctness bugs (e.g. `CoreUnsafe` preservation, `TypeEnv` mutation). Skip small, self-describing folders.
+
+**How to write it.**
+- **Size budget: ~100 lines or less — shorter is better.** If a folder genuinely needs more, stop and ask for approval with the reasoning before writing a longer file.
+- Be brief, direct, and pitfall-first. Lead with what goes wrong, not what the folder "does".
+- Never record implementation status, line counts, test counts, or progress (see `.claude/DOCUMENTATION_RULES.md`).
+- Point to existing specs/READMEs rather than duplicating them.
+- **Do NOT list child `CLAUDE.md` files from a parent `CLAUDE.md`.** The harness auto-loads nested `CLAUDE.md` files when their directories are accessed; enumerating them just creates an update burden.
+
+**Keep it in sync.** Once a `CLAUDE.md` names a specific file, folder, fixture, type, or function, it is coupled to that name. When you rename, move, split, or delete those things, update the `CLAUDE.md` in the same commit — treat it as part of the change, not a follow-up. Any `CLAUDE.md` that lists files or folders must end with a one-line Maintenance footer reminding future editors of this coupling.
 
 ## Project Structure
 

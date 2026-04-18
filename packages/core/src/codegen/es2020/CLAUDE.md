@@ -1,28 +1,38 @@
-# ES2020 Code Generator Module
+# ES2020 Code Generator
 
-This module generates ES2020 JavaScript from typed Core AST.
+Emits ES2020 JavaScript (plus source maps) from a typed Core module.
+
+## Files
+
+- `generator.ts` — entry point; wires dependency injection and drives emission.
+- `context.ts` — `EmitContext` (output buffer, indent, fresh-var generator, source-map state).
+- `emit-declarations.ts`, `emit-expressions.ts`, `emit-patterns.ts`, `emit-operators.ts` — the per-node emitters.
+- `runtime-helpers.ts` — small JS helpers inserted into generated output.
+- `reserved-words.ts` — ES2020 reserved-name list for identifier sanitization.
 
 ## Public API
 
-The module exports a single `generate()` function via `index.ts`:
-- `generate(typedModule, options?)` - Generate JavaScript from TypedModule
+`generate(typedModule, options?)` returns `{ code, map? }`. No other exports are part of the public surface.
 
-## Circular Dependencies
+## Critical: Circular Dependency Wiring
 
-Modules use dependency injection to avoid import cycles. Initialization happens in `generator.ts`:
+Emitters recurse across each other (expressions emit patterns, patterns emit expressions, declarations emit both). `generator.ts` resolves the cycle at initialization:
 
-```typescript
+```ts
 Expressions.setEmitPattern(Patterns.emitPattern);
 Patterns.setEmitExpr(Expressions.emitExpr);
-Declarations.setDependencies({ ... });
+Declarations.setEmitExpr(Expressions.emitExpr);
+Declarations.setEmitPattern(Patterns.emitPattern);
 ```
 
-All emit functions take `EmitContext` as a parameter for state tracking.
+Every emit function receives `EmitContext` as a parameter for state tracking. Follow the same pattern when adding a new emitter: error-throwing stub setter in the file, wiring in `generator.ts`.
 
 ## Testing
 
-Tests are organized following the project's coding standards (colocated with source files):
+- Unit tests live next to each emitter (`*.test.ts`).
+- **Runtime semantics** are covered in `./execution-tests/` (VM-sandboxed execution of generated code).
+- **Full-pipeline output** is snapshotted in `./snapshot-tests/`.
 
-- **Unit tests** (colocated): `*.test.ts` files alongside source files test individual emission functions
-- **Execution tests** in `execution-tests/` - Runtime semantics validation using Node's `vm` module
-- **Snapshot tests** in `snapshot-tests/` - Full compilation output validation (see [CLAUDE.md](./snapshot-tests/CLAUDE.md))
+## Maintenance
+
+If emitter files are added, split, or renamed, update the file list and the DI wiring snippet above in the same commit.
