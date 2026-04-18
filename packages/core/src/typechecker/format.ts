@@ -70,6 +70,9 @@ export function typeToString(type: Type): string {
         case "Ref":
             return `Ref<${typeToString(type.inner)}>`;
 
+        case "Module":
+            return `module "${type.path}"`;
+
         case "Never":
             return "Never";
     }
