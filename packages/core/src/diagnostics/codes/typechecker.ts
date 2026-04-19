@@ -845,6 +845,26 @@ export const VF4404: DiagnosticDefinition = {
     relatedCodes: ["VF4400"],
 };
 
+export const VF4405: DiagnosticDefinition = {
+    code: "VF4405",
+    title: "UnreachablePattern",
+    messageTemplate: "Unreachable pattern: an earlier catch-all already matches every value",
+    severity: "error",
+    phase: "typechecker",
+    category: "pattern",
+    hintTemplate: "Remove this arm, or move it before the catch-all so it can match before the fallback",
+    explanation:
+        "A pattern is unreachable when an earlier arm in the same match already matches every " +
+        "possible value of the scrutinee. An unguarded wildcard or variable pattern is a total " +
+        "fallback, so any arm that follows it can never run.",
+    example: {
+        bad: 'match n {\n  | _ => "any"\n  | 0 => "zero"\n}',
+        good: 'match n {\n  | 0 => "zero"\n  | _ => "any"\n}',
+        description: "Specific patterns must precede the catch-all",
+    },
+    relatedCodes: ["VF4400"],
+};
+
 // =============================================================================
 // VF4500-VF4599: Record Errors
 // =============================================================================
@@ -1207,6 +1227,7 @@ const typecheckerCodes: readonly DiagnosticDefinition[] = [
     VF4402,
     VF4403,
     VF4404,
+    VF4405,
     // Records (VF4500-VF4599)
     VF4500,
     VF4501,

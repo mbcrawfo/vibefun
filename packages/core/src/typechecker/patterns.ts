@@ -506,6 +506,28 @@ export function checkExhaustiveness(env: TypeEnv, cases: CaseForExhaustiveness[]
 }
 
 /**
+ * Check that every match arm is reachable.
+ *
+ * A pattern is unreachable when an earlier **unguarded** catch-all already
+ * matches every possible value of the scrutinee, so no later arm can ever
+ * run. Per `docs/spec/05-pattern-matching/exhaustiveness.md` §Unreachable
+ * Patterns, this is a compile-time error.
+ *
+ * Throws VF4405 at the first unreachable arm found.
+ */
+export function checkReachability(cases: CaseForExhaustiveness[]): void {
+    let sawCatchAll = false;
+    for (const c of cases) {
+        if (sawCatchAll) {
+            throwDiagnostic("VF4405", c.pattern.loc, {});
+        }
+        if (!c.guarded && isCatchAllPattern(c.pattern)) {
+            sawCatchAll = true;
+        }
+    }
+}
+
+/**
  * A pattern is a "catch-all" (covers every value of its scrutinee type)
  * if it is a wildcard, a variable, or a tuple pattern whose every
  * element is itself a catch-all. Nested or-patterns and literals are
