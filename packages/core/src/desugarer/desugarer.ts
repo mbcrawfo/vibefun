@@ -57,6 +57,7 @@ import { desugarTypeDefinition } from "./desugarTypeDefinition.js";
 import { desugarTypeExpr } from "./desugarTypeExpr.js";
 import { desugarVariantConstructor } from "./desugarVariantConstructor.js";
 import { FreshVarGen } from "./FreshVarGen.js";
+import { validateOrPatternNoBindings } from "./validateOrPattern.js";
 
 /**
  * Desugar a surface expression to a core expression
@@ -208,6 +209,7 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 cases: expr.cases.flatMap((matchCase) => {
                     // If pattern is OrPattern, expand into multiple cases
                     if (matchCase.pattern.kind === "OrPattern") {
+                        validateOrPatternNoBindings(matchCase.pattern.patterns);
                         return matchCase.pattern.patterns.map((altPattern) => {
                             const coreCase: CoreMatchCase = {
                                 pattern: desugarPattern(altPattern, gen),

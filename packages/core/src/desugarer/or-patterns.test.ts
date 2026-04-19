@@ -581,7 +581,8 @@ describe("Or-Pattern - Deeply Nested", () => {
 
 describe("Or-Pattern - With List Patterns", () => {
     it("should expand or-pattern with list patterns", () => {
-        // match xs { | [x] | [x, _] | [x, _, _] => x }
+        // match xs { | [_] | [_, _] | [_, _, _] => 1 }
+        // (or-pattern alternatives cannot bind variables per VF4403)
         const match: Expr = {
             kind: "Match",
             expr: { kind: "Var", name: "xs", loc: testLoc },
@@ -592,13 +593,13 @@ describe("Or-Pattern - With List Patterns", () => {
                         patterns: [
                             {
                                 kind: "ListPattern",
-                                elements: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                                elements: [{ kind: "WildcardPattern", loc: testLoc }],
                                 loc: testLoc,
                             },
                             {
                                 kind: "ListPattern",
                                 elements: [
-                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
                                     { kind: "WildcardPattern", loc: testLoc },
                                 ],
                                 loc: testLoc,
@@ -606,7 +607,7 @@ describe("Or-Pattern - With List Patterns", () => {
                             {
                                 kind: "ListPattern",
                                 elements: [
-                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
                                     { kind: "WildcardPattern", loc: testLoc },
                                     { kind: "WildcardPattern", loc: testLoc },
                                 ],
@@ -615,7 +616,7 @@ describe("Or-Pattern - With List Patterns", () => {
                         ],
                         loc: testLoc,
                     },
-                    body: { kind: "Var", name: "x", loc: testLoc },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
                     loc: testLoc,
                 },
             ],
@@ -636,7 +637,8 @@ describe("Or-Pattern - With List Patterns", () => {
 
 describe("Or-Pattern - With Record Patterns", () => {
     it("should expand or-pattern with record patterns", () => {
-        // match r { | {x, y: 0} | {x, y: 1} => x }
+        // match r { | {x: _, y: 0} | {x: _, y: 1} => 1 }
+        // (or-pattern alternatives cannot bind variables per VF4403)
         const match: Expr = {
             kind: "Match",
             expr: { kind: "Var", name: "r", loc: testLoc },
@@ -650,7 +652,7 @@ describe("Or-Pattern - With Record Patterns", () => {
                                 fields: [
                                     {
                                         name: "x",
-                                        pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                                        pattern: { kind: "WildcardPattern", loc: testLoc },
                                         loc: testLoc,
                                     },
                                     {
@@ -666,7 +668,7 @@ describe("Or-Pattern - With Record Patterns", () => {
                                 fields: [
                                     {
                                         name: "x",
-                                        pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                                        pattern: { kind: "WildcardPattern", loc: testLoc },
                                         loc: testLoc,
                                     },
                                     {
@@ -680,7 +682,7 @@ describe("Or-Pattern - With Record Patterns", () => {
                         ],
                         loc: testLoc,
                     },
-                    body: { kind: "Var", name: "x", loc: testLoc },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
                     loc: testLoc,
                 },
             ],
@@ -700,7 +702,8 @@ describe("Or-Pattern - With Record Patterns", () => {
 
 describe("Or-Pattern - With Tuple Patterns", () => {
     it("should expand or-pattern with tuple patterns", () => {
-        // match t { | (x, 0) | (x, 1) => x }
+        // match t { | (_, 0) | (_, 1) => 1 }
+        // (or-pattern alternatives cannot bind variables per VF4403)
         const match: Expr = {
             kind: "Match",
             expr: { kind: "Var", name: "t", loc: testLoc },
@@ -712,7 +715,7 @@ describe("Or-Pattern - With Tuple Patterns", () => {
                             {
                                 kind: "TuplePattern",
                                 elements: [
-                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
                                     { kind: "LiteralPattern", literal: 0, loc: testLoc },
                                 ],
                                 loc: testLoc,
@@ -720,7 +723,7 @@ describe("Or-Pattern - With Tuple Patterns", () => {
                             {
                                 kind: "TuplePattern",
                                 elements: [
-                                    { kind: "VarPattern", name: "x", loc: testLoc },
+                                    { kind: "WildcardPattern", loc: testLoc },
                                     { kind: "LiteralPattern", literal: 1, loc: testLoc },
                                 ],
                                 loc: testLoc,
@@ -728,7 +731,7 @@ describe("Or-Pattern - With Tuple Patterns", () => {
                         ],
                         loc: testLoc,
                     },
-                    body: { kind: "Var", name: "x", loc: testLoc },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
                     loc: testLoc,
                 },
             ],
@@ -778,5 +781,152 @@ describe("Or-Pattern - Source Locations", () => {
         const result = desugar(match);
 
         expect(result.loc).toBe(matchLoc);
+    });
+});
+
+describe("Or-Pattern - Variable Binding Validation (VF4403)", () => {
+    it("rejects an or-pattern alternative that binds a variable", () => {
+        // match opt { | Some(x) | None => 0 }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "opt", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "Some",
+                                args: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                                loc: testLoc,
+                            },
+                            { kind: "ConstructorPattern", constructor: "None", args: [], loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        expect(() => desugar(match)).toThrow("VF4403");
+    });
+
+    it("rejects a variable nested inside a record alternative", () => {
+        // match p { | { name } | { age: _ } => 0 }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "p", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "RecordPattern",
+                                fields: [
+                                    {
+                                        name: "name",
+                                        pattern: { kind: "VarPattern", name: "name", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "RecordPattern",
+                                fields: [
+                                    {
+                                        name: "age",
+                                        pattern: { kind: "WildcardPattern", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        expect(() => desugar(match)).toThrow("VF4403");
+    });
+
+    it("accepts literal-only or-pattern alternatives", () => {
+        // match s { | "a" | "b" => "ok" | _ => "other" }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "s", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            { kind: "LiteralPattern", literal: "a", loc: testLoc },
+                            { kind: "LiteralPattern", literal: "b", loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "StringLit", value: "ok", loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "StringLit", value: "other", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        expect(() => desugar(match)).not.toThrow();
+    });
+
+    it("accepts constructor alternatives with wildcard arguments", () => {
+        // match shape { | Circle(_) | Square(_) => "shape" | _ => "other" }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "shape", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "Circle",
+                                args: [{ kind: "WildcardPattern", loc: testLoc }],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "ConstructorPattern",
+                                constructor: "Square",
+                                args: [{ kind: "WildcardPattern", loc: testLoc }],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "StringLit", value: "shape", loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "StringLit", value: "other", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        expect(() => desugar(match)).not.toThrow();
     });
 });

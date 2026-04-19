@@ -50,7 +50,7 @@ Errors during type checking and inference
 | [VF4400](#vf4400) | NonExhaustiveMatch | **Error** |
 | [VF4401](#vf4401) | InvalidGuard | **Error** |
 | [VF4402](#vf4402) | DuplicateBinding | **Error** |
-| [VF4403](#vf4403) | OrPatternBindingMismatch | **Error** |
+| [VF4403](#vf4403) | OrPatternBindsVariable | **Error** |
 | [VF4404](#vf4404) | EmptyMatch | **Error** |
 | [VF4500](#vf4500) | NonRecordAccess | **Error** |
 | [VF4501](#vf4501) | MissingRecordField | **Error** |
@@ -1667,38 +1667,40 @@ match pair with
 
 ## VF4403
 
-**OrPatternBindingMismatch** **Error**
+**OrPatternBindsVariable** **Error**
 
 ### Message
 
-> Or-pattern branches bind different variables
+> Or-pattern alternatives cannot bind variables
 
 ### Explanation
 
-When using or-patterns (|), all alternatives must bind exactly the same variable names with the same types, since the body can use any of them.
+Alternatives of an or-pattern (|) must be irrefutable: literals, wildcards, or constructors whose arguments bind no variables. A variable binding inside one alternative would be unbound in the others, so the body could not safely reference it.
 
 ### Example
 
 **Problem:**
 
 ```vibefun
-match opt with
-| Some(x) | None -> x
+match opt {
+  | Some(x) | None => x
+}
 ```
 
 **Solution:**
 
 ```vibefun
-match opt with
-| Some(x) -> x
-| None -> 0
+match opt {
+  | Some(x) => x
+  | None => 0
+}
 ```
 
-*Split into separate patterns*
+*Split alternatives into separate arms so each binding is total*
 
 ### Hint
 
-> All branches of an or-pattern must bind the same variables
+> Use only literals, wildcards, or constructors without bindings inside or-patterns, or split the or-pattern into separate match arms
 
 ### Related
 
