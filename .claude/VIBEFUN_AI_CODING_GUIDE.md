@@ -321,11 +321,30 @@ match result {
     | Ok(None) | Err(_) => 0
 }
 
-// Guards
+// Or-patterns inside constructors (nested, also allowed)
+match result {
+    | Ok("a" | "b") => "matched"
+    | Ok(_)        => "other"
+    | Err(_)       => "error"
+}
+
+// ❌ ERROR (VF4403): Or-pattern alternatives cannot bind variables
+match opt {
+    | Some(x) | None => x   // x is unbound in the None branch
+}
+// ✅ Split into separate arms instead
+match opt {
+    | Some(x) => x
+    | None    => 0
+}
+
+// Guards — note: guards do NOT count toward exhaustiveness.
+// A match made up only of guarded arms is rejected as non-exhaustive,
+// even if the guards happen to cover every value at runtime.
 match x {
     | n when n > 0 => "positive"
     | n when n < 0 => "negative"
-    | _ => "zero"
+    | _            => "zero"       // required unguarded fallback
 }
 ```
 
@@ -463,10 +482,13 @@ let makeState = <T>(): Ref<Option<T>> => ref(None);
 
 ### #4: Pattern Exhaustiveness
 
-Compiler enforces exhaustive pattern matching.
+Compiler enforces exhaustive pattern matching (VF4400) and rejects
+unreachable arms (VF4405). Guards are ignored by the exhaustiveness
+check — you always need at least one unguarded arm that covers the
+remaining values.
 
 ```vibefun
-// ❌ ERROR: Non-exhaustive
+// ❌ ERROR (VF4400): Non-exhaustive
 match list {
     | [x, ...xs] => x
 }  // Missing [] case
@@ -482,6 +504,24 @@ match value {
     | 0 => "zero"
     | 1 => "one"
     | _ => "other"
+}
+
+// ❌ ERROR (VF4400): Guards do not count toward exhaustiveness
+let classify = (n: Int) => match n {
+    | x when x > 0 => "positive"
+    | x when x < 0 => "negative"
+}
+// ✅ Add an unguarded fallback
+let classify = (n: Int) => match n {
+    | x when x > 0 => "positive"
+    | x when x < 0 => "negative"
+    | _            => "zero"
+}
+
+// ❌ ERROR (VF4405): Unreachable pattern after a catch-all
+match n {
+    | _ => "any"
+    | 0 => "zero"   // never reached
 }
 ```
 
