@@ -346,6 +346,46 @@ describe("EtaReductionPass", () => {
             // Should not reduce inside unsafe
             expect(result).toEqual(expr);
         });
+
+        it("should not reduce inside try/catch (control-flow boundary)", () => {
+            // try { (x) => f(x) } catch (e) { (x) => g(x) }
+            // Both bodies hold otherwise eta-reducible lambdas, but CoreTryCatch
+            // is treated as an unsafe boundary by the pass and must be returned
+            // unchanged. Validates both `canApply === false` and that
+            // `transform` returns the input verbatim.
+            const lambdaCallingF: CoreExpr = {
+                kind: "CoreLambda",
+                param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                body: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "f", loc: testLoc },
+                    args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            };
+            const lambdaCallingG: CoreExpr = {
+                kind: "CoreLambda",
+                param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                body: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "g", loc: testLoc },
+                    args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            };
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: lambdaCallingF,
+                catchBinder: "e",
+                catchBody: lambdaCallingG,
+                loc: testLoc,
+            };
+
+            expect(pass.canApply(expr)).toBe(false);
+            expect(pass.transform(expr)).toEqual(expr);
+        });
     });
 
     describe("canApply", () => {
