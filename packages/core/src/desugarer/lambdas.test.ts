@@ -355,7 +355,7 @@ describe("Lambda Currying - Pattern Parameters", () => {
         expect((innerLambda.param as CoreVarPattern).name).toBe("y");
     });
 
-    it("should curry lambda with constructor patterns", () => {
+    it("lifts constructor-pattern params into a match over a fresh scrutinee", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
@@ -376,14 +376,30 @@ describe("Lambda Currying - Pattern Parameters", () => {
 
         const result = desugar(lambda);
 
-        expect(result.kind).toBe("CoreLambda");
+        // Outer: λ$paramN. match $paramN { | Some(x) => λdefault. x }
         const outerLambda = result as CoreLambda;
-        expect(outerLambda.param.kind).toBe("CoreVariantPattern");
-        const variantPattern = outerLambda.param as CoreVariantPattern;
-        expect(variantPattern.constructor).toBe("Some");
+        expect(outerLambda.param.kind).toBe("CoreVarPattern");
+        const tmpName = (outerLambda.param as CoreVarPattern).name;
+
+        expect(outerLambda.body.kind).toBe("CoreMatch");
+        const match = outerLambda.body as {
+            kind: "CoreMatch";
+            expr: CoreExpr;
+            cases: { pattern: unknown; body: CoreExpr }[];
+        };
+        expect((match.expr as { kind: string; name: string }).name).toBe(tmpName);
+
+        const arm = match.cases[0]!;
+        expect((arm.pattern as { kind: string }).kind).toBe("CoreVariantPattern");
+        expect((arm.pattern as CoreVariantPattern).constructor).toBe("Some");
+
+        // The arm body is the inner lambda for the remaining `default` param.
+        expect(arm.body.kind).toBe("CoreLambda");
+        const inner = arm.body as CoreLambda;
+        expect((inner.param as CoreVarPattern).name).toBe("default");
     });
 
-    it("should curry lambda with record patterns", () => {
+    it("lifts record-pattern params into a match over a fresh scrutinee", () => {
         const lambda: Expr = {
             kind: "Lambda",
             params: [
@@ -420,11 +436,28 @@ describe("Lambda Currying - Pattern Parameters", () => {
 
         const result = desugar(lambda);
 
-        expect(result.kind).toBe("CoreLambda");
-        const coreLambda = result as CoreLambda;
-        expect(coreLambda.param.kind).toBe("CoreRecordPattern");
-        const recordPattern = coreLambda.param as CoreRecordPattern;
+        const outerLambda = result as CoreLambda;
+        expect(outerLambda.param.kind).toBe("CoreVarPattern");
+        const tmpName = (outerLambda.param as CoreVarPattern).name;
+
+        expect(outerLambda.body.kind).toBe("CoreMatch");
+        const match = outerLambda.body as {
+            kind: "CoreMatch";
+            expr: CoreExpr;
+            cases: { pattern: unknown; body: CoreExpr }[];
+        };
+        expect((match.expr as { name: string }).name).toBe(tmpName);
+
+        const arm = match.cases[0]!;
+        expect((arm.pattern as { kind: string }).kind).toBe("CoreRecordPattern");
+        const recordPattern = arm.pattern as CoreRecordPattern;
         expect(recordPattern.fields).toHaveLength(2);
+        expect(recordPattern.fields.map((f) => f.name)).toEqual(["x", "y"]);
+
+        // Arm body is the inner lambda for `z`.
+        expect(arm.body.kind).toBe("CoreLambda");
+        const inner = arm.body as CoreLambda;
+        expect((inner.param as CoreVarPattern).name).toBe("z");
     });
 });
 

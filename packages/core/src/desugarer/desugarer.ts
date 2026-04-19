@@ -147,15 +147,14 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Lambdas - curry multi-parameter lambdas
-        case "Lambda": {
-            // Extract patterns from lambda params; per-param type annotations,
-            // return-type annotations, and explicit `<T>` type parameters are
-            // all discarded during desugaring. Hindley-Milner generalization at
-            // the binding site recovers the polymorphic type.
-            const patterns = expr.params.map((p) => p.pattern);
-            return curryLambda(patterns, expr.body, expr.loc, gen, desugar, desugarPattern);
-        }
+        // Lambdas - curry multi-parameter lambdas. Per-param type annotations
+        // on simple variable/wildcard params are dropped (HM inference
+        // recovers the polymorphic type at the binding site); on destructuring
+        // params the annotation is threaded onto the synthesized match
+        // scrutinee so the pattern inference has a concrete type. Return-type
+        // annotations and explicit `<T>` type parameters remain discarded.
+        case "Lambda":
+            return curryLambda(expr.params, expr.body, expr.loc, gen, desugar, desugarPattern, desugarTypeExprLocal);
 
         // Function application - desugar to single-argument curried applications.
         // `f(a, b, c)` becomes `((f(a))(b))(c)`; `f()` becomes `f(unit)`.
