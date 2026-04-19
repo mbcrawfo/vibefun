@@ -20,8 +20,8 @@ import type { Type } from "../types/environment.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
-import { createTestEnv, testLoc } from "./infer-bindings.test-helpers.js";
 import { createContext, inferExpr } from "./infer/index.js";
+import { createTestEnv, testLoc } from "./typechecker-test-helpers.js";
 import { constType, freshTypeVar, isTypeVar, primitiveTypes, resetTypeVarCounter } from "./types.js";
 
 describe("Type Inference - Let-Bindings", () => {
