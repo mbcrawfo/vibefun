@@ -47,4 +47,17 @@ describe("prefix ! disambiguation", () => {
         );
         expect(result).toBe(9);
     });
+
+    it("dereferences through a type alias wrapping Ref<T>", () => {
+        // Regression test for CodeRabbit review: expansion must happen before
+        // the LogicalNot → Deref decision so aliases like `type Cell<T> = Ref<T>`
+        // still let prefix `!` be Deref.
+        const result = compileAndGetExport(
+            `type Cell<T> = Ref<T>;
+            let c: Cell<Int> = ref(5);
+            let result = !c;`,
+            "result",
+        );
+        expect(result).toBe(5);
+    });
 });

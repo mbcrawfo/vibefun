@@ -164,6 +164,10 @@ describe("List Constructor Types", () => {
         // Nullary constructors are values (List<T> here), not zero-arg
         // functions — see type-declarations.ts / builtins.ts.
         expect(nil?.type.type).toBe("App");
+        if (nil?.type.type === "App") {
+            expect(nil.type.constructor).toEqual({ type: "Const", name: "List" });
+            expect(nil.type.args).toHaveLength(1);
+        }
     });
 });
 
@@ -207,6 +211,10 @@ describe("Option Constructor Types", () => {
 
         // Nullary constructors are values, not zero-arg functions.
         expect(none?.type.type).toBe("App");
+        if (none?.type.type === "App") {
+            expect(none.type.constructor).toEqual({ type: "Const", name: "Option" });
+            expect(none.type.args).toHaveLength(1);
+        }
     });
 });
 

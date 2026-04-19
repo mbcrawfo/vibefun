@@ -30,13 +30,14 @@ These directives guide all development work on the vibefun project:
    - **Integration tests** — exercise module interactions (parser → desugarer → typechecker → codegen pipelines, e.g. `packages/core/src/codegen/es2020/execution-tests/`, `packages/core/src/desugarer/desugarer-integration.test.ts`).
    - **End-to-end tests** — add a case under `tests/e2e/` whenever the change affects CLI behaviour, multi-file resolution, stdlib runtime, or user-visible output.
    - **Spec-validation** — when the change affects language semantics, update or add tests in `tests/spec-validation/sections/` so the spec suite reflects the new behaviour; rerun `pnpm run spec:validate` and commit expected-pass flips.
+   - **AI coding guide sync** — when user-observable syntax, type-system behaviour, stdlib surface, or JS interop semantics change, update `.claude/VIBEFUN_AI_CODING_GUIDE.md` (relevant sections + examples) in the same commit so AI agents see the new rules immediately.
 6. **Quality Checks**: After implementing any changes, always run the following in order:
    - `pnpm run check` - Type checking
    - `pnpm run lint` - Linting
    - `pnpm test` - Unit and integration tests
    - `pnpm run test:e2e` - End-to-end CLI tests
    - `pnpm run format` - Code formatting with Prettier
-   - OR use the convenience command: `pnpm run verify` (runs all of the above plus `build` and `spec:validate` is run separately as needed)
+   - OR use the convenience command: `pnpm run verify` (runs `build + check + lint + test + test:e2e + format:check`; note it runs `format:check` rather than rewriting files — run `pnpm run format` separately to fix reported issues, and `pnpm run spec:validate` separately when language semantics change)
 
 ## Planning & Code Coverage
 
@@ -224,3 +225,7 @@ pnpm run vibefun compile src/main.vf --verbose
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md
 - Coding Standards @.claude/CODING_STANDARDS.md
 - Ignore files in the ./claude/archive folder.  These are old plan documents that may be outdated and incorrect.
+
+---
+
+Maintenance: This file names specific directories, workspace packages, and `package.json` scripts. If you rename, move, add, or remove any of them, update this `CLAUDE.md` in the same commit — stale content silently misleads every AI agent that reads it.

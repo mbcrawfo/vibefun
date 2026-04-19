@@ -250,7 +250,7 @@ function checkVariantPattern(
             throw new Error(`Missing argument pattern or parameter type at index ${i}`);
         }
 
-        const argCtx: UnifyContext = { loc: argPattern.loc };
+        const argCtx: UnifyContext = { loc: argPattern.loc, types: env.types };
         const argResult = checkPattern(
             env,
             argPattern,

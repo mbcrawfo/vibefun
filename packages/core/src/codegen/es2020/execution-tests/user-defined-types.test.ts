@@ -69,6 +69,19 @@ describe("type aliases", () => {
         );
         expect(result).toBe(84);
     });
+
+    it("transitively expands a chain of aliases", () => {
+        // Regression test for CodeRabbit review: expansion must be transitive
+        // so `type A = B; type B = Int` still lets arithmetic work on A.
+        const result = compileAndGetExport(
+            `type B = Int;
+            type A = B;
+            let x: A = 10;
+            let doubled = x * 2;`,
+            "doubled",
+        );
+        expect(result).toBe(20);
+    });
 });
 
 describe("generic record types", () => {

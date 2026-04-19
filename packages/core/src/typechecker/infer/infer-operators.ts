@@ -342,7 +342,9 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     // an unknown type is almost never the intended default and users can
     // always use postfix `x!` to force `Deref`.
     if (expr.op === "LogicalNot") {
-        const resolvedOperand = applySubst(operandResult.subst, operandResult.type);
+        // Expand user-defined aliases (e.g. `type Cell<T> = Ref<T>`) so that
+        // `!c` on a `Cell<Int>` still disambiguates to `Deref`.
+        const resolvedOperand = expandTypeAlias(applySubst(operandResult.subst, operandResult.type), ctx.env.types);
         if (
             resolvedOperand.type === "App" &&
             resolvedOperand.constructor.type === "Const" &&
