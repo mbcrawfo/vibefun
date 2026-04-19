@@ -3,7 +3,7 @@
 import { registerDesugarerCodes } from "./desugarer.js";
 import { registerLexerCodes } from "./lexer.js";
 import { registerModulesCodes } from "./modules.js";
-import { registerParserCodes } from "./parser.js";
+import { registerParserCodes } from "./parser/index.js";
 import { registerTypecheckerCodes } from "./typechecker/index.js";
 
 /**
@@ -28,7 +28,7 @@ import { registerTypecheckerCodes } from "./typechecker/index.js";
 export * from "./desugarer.js";
 export * from "./lexer.js";
 export * from "./modules.js";
-export * from "./parser.js";
+export * from "./parser/index.js";
 export * from "./typechecker/index.js";
 
 let initialized = false;

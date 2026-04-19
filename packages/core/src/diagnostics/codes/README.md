@@ -9,7 +9,7 @@ Each compiler phase has assigned code ranges. Choose the appropriate range for y
 | Phase        | Range     | Errors          | Warnings        | File             |
 |--------------|-----------|-----------------|-----------------|------------------|
 | Lexer        | VF1xxx    | VF1000-VF1899   | VF1900-VF1999   | `lexer.ts`       |
-| Parser       | VF2xxx    | VF2000-VF2899   | VF2900-VF2999   | `parser.ts`      |
+| Parser       | VF2xxx    | VF2000-VF2899   | VF2900-VF2999   | `parser/`        |
 | Desugarer    | VF3xxx    | VF3000-VF3899   | VF3900-VF3999   | `desugarer.ts`   |
 | Type Checker | VF4xxx    | VF4000-VF4899   | VF4900-VF4999   | `typechecker/`   |
 | Modules      | VF5xxx    | VF5000-VF5899   | VF5900-VF5999   | `modules.ts`     |
