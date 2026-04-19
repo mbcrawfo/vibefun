@@ -24,6 +24,12 @@ export type InferenceContext = {
     subst: Substitution;
     /** Current level for type variable scoping */
     level: number;
+    /**
+     * Whether the current expression is being inferred inside an `unsafe` block.
+     * Set by `inferUnsafe`; reset to false when entering a lambda body so
+     * functions defined inside an unsafe scope are not implicitly unsafe.
+     */
+    inUnsafe: boolean;
 };
 
 /**
@@ -48,6 +54,7 @@ export function createContext(env: TypeEnv): InferenceContext {
         env,
         subst: emptySubst(),
         level: 0,
+        inUnsafe: false,
     };
 }
 

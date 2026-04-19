@@ -1,5 +1,5 @@
 /**
- * External/FFI Errors (VF4800-VF4804)
+ * External/FFI Errors (VF4800-VF4805)
  */
 
 import type { DiagnosticDefinition } from "../../diagnostic.js";
@@ -99,4 +99,25 @@ export const VF4804: DiagnosticDefinition = {
     relatedCodes: ["VF4800", "VF4205"],
 };
 
-export const ffiCodes: readonly DiagnosticDefinition[] = [VF4800, VF4801, VF4802, VF4803, VF4804];
+export const VF4805: DiagnosticDefinition = {
+    code: "VF4805",
+    title: "ExternalCallOutsideUnsafe",
+    messageTemplate: "External '{name}' can only be referenced inside an unsafe block",
+    severity: "error",
+    phase: "typechecker",
+    category: "ffi",
+    hintTemplate: "Wrap the call in `unsafe { ... }` or expose a safe wrapper that does",
+    explanation:
+        "Calling or referencing an `external` binding is a trust boundary with JavaScript, so the " +
+        "language requires those references to appear inside an `unsafe` block. Pure Vibefun code " +
+        "that does not reach the FFI does not need `unsafe`, and a function whose body wraps its own " +
+        "call in `unsafe` can be invoked without further ceremony.",
+    example: {
+        bad: 'external log: (String) -> Unit = "console.log";\nlog("hello");',
+        good: 'external log: (String) -> Unit = "console.log";\nlet _ = unsafe { log("hello") };',
+        description: "Wrapped the external call in an unsafe block",
+    },
+    relatedCodes: ["VF4800"],
+};
+
+export const ffiCodes: readonly DiagnosticDefinition[] = [VF4800, VF4801, VF4802, VF4803, VF4804, VF4805];

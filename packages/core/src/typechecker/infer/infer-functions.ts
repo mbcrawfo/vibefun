@@ -59,8 +59,18 @@ export function inferLambda(ctx: InferenceContext, expr: Extract<CoreExpr, { kin
         });
     }
 
-    // Infer body type
-    const bodyCtx: InferenceContext = { env: newEnv, subst: ctx.subst, level: ctx.level };
+    // Infer body type. A lambda body is a fresh "safe" scope: `inUnsafe` is
+    // reset to false so a lambda defined inside an `unsafe` block does not
+    // silently inherit unsafe capabilities at its future call sites. The spec
+    // requires callers to wrap the lambda body in its own `unsafe` if it needs
+    // to invoke externals.
+    const bodyCtx: InferenceContext = {
+        ...ctx,
+        env: newEnv,
+        subst: ctx.subst,
+        level: ctx.level,
+        inUnsafe: false,
+    };
     const bodyResult = inferExprFn(bodyCtx, expr.body);
 
     // Apply substitution to parameter type

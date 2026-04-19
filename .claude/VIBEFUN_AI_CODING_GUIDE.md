@@ -640,10 +640,19 @@ unsafe {
     console_log("Hello from JavaScript!");
 }
 
+// ❌ Compile error VF4805 — external referenced outside unsafe
+let _ = console_log("oops");
+
 // ✅ PATTERN: Wrap unsafe in safe function
 let log = (msg) => unsafe { console_log(msg) };
 log("Safe logging");  // Can call without unsafe
 ```
+
+**Rule of thumb:** any direct reference to an `external` binding (call or
+first-class value) must be inside an `unsafe { ... }` block. Lambda bodies
+are a fresh safe scope — a function defined inside an `unsafe` block must
+still wrap its *own* body in `unsafe` if the body calls externals, or the
+compiler flags the call with `VF4805`.
 
 ### Opaque Types
 

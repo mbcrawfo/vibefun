@@ -208,6 +208,11 @@ function inferVar(
     // Get the type scheme based on binding kind
     let scheme: TypeScheme;
     if (binding.kind === "Value" || binding.kind === "External") {
+        if (binding.kind === "External" && !ctx.inUnsafe) {
+            // Referencing an `external` outside an `unsafe` block is a
+            // compile error per the spec (Section 10, Unsafe Block Restrictions).
+            throwDiagnostic("VF4805", loc, { name });
+        }
         scheme = binding.scheme;
     } else {
         // ExternalOverload case - not yet supported
@@ -261,9 +266,10 @@ function inferTypeAnnotation(
  * @returns The inferred type and updated substitution
  */
 function inferUnsafe(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreUnsafe" }>): InferResult {
-    // Simply infer the type of the inner expression
-    // The "unsafe" designation is more of a marker for code generation and documentation
-    return inferExpr(ctx, expr.expr);
+    // Inner expressions are inferred inside an unsafe scope; `inferVar`
+    // uses this flag to decide whether referencing an `external` binding
+    // is legal at this point in the program.
+    return inferExpr({ ...ctx, inUnsafe: true }, expr.expr);
 }
 
 /**
