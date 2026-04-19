@@ -103,15 +103,30 @@ describe("Unsafe-block enforcement", () => {
         });
 
         it("rejects body/handler type mismatch", () => {
-            expect(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { "oops" } };`)).toThrow();
+            // VF4020 is the unification failure code, emitted when the try/catch
+            // branches are different types.
+            expectDiagnostic(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { "oops" } };`), "VF4020");
         });
 
-        it("binds the catch variable as Json only inside the catch body", () => {
-            // The binder is in scope in the catch body (typed as Json), but not
-            // after the try/catch expression.
-            expect(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { let _ = e; 0 } };`)).not.toThrow();
+        it("types the catch binder as Json (not polymorphic) inside the catch body", () => {
+            // Passing `e` where an Int is expected must fail — only works if
+            // `e` is specifically typed as `Json` rather than a fresh type
+            // variable that could unify with anything.
+            expectDiagnostic(
+                () =>
+                    typecheckSource(
+                        `external inc: (Int) -> Int = "((x) => x + 1)";
+let r = unsafe { try { 1 } catch (e) { inc(e) } };`,
+                    ),
+                "VF4020",
+            );
+        });
 
-            expect(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { 0 } };\nlet _ = e;`)).toThrow();
+        it("leaves the catch binder out of scope after the try/catch expression", () => {
+            expectDiagnostic(
+                () => typecheckSource(`let r = unsafe { try { 1 } catch (e) { 0 } };\nlet _ = e;`),
+                "VF4100",
+            );
         });
     });
 });
