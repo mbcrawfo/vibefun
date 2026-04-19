@@ -652,3 +652,158 @@ describe("Level Updates During Unification", () => {
         }
     });
 });
+
+describe("Alias and Record Expansion in Unify", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    const loc = { file: "test.vf", line: 1, column: 1, offset: 0 };
+
+    it("unifies a bare alias constant with its underlying type", () => {
+        // type UserId = Int
+        const types = new Map();
+        types.set("UserId", {
+            kind: "Alias" as const,
+            params: [],
+            definition: primitiveTypes.Int,
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        const subst = unify(constType("UserId"), primitiveTypes.Int, ctx);
+        expect(subst).toBeDefined();
+    });
+
+    it("unifies a generic alias application with its expanded body", () => {
+        // type MyList<T> = List<T>
+        const tVar = freshTypeVar();
+        const tVarId = isTypeVar(tVar) ? tVar.id : 0;
+        const aliasBody = appType(constType("List"), [tVar]);
+        const types = new Map();
+        types.set("MyList", {
+            kind: "Alias" as const,
+            params: ["T"],
+            paramIds: [tVarId],
+            definition: aliasBody,
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        const subst = unify(
+            appType(constType("MyList"), [primitiveTypes.Int]),
+            appType(constType("List"), [primitiveTypes.Int]),
+            ctx,
+        );
+        expect(subst).toBeDefined();
+    });
+
+    it("unifies a generic record binding with its expanded record shape", () => {
+        // type Box<T> = { value: T }
+        const tVar = freshTypeVar();
+        const tVarId = isTypeVar(tVar) ? tVar.id : 0;
+        const fields = new Map<string, Type>();
+        fields.set("value", tVar);
+        const types = new Map();
+        types.set("Box", {
+            kind: "Record" as const,
+            params: ["T"],
+            paramIds: [tVarId],
+            fields,
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        const expandedRecord: Type = {
+            type: "Record",
+            fields: new Map([["value", primitiveTypes.Int]]),
+        };
+        const subst = unify(appType(constType("Box"), [primitiveTypes.Int]), expandedRecord, ctx);
+        expect(subst).toBeDefined();
+    });
+
+    it("ignores Variant bindings — variants are nominal, not expanded", () => {
+        // Variants use dedicated nominal unification rules; `expandAlias`
+        // should pass them through untouched.
+        const types = new Map();
+        types.set("Color", {
+            kind: "Variant" as const,
+            params: [],
+            constructors: new Map<string, Type[]>(),
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        // Color vs Int should fail — variant is not expanded into anything.
+        expect(() => unify(constType("Color"), primitiveTypes.Int, ctx)).toThrow(VibefunDiagnostic);
+    });
+
+    it("skips expansion when UnifyContext has no types map", () => {
+        // Without `types`, unify behaves purely structurally — `UserId` vs
+        // `Int` are distinct Const types and must not unify.
+        const ctx: UnifyContext = { loc };
+        expect(() => unify(constType("UserId"), primitiveTypes.Int, ctx)).toThrow(VibefunDiagnostic);
+    });
+
+    it("expands a non-generic record type binding", () => {
+        // `type Point = { x: Int, y: Int }` — no type params, so expansion
+        // simply hands back the stored fields.
+        const fields = new Map<string, Type>();
+        fields.set("x", primitiveTypes.Int);
+        fields.set("y", primitiveTypes.Int);
+        const types = new Map();
+        types.set("Point", {
+            kind: "Record" as const,
+            params: [],
+            fields,
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        const expandedShape: Type = {
+            type: "Record",
+            fields: new Map([
+                ["x", primitiveTypes.Int],
+                ["y", primitiveTypes.Int],
+            ]),
+        };
+        const subst = unify(constType("Point"), expandedShape, ctx);
+        expect(subst).toBeDefined();
+    });
+
+    it("falls back to no-op when a generic alias binding is missing paramIds", () => {
+        // Ad-hoc binding without paramIds — expansion gives up rather than
+        // risking an incorrect substitution.
+        const types = new Map();
+        types.set("Opaque", {
+            kind: "Alias" as const,
+            params: ["T"],
+            // paramIds intentionally omitted
+            definition: primitiveTypes.Int,
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        expect(() => unify(appType(constType("Opaque"), [primitiveTypes.String]), primitiveTypes.Int, ctx)).toThrow(
+            VibefunDiagnostic,
+        );
+    });
+
+    it("falls back to no-op when a generic record binding is missing paramIds", () => {
+        const fields = new Map<string, Type>();
+        fields.set("value", primitiveTypes.Int);
+        const types = new Map();
+        types.set("OpaqueRec", {
+            kind: "Record" as const,
+            params: ["T"],
+            // paramIds intentionally omitted
+            fields,
+            loc,
+        });
+        const ctx: UnifyContext = { loc, types };
+        const expandedShape: Type = {
+            type: "Record",
+            fields: new Map([["value", primitiveTypes.Int]]),
+        };
+        // Without paramIds the binding can't be expanded safely, so App
+        // stays as App — and unifying App<OpaqueRec, _> with a bare Record
+        // fails structurally.
+        expect(() => unify(appType(constType("OpaqueRec"), [primitiveTypes.String]), expandedShape, ctx)).toThrow(
+            VibefunDiagnostic,
+        );
+    });
+});
