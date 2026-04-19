@@ -14,8 +14,8 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF1002](lexer.md#vf1002) | UnterminatedStringEOF | Error | The string literal was not closed before the end of the file |
 | [VF1003](lexer.md#vf1003) | UnterminatedMultilineString | Error | The multi-line string literal was not closed before the end of the file |
 | [VF1010](lexer.md#vf1010) | InvalidEscapeSequence | Error | The escape sequence is not recognized |
-| [VF1011](lexer.md#vf1011) | InvalidHexEscape | Error | The \x escape sequence requires exactly 2 hexadecimal digits to specify a byte value |
-| [VF1012](lexer.md#vf1012) | InvalidUnicodeEscape | Error | Unicode escapes must be either \uXXXX with exactly 4 hex digits, or \u{ |
+| [VF1011](lexer.md#vf1011) | InvalidHexEscape | Error | The \\x escape sequence requires exactly 2 hexadecimal digits to specify a byte value |
+| [VF1012](lexer.md#vf1012) | InvalidUnicodeEscape | Error | Unicode escapes must be either \\uXXXX with exactly 4 hex digits, or \\u{ |
 | [VF1100](lexer.md#vf1100) | InvalidNumberSeparator | Error | Numeric separators (underscores) are allowed to improve readability, but they must appear between digits |
 | [VF1101](lexer.md#vf1101) | InvalidBinaryLiteral | Error | Binary literals start with 0b or 0B and must contain at least one binary digit (0 or 1) |
 | [VF1102](lexer.md#vf1102) | InvalidHexLiteral | Error | Hexadecimal literals start with 0x or 0X and must contain at least one hex digit |
