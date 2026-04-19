@@ -23,6 +23,16 @@ function typeCheckSource(source: string) {
     return typeCheck(core);
 }
 
+function expectDiagnosticCode(source: string, expectedCode: string): void {
+    try {
+        typeCheckSource(source);
+        throw new Error("Expected type checking to throw");
+    } catch (error: unknown) {
+        expect(error).toBeInstanceOf(VibefunDiagnostic);
+        expect((error as VibefunDiagnostic).code).toBe(expectedCode);
+    }
+}
+
 describe("registerTypeDeclarations — variant types", () => {
     it("registers a non-generic variant type and its nullary constructors", () => {
         const { env } = typeCheckSource(`type Color = Red | Green | Blue;`);
@@ -80,7 +90,7 @@ describe("registerTypeDeclarations — type aliases", () => {
     });
 
     it("rejects an unguardedly recursive alias", () => {
-        expect(() => typeCheckSource(`type Bad = Bad;`)).toThrow(VibefunDiagnostic);
+        expectDiagnosticCode(`type Bad = Bad;`, "VF4027");
     });
 
     it("permits recursion guarded by a variant constructor", () => {
@@ -112,17 +122,18 @@ describe("registerTypeDeclarations — validation coverage", () => {
 
     it("rejects unguarded recursion through a tuple", () => {
         // `type Loop = (Int, Loop);` — tuple types do not introduce a guard.
-        expect(() => typeCheckSource(`type Loop = (Int, Loop);`)).toThrow(VibefunDiagnostic);
+        expectDiagnosticCode(`type Loop = (Int, Loop);`, "VF4027");
     });
 
     it("rejects mutual unguarded recursion through an alias chain", () => {
         // type A = B; type B = A; — A eventually refers to itself via B.
-        expect(() =>
-            typeCheckSource(`
+        expectDiagnosticCode(
+            `
                 type A = B;
                 type B = A;
-            `),
-        ).toThrow(VibefunDiagnostic);
+            `,
+            "VF4027",
+        );
     });
 
     it("allows recursion through a type application whose constructor is a record", () => {
