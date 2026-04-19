@@ -41,7 +41,7 @@ the root-cause groups that Package D remediated:
 
 ## Phase 5: Advanced Features
 - [x] 5.1 Tuple type system
-- [ ] 5.2 Pattern matching completeness
+- [x] 5.2 Pattern matching completeness
 - [ ] 5.3 Explicit type parameters on functions
 - [ ] 5.4 Lambda parameter destructuring
 - [ ] 5.5 JavaScript interop completeness
