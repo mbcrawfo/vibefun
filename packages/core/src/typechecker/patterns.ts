@@ -398,14 +398,29 @@ type ConstructorInfo = {
 };
 
 /**
- * Check if patterns are exhaustive for a given type
+ * A match case's pattern plus whether it is protected by a `when` guard.
+ * Guarded cases are ignored for exhaustiveness because the guard's runtime
+ * outcome is not known statically (per `docs/spec/05-pattern-matching/
+ * exhaustiveness.md` §"Guards do not affect exhaustiveness checking").
+ */
+export type CaseForExhaustiveness = {
+    pattern: CorePattern;
+    guarded: boolean;
+};
+
+/**
+ * Check if match cases are exhaustive for a given type
  *
  * @param env - Type environment
- * @param patterns - List of patterns to check
+ * @param cases - List of cases (pattern + whether guarded) to check
  * @param scrutineeType - Type being matched on
  * @returns Missing constructors (empty array if exhaustive)
  */
-export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrutineeType: Type): string[] {
+export function checkExhaustiveness(env: TypeEnv, cases: CaseForExhaustiveness[], scrutineeType: Type): string[] {
+    // Guarded cases can still match at runtime but cannot complete an
+    // exhaustiveness proof, so they are dropped before coverage analysis.
+    const patterns = cases.filter((c) => !c.guarded).map((c) => c.pattern);
+
     // If any pattern is wildcard or variable — or a tuple pattern whose
     // every element is itself a catch-all (wildcard/variable/recursive
     // all-catch-all tuple) — it covers every value of the scrutinee.

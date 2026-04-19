@@ -428,8 +428,11 @@ export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     // This allows the substitution to contain unifications from pattern checking
     // which resolves type variables to concrete variant types
     scrutineeType = applySubst(currentCtx.subst, scrutineeType);
-    const patterns = expr.cases.map((c) => c.pattern);
-    const missingCases = checkExhaustiveness(currentCtx.env, patterns, scrutineeType);
+    const exhaustivenessCases = expr.cases.map((c) => ({
+        pattern: c.pattern,
+        guarded: c.guard !== undefined,
+    }));
+    const missingCases = checkExhaustiveness(currentCtx.env, exhaustivenessCases, scrutineeType);
     if (missingCases.length > 0) {
         throwDiagnostic("VF4400", expr.loc, {
             missing: missingCases.join(", "),
