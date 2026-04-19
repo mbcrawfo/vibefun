@@ -251,6 +251,65 @@ describe("Type Inference - Binary Operators", () => {
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 
+    describe("polymorphic numeric operators — free-type-variable fallback", () => {
+        it("defaults free operands to Int for arithmetic", () => {
+            // `(x, y) => x + y` — both operands are type variables.
+            const env = createTestEnv();
+            const tvLeft = freshTypeVar(0);
+            const tvRight = freshTypeVar(0);
+            env.values.set("x", {
+                kind: "Value" as const,
+                scheme: { vars: [], type: tvLeft },
+                loc: testLoc,
+            });
+            env.values.set("y", {
+                kind: "Value" as const,
+                scheme: { vars: [], type: tvRight },
+                loc: testLoc,
+            });
+            const expr: CoreBinOp = {
+                kind: "CoreBinOp",
+                op: "Add",
+                left: { kind: "CoreVar", name: "x", loc: testLoc },
+                right: { kind: "CoreVar", name: "y", loc: testLoc },
+                loc: testLoc,
+            };
+
+            const ctx = createContext(env);
+            const result = inferExpr(ctx, expr);
+
+            expect(result.type).toEqual(primitiveTypes.Int);
+        });
+
+        it("defaults free operands to Int for comparison and returns Bool", () => {
+            const env = createTestEnv();
+            const tvLeft = freshTypeVar(0);
+            const tvRight = freshTypeVar(0);
+            env.values.set("a", {
+                kind: "Value" as const,
+                scheme: { vars: [], type: tvLeft },
+                loc: testLoc,
+            });
+            env.values.set("b", {
+                kind: "Value" as const,
+                scheme: { vars: [], type: tvRight },
+                loc: testLoc,
+            });
+            const expr: CoreBinOp = {
+                kind: "CoreBinOp",
+                op: "LessThan",
+                left: { kind: "CoreVar", name: "a", loc: testLoc },
+                right: { kind: "CoreVar", name: "b", loc: testLoc },
+                loc: testLoc,
+            };
+
+            const ctx = createContext(env);
+            const result = inferExpr(ctx, expr);
+
+            expect(result.type).toEqual(primitiveTypes.Bool);
+        });
+    });
+
     describe("polymorphic numeric operators (Int or Float)", () => {
         const arithmeticOps = ["Add", "Subtract", "Multiply", "Modulo"] as const;
         const comparisonOps = ["LessThan", "LessEqual", "GreaterThan", "GreaterEqual"] as const;
@@ -420,6 +479,29 @@ describe("Type Inference - Unary Operators", () => {
         const ctx = createContext(env);
 
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("defaults a free type variable to Int when negated", () => {
+        // `let f = (x) => -x` — x's type is a free variable inside the lambda
+        // body. Polymorphic Negate's fallback should unify it with Int.
+        const env = createTestEnv();
+        const tv = freshTypeVar(0);
+        env.values.set("x", {
+            kind: "Value" as const,
+            scheme: { vars: [], type: tv },
+            loc: testLoc,
+        });
+        const expr: CoreUnaryOp = {
+            kind: "CoreUnaryOp",
+            op: "Negate",
+            expr: { kind: "CoreVar", name: "x", loc: testLoc },
+            loc: testLoc,
+        };
+
+        const ctx = createContext(env);
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Int);
     });
 
     describe("prefix ! disambiguation (LogicalNot vs Deref)", () => {

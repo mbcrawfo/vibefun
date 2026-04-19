@@ -203,24 +203,17 @@ function referencesNameUnguarded(
             }
             return false;
         }
+        // Guarded positions (return false without descending): type variables
+        // are placeholders; function, record, variant, and generic-application
+        // bodies all introduce a runtime boundary that breaks the recursion
+        // (calling the function / constructing the value). Tuples and unions
+        // of bare names, in contrast, are structurally transparent — recursion
+        // through them reaches `target` at the type level without any guard.
         case "CoreTypeVar":
-            return false;
         case "CoreTypeApp":
-            if (referencesNameUnguarded(expr.constructor, target, allDecls, visiting)) {
-                return true;
-            }
-            return expr.args.some((a) => referencesNameUnguarded(a, target, allDecls, visiting));
         case "CoreFunctionType":
-            // Function-type bodies are lazy w.r.t. recursion (application
-            // forces evaluation), so recursion through them is considered
-            // guarded.
-            return false;
         case "CoreRecordType":
-            // Inline record types in an alias body are guarded (field access
-            // is the guard).
-            return false;
         case "CoreVariantType":
-            // Inline variant types are guarded (construction is the guard).
             return false;
         case "CoreUnionType":
             return expr.types.some((t) => referencesNameUnguarded(t, target, allDecls, visiting));

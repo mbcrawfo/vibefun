@@ -38,6 +38,24 @@ These directives guide all development work on the vibefun project:
    - `pnpm run format` - Code formatting with Prettier
    - OR use the convenience command: `pnpm run verify` (runs all of the above plus `build` and `spec:validate` is run separately as needed)
 
+## Planning & Code Coverage
+
+**CI enforces no coverage regressions.** The `Check coverage decrease` CI
+step runs `pnpm run test:coverage` and compares against `main` — a drop
+in combined line/statement/function/branch coverage fails the build.
+
+Every plan document (including `.claude/plans/*.md`) must include:
+- A **baseline step** that runs `pnpm run test:coverage` before starting
+  the work and records the combined coverage percentages to a temp file
+  or plan note. This makes it clear what the floor is.
+- A **post-implementation step** that re-runs `pnpm run test:coverage`
+  and confirms coverage is ≥ the baseline. If coverage dropped, add the
+  missing tests (unit first, then integration) until it's back to par.
+
+Coverage is a floor, not a target. Always prefer meaningful tests over
+padding the number — but every new branch, every new error path, every
+new public function needs at least one test that exercises it end-to-end.
+
 ## Authoring CLAUDE.md Files
 
 Folder-level `CLAUDE.md` files exist to give AI agents the non-obvious context they need to work safely inside a module (DI wiring, visitor order, pass/cycle semantics, fixture conventions, regeneration steps, etc.). Follow these rules.

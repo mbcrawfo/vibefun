@@ -103,3 +103,36 @@ describe("registerTypeDeclarations — generic record types", () => {
         ).not.toThrow();
     });
 });
+
+describe("registerTypeDeclarations — validation coverage", () => {
+    it("accepts an alias whose body loops through a function type (guarded)", () => {
+        // Function types are lazy, so recursion through a function arg is guarded.
+        expect(() => typeCheckSource(`type Callback = (Int) -> Callback;`)).not.toThrow();
+    });
+
+    it("rejects unguarded recursion through a tuple", () => {
+        // `type Loop = (Int, Loop);` — tuple types do not introduce a guard.
+        expect(() => typeCheckSource(`type Loop = (Int, Loop);`)).toThrow(VibefunDiagnostic);
+    });
+
+    it("rejects mutual unguarded recursion through an alias chain", () => {
+        // type A = B; type B = A; — A eventually refers to itself via B.
+        expect(() =>
+            typeCheckSource(`
+                type A = B;
+                type B = A;
+            `),
+        ).toThrow(VibefunDiagnostic);
+    });
+
+    it("allows recursion through a type application whose constructor is a variant", () => {
+        // `type Pair<A, B>` is a generic record — recursion inside `<A, B>` args
+        // is guarded by the constructor, so this should not throw.
+        expect(() =>
+            typeCheckSource(`
+                type Pair<A, B> = { first: A, second: B };
+                type Recursive = { head: Int, tail: Pair<Int, Recursive> };
+            `),
+        ).not.toThrow();
+    });
+});
