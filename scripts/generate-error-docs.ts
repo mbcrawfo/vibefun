@@ -120,8 +120,11 @@ function generateIndex(): string {
     for (const def of allCodes) {
         const severity = def.severity === "error" ? "Error" : "Warning";
         // Extract first sentence of explanation as description; escape any
-        // raw `|` so it does not split the containing markdown table cell.
-        const description = (def.explanation.split(".")[0] ?? def.messageTemplate).replace(/\|/g, "\\|");
+        // backslash or raw `|` so they do not split the containing markdown
+        // table cell. Backslashes are escaped before `|` so `|` → `\|`
+        // without re-escaping the leading backslash we just added.
+        const rawDescription = def.explanation.split(".")[0] ?? def.messageTemplate;
+        const description = rawDescription.replace(/([\\|])/g, "\\$1");
         lines.push(
             `| [${def.code}](${phaseToFilename(def.phase)}#${def.code.toLowerCase()}) | ${def.title} | ${severity} | ${description} |`,
         );
