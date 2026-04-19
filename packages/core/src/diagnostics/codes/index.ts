@@ -4,7 +4,7 @@ import { registerDesugarerCodes } from "./desugarer.js";
 import { registerLexerCodes } from "./lexer.js";
 import { registerModulesCodes } from "./modules.js";
 import { registerParserCodes } from "./parser.js";
-import { registerTypecheckerCodes } from "./typechecker.js";
+import { registerTypecheckerCodes } from "./typechecker/index.js";
 
 /**
  * Aggregate exports for all diagnostic code definitions
@@ -29,7 +29,7 @@ export * from "./desugarer.js";
 export * from "./lexer.js";
 export * from "./modules.js";
 export * from "./parser.js";
-export * from "./typechecker.js";
+export * from "./typechecker/index.js";
 
 let initialized = false;
 
