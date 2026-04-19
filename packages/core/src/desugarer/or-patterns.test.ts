@@ -7,7 +7,7 @@
  * match x { | "a" => expr | "b" => expr | "c" => expr }
  */
 
-import type { Expr, Location } from "../types/ast.js";
+import type { Expr, Location, Pattern } from "../types/ast.js";
 import type {
     CoreLiteralPattern,
     CoreMatch,
@@ -1150,5 +1150,82 @@ describe("Or-Pattern - Variable Binding Validation (VF4403)", () => {
         };
 
         expect(() => desugar(match)).not.toThrow();
+    });
+});
+
+describe("Or-Pattern - Expansion Cap (VF3102)", () => {
+    // Helper: build an or-pattern whose alternatives are `count` distinct
+    // integer literals. `expandedSize` of this pattern equals `count`.
+    function orOfNLiterals(count: number): Expr {
+        const alternatives: Pattern[] = [];
+        for (let i = 0; i < count; i++) {
+            alternatives.push({ kind: "LiteralPattern", literal: i, loc: testLoc });
+        }
+        return {
+            kind: "Match",
+            expr: { kind: "Var", name: "x", loc: testLoc },
+            cases: [
+                {
+                    pattern: { kind: "OrPattern", patterns: alternatives, loc: testLoc },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+    }
+
+    it("accepts exactly 256 expanded alternatives", () => {
+        const match = orOfNLiterals(256);
+        const result = desugar(match) as CoreMatch;
+        // 256 alternatives + trailing wildcard
+        expect(result.cases).toHaveLength(257);
+    });
+
+    it("throws VF3102 when expansion would exceed 256 cases", () => {
+        const match = orOfNLiterals(257);
+        expect(() => desugar(match)).toThrow("VF3102");
+    });
+
+    it("throws VF3102 for nested multiplicative fan-out", () => {
+        // (0|1|..|15, 0|1|..|15) = 256 combos — on the cap
+        // (0|1|..|15, 0|1|..|16) = 272 combos — over the cap
+        const makeRange = (count: number): Pattern => ({
+            kind: "OrPattern",
+            patterns: Array.from(
+                { length: count },
+                (_, i): Pattern => ({ kind: "LiteralPattern", literal: i, loc: testLoc }),
+            ),
+            loc: testLoc,
+        });
+
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "t", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "TuplePattern",
+                        elements: [makeRange(16), makeRange(17)],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        expect(() => desugar(match)).toThrow("VF3102");
     });
 });

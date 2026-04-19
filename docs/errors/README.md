@@ -62,6 +62,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF2500](parser.md#vf2500) | TooManyErrors | Error | The parser encountered too many errors and stopped |
 | [VF2501](parser.md#vf2501) | ExpectedToken | Error | The parser expected a specific token at this position but found something else |
 | [VF3101](desugarer.md#vf3101) | UndefinedListElement | Error | The list contains an undefined element at the specified position |
+| [VF3102](desugarer.md#vf3102) | OrPatternTooLarge | Error | Or-patterns are compiled by distributing their alternatives, so nesting them inside constructors, tuples, or other or-patterns multiplies the number of emitted match arms |
 | [VF4001](typechecker.md#vf4001) | TypeMismatch | Error | The type of an expression does not match what was expected |
 | [VF4002](typechecker.md#vf4002) | ArgumentTypeMismatch | Error | The type of an argument passed to a function does not match the expected parameter type |
 | [VF4003](typechecker.md#vf4003) | ReturnTypeMismatch | Error | The type of the value returned by a function does not match its declared return type |
@@ -102,7 +103,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4400](typechecker.md#vf4400) | NonExhaustiveMatch | Error | The match expression does not cover all possible cases |
 | [VF4401](typechecker.md#vf4401) | InvalidGuard | Error | The pattern guard expression is not valid |
 | [VF4402](typechecker.md#vf4402) | DuplicateBinding | Error | The same variable name appears multiple times in the same pattern |
-| [VF4403](typechecker.md#vf4403) | OrPatternBindsVariable | Error | Alternatives of an or-pattern (|) must be irrefutable: literals, wildcards, or constructors whose arguments bind no variables |
+| [VF4403](typechecker.md#vf4403) | OrPatternBindsVariable | Error | Alternatives of an or-pattern (\|) must be irrefutable: literals, wildcards, or constructors whose arguments bind no variables |
 | [VF4404](typechecker.md#vf4404) | EmptyMatch | Error | A match expression must have at least one case to handle |
 | [VF4405](typechecker.md#vf4405) | UnreachablePattern | Error | A pattern is unreachable when an earlier arm in the same match already matches every possible value of the scrutinee |
 | [VF4500](typechecker.md#vf4500) | NonRecordAccess | Error | You tried to access a field using dot notation, but the value is not a record |
@@ -141,7 +142,7 @@ Errors during lexical analysis (tokenization)
 
 Errors during syntax parsing (AST construction)
 
-### [Desugarer](desugarer.md) (1 errors)
+### [Desugarer](desugarer.md) (2 errors)
 
 Errors during desugaring (syntax transformation)
 
@@ -155,6 +156,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 120
-- **Errors:** 117
+- **Total diagnostic codes:** 121
+- **Errors:** 118
 - **Warnings:** 3
