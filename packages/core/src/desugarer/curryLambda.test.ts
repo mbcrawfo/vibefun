@@ -62,6 +62,13 @@ const mockDesugarPattern = (pattern: Pattern, gen: FreshVarGen): CorePattern => 
                 elements: pattern.elements.map((p) => mockDesugarPattern(p, gen)),
                 loc: pattern.loc,
             };
+        case "ConstructorPattern":
+            return {
+                kind: "CoreVariantPattern",
+                constructor: pattern.constructor,
+                args: pattern.args.map((a) => mockDesugarPattern(a, gen)),
+                loc: pattern.loc,
+            };
         default:
             throw new Error(`Unexpected pattern kind in mock: ${pattern.kind}`);
     }
@@ -325,6 +332,48 @@ describe("curryLambda — destructuring params", () => {
         expect(outerTmp.startsWith("$param")).toBe(true);
         expect(innerTmp.startsWith("$param")).toBe(true);
         expect(innerTmp).not.toBe(outerTmp);
+    });
+
+    it("lifts refutable constructor-pattern params into the match arm", () => {
+        // (Some(x)) => x
+        //
+        // Regression guard: `curryLambda` must treat refutable patterns the
+        // same way as irrefutable ones — strip the old VF4017 path, emit the
+        // match-wrap, and leave exhaustiveness to the typechecker. The unit
+        // test here cements the lowering shape even though the resulting
+        // match is non-exhaustive (that's a typechecker concern, not a
+        // desugarer one).
+        const refutable: LambdaParam = {
+            pattern: {
+                kind: "ConstructorPattern",
+                constructor: "Some",
+                args: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        const result = curryLambda(
+            [refutable],
+            body("x"),
+            testLoc,
+            makeGen(),
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+        );
+
+        const outer = result as CoreLambda;
+        expect(outer.param.kind).toBe("CoreVarPattern");
+        expect(outer.body.kind).toBe("CoreMatch");
+
+        const match = outer.body as CoreMatch;
+        expect(match.cases).toHaveLength(1);
+        const arm = match.cases[0];
+        expect(arm?.pattern.kind).toBe("CoreVariantPattern");
+        // `match` must have exactly the single arm — we do NOT emit a synthetic
+        // catch-all. Exhaustiveness reporting is the typechecker's job.
+        expect(arm?.body.kind).toBe("CoreVar");
     });
 
     it("preserves nested record destructuring inside the match arm", () => {
