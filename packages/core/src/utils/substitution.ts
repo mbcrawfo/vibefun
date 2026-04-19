@@ -392,13 +392,7 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
 
                 if (freeInReplacements.has(binder)) {
                     const avoidSet = new Set([...freeInReplacements, ...freeVars(e.catchBody), ...bindings.keys()]);
-                    // Invent a fresh name that is guaranteed not to clash
-                    let fresh = binder;
-                    let counter = 0;
-                    while (avoidSet.has(fresh)) {
-                        counter += 1;
-                        fresh = `${binder}$${counter}`;
-                    }
+                    const fresh = freshen(binder, avoidSet);
                     const renameMap = new Map<string, CoreExpr>([
                         [binder, { kind: "CoreVar", name: fresh, loc: e.loc }],
                     ]);

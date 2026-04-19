@@ -94,11 +94,19 @@ export function emitExpr(expr: CoreExpr, ctx: EmitContext): string {
 
         case "CoreTryCatch": {
             // JavaScript's try/catch is a statement, so we wrap it in an IIFE
-            // to produce an expression. The catch binder uses the user's chosen
-            // name (escaped for JS reserved words).
+            // to produce an expression. The catch binder comes from an
+            // IDENTIFIER token in the lexer, which already restricts it to
+            // `[A-Za-z_$][A-Za-z0-9_$]*`; validate explicitly so the
+            // template interpolation below cannot be reached with an
+            // unvalidated string (defence-in-depth against any future
+            // caller that bypasses the parser).
+            const binderRaw = expr.catchBinder;
+            if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(binderRaw)) {
+                throw new Error(`Internal error: invalid catch binder '${binderRaw}'`);
+            }
+            const binder = escapeIdentifier(binderRaw);
             const tryCode = emitExpr(expr.tryBody, ctx);
             const catchCode = emitExpr(expr.catchBody, ctx);
-            const binder = escapeIdentifier(expr.catchBinder);
             return `(() => { try { return (${tryCode}); } catch (${binder}) { return (${catchCode}); } })()`;
         }
 

@@ -269,6 +269,19 @@ describe("Expression Equality Utilities", () => {
             expect(exprEquals(e1, e2)).toBe(false);
         });
 
+        it("should distinguish different catch bodies", () => {
+            const e1: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+            const e2: CoreExpr = { ...e1, catchBody: { kind: "CoreIntLit", value: 99, loc: testLoc } };
+
+            expect(exprEquals(e1, e2)).toBe(false);
+        });
+
         it("should reject try/catch vs other kinds", () => {
             const e1: CoreExpr = {
                 kind: "CoreTryCatch",

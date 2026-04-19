@@ -12,17 +12,24 @@
 
 import type { CoreExpr, CoreMatchCase } from "../../types/core-ast.js";
 
-import { freeVars } from "../../utils/ast-analysis.js";
+import { containsUnsafe, freeVars } from "../../utils/ast-analysis.js";
 import { OptimizationPass } from "../optimization-pass.js";
 
 export class EtaReductionPass extends OptimizationPass {
     readonly name = "EtaReduction";
 
     override canApply(expr: CoreExpr): boolean {
-        return this.isEtaExpandable(expr);
+        // Per optimizer/CLAUDE.md, every pass must refuse to optimize inside
+        // unsafe blocks. Gate both canApply and transform on containsUnsafe
+        // so the module contract holds even when a future caller wires the
+        // pass into a context that doesn't pre-filter.
+        return !containsUnsafe(expr) && this.isEtaExpandable(expr);
     }
 
     override transform(expr: CoreExpr): CoreExpr {
+        if (containsUnsafe(expr)) {
+            return expr;
+        }
         return this.reduceEta(expr);
     }
 
