@@ -280,6 +280,21 @@ let complex = (x) => {
 
 // Generic function
 let identity = <T>(x: T): T => x;
+
+// Destructuring in lambda params (irrefutable patterns only).
+// Record and tuple destructuring work; include a type annotation when
+// the record type cannot be inferred from the call site alone.
+let getX = ({ x, y }: { x: Int, y: Int }) => x;
+let fst = ((a, b): (Int, Int)) => a;
+
+// Refutable patterns (list, constructor) are NOT accepted directly in
+// lambda params — the synthesized match is non-exhaustive. Use an
+// explicit match instead:
+//   ❌ let head = ([first, ..._]) => first;
+//   ✅ let head = (xs: List<Int>) => match xs {
+//          | [first, ..._] => Some(first)
+//          | _ => None
+//      };
 ```
 
 ### Pattern Matching
