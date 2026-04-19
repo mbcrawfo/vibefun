@@ -369,6 +369,72 @@ describe("EtaReductionPass", () => {
             const expr: CoreExpr = { kind: "CoreIntLit", value: 42, loc: testLoc };
             expect(pass.canApply(expr)).toBe(false);
         });
+
+        it("should return false when the tree contains an unsafe block", () => {
+            // (x) => f(x) — otherwise eta-expandable, but wrapped in unsafe
+            const inner: CoreExpr = {
+                kind: "CoreLambda",
+                param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                body: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "f", loc: testLoc },
+                    args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            };
+            const expr: CoreExpr = { kind: "CoreUnsafe", expr: inner, loc: testLoc };
+            expect(pass.canApply(expr)).toBe(false);
+        });
+    });
+
+    describe("reduceEta traverses non-lambda shapes", () => {
+        // These tests exercise the internal switch in `reduceEta` for node
+        // kinds that aren't directly eta-expandable but may contain
+        // reducible sub-expressions. Each starts with a top-level lambda
+        // so `transform` does not short-circuit at the outer `isEtaExpandable`
+        // check; the interesting work happens inside the body.
+        function wrapInLambda(body: CoreExpr): CoreExpr {
+            return {
+                kind: "CoreLambda",
+                param: { kind: "CoreVarPattern", name: "arg", loc: testLoc },
+                body,
+                loc: testLoc,
+            };
+        }
+
+        it("recurses through CoreUnaryOp", () => {
+            const expr = wrapInLambda({
+                kind: "CoreUnaryOp",
+                op: "Negate",
+                expr: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                loc: testLoc,
+            });
+
+            expect(() => pass.transform(expr)).not.toThrow();
+        });
+
+        it("recurses through CoreTypeAnnotation", () => {
+            const expr = wrapInLambda({
+                kind: "CoreTypeAnnotation",
+                expr: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                typeExpr: { kind: "CoreTypeConst", name: "Int", loc: testLoc },
+                loc: testLoc,
+            });
+
+            expect(() => pass.transform(expr)).not.toThrow();
+        });
+
+        it("recurses into CoreVariant args", () => {
+            const expr = wrapInLambda({
+                kind: "CoreVariant",
+                constructor: "Some",
+                args: [{ kind: "CoreIntLit", value: 1, loc: testLoc }],
+                loc: testLoc,
+            });
+
+            expect(() => pass.transform(expr)).not.toThrow();
+        });
     });
 
     describe("record with spread fields", () => {
