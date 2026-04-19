@@ -106,6 +106,49 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
         return { type: resolvedType, subst: finalSubst };
     }
 
+    // Polymorphic numeric operators: arithmetic (Add/Subtract/Multiply/Modulo) and
+    // comparison (LessThan/LessEqual/GreaterThan/GreaterEqual) accept both Int and
+    // Float. Unify the operands against each other, require the resolved type to
+    // be numeric, and return Int/Float for arithmetic or Bool for comparison.
+    // When the operand resolves to a free type variable, default to Int to match
+    // prior behavior for integer-literal inference.
+    if (isPolymorphicNumericOp(expr.op)) {
+        const unifyCtx = { loc: expr.loc };
+
+        const unifySubst = unify(leftType, rightType, unifyCtx);
+        const finalSubst = composeSubst(unifySubst, currentSubst);
+
+        const resolvedType = applySubst(finalSubst, leftType);
+
+        const isInt = isIntType(resolvedType);
+        const isFloat = isFloatType(resolvedType);
+
+        if (!isInt && !isFloat) {
+            if (resolvedType.type === "Const" || resolvedType.type === "App") {
+                throwDiagnostic("VF4010", expr.loc, {
+                    op: binOpSymbol(expr.op),
+                    left: typeToString(resolvedType),
+                    right: typeToString(resolvedType),
+                });
+            }
+            // Free type variable: default to Int for arithmetic / comparison
+            // (matches prior Int-only behavior in integer-literal programs).
+            const intUnify = unify(resolvedType, primitiveTypes.Int, unifyCtx);
+            const intSubst = composeSubst(intUnify, finalSubst);
+            const isComparison = isComparisonOp(expr.op);
+            return {
+                type: isComparison ? primitiveTypes.Bool : primitiveTypes.Int,
+                subst: intSubst,
+            };
+        }
+
+        const isComparison = isComparisonOp(expr.op);
+        return {
+            type: isComparison ? primitiveTypes.Bool : resolvedType,
+            subst: finalSubst,
+        };
+    }
+
     // Determine expected types and result type based on operator
     const { paramType, resultType } = getBinOpTypes(expr.op);
 
@@ -142,6 +185,62 @@ function isFloatType(t: Type): boolean {
 }
 
 /**
+ * Binary operators that accept either Int or Float operands via type-directed
+ * resolution (no separate Core AST variants needed — the emitted JavaScript
+ * behaves identically for both `number` subtypes).
+ */
+function isPolymorphicNumericOp(op: CoreBinaryOp): boolean {
+    switch (op) {
+        case "Add":
+        case "Subtract":
+        case "Multiply":
+        case "Modulo":
+        case "LessThan":
+        case "LessEqual":
+        case "GreaterThan":
+        case "GreaterEqual":
+            return true;
+        default:
+            return false;
+    }
+}
+
+function isComparisonOp(op: CoreBinaryOp): boolean {
+    switch (op) {
+        case "LessThan":
+        case "LessEqual":
+        case "GreaterThan":
+        case "GreaterEqual":
+            return true;
+        default:
+            return false;
+    }
+}
+
+function binOpSymbol(op: CoreBinaryOp): string {
+    switch (op) {
+        case "Add":
+            return "+";
+        case "Subtract":
+            return "-";
+        case "Multiply":
+            return "*";
+        case "Modulo":
+            return "%";
+        case "LessThan":
+            return "<";
+        case "LessEqual":
+            return "<=";
+        case "GreaterThan":
+            return ">";
+        case "GreaterEqual":
+            return ">=";
+        default:
+            return op;
+    }
+}
+
+/**
  * Get the parameter and result types for a binary operator
  *
  * @param op - The binary operator
@@ -149,18 +248,13 @@ function isFloatType(t: Type): boolean {
  */
 function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } {
     switch (op) {
-        // Arithmetic: (Int, Int) -> Int or (Float, Float) -> Float
-        // For now, we'll use a fresh type variable that can unify with Int or Float
+        // Polymorphic arithmetic (Add/Subtract/Multiply/Modulo) is handled with
+        // special logic in inferBinOp before this function is called.
         case "Add":
         case "Subtract":
         case "Multiply":
         case "Modulo": {
-            // Currently require Int for arithmetic operators
-            // TODO: Add polymorphic arithmetic to support Float operators
-            return {
-                paramType: primitiveTypes.Int,
-                resultType: primitiveTypes.Int,
-            };
+            throw new Error(`${op} should be handled by polymorphic numeric logic in inferBinOp`);
         }
 
         // Divide is handled with special logic in inferBinOp before this function is called
@@ -184,16 +278,13 @@ function getBinOpTypes(op: CoreBinaryOp): { paramType: Type; resultType: Type } 
             };
         }
 
-        // Comparison: (Int, Int) -> Bool or (Float, Float) -> Bool
+        // Polymorphic comparison (LessThan/LessEqual/GreaterThan/GreaterEqual) is
+        // handled with special logic in inferBinOp before this function is called.
         case "LessThan":
         case "LessEqual":
         case "GreaterThan":
         case "GreaterEqual": {
-            // For simplicity, require Int
-            return {
-                paramType: primitiveTypes.Int,
-                resultType: primitiveTypes.Bool,
-            };
+            throw new Error(`${op} should be handled by polymorphic numeric logic in inferBinOp`);
         }
 
         // Equality: (T, T) -> Bool (polymorphic)
@@ -258,6 +349,31 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
         return { type: resultType, subst: finalSubst };
     }
 
+    // Polymorphic unary negation: accept both Int and Float operands. The
+    // emitted JavaScript unary `-` handles both `number` subtypes identically.
+    if (expr.op === "Negate") {
+        const unifyCtx = { loc: expr.expr.loc };
+        const resolvedType = applySubst(operandResult.subst, operandResult.type);
+
+        if (isIntType(resolvedType) || isFloatType(resolvedType)) {
+            return { type: resolvedType, subst: operandResult.subst };
+        }
+
+        if (resolvedType.type === "Const" || resolvedType.type === "App") {
+            throwDiagnostic("VF4010", expr.loc, {
+                op: "-",
+                left: typeToString(resolvedType),
+                right: typeToString(resolvedType),
+            });
+        }
+
+        // Free type variable: default to Int for consistency with polymorphic
+        // binary arithmetic.
+        const intUnify = unify(resolvedType, primitiveTypes.Int, unifyCtx);
+        const finalSubst = composeSubst(intUnify, operandResult.subst);
+        return { type: primitiveTypes.Int, subst: finalSubst };
+    }
+
     const { paramType, resultType } = getUnaryOpTypes(expr.op);
 
     // Unify operand type with expected parameter type
@@ -279,13 +395,11 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
  */
 function getUnaryOpTypes(op: CoreUnary): { paramType: Type; resultType: Type } {
     switch (op) {
-        // Negation: Int -> Int or Float -> Float
-        case "Negate":
-            // For simplicity, require Int
-            return {
-                paramType: primitiveTypes.Int,
-                resultType: primitiveTypes.Int,
-            };
+        // Negation is handled with polymorphic numeric logic in inferUnaryOp
+        // before this function is called.
+        case "Negate": {
+            throw new Error("Negate should be handled by polymorphic numeric logic in inferUnaryOp");
+        }
 
         // Logical not: Bool -> Bool
         case "LogicalNot":
