@@ -17,7 +17,7 @@ import type { MatchPatternResult } from "./emit-patterns.js";
 import { visitExpr } from "../../utils/ast-transform.js";
 import { createContext } from "./context.js";
 import * as Declarations from "./emit-declarations.js";
-import * as Expressions from "./emit-expressions.js";
+import * as Expressions from "./emit-expressions/index.js";
 import * as Patterns from "./emit-patterns.js";
 import { generateRuntimeHelpers } from "./runtime-helpers.js";
 
