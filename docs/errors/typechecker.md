@@ -66,6 +66,7 @@ Errors during type checking and inference
 | [VF4802](#vf4802) | FFIInconsistentImport | **Error** |
 | [VF4803](#vf4803) | FFINotFunction | **Error** |
 | [VF4804](#vf4804) | FFIOverloadNotSupported | **Error** |
+| [VF4805](#vf4805) | ExternalCallOutsideUnsafe | **Error** |
 | [VF4900](#vf4900) | UnreachablePattern | **Warning** |
 | [VF5102](#vf5102) | DuplicateDeclaration | **Error** |
 
@@ -2312,6 +2313,47 @@ let result = overloadedExternal(arg)
 ### Related
 
 [VF4800](typechecker.md#vf4800), [VF4205](typechecker.md#vf4205)
+
+
+---
+
+## VF4805
+
+**ExternalCallOutsideUnsafe** **Error**
+
+### Message
+
+> External '{name}' can only be referenced inside an unsafe block
+
+### Explanation
+
+Calling or referencing an `external` binding is a trust boundary with JavaScript, so the language requires those references to appear inside an `unsafe` block. Pure Vibefun code that does not reach the FFI does not need `unsafe`, and a function whose body wraps its own call in `unsafe` can be invoked without further ceremony.
+
+### Example
+
+**Problem:**
+
+```vibefun
+external log: (String) -> Unit = "console.log";
+log("hello");
+```
+
+**Solution:**
+
+```vibefun
+external log: (String) -> Unit = "console.log";
+let _ = unsafe { log("hello") };
+```
+
+*Wrapped the external call in an unsafe block*
+
+### Hint
+
+> Wrap the call in `unsafe { ... }` or expose a safe wrapper that does
+
+### Related
+
+[VF4800](typechecker.md#vf4800)
 
 
 ---

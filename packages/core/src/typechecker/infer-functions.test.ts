@@ -35,7 +35,7 @@ describe("inferLambda invariants", () => {
             loc: testLoc,
         };
 
-        const ctx: InferenceContext = { env: emptyEnv(), subst: emptySubst(), level: 0 };
+        const ctx: InferenceContext = { env: emptyEnv(), subst: emptySubst(), level: 0, inUnsafe: false };
 
         expect(() => inferExpr(ctx, lambda as CoreExpr)).toThrow(
             /CoreLambda param must be CoreVarPattern or CoreWildcardPattern/,

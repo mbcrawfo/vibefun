@@ -183,6 +183,7 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
 
     // Infer the type of the body with the updated environment
     const bodyCtx: InferenceContext = {
+        ...ctx,
         env: bodyEnv,
         subst: valueCtx.subst,
         level: ctx.level, // Back to the original level
@@ -257,6 +258,7 @@ export function inferLetRecExpr(
         const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
 
         const valueCtx: InferenceContext = {
+            ...ctx,
             env: newEnv,
             subst: currentSubst,
             level: newLevel,
@@ -286,6 +288,7 @@ export function inferLetRecExpr(
     // Step 5: Generalize all bindings together
     const generalizedSchemes: Map<string, TypeScheme> = new Map();
     const valueCtxForGeneralize: InferenceContext = {
+        ...ctx,
         env: newEnv,
         subst: currentSubst,
         level: newLevel,
@@ -326,6 +329,7 @@ export function inferLetRecExpr(
 
     // Step 7: Infer the body expression with the updated environment
     const bodyCtx: InferenceContext = {
+        ...ctx,
         env: finalEnv,
         subst: currentSubst,
         level: ctx.level, // Back to the original level

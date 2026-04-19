@@ -216,6 +216,7 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 if (binding.pattern.kind === "CoreVarPattern") {
                     const name = binding.pattern.name;
                     const inferCtx = {
+                        ...ctx,
                         env: tempEnv,
                         subst: currentSubst,
                         level: ctx.level + 1,

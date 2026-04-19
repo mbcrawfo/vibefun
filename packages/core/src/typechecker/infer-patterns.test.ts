@@ -48,6 +48,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         const result = inferExpr(ctx, expr);
@@ -82,6 +83,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         const result = inferExpr(ctx, expr);
@@ -116,6 +118,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         const result = inferExpr(ctx, expr);
@@ -156,6 +159,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         const result = inferExpr(ctx, expr);
@@ -191,6 +195,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         const result = inferExpr(ctx, expr);
@@ -227,6 +232,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         expect(() => inferExpr(ctx, expr)).toThrow();
@@ -251,6 +257,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         expect(() => inferExpr(ctx, expr)).toThrow();
@@ -284,6 +291,7 @@ describe("Type Inference - Variants", () => {
             env,
             level: 0,
             subst: emptySubst(),
+            inUnsafe: false,
         };
 
         const result = inferExpr(ctx, expr);
@@ -310,6 +318,7 @@ describe("Type Inference - Match Expressions", () => {
         env,
         level: 0,
         subst: emptySubst(),
+        inUnsafe: false,
     };
 
     it("should infer type for simple Option match", () => {

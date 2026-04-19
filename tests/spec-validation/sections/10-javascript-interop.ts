@@ -60,6 +60,7 @@ test(S, "10-javascript-interop/unsafe-blocks.md", "calling external without unsa
     expectCompileError(
         `external console_log: (String) -> Unit = "console.log";
 let _ = console_log("hello");`,
+        "VF4805",
     ),
 );
 
