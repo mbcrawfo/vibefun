@@ -53,7 +53,11 @@ export function desugarBlock(
     // Process expressions right-to-left to build nested structure
     let result = desugar(lastExpr, gen);
 
-    // Work backwards through all but the last expression
+    // Work backwards through all but the last expression. Non-final
+    // expressions may be either `Let` bindings (introducing names) or
+    // bare side-effect expressions like `sideEffect();` or `x := 5;`.
+    // Bare expressions desugar to `let _ = expr in body`, reusing the
+    // wildcard-let path the typechecker and codegen already support.
     for (let i = exprs.length - 2; i >= 0; i--) {
         const expr = exprs[i];
         if (!expr) {
@@ -61,21 +65,27 @@ export function desugarBlock(
             throw new Error(`Block has undefined expression at index ${i}`);
         }
 
-        // Internal error: Each expression should be a Let binding (parser should enforce this)
-        if (expr.kind !== "Let") {
-            throw new Error("Non-let expression in block (except final expression)");
+        if (expr.kind === "Let") {
+            result = {
+                kind: "CoreLet",
+                pattern: desugarPattern(expr.pattern, gen),
+                value: desugar(expr.value, gen),
+                body: result,
+                mutable: expr.mutable,
+                recursive: expr.recursive,
+                loc: expr.loc,
+            };
+        } else {
+            result = {
+                kind: "CoreLet",
+                pattern: { kind: "CoreWildcardPattern", loc: expr.loc },
+                value: desugar(expr, gen),
+                body: result,
+                mutable: false,
+                recursive: false,
+                loc: expr.loc,
+            };
         }
-
-        // Wrap the result in a let binding
-        result = {
-            kind: "CoreLet",
-            pattern: desugarPattern(expr.pattern, gen),
-            value: desugar(expr.value, gen),
-            body: result,
-            mutable: expr.mutable,
-            recursive: expr.recursive,
-            loc: expr.loc,
-        };
     }
 
     return result;
