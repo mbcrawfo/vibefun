@@ -10,16 +10,23 @@
 import type { Expr, Pattern, TypeExpr } from "../../types/index.js";
 import type { ParserBase } from "../parser-base.js";
 
-// Forward declarations for circular dependencies
+// Forward declarations for circular dependencies. Each arrow stub is a
+// load-bearing safety net that only fires if parser.ts forgot to wire the
+// corresponding setter before parsing begins — unreachable in practice,
+// so excluded from coverage counting.
+/* v8 ignore next 3 */
 let _parseExpression: (parser: ParserBase) => Expr = () => {
     throw new Error("parseExpression not initialized - setParseExpression must be called first");
 };
+/* v8 ignore next 3 */
 let _parsePattern: (parser: ParserBase) => Pattern = () => {
     throw new Error("parsePattern not initialized - setParsePattern must be called first");
 };
+/* v8 ignore next 3 */
 let _parseTypeExpr: (parser: ParserBase) => TypeExpr = () => {
     throw new Error("parseTypeExpr not initialized - setParseTypeExpr must be called first");
 };
+/* v8 ignore next 3 */
 let _parseFunctionType: (parser: ParserBase) => TypeExpr = () => {
     throw new Error("parseFunctionType not initialized - setParseFunctionType must be called first");
 };

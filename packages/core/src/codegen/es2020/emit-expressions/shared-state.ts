@@ -11,17 +11,21 @@
 import type { CorePattern } from "../../../types/core-ast.js";
 import type { EmitContext } from "../context.js";
 
-// Forward declaration for pattern emission (set by generator.ts)
+// Forward declarations. Each arrow stub is a load-bearing safety net that
+// only fires if generator.ts forgot to wire the corresponding setter
+// before emission begins — unreachable in practice, so excluded from
+// coverage counting.
+/* v8 ignore next 3 */
 let emitPatternFn: (pattern: CorePattern, ctx: EmitContext) => string = () => {
     throw new Error("emitPatternFn not initialized - setEmitPattern must be called first");
 };
 
-// Forward declaration for extracting pattern names (set by generator.ts)
+/* v8 ignore next 3 */
 let extractPatternNamesFn: (pattern: CorePattern) => string[] = () => {
     throw new Error("extractPatternNamesFn not initialized - setExtractPatternNames must be called first");
 };
 
-// Forward declaration for match pattern emission (set by generator.ts)
+/* v8 ignore next 7 */
 let emitMatchPatternFn: (
     pattern: CorePattern,
     scrutinee: string,
