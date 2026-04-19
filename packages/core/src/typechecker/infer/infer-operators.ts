@@ -331,6 +331,24 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     // Infer operand type
     const operandResult = inferExprFn(ctx, expr.expr);
 
+    // Prefix `!` disambiguation: the parser always emits `LogicalNot` for
+    // prefix `!` (postfix `x!` emits `Deref` directly). Per spec section
+    // 07-mutable-references "The `!` Operator: Type-Based Disambiguation",
+    // when the operand resolves to `Ref<T>`, rewrite the op to `Deref`. When
+    // the operand is a free type variable we keep `LogicalNot` — dereffing
+    // an unknown type is almost never the intended default and users can
+    // always use postfix `x!` to force `Deref`.
+    if (expr.op === "LogicalNot") {
+        const resolvedOperand = applySubst(operandResult.subst, operandResult.type);
+        if (
+            resolvedOperand.type === "App" &&
+            resolvedOperand.constructor.type === "Const" &&
+            resolvedOperand.constructor.name === "Ref"
+        ) {
+            (expr as { op: CoreUnary }).op = "Deref";
+        }
+    }
+
     // Special handling for Deref: Ref<T> -> T
     if (expr.op === "Deref") {
         const unifyCtx = { loc: expr.expr.loc };
