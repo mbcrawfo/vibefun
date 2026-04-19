@@ -51,13 +51,14 @@ describe("mutable references", () => {
     });
 
     it("runs non-let block statements for their side effects before the final expression", () => {
-        // { x := 1; x := 2; !x } must run both assignments in order,
-        // then evaluate the dereference.
+        // Both assignments must execute in order: the second reads the
+        // first's result via `!x + 1`, so a dropped or reordered first
+        // statement would produce `1` (or `NaN`), not `2`.
         const result = compileAndGetExport(
             `let mut x = ref(0);
             let final = {
                 x := 1;
-                x := 2;
+                x := !x + 1;
                 !x;
             };`,
             "final",
