@@ -6,7 +6,7 @@ Emits ES2020 JavaScript from a typed Core module.
 
 - `generator.ts` — entry point; wires dependency injection and drives emission.
 - `context.ts` — `EmitContext` (output buffer, indent, fresh-var generator, source-map state).
-- `emit-declarations.ts`, `emit-expressions.ts`, `emit-patterns.ts`, `emit-operators.ts` — the per-node emitters.
+- `emit-declarations.ts`, `emit-expressions/`, `emit-patterns.ts`, `emit-operators.ts` — the per-node emitters.
 - `runtime-helpers.ts` — small JS helpers inserted into generated output.
 - `reserved-words.ts` — ES2020 reserved-name list for identifier sanitization.
 

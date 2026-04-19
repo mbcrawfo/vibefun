@@ -8,7 +8,7 @@ import {
     setEmitMatchPattern,
     setEmitPattern,
     setExtractPatternNames,
-} from "./emit-expressions.js";
+} from "./emit-expressions/index.js";
 import { emitMatchPattern, emitPattern, extractPatternNames } from "./emit-patterns.js";
 import {
     app,
