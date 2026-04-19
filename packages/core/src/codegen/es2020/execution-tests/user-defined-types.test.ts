@@ -82,6 +82,22 @@ describe("type aliases", () => {
         );
         expect(result).toBe(20);
     });
+
+    it("exhaustiveness still works when scrutinee is an alias of a variant", () => {
+        // Regression test for CodeRabbit review: exhaustiveness must expand
+        // aliases before picking the variant name.
+        const result = compileAndGetExport(
+            `type Status = Ready | Busy;
+            type Alias = Status;
+            let s: Alias = Ready;
+            let out = match s {
+                | Ready => 1
+                | Busy => 2
+            };`,
+            "out",
+        );
+        expect(result).toBe(1);
+    });
 });
 
 describe("generic record types", () => {
