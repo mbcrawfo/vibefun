@@ -213,8 +213,8 @@ let divMod = (a: Int, b: Int): (Int, Int) => (a / b, a % b);
 let (q, r) = divMod(17, 5);     // q = 3, r = 2
 
 // ❌ No index access — tuples are not arrays
-let pair = (1, 2);
-// let x = pair.0;  // compile error — destructure instead
+// let x = pair.0;  // compile error — destructure instead (use the `pair`
+//                  // declared above, or `let (fst, _) = pair;`)
 ```
 
 **Tuples vs. records:** tuples are positional and anonymous (`(Int, String)`);
