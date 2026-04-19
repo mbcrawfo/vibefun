@@ -554,6 +554,56 @@ describe("Desugarer Integration - Cross-Module Sugar Features", () => {
         }
     });
 
+    it("should desugar record-destructuring lambda params into a match over a fresh scrutinee", () => {
+        writeVfFile(tempDir, "geom.vf", "export let getX = ({ x, y }: { x: Int, y: Int }) => x;");
+
+        writeVfFile(tempDir, "main.vf", 'import { getX } from "./geom";\nlet result = getX({ x: 42, y: 10 });');
+
+        const entryPoint = path.join(tempDir, "main.vf");
+        const resolution = loadAndResolveModules(entryPoint);
+
+        const geomPath = Array.from(resolution.modules.keys()).find((p) => p.endsWith("geom.vf"));
+        expect(geomPath).toBeDefined();
+
+        const geomModule = resolution.modules.get(geomPath!);
+        expect(geomModule).toBeDefined();
+
+        const desugared = desugarModule(geomModule!);
+        expect(desugared.declarations).toHaveLength(1);
+        const decl = desugared.declarations[0]!;
+        if (decl.kind !== "CoreLetDecl") {
+            throw new Error(`expected CoreLetDecl, got ${decl.kind}`);
+        }
+
+        expect(decl.value.kind).toBe("CoreLambda");
+        if (decl.value.kind !== "CoreLambda") return;
+        expect(decl.value.param.kind).toBe("CoreVarPattern");
+        if (decl.value.param.kind !== "CoreVarPattern") return;
+        const tmpName = decl.value.param.name;
+        expect(tmpName.startsWith("$param")).toBe(true);
+
+        expect(decl.value.body.kind).toBe("CoreMatch");
+        if (decl.value.body.kind !== "CoreMatch") return;
+        // Scrutinee is a type-annotated CoreVar because the source param
+        // had `: { x: Int, y: Int }`.
+        expect(decl.value.body.expr.kind).toBe("CoreTypeAnnotation");
+        if (decl.value.body.expr.kind !== "CoreTypeAnnotation") return;
+        expect(decl.value.body.expr.expr.kind).toBe("CoreVar");
+        if (decl.value.body.expr.expr.kind === "CoreVar") {
+            expect(decl.value.body.expr.expr.name).toBe(tmpName);
+        }
+        expect(decl.value.body.cases).toHaveLength(1);
+        const arm = decl.value.body.cases[0]!;
+        expect(arm.pattern.kind).toBe("CoreRecordPattern");
+        if (arm.pattern.kind === "CoreRecordPattern") {
+            expect(arm.pattern.fields.map((f) => f.name)).toEqual(["x", "y"]);
+        }
+        expect(arm.body.kind).toBe("CoreVar");
+        if (arm.body.kind === "CoreVar") {
+            expect(arm.body.name).toBe("x");
+        }
+    });
+
     it("should desugar block expressions in imported module declarations", () => {
         // Note: every statement in a block needs a semicolon, including the final expression
         writeVfFile(

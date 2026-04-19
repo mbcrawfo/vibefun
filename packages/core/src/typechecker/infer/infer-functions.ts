@@ -8,7 +8,6 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { throwDiagnostic } from "../../diagnostics/index.js";
 import { freshTypeVar, funType } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
@@ -39,13 +38,11 @@ export function inferLambda(ctx: InferenceContext, expr: Extract<CoreExpr, { kin
     // Create fresh type variable for parameter
     const paramType = freshTypeVar(ctx.level);
 
-    // Variable and wildcard patterns are supported in lambda parameters.
-    // Wildcard comes from zero-arg lambdas `() => expr` desugaring.
+    // Invariant: the desugarer lifts destructuring lambda params into a
+    // synthesized match, so Core lambdas carry only variable or wildcard
+    // patterns. Hitting this branch means a desugarer bug, not user error.
     if (expr.param.kind !== "CoreVarPattern" && expr.param.kind !== "CoreWildcardPattern") {
-        throwDiagnostic("VF4017", expr.loc, {
-            feature: "Pattern matching in lambda parameters",
-            hint: "Only variable or wildcard patterns are currently supported",
-        });
+        throw new Error(`CoreLambda param must be CoreVarPattern or CoreWildcardPattern, got ${expr.param.kind}`);
     }
 
     const newEnv: TypeEnv = {
