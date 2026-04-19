@@ -56,8 +56,8 @@ import { desugarRecordTypeField } from "./desugarRecordTypeField.js";
 import { desugarTypeDefinition } from "./desugarTypeDefinition.js";
 import { desugarTypeExpr } from "./desugarTypeExpr.js";
 import { desugarVariantConstructor } from "./desugarVariantConstructor.js";
+import { expandOrPatterns } from "./expandOrPatterns.js";
 import { FreshVarGen } from "./FreshVarGen.js";
-import { validateOrPatternNoBindings } from "./validateOrPattern.js";
 
 /**
  * Desugar a surface expression to a core expression
@@ -201,39 +201,25 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Match - desugar expression and cases, expanding or-patterns
+        // Match - desugar expression and cases, distributing or-patterns at
+        // every nesting depth into separate cases (see expandOrPatterns).
         case "Match":
             return {
                 kind: "CoreMatch",
                 expr: desugar(expr.expr, gen),
-                cases: expr.cases.flatMap((matchCase) => {
-                    // If pattern is OrPattern, expand into multiple cases
-                    if (matchCase.pattern.kind === "OrPattern") {
-                        validateOrPatternNoBindings(matchCase.pattern.patterns);
-                        return matchCase.pattern.patterns.map((altPattern) => {
-                            const coreCase: CoreMatchCase = {
-                                pattern: desugarPattern(altPattern, gen),
-                                body: desugar(matchCase.body, gen),
-                                loc: matchCase.loc,
-                            };
-                            if (matchCase.guard) {
-                                coreCase.guard = desugar(matchCase.guard, gen);
-                            }
-                            return coreCase;
-                        });
-                    }
-
-                    // Regular pattern - just desugar normally
-                    const coreCase: CoreMatchCase = {
-                        pattern: desugarPattern(matchCase.pattern, gen),
-                        body: desugar(matchCase.body, gen),
-                        loc: matchCase.loc,
-                    };
-                    if (matchCase.guard) {
-                        coreCase.guard = desugar(matchCase.guard, gen);
-                    }
-                    return [coreCase];
-                }),
+                cases: expr.cases.flatMap((matchCase) =>
+                    expandOrPatterns(matchCase.pattern).map((p) => {
+                        const coreCase: CoreMatchCase = {
+                            pattern: desugarPattern(p, gen),
+                            body: desugar(matchCase.body, gen),
+                            loc: matchCase.loc,
+                        };
+                        if (matchCase.guard) {
+                            coreCase.guard = desugar(matchCase.guard, gen);
+                        }
+                        return coreCase;
+                    }),
+                ),
                 loc: expr.loc,
             };
 

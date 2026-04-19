@@ -784,6 +784,228 @@ describe("Or-Pattern - Source Locations", () => {
     });
 });
 
+describe("Or-Pattern - Nested Expansion", () => {
+    it("expands an or-pattern inside a constructor argument", () => {
+        // match r { | Ok("a" | "b") => 1 | _ => 0 }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "r", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "ConstructorPattern",
+                        constructor: "Ok",
+                        args: [
+                            {
+                                kind: "OrPattern",
+                                patterns: [
+                                    { kind: "LiteralPattern", literal: "a", loc: testLoc },
+                                    { kind: "LiteralPattern", literal: "b", loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.cases).toHaveLength(3); // Ok("a"), Ok("b"), _
+        const first = result.cases[0]!.pattern as CoreVariantPattern;
+        const second = result.cases[1]!.pattern as CoreVariantPattern;
+        expect(first.kind).toBe("CoreVariantPattern");
+        expect(first.constructor).toBe("Ok");
+        expect((first.args[0]! as CoreLiteralPattern).literal).toBe("a");
+        expect(second.kind).toBe("CoreVariantPattern");
+        expect((second.args[0]! as CoreLiteralPattern).literal).toBe("b");
+    });
+
+    it("expands an or-pattern inside a tuple element", () => {
+        // match t { | (0 | 1, _) => 1 | _ => 0 }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "t", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "TuplePattern",
+                        elements: [
+                            {
+                                kind: "OrPattern",
+                                patterns: [
+                                    { kind: "LiteralPattern", literal: 0, loc: testLoc },
+                                    { kind: "LiteralPattern", literal: 1, loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                            { kind: "WildcardPattern", loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.cases).toHaveLength(3);
+        expect(result.cases[0]!.pattern.kind).toBe("CoreTuplePattern");
+        expect(result.cases[1]!.pattern.kind).toBe("CoreTuplePattern");
+    });
+
+    it("cartesian-products multiple nested or-patterns", () => {
+        // match p { | (1 | 2, 3 | 4) => 1 | _ => 0 }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "p", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "TuplePattern",
+                        elements: [
+                            {
+                                kind: "OrPattern",
+                                patterns: [
+                                    { kind: "LiteralPattern", literal: 1, loc: testLoc },
+                                    { kind: "LiteralPattern", literal: 2, loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                            {
+                                kind: "OrPattern",
+                                patterns: [
+                                    { kind: "LiteralPattern", literal: 3, loc: testLoc },
+                                    { kind: "LiteralPattern", literal: 4, loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 1, loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        expect(result.cases).toHaveLength(5); // 2*2 for the product + 1 wildcard
+    });
+
+    it("flattens or-inside-or", () => {
+        // match x { | (1 | 2) | 3 => "small" | _ => "big" }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "x", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "OrPattern",
+                        patterns: [
+                            {
+                                kind: "OrPattern",
+                                patterns: [
+                                    { kind: "LiteralPattern", literal: 1, loc: testLoc },
+                                    { kind: "LiteralPattern", literal: 2, loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                            { kind: "LiteralPattern", literal: 3, loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "StringLit", value: "small", loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "StringLit", value: "big", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugar(match) as CoreMatch;
+
+        // 3 literal alternatives + wildcard
+        expect(result.cases).toHaveLength(4);
+    });
+
+    it("rejects a binding found in a nested or-pattern alternative", () => {
+        // match r { | Ok(Some(x) | None) => 0 | _ => 0 }
+        const match: Expr = {
+            kind: "Match",
+            expr: { kind: "Var", name: "r", loc: testLoc },
+            cases: [
+                {
+                    pattern: {
+                        kind: "ConstructorPattern",
+                        constructor: "Ok",
+                        args: [
+                            {
+                                kind: "OrPattern",
+                                patterns: [
+                                    {
+                                        kind: "ConstructorPattern",
+                                        constructor: "Some",
+                                        args: [{ kind: "VarPattern", name: "x", loc: testLoc }],
+                                        loc: testLoc,
+                                    },
+                                    {
+                                        kind: "ConstructorPattern",
+                                        constructor: "None",
+                                        args: [],
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "WildcardPattern", loc: testLoc },
+                    body: { kind: "IntLit", value: 0, loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        expect(() => desugar(match)).toThrow("VF4403");
+    });
+});
+
 describe("Or-Pattern - Variable Binding Validation (VF4403)", () => {
     it("rejects an or-pattern alternative that binds a variable", () => {
         // match opt { | Some(x) | None => 0 }
