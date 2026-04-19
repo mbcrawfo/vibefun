@@ -121,7 +121,7 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
     // For recursive bindings, unify the inferred type with the temporary type variable
     if (expr.recursive && tempType) {
         const tempTypeSubst = applySubst(valueResult.subst, tempType);
-        const unifyCtx = { loc: expr.loc };
+        const unifyCtx = { loc: expr.loc, types: ctx.env.types };
         const unifySubst = unify(tempTypeSubst, valueResult.type, unifyCtx);
         valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
     }
@@ -248,7 +248,7 @@ export function inferLetRecExpr(
         }
 
         const tempTypeSubst = applySubst(currentSubst, tempType);
-        const unifyCtx = { loc: binding.loc };
+        const unifyCtx = { loc: binding.loc, types: ctx.env.types };
         const unifySubst = unify(tempTypeSubst, inferredType, unifyCtx);
         currentSubst = composeSubst(unifySubst, currentSubst);
     }

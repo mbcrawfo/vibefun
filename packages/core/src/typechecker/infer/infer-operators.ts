@@ -11,7 +11,7 @@ import type { InferenceContext, InferResult } from "./infer-context.js";
 import { throwDiagnostic } from "../../diagnostics/index.js";
 import { typeToString } from "../format.js";
 import { appType, constType, freshTypeVar, primitiveTypes } from "../types.js";
-import { applySubst, composeSubst, unify } from "../unify.js";
+import { applySubst, composeSubst, expandTypeAlias, unify } from "../unify.js";
 
 // Import inferExpr - will be set via dependency injection
 // Initialized to error-throwing function for type safety and better error messages
@@ -49,7 +49,7 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
 
     // Special handling for RefAssign: (Ref<T>, T) -> Unit
     if (expr.op === "RefAssign") {
-        const unifyCtx = { loc: expr.loc };
+        const unifyCtx = { loc: expr.loc, types: ctx.env.types };
 
         // Left operand must be Ref<T>
         const elemType = freshTypeVar(ctx.level);
@@ -73,14 +73,15 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
 
     // Special handling for Divide: infer operand types, then lower to IntDivide or FloatDivide
     if (expr.op === "Divide") {
-        const unifyCtx = { loc: expr.loc };
+        const unifyCtx = { loc: expr.loc, types: ctx.env.types };
 
         // Unify left and right (must be same type)
         const unifySubst = unify(leftType, rightType, unifyCtx);
         const finalSubst = composeSubst(unifySubst, currentSubst);
 
-        // Get the resolved type
-        const resolvedType = applySubst(finalSubst, leftType);
+        // Get the resolved type. Expand user-defined aliases transparently so
+        // `type UserId = Int; let x: UserId = 4; x / 2` works.
+        const resolvedType = expandTypeAlias(applySubst(finalSubst, leftType), ctx.env.types);
 
         // Check if resolved type is numeric (Int or Float)
         const isInt = isIntType(resolvedType);
@@ -113,12 +114,14 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     // When the operand resolves to a free type variable, default to Int to match
     // prior behavior for integer-literal inference.
     if (isPolymorphicNumericOp(expr.op)) {
-        const unifyCtx = { loc: expr.loc };
+        const unifyCtx = { loc: expr.loc, types: ctx.env.types };
 
         const unifySubst = unify(leftType, rightType, unifyCtx);
         const finalSubst = composeSubst(unifySubst, currentSubst);
 
-        const resolvedType = applySubst(finalSubst, leftType);
+        // Expand user-defined aliases transparently so `type UserId = Int`
+        // participates in numeric operators.
+        const resolvedType = expandTypeAlias(applySubst(finalSubst, leftType), ctx.env.types);
 
         const isInt = isIntType(resolvedType);
         const isFloat = isFloatType(resolvedType);
@@ -153,7 +156,7 @@ export function inferBinOp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     const { paramType, resultType } = getBinOpTypes(expr.op);
 
     // Unify operand types with expected parameter type
-    const unifyCtx = { loc: expr.loc };
+    const unifyCtx = { loc: expr.loc, types: ctx.env.types };
 
     const leftUnify = unify(leftType, paramType, unifyCtx);
     const subst1 = composeSubst(leftUnify, currentSubst);
@@ -351,7 +354,7 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
 
     // Special handling for Deref: Ref<T> -> T
     if (expr.op === "Deref") {
-        const unifyCtx = { loc: expr.expr.loc };
+        const unifyCtx = { loc: expr.expr.loc, types: ctx.env.types };
 
         // Operand must be Ref<T>
         const elemType = freshTypeVar(ctx.level);
@@ -370,8 +373,8 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     // Polymorphic unary negation: accept both Int and Float operands. The
     // emitted JavaScript unary `-` handles both `number` subtypes identically.
     if (expr.op === "Negate") {
-        const unifyCtx = { loc: expr.expr.loc };
-        const resolvedType = applySubst(operandResult.subst, operandResult.type);
+        const unifyCtx = { loc: expr.expr.loc, types: ctx.env.types };
+        const resolvedType = expandTypeAlias(applySubst(operandResult.subst, operandResult.type), ctx.env.types);
 
         if (isIntType(resolvedType) || isFloatType(resolvedType)) {
             return { type: resolvedType, subst: operandResult.subst };
@@ -395,7 +398,7 @@ export function inferUnaryOp(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     const { paramType, resultType } = getUnaryOpTypes(expr.op);
 
     // Unify operand type with expected parameter type
-    const unifyCtx = { loc: expr.expr.loc };
+    const unifyCtx = { loc: expr.expr.loc, types: ctx.env.types };
     const unifySubst = unify(operandResult.type, paramType, unifyCtx);
     const finalSubst = composeSubst(unifySubst, operandResult.subst);
 

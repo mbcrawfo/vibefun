@@ -55,8 +55,9 @@ export function checkPattern(
     level: number,
     ctx?: UnifyContext,
 ): PatternCheckResult {
-    // Create context from pattern location if not provided
-    const effectiveCtx: UnifyContext = ctx ?? { loc: pattern.loc };
+    // Create context from pattern location if not provided. Always thread
+    // env.types through so user-defined aliases expand during unification.
+    const effectiveCtx: UnifyContext = ctx ?? { loc: pattern.loc, types: env.types };
 
     switch (pattern.kind) {
         case "CoreWildcardPattern":
@@ -355,30 +356,31 @@ export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrut
         return [];
     }
 
-    // For variant types (App types like List<T>, Option<T>), check constructor coverage
-    if (scrutineeType.type === "App") {
-        // Get the type constructor name
-        const constructorType = scrutineeType.constructor;
-        if (constructorType.type === "Const") {
-            // Get all constructors for this type
-            const constructors = getConstructorsForType(env, constructorType.name);
+    // For variant types — both `App<Const, ...>` (generics like List<T>,
+    // Option<T>) and bare `Const` (non-generic user types like `Color`) —
+    // check constructor coverage against the declared constructor set.
+    const variantName =
+        scrutineeType.type === "App" && scrutineeType.constructor.type === "Const"
+            ? scrutineeType.constructor.name
+            : scrutineeType.type === "Const"
+              ? scrutineeType.name
+              : undefined;
 
-            // Get constructors covered by patterns
+    if (variantName !== undefined) {
+        const constructors = getConstructorsForType(env, variantName);
+        if (constructors.length > 0) {
             const coveredConstructors = new Set<string>();
             for (const pattern of patterns) {
                 if (pattern.kind === "CoreVariantPattern") {
                     coveredConstructors.add(pattern.constructor);
                 }
             }
-
-            // Find missing constructors
             const missing: string[] = [];
             for (const ctor of constructors) {
                 if (!coveredConstructors.has(ctor.name)) {
                     missing.push(ctor.name);
                 }
             }
-
             return missing;
         }
     }
@@ -437,14 +439,19 @@ function getConstructorsForType(env: TypeEnv, typeName: string): ConstructorInfo
         const scheme = binding.scheme;
         const returnType = scheme.type.type === "Fun" ? scheme.type.return : scheme.type;
 
-        // Check if return type matches the scrutinee type
-        // For App types like List<T>, Option<T>, the constructor should be Const with matching name
+        // Check if return type matches the scrutinee type. Constructors return:
+        //   - `App(Const(T), ...)` for generic variants (List<T>, Box<T>, ...)
+        //   - `Const(T)` for non-generic variants (user type Color, ...) or
+        //     for nullary constructors of non-generic types.
         if (returnType.type === "App") {
             const constructor = returnType.constructor;
             if (constructor.type === "Const" && constructor.name === typeName) {
                 const arity = scheme.type.type === "Fun" ? scheme.type.params.length : 0;
                 constructors.push({ name, arity });
             }
+        } else if (returnType.type === "Const" && returnType.name === typeName) {
+            const arity = scheme.type.type === "Fun" ? scheme.type.params.length : 0;
+            constructors.push({ name, arity });
         }
     }
 

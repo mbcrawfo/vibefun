@@ -83,8 +83,8 @@ export function getBuiltinEnv(): Map<string, TypeScheme> {
     // Cons: (T, List<T>) -> List<T>
     env.set("Cons", polyScheme([tVarId], funType([tVar, listOfT], listOfT)));
 
-    // Nil: () -> List<T>
-    env.set("Nil", polyScheme([tVarId], funType([], listOfT)));
+    // Nil: List<T> — nullary constructor value (not a function)
+    env.set("Nil", polyScheme([tVarId], listOfT));
 
     // Option<T> constructors
     // type Option<T> = Some(T) | None
@@ -95,8 +95,8 @@ export function getBuiltinEnv(): Map<string, TypeScheme> {
     // Some: (T) -> Option<T>
     env.set("Some", polyScheme([tVar2Id], funType([tVar2], optionOfT)));
 
-    // None: () -> Option<T>
-    env.set("None", polyScheme([tVar2Id], funType([], optionOfT)));
+    // None: Option<T> — nullary constructor value (not a function)
+    env.set("None", polyScheme([tVar2Id], optionOfT));
 
     // Result<T, E> constructors
     // type Result<T, E> = Ok(T) | Err(E)

@@ -14,6 +14,7 @@ import { buildEnvironment } from "./environment.js";
 import { convertTypeExpr, createContext, inferExpr } from "./infer/index.js";
 import { getStdlibModuleSignature, STDLIB_PACKAGE } from "./module-signatures/index.js";
 import { checkPattern } from "./patterns.js";
+import { registerTypeDeclarations } from "./type-declarations.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
 
@@ -70,6 +71,11 @@ export function typeCheck(module: CoreModule, _options?: TypeCheckOptions): Type
     // This includes built-ins, user type definitions, and external declarations
     // Note: CoreModule is structurally compatible with Module for buildEnvironment's purposes
     let env = buildEnvironment(module as unknown as Module);
+
+    // First-pass: register user-defined type declarations (aliases, records,
+    // variants) so that constructor references and type annotations resolve
+    // regardless of declaration order.
+    env = registerTypeDeclarations(module, env);
 
     // Map to store inferred types for top-level declarations
     const declarationTypes = new Map<string, Type>();
@@ -128,7 +134,7 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 const result = inferExpr({ ...ctx, env: tempEnv }, decl.value);
 
                 // Unify placeholder with inferred type
-                const unifyCtx = { loc: decl.loc };
+                const unifyCtx = { loc: decl.loc, types: env.types };
                 const unifySubst = unify(applySubst(result.subst, placeholderType), result.type, unifyCtx);
                 const finalSubst = composeSubst(unifySubst, result.subst);
                 const finalType = applySubst(finalSubst, result.type);
@@ -222,7 +228,7 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                     const placeholder = placeholders.get(name);
                     if (placeholder) {
                         const placeholderApplied = applySubst(result.subst, placeholder);
-                        const unifyCtx = { loc: binding.loc };
+                        const unifyCtx = { loc: binding.loc, types: env.types };
                         const unifySubst = unify(placeholderApplied, result.type, unifyCtx);
                         currentSubst = composeSubst(unifySubst, result.subst);
 

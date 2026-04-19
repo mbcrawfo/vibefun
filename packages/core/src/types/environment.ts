@@ -106,6 +106,13 @@ export type TypeBinding =
           kind: "Alias";
           /** Type parameters (if generic) */
           params: string[];
+          /**
+           * Type variable IDs used for each parameter in `definition`. Present
+           * for user-defined generic aliases — unification substitutes type
+           * arguments into these IDs when expanding `Box<Int>` etc. Absent for
+           * ad-hoc test fixtures and the zero-parameter case.
+           */
+          paramIds?: number[];
           /** The type this aliases */
           definition: Type;
           /** Source location */
@@ -115,6 +122,8 @@ export type TypeBinding =
           kind: "Record";
           /** Type parameters (if generic) */
           params: string[];
+          /** Type variable IDs for each parameter; see `Alias.paramIds`. */
+          paramIds?: number[];
           /** Record fields */
           fields: Map<string, Type>;
           /** Source location */
@@ -124,6 +133,8 @@ export type TypeBinding =
           kind: "Variant";
           /** Type parameters (if generic) */
           params: string[];
+          /** Type variable IDs for each parameter; see `Alias.paramIds`. */
+          paramIds?: number[];
           /** Variant constructors and their argument types */
           constructors: Map<string, Type[]>;
           /** Source location */

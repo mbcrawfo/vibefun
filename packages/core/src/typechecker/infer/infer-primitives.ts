@@ -236,7 +236,7 @@ function inferTypeAnnotation(
     const annotationType = convertTypeExpr(expr.typeExpr);
 
     // Unify inferred type with annotation
-    const unifyCtx = { loc: expr.loc };
+    const unifyCtx = { loc: expr.loc, types: ctx.env.types };
     const unifySubst = unify(exprResult.type, annotationType, unifyCtx);
     const finalSubst = composeSubst(unifySubst, exprResult.subst);
 
@@ -270,17 +270,29 @@ function inferUnsafe(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
  * @param typeExpr - The type expression to convert
  * @returns The corresponding Type
  */
-export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
+export function convertTypeExpr(typeExpr: CoreTypeExpr, typeParams?: Map<string, Type>): Type {
     switch (typeExpr.kind) {
         case "CoreTypeConst":
+            // Single-letter uppercase names look like a type constant to the parser
+            // but within a generic type declaration body they refer to type
+            // parameters. Map them via the typeParams env when provided.
+            if (typeParams) {
+                const bound = typeParams.get(typeExpr.name);
+                if (bound) {
+                    return bound;
+                }
+            }
             return constType(typeExpr.name);
 
         case "CoreFunctionType":
-            return funType(typeExpr.params.map(convertTypeExpr), convertTypeExpr(typeExpr.return_));
+            return funType(
+                typeExpr.params.map((p) => convertTypeExpr(p, typeParams)),
+                convertTypeExpr(typeExpr.return_, typeParams),
+            );
 
         case "CoreTypeApp": {
-            const constructor = convertTypeExpr(typeExpr.constructor);
-            const args = typeExpr.args.map(convertTypeExpr);
+            const constructor = convertTypeExpr(typeExpr.constructor, typeParams);
+            const args = typeExpr.args.map((a) => convertTypeExpr(a, typeParams));
             return {
                 type: "App",
                 constructor,
@@ -288,19 +300,28 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
             };
         }
 
-        case "CoreTypeVar":
-            // Type variables in type expressions are not supported yet
-            // These would require generics/parametric types in user-defined types
+        case "CoreTypeVar": {
+            // Inside a generic type declaration, `T` in `type Box<T> = ...`
+            // resolves to a real type variable from the typeParams env.
+            if (typeParams) {
+                const bound = typeParams.get(typeExpr.name);
+                if (bound) {
+                    return bound;
+                }
+            }
+            // Outside a generic declaration, type variables in annotations are
+            // not supported — they require explicit polymorphism syntax (3.5.3).
             throwDiagnostic("VF4017", typeExpr.loc, {
                 feature: "Type variables in type annotations",
                 hint: `Type variable '${typeExpr.name}' cannot be used here`,
             });
+        }
 
         case "CoreRecordType": {
             // Convert record type: { field1: Type1, field2: Type2 }
             const fields = new Map<string, Type>();
             for (const field of typeExpr.fields) {
-                fields.set(field.name, convertTypeExpr(field.typeExpr));
+                fields.set(field.name, convertTypeExpr(field.typeExpr, typeParams));
             }
             return {
                 type: "Record",
@@ -318,7 +339,7 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
 
         case "CoreUnionType": {
             // Convert union type: Type1 | Type2 | Type3
-            const types = typeExpr.types.map(convertTypeExpr);
+            const types = typeExpr.types.map((t) => convertTypeExpr(t, typeParams));
             return {
                 type: "Union",
                 types,
@@ -327,7 +348,7 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr): Type {
 
         case "CoreTupleType": {
             // Convert tuple type: (Type1, Type2, Type3)
-            const elements = typeExpr.elements.map(convertTypeExpr);
+            const elements = typeExpr.elements.map((e) => convertTypeExpr(e, typeParams));
             return {
                 type: "Tuple",
                 elements,
