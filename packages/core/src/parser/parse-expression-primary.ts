@@ -50,6 +50,62 @@ export function setComplexParsers(fns: {
 }
 
 /**
+ * Parse the body of an `unsafe { ... }` expression.
+ *
+ * Accepts either a single expression (with optional surrounding whitespace)
+ * or a multi-statement block with semicolon-separated statements. Returns
+ * the single expression directly when there is one statement so the Core
+ * AST after desugaring is unchanged from the historical behavior.
+ *
+ * Consumes the closing RBRACE.
+ */
+function parseUnsafeBody(parser: ParserBase, lbraceLoc: Location): Expr {
+    // Skip leading newlines inside the braces
+    while (parser.match("NEWLINE"));
+
+    // Empty body: unsafe { } → Unit-valued block
+    if (parser.check("RBRACE")) {
+        parser.advance();
+        return { kind: "Block", exprs: [], loc: lbraceLoc };
+    }
+
+    const exprs: Expr[] = [];
+    while (!parser.check("RBRACE") && !parser.isAtEnd()) {
+        exprs.push(parseExpressionFn(parser));
+
+        while (parser.match("NEWLINE"));
+
+        // Allow final expression to omit the trailing semicolon
+        if (parser.check("RBRACE")) {
+            break;
+        }
+
+        if (!parser.check("SEMICOLON")) {
+            throw parser.error("VF2107", parser.peek().loc, {
+                context: "statements in unsafe block",
+            });
+        }
+        parser.advance(); // consume ';'
+
+        while (parser.match("NEWLINE"));
+    }
+
+    parser.expect("RBRACE", "Expected '}' after unsafe block");
+
+    if (exprs.length === 1) {
+        // Preserve legacy shape: single-expression unsafe bodies are not wrapped
+        // in a Block node, so existing AST assertions and optimizer passes keep
+        // working unchanged.
+        const onlyExpr = exprs[0];
+        if (!onlyExpr) {
+            throw new Error("Internal error: unsafe body has undefined single expression");
+        }
+        return onlyExpr;
+    }
+    return { kind: "Block", exprs, loc: lbraceLoc };
+}
+
+/**
  * Parse primary expressions (literals, variables, parenthesized)
  */
 export function parsePrimary(parser: ParserBase): Expr {
@@ -176,16 +232,14 @@ export function parsePrimary(parser: ParserBase): Expr {
         return parseMatchExprFn(parser, startLoc);
     }
 
-    // Unsafe block: unsafe { expr }
+    // Unsafe block: unsafe { expr }  OR  unsafe { stmt; stmt; ... expr; }
     if (parser.check("KEYWORD") && parser.peek().value === "unsafe") {
         const startLoc = parser.peek().loc;
         parser.advance(); // consume 'unsafe'
 
-        parser.expect("LBRACE", "Expected '{' after 'unsafe'");
+        const lbraceToken = parser.expect("LBRACE", "Expected '{' after 'unsafe'");
 
-        const expr = parseExpressionFn(parser);
-
-        parser.expect("RBRACE", "Expected '}' after unsafe expression");
+        const expr = parseUnsafeBody(parser, lbraceToken.loc);
 
         return {
             kind: "Unsafe",
