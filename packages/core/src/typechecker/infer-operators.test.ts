@@ -250,6 +250,115 @@ describe("Type Inference - Binary Operators", () => {
         // Should throw because String is not a numeric type
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
+
+    describe("polymorphic numeric operators (Int or Float)", () => {
+        const arithmeticOps = ["Add", "Subtract", "Multiply", "Modulo"] as const;
+        const comparisonOps = ["LessThan", "LessEqual", "GreaterThan", "GreaterEqual"] as const;
+
+        for (const op of arithmeticOps) {
+            it(`should infer Float for ${op} with Float operands`, () => {
+                const left: CoreFloatLit = { kind: "CoreFloatLit", value: 1.5, loc: testLoc };
+                const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.5, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                const result = inferExpr(ctx, expr);
+
+                expect(result.type).toEqual(primitiveTypes.Float);
+                // Operator is not lowered — Divide is the only op that splits into Int/Float variants
+                expect(expr.op).toBe(op);
+            });
+
+            it(`should infer Int for ${op} with Int operands`, () => {
+                const left: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
+                const right: CoreIntLit = { kind: "CoreIntLit", value: 4, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                const result = inferExpr(ctx, expr);
+
+                expect(result.type).toEqual(primitiveTypes.Int);
+                expect(expr.op).toBe(op);
+            });
+
+            it(`should reject ${op} with mixed Int and Float operands`, () => {
+                const left: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
+                const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.5, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+            });
+
+            it(`should reject ${op} with non-numeric operands`, () => {
+                const left: CoreStringLit = { kind: "CoreStringLit", value: "a", loc: testLoc };
+                const right: CoreStringLit = { kind: "CoreStringLit", value: "b", loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+            });
+        }
+
+        for (const op of comparisonOps) {
+            it(`should infer Bool for ${op} with Float operands`, () => {
+                const left: CoreFloatLit = { kind: "CoreFloatLit", value: 1.5, loc: testLoc };
+                const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.5, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                const result = inferExpr(ctx, expr);
+
+                expect(result.type).toEqual(primitiveTypes.Bool);
+                expect(expr.op).toBe(op);
+            });
+
+            it(`should infer Bool for ${op} with Int operands`, () => {
+                const left: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
+                const right: CoreIntLit = { kind: "CoreIntLit", value: 4, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                const result = inferExpr(ctx, expr);
+
+                expect(result.type).toEqual(primitiveTypes.Bool);
+            });
+
+            it(`should reject ${op} with mixed Int and Float operands`, () => {
+                const left: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
+                const right: CoreFloatLit = { kind: "CoreFloatLit", value: 2.5, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+            });
+
+            it(`should reject ${op} with non-numeric operands`, () => {
+                const left: CoreBoolLit = { kind: "CoreBoolLit", value: true, loc: testLoc };
+                const right: CoreBoolLit = { kind: "CoreBoolLit", value: false, loc: testLoc };
+                const expr: CoreBinOp = { kind: "CoreBinOp", op, left, right, loc: testLoc };
+
+                const env = createTestEnv();
+                const ctx = createContext(env);
+
+                expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+            });
+        }
+    });
 });
 
 describe("Type Inference - Unary Operators", () => {
@@ -283,6 +392,28 @@ describe("Type Inference - Unary Operators", () => {
 
     it("should reject type mismatch in negation", () => {
         const inner: CoreStringLit = { kind: "CoreStringLit", value: "hello", loc: testLoc };
+        const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "Negate", expr: inner, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    it("should infer Float for negation of a Float operand", () => {
+        const inner: CoreFloatLit = { kind: "CoreFloatLit", value: 3.14, loc: testLoc };
+        const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "Negate", expr: inner, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual(primitiveTypes.Float);
+    });
+
+    it("should reject negation of a Bool operand", () => {
+        const inner: CoreBoolLit = { kind: "CoreBoolLit", value: true, loc: testLoc };
         const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "Negate", expr: inner, loc: testLoc };
 
         const env = createTestEnv();
