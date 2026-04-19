@@ -111,6 +111,30 @@ describe("recursive functions", () => {
     });
 });
 
+describe("explicit type parameters on lambdas", () => {
+    it("should compile and apply <T>(x: T): T => x at multiple instantiations", () => {
+        // Full pipeline regression: parser must accept the <T> prefix, the
+        // desugarer must drop it, and the typechecker must let-generalize the
+        // resulting lambda so id can be applied to both Int and String.
+        const result = compileAndGetExport(
+            `let id = <T>(x: T): T => x;
+            let _ignored = id(42);
+            let result = id("hello");`,
+            "result",
+        );
+        expect(result).toBe("hello");
+    });
+
+    it("should compile and apply <A, B>(a: A, b: B): A => a", () => {
+        const result = compileAndGetExport(
+            `let first = <A, B>(a: A, b: B): A => a;
+            let result = first(42, "hello");`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+});
+
 describe("if expressions", () => {
     it("should evaluate simple if-then-else", () => {
         const result = compileAndGetExport(
