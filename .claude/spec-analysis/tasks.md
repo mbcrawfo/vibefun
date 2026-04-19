@@ -30,9 +30,9 @@ the root-cause groups that Package D remediated:
 - [x] 2.5 Test fixture cleanup (withOutput wrapper prepends stdlib import; section-11 redundant type redefs removed)
 
 ## Phase 3: Core Language Features
-- [ ] 3.1 User-defined type declaration processing
-- [ ] 3.2 Prefix `!` operator disambiguation
-- [ ] 3.3 Float arithmetic operators
+- [x] 3.1 User-defined type declaration processing
+- [x] 3.2 Prefix `!` operator disambiguation
+- [x] 3.3 Float arithmetic operators
 
 ## Phase 4: Supporting Features
 - [ ] 4.1 Nested `let mut` + codegen double-wrapping fix
