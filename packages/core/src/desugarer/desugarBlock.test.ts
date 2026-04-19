@@ -82,14 +82,22 @@ describe("desugarBlock", () => {
         }
     });
 
-    it("should throw on non-let expression before last", () => {
+    it("should wrap a non-let expression before the last in a wildcard let", () => {
+        // `{ 1; 2 }` desugars to `let _ = 1 in 2` — the first expression
+        // is evaluated for side effects and discarded.
         const exprs: Expr[] = [
-            { kind: "IntLit", value: 1, loc: testLoc }, // Not a Let!
+            { kind: "IntLit", value: 1, loc: testLoc },
             { kind: "IntLit", value: 2, loc: testLoc },
         ];
 
-        expect(() => desugarBlock(exprs, testLoc, mockGen, mockDesugar, mockDesugarPattern)).toThrow(
-            "Non-let expression in block",
-        );
+        const result = desugarBlock(exprs, testLoc, mockGen, mockDesugar, mockDesugarPattern);
+        expect(result.kind).toBe("CoreLet");
+        if (result.kind === "CoreLet") {
+            expect(result.pattern.kind).toBe("CoreWildcardPattern");
+            expect(result.mutable).toBe(false);
+            expect(result.recursive).toBe(false);
+            expect(result.value).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
+            expect(result.body).toEqual({ kind: "CoreIntLit", value: 2, loc: testLoc });
+        }
     });
 });

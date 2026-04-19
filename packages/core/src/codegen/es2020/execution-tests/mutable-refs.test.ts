@@ -49,4 +49,19 @@ describe("mutable references", () => {
         );
         expect(result).toBe(42);
     });
+
+    it("runs non-let block statements for their side effects before the final expression", () => {
+        // { x := 1; x := 2; !x } must run both assignments in order,
+        // then evaluate the dereference.
+        const result = compileAndGetExport(
+            `let mut x = ref(0);
+            let final = {
+                x := 1;
+                x := 2;
+                !x;
+            };`,
+            "final",
+        );
+        expect(result).toBe(2);
+    });
 });

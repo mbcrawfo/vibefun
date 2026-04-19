@@ -411,22 +411,33 @@ describe("Block Desugaring - Empty Blocks", () => {
     });
 });
 
-describe("Block Desugaring - Error Cases", () => {
-    it("should throw error for non-let expression in middle of block", () => {
+describe("Block Desugaring - Bare Expressions", () => {
+    // Non-let statements before the final expression desugar to
+    // `let _ = expr in body` so side-effect-only expressions (e.g.
+    // `sideEffect();`, `x := 5;`) can appear in blocks.
+
+    it("wraps a leading non-let expression in a wildcard let", () => {
         const block: Expr = {
             kind: "Block",
             exprs: [
-                // First expr should be Let, but it's not
                 { kind: "IntLit", value: 42, loc: testLoc },
                 { kind: "Var", name: "x", loc: testLoc },
             ],
             loc: testLoc,
         };
 
-        expect(() => desugar(block)).toThrow("Non-let expression in block (except final expression)");
+        const result = desugar(block);
+        expect(result.kind).toBe("CoreLet");
+        if (result.kind === "CoreLet") {
+            expect(result.pattern.kind).toBe("CoreWildcardPattern");
+            expect(result.mutable).toBe(false);
+            expect(result.recursive).toBe(false);
+            expect(result.value.kind).toBe("CoreIntLit");
+            expect(result.body.kind).toBe("CoreVar");
+        }
     });
 
-    it("should throw error for non-let in middle of three-expr block", () => {
+    it("wraps an interior non-let statement between two lets", () => {
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -439,14 +450,24 @@ describe("Block Desugaring - Error Cases", () => {
                     recursive: false,
                     loc: testLoc,
                 },
-                // This should be Let, but it's not
                 { kind: "IntLit", value: 20, loc: testLoc },
                 { kind: "Var", name: "x", loc: testLoc },
             ],
             loc: testLoc,
         };
 
-        expect(() => desugar(block)).toThrow("Non-let expression in block (except final expression)");
+        const result = desugar(block);
+        // Expected nesting: Let x = 10 in (Let _ = 20 in x)
+        expect(result.kind).toBe("CoreLet");
+        if (result.kind === "CoreLet") {
+            expect(result.pattern.kind).toBe("CoreVarPattern");
+            expect(result.body.kind).toBe("CoreLet");
+            if (result.body.kind === "CoreLet") {
+                expect(result.body.pattern.kind).toBe("CoreWildcardPattern");
+                expect(result.body.value.kind).toBe("CoreIntLit");
+                expect(result.body.body.kind).toBe("CoreVar");
+            }
+        }
     });
 });
 
