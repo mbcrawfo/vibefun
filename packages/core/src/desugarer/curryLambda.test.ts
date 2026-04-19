@@ -17,11 +17,11 @@ import type {
     CoreTypeExpr,
     CoreVarPattern,
 } from "../types/core-ast.js";
-import type { FreshVarGen } from "./FreshVarGen.js";
 
 import { describe, expect, it } from "vitest";
 
 import { curryLambda } from "./curryLambda.js";
+import { FreshVarGen } from "./FreshVarGen.js";
 
 const testLoc: Location = {
     file: "test.vf",
@@ -74,18 +74,8 @@ const mockDesugarTypeExpr = (typeExpr: TypeExpr): CoreTypeExpr => {
     throw new Error(`Unexpected type expr kind in mock: ${typeExpr.kind}`);
 };
 
-class CountingGen {
-    private counter = 0;
-    fresh(prefix: string = "tmp"): string {
-        return `$${prefix}${this.counter++}`;
-    }
-    reset(): void {
-        this.counter = 0;
-    }
-}
-
 function makeGen(): FreshVarGen {
-    return new CountingGen() as unknown as FreshVarGen;
+    return new FreshVarGen();
 }
 
 const v = (name: string): LambdaParam => ({
