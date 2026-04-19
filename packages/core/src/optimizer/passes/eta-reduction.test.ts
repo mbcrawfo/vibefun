@@ -384,7 +384,10 @@ describe("EtaReductionPass", () => {
             };
 
             expect(pass.canApply(expr)).toBe(false);
-            expect(pass.transform(expr)).toEqual(expr);
+            // `toBe` (referential identity) — the boundary handler must
+            // return the same node, not a clone. A clone would still pass
+            // `toEqual` and let a regression slip through.
+            expect(pass.transform(expr)).toBe(expr);
         });
     });
 
@@ -434,8 +437,9 @@ describe("EtaReductionPass", () => {
         // reducible sub-expression. Each test embeds an eta-reducible inner
         // lambda `(x) => f(x)` and asserts it gets reduced to `f`, proving
         // the surrounding case actually recurses rather than just not
-        // throwing.
-        const reducibleLambda: CoreExpr = {
+        // throwing. A factory yields a fresh AST per test so an in-place
+        // mutation in one case can't cross-contaminate the next.
+        const makeReducibleLambda = (): CoreExpr => ({
             kind: "CoreLambda",
             param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
             body: {
@@ -445,14 +449,14 @@ describe("EtaReductionPass", () => {
                 loc: testLoc,
             },
             loc: testLoc,
-        };
+        });
         const reducedTo: CoreExpr = { kind: "CoreVar", name: "f", loc: testLoc };
 
         it("recurses through CoreUnaryOp", () => {
             const expr: CoreExpr = {
                 kind: "CoreUnaryOp",
                 op: "Negate",
-                expr: reducibleLambda,
+                expr: makeReducibleLambda(),
                 loc: testLoc,
             };
 
@@ -466,7 +470,7 @@ describe("EtaReductionPass", () => {
         it("recurses through CoreTypeAnnotation", () => {
             const expr: CoreExpr = {
                 kind: "CoreTypeAnnotation",
-                expr: reducibleLambda,
+                expr: makeReducibleLambda(),
                 typeExpr: { kind: "CoreTypeConst", name: "T", loc: testLoc },
                 loc: testLoc,
             };
@@ -482,7 +486,7 @@ describe("EtaReductionPass", () => {
             const expr: CoreExpr = {
                 kind: "CoreVariant",
                 constructor: "Some",
-                args: [reducibleLambda],
+                args: [makeReducibleLambda()],
                 loc: testLoc,
             };
 
