@@ -13,6 +13,7 @@ import type {
     CoreWildcardPattern,
 } from "../types/core-ast.js";
 import type { Type } from "../types/environment.js";
+import type { CaseForExhaustiveness } from "./patterns.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -23,6 +24,10 @@ import { primitiveTypes } from "./types.js";
 import { emptySubst } from "./unify.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
+
+function toCases(patterns: CorePattern[]): CaseForExhaustiveness[] {
+    return patterns.map((pattern) => ({ pattern, guarded: false }));
+}
 
 describe("Pattern Checking", () => {
     const emptyModule: Module = {
@@ -608,7 +613,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Int);
             expect(missing).toEqual([]);
         });
 
@@ -621,7 +626,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Int);
             expect(missing).toEqual([]);
         });
 
@@ -636,7 +641,7 @@ describe("Pattern Checking", () => {
             ];
 
             const optionIntType = optionType(primitiveTypes.Int);
-            const missing = checkExhaustiveness(env, patterns, optionIntType);
+            const missing = checkExhaustiveness(env, toCases(patterns), optionIntType);
 
             expect(missing).toContain("Some");
         });
@@ -658,7 +663,7 @@ describe("Pattern Checking", () => {
             ];
 
             const optionIntType = optionType(primitiveTypes.Int);
-            const missing = checkExhaustiveness(env, patterns, optionIntType);
+            const missing = checkExhaustiveness(env, toCases(patterns), optionIntType);
 
             expect(missing).toContain("None");
         });
@@ -686,7 +691,7 @@ describe("Pattern Checking", () => {
             ];
 
             const optionIntType = optionType(primitiveTypes.Int);
-            const missing = checkExhaustiveness(env, patterns, optionIntType);
+            const missing = checkExhaustiveness(env, toCases(patterns), optionIntType);
 
             expect(missing).toEqual([]);
         });
@@ -702,7 +707,7 @@ describe("Pattern Checking", () => {
             ];
 
             const listIntType = listType(primitiveTypes.Int);
-            const missing = checkExhaustiveness(env, patterns, listIntType);
+            const missing = checkExhaustiveness(env, toCases(patterns), listIntType);
 
             expect(missing).toContain("Cons");
         });
@@ -735,7 +740,7 @@ describe("Pattern Checking", () => {
             ];
 
             const listIntType = listType(primitiveTypes.Int);
-            const missing = checkExhaustiveness(env, patterns, listIntType);
+            const missing = checkExhaustiveness(env, toCases(patterns), listIntType);
 
             expect(missing).toEqual([]);
         });
@@ -754,7 +759,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Int);
 
             expect(missing.length).toBeGreaterThan(0);
         });
@@ -772,7 +777,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Int);
 
             expect(missing).toEqual([]);
         });
@@ -783,7 +788,7 @@ describe("Pattern Checking", () => {
                 { kind: "CoreLiteralPattern", literal: false, loc: testLoc },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Bool);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Bool);
 
             expect(missing).toEqual([]);
         });
@@ -791,7 +796,7 @@ describe("Pattern Checking", () => {
         it("should detect missing `false` when only `true` is matched on Bool", () => {
             const patterns: CorePattern[] = [{ kind: "CoreLiteralPattern", literal: true, loc: testLoc }];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Bool);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Bool);
 
             expect(missing).toEqual(["false"]);
         });
@@ -799,7 +804,7 @@ describe("Pattern Checking", () => {
         it("should detect missing `true` when only `false` is matched on Bool", () => {
             const patterns: CorePattern[] = [{ kind: "CoreLiteralPattern", literal: false, loc: testLoc }];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Bool);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Bool);
 
             expect(missing).toEqual(["true"]);
         });
@@ -809,7 +814,7 @@ describe("Pattern Checking", () => {
             // the existing "<other values>" fallback for other literal types.
             const patterns: CorePattern[] = [{ kind: "CoreLiteralPattern", literal: 1, loc: testLoc }];
 
-            const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, toCases(patterns), primitiveTypes.Int);
 
             expect(missing).toEqual(["<other values>"]);
         });
@@ -831,7 +836,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, tupleType);
+            const missing = checkExhaustiveness(env, toCases(patterns), tupleType);
 
             expect(missing).toEqual(["(_, _)"]);
         });
@@ -853,7 +858,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, tupleType);
+            const missing = checkExhaustiveness(env, toCases(patterns), tupleType);
 
             expect(missing).toEqual([]);
         });
@@ -876,7 +881,7 @@ describe("Pattern Checking", () => {
                 { kind: "CoreWildcardPattern", loc: testLoc },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, tupleType);
+            const missing = checkExhaustiveness(env, toCases(patterns), tupleType);
 
             expect(missing).toEqual([]);
         });
@@ -905,7 +910,7 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, outerTuple);
+            const missing = checkExhaustiveness(env, toCases(patterns), outerTuple);
 
             expect(missing).toEqual([]);
         });
@@ -927,9 +932,118 @@ describe("Pattern Checking", () => {
                 },
             ];
 
-            const missing = checkExhaustiveness(env, patterns, tripleType);
+            const missing = checkExhaustiveness(env, toCases(patterns), tripleType);
 
             expect(missing).toEqual(["(_, _, _)"]);
+        });
+    });
+
+    describe("Guarded patterns and exhaustiveness", () => {
+        it("treats a single guarded catch-all as non-exhaustive", () => {
+            // match n { | x when x > 0 => ... }
+            const cases: CaseForExhaustiveness[] = [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    guarded: true,
+                },
+            ];
+            const missing = checkExhaustiveness(env, cases, primitiveTypes.Int);
+            expect(missing.length).toBeGreaterThan(0);
+        });
+
+        it("treats multiple guarded catch-alls as non-exhaustive", () => {
+            // match n { | x when x > 0 => ... | x when x < 0 => ... }
+            const cases: CaseForExhaustiveness[] = [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    guarded: true,
+                },
+                {
+                    pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    guarded: true,
+                },
+            ];
+            const missing = checkExhaustiveness(env, cases, primitiveTypes.Int);
+            expect(missing.length).toBeGreaterThan(0);
+        });
+
+        it("is exhaustive when a trailing unguarded wildcard follows guarded arms", () => {
+            // match n { | x when x > 0 => ... | _ => ... }
+            const cases: CaseForExhaustiveness[] = [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    guarded: true,
+                },
+                {
+                    pattern: { kind: "CoreWildcardPattern", loc: testLoc },
+                    guarded: false,
+                },
+            ];
+            const missing = checkExhaustiveness(env, cases, primitiveTypes.Int);
+            expect(missing).toEqual([]);
+        });
+
+        it("treats guarded variant case without companion unguarded as non-exhaustive", () => {
+            // match opt { | Some(x) when x > 0 => ... | None => ... }
+            const cases: CaseForExhaustiveness[] = [
+                {
+                    pattern: {
+                        kind: "CoreVariantPattern",
+                        constructor: "Some",
+                        args: [{ kind: "CoreVarPattern", name: "x", loc: testLoc }],
+                        loc: testLoc,
+                    },
+                    guarded: true,
+                },
+                {
+                    pattern: {
+                        kind: "CoreVariantPattern",
+                        constructor: "None",
+                        args: [],
+                        loc: testLoc,
+                    },
+                    guarded: false,
+                },
+            ];
+            const optionIntType = optionType(primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, cases, optionIntType);
+            expect(missing).toContain("Some");
+        });
+
+        it("remains exhaustive when a guarded arm accompanies fully covering unguarded arms", () => {
+            // match opt { | Some(x) when x > 0 => ... | Some(x) => ... | None => ... }
+            const cases: CaseForExhaustiveness[] = [
+                {
+                    pattern: {
+                        kind: "CoreVariantPattern",
+                        constructor: "Some",
+                        args: [{ kind: "CoreVarPattern", name: "x", loc: testLoc }],
+                        loc: testLoc,
+                    },
+                    guarded: true,
+                },
+                {
+                    pattern: {
+                        kind: "CoreVariantPattern",
+                        constructor: "Some",
+                        args: [{ kind: "CoreVarPattern", name: "x", loc: testLoc }],
+                        loc: testLoc,
+                    },
+                    guarded: false,
+                },
+                {
+                    pattern: {
+                        kind: "CoreVariantPattern",
+                        constructor: "None",
+                        args: [],
+                        loc: testLoc,
+                    },
+                    guarded: false,
+                },
+            ];
+            const optionIntType = optionType(primitiveTypes.Int);
+            const missing = checkExhaustiveness(env, cases, optionIntType);
+            expect(missing).toEqual([]);
         });
     });
 });
