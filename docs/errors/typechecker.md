@@ -34,6 +34,7 @@ Errors during type checking and inference
 | [VF4024](#vf4024) | IncompatibleTypes | **Error** |
 | [VF4025](#vf4025) | VariantUnificationError | **Error** |
 | [VF4026](#vf4026) | TupleArityMismatch | **Error** |
+| [VF4027](#vf4027) | RecursiveTypeAlias | **Error** |
 | [VF4100](#vf4100) | UndefinedVariable | **Error** |
 | [VF4101](#vf4101) | UndefinedType | **Error** |
 | [VF4102](#vf4102) | UndefinedConstructor | **Error** |
@@ -1021,6 +1022,45 @@ let x: (Int, Int, Int) = (1, 2, 3)
 ### Related
 
 [VF4020](typechecker.md#vf4020), [VF4203](typechecker.md#vf4203)
+
+
+---
+
+## VF4027
+
+**RecursiveTypeAlias** **Error**
+
+### Message
+
+> Type alias '{name}' is unguardedly recursive
+
+### Explanation
+
+A type alias cannot reference itself directly because there is no constructor to break the recursion. Introduce a variant (or record) whose constructors introduce the cycle, so the type has a finite surface at every step of evaluation.
+
+### Example
+
+**Problem:**
+
+```vibefun
+type Loop = Loop;
+```
+
+**Solution:**
+
+```vibefun
+type List = Cons(Int, List) | Nil;
+```
+
+*Replaced the bare self-reference with a variant type whose constructors guard the recursion*
+
+### Hint
+
+> Wrap the recursion in a variant or record type — e.g. 'type List = Cons(Int, List) | Nil;'
+
+### Related
+
+[VF4020](typechecker.md#vf4020)
 
 
 ---

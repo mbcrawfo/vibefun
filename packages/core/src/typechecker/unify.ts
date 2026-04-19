@@ -7,7 +7,7 @@
  */
 
 import type { Location } from "../types/ast.js";
-import type { Type } from "../types/environment.js";
+import type { Type, TypeBinding } from "../types/environment.js";
 
 import { throwDiagnostic } from "../diagnostics/index.js";
 import { typeToString } from "./format.js";
@@ -23,6 +23,14 @@ export interface UnifyContext {
     readonly loc: Location;
     /** Optional source code for error formatting */
     readonly source?: string;
+    /**
+     * Optional type environment for alias / generic expansion during
+     * unification. When present, `Const`/`App` types whose name matches a
+     * registered `Alias` or `Record` binding are expanded before structural
+     * unification. Callers that don't need alias transparency (unit tests,
+     * module-signature synthesis) may leave this undefined.
+     */
+    readonly types?: Map<string, TypeBinding>;
 }
 
 /**
@@ -208,6 +216,16 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
     }
     if (isTypeVar(t2)) {
         return unifyVar(t2.id, t2.level, t1, ctx);
+    }
+
+    // Expand user-defined type aliases and generic record types transparently
+    // before structural unification. This is what makes `type UserId = Int`
+    // interchangeable with `Int` and `Box<Int>` interchangeable with
+    // `{ value: Int }`.
+    const expanded1 = expandAlias(t1, ctx);
+    const expanded2 = expandAlias(t2, ctx);
+    if (expanded1 !== t1 || expanded2 !== t2) {
+        return unify(expanded1, expanded2, ctx);
     }
 
     // Handle Never type (bottom type) - unifies with anything
@@ -548,5 +566,95 @@ function unifyVariants(
         }
     }
 
+    return subst;
+}
+
+/**
+ * Public wrapper around alias/generic expansion for callers outside
+ * `unify()` itself (e.g. record field access in infer-structures.ts) that
+ * need to peek at the expanded shape of a user-defined type before
+ * proceeding with structural checks.
+ */
+export function expandTypeAlias(type: Type, types: Map<string, TypeBinding>): Type {
+    return expandAlias(type, { loc: { file: "", line: 0, column: 0, offset: 0 }, types });
+}
+
+/**
+ * Expand a user-defined type alias or generic record type for unification.
+ *
+ * - `type UserId = Int` expands `UserId` → `Int`.
+ * - `type Box<T> = { value: T }` expands `Box<Int>` → `{ value: Int }`.
+ *
+ * Variant types are **not** expanded — they use nominal typing and have
+ * dedicated unification rules that match by the constructor set.
+ */
+function expandAlias(type: Type, ctx: UnifyContext): Type {
+    if (!ctx.types) {
+        return type;
+    }
+
+    // Bare `Const` reference (e.g. `UserId`) with no type arguments.
+    if (type.type === "Const") {
+        const binding = ctx.types.get(type.name);
+        if (!binding) {
+            return type;
+        }
+        if (binding.kind === "Alias" && binding.params.length === 0) {
+            return binding.definition;
+        }
+        if (binding.kind === "Record" && binding.params.length === 0) {
+            return { type: "Record", fields: binding.fields };
+        }
+        return type;
+    }
+
+    // Applied `App(Const(name), args)` reference (e.g. `Box<Int>`).
+    if (type.type === "App" && type.constructor.type === "Const") {
+        const binding = ctx.types.get(type.constructor.name);
+        if (!binding) {
+            return type;
+        }
+        if (binding.kind === "Alias" && binding.params.length === type.args.length) {
+            const subst = buildParamSubst(binding.paramIds, type.args);
+            if (!subst) {
+                return type;
+            }
+            return applySubst(subst, binding.definition);
+        }
+        if (binding.kind === "Record" && binding.params.length === type.args.length) {
+            const subst = buildParamSubst(binding.paramIds, type.args);
+            if (!subst) {
+                return type;
+            }
+            const fields = new Map<string, Type>();
+            for (const [name, fieldType] of binding.fields) {
+                fields.set(name, applySubst(subst, fieldType));
+            }
+            return { type: "Record", fields };
+        }
+        return type;
+    }
+
+    return type;
+}
+
+/**
+ * Build a substitution mapping each generic parameter's type variable ID to
+ * the corresponding concrete type argument. Returns `undefined` when the
+ * binding lacks `paramIds` (unit-test fixtures), signalling that the caller
+ * should skip expansion.
+ */
+function buildParamSubst(paramIds: number[] | undefined, args: Type[]): Substitution | undefined {
+    if (!paramIds || paramIds.length !== args.length) {
+        return undefined;
+    }
+    const subst: Substitution = new Map();
+    for (let i = 0; i < paramIds.length; i++) {
+        const id = paramIds[i];
+        const arg = args[i];
+        if (id !== undefined && arg !== undefined) {
+            subst.set(id, arg);
+        }
+    }
     return subst;
 }

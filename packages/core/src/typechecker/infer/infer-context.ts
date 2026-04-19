@@ -5,8 +5,9 @@
  * substitutions, and level-based generalization.
  */
 
+import type { Location } from "../../types/ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
-import type { Substitution } from "../unify.js";
+import type { Substitution, UnifyContext } from "../unify.js";
 
 import { freshTypeVar } from "../types.js";
 import { emptySubst } from "../unify.js";
@@ -49,6 +50,16 @@ export function createContext(env: TypeEnv): InferenceContext {
         subst: emptySubst(),
         level: 0,
     };
+}
+
+/**
+ * Build a UnifyContext that carries the current environment's type bindings
+ * so unify() can transparently expand user-defined aliases and generic
+ * record types. Every inference path that constructs a `UnifyContext`
+ * should use this helper instead of a bare object literal.
+ */
+export function unifyCtx(ctx: InferenceContext, loc: Location): UnifyContext {
+    return { loc, types: ctx.env.types };
 }
 
 /**

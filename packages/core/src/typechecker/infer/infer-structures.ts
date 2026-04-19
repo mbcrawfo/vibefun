@@ -12,7 +12,7 @@ import { throwDiagnostic } from "../../diagnostics/index.js";
 import { typeToString } from "../format.js";
 import { checkExhaustiveness, checkPattern } from "../patterns.js";
 import { freshTypeVar, primitiveTypes } from "../types.js";
-import { applySubst, composeSubst, unify } from "../unify.js";
+import { applySubst, composeSubst, expandTypeAlias, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
 
 // Import inferExpr - will be set via dependency injection
@@ -117,7 +117,7 @@ export function inferRecordAccess(
         };
 
         // Unify the type variable with the record constraint
-        const unifyCtx = { loc: expr.loc };
+        const unifyCtx = { loc: expr.loc, types: ctx.env.types };
         const unifySubst = unify(recordType, recordConstraint, unifyCtx);
         currentSubst = composeSubst(unifySubst, currentSubst);
         recordType = applySubst(currentSubst, recordType);
@@ -125,6 +125,11 @@ export function inferRecordAccess(
         // Return the field type
         return { type: fieldType, subst: currentSubst };
     }
+
+    // Expand user-defined type aliases / generic records transparently so
+    // `Box<Int>` (from `type Box<T> = { value: T }`) behaves like
+    // `{ value: Int }` for field access.
+    recordType = expandTypeAlias(recordType, ctx.env.types);
 
     // Check that it's a record type
     if (recordType.type !== "Record") {
@@ -162,7 +167,10 @@ export function inferRecordUpdate(
     // Infer the type of the base record
     const recordResult = inferExprFn(ctx, expr.record);
     let currentCtx: InferenceContext = { ...ctx, subst: recordResult.subst };
-    const recordType = applySubst(recordResult.subst, recordResult.type);
+    let recordType = applySubst(recordResult.subst, recordResult.type);
+
+    // Expand user-defined aliases / generic records (mirrors inferRecordAccess).
+    recordType = expandTypeAlias(recordType, ctx.env.types);
 
     // Check that it's a record type
     if (recordType.type !== "Record") {
@@ -200,7 +208,7 @@ export function inferRecordUpdate(
             const actualType = updateResult.type;
 
             // Unify the update value type with the field type
-            const unifyCtx = { loc: update.loc };
+            const unifyCtx = { loc: update.loc, types: ctx.env.types };
             const unifySubst = unify(actualType, expectedType, unifyCtx);
             currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
 
@@ -310,7 +318,7 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
         const expectedTypeSubst = applySubst(currentCtx.subst, expectedType);
 
         // Unify argument type with expected type
-        const unifyCtx = { loc: arg.loc };
+        const unifyCtx = { loc: arg.loc, types: ctx.env.types };
         const unifySubst = unify(argResult.type, expectedTypeSubst, unifyCtx);
         currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
     }

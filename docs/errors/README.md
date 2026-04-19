@@ -86,6 +86,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4024](typechecker.md#vf4024) | IncompatibleTypes | Error | The types have fundamentally incompatible structures (e |
 | [VF4025](typechecker.md#vf4025) | VariantUnificationError | Error | Two variant types cannot be unified because they have different constructors |
 | [VF4026](typechecker.md#vf4026) | TupleArityMismatch | Error | Two tuple types cannot be unified because they have different numbers of elements |
+| [VF4027](typechecker.md#vf4027) | RecursiveTypeAlias | Error | A type alias cannot reference itself directly because there is no constructor to break the recursion |
 | [VF4100](typechecker.md#vf4100) | UndefinedVariable | Error | The variable has not been defined in the current scope |
 | [VF4101](typechecker.md#vf4101) | UndefinedType | Error | The type has not been defined |
 | [VF4102](typechecker.md#vf4102) | UndefinedConstructor | Error | The constructor has not been defined |
@@ -143,7 +144,7 @@ Errors during syntax parsing (AST construction)
 
 Errors during desugaring (syntax transformation)
 
-### [Type Checker](typechecker.md) (55 errors, 1 warnings)
+### [Type Checker](typechecker.md) (56 errors, 1 warnings)
 
 Errors during type checking and inference
 
@@ -153,6 +154,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 118
-- **Errors:** 115
+- **Total diagnostic codes:** 119
+- **Errors:** 116
 - **Warnings:** 3

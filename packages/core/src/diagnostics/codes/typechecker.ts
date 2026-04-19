@@ -485,6 +485,26 @@ export const VF4026: DiagnosticDefinition = {
     relatedCodes: ["VF4020", "VF4203"],
 };
 
+export const VF4027: DiagnosticDefinition = {
+    code: "VF4027",
+    title: "RecursiveTypeAlias",
+    messageTemplate: "Type alias '{name}' is unguardedly recursive",
+    severity: "error",
+    phase: "typechecker",
+    category: "unification",
+    hintTemplate: "Wrap the recursion in a variant or record type — e.g. 'type List = Cons(Int, List) | Nil;'",
+    explanation:
+        "A type alias cannot reference itself directly because there is no constructor to break " +
+        "the recursion. Introduce a variant (or record) whose constructors introduce the cycle, " +
+        "so the type has a finite surface at every step of evaluation.",
+    example: {
+        bad: "type Loop = Loop;",
+        good: "type List = Cons(Int, List) | Nil;",
+        description: "Replaced the bare self-reference with a variant type whose constructors guard the recursion",
+    },
+    relatedCodes: ["VF4020"],
+};
+
 // =============================================================================
 // VF4100-VF4199: Undefined Reference Errors
 // =============================================================================
@@ -1162,6 +1182,7 @@ const typecheckerCodes: readonly DiagnosticDefinition[] = [
     VF4024,
     VF4025,
     VF4026,
+    VF4027,
     // Undefined references (VF4100-VF4199)
     VF4100,
     VF4101,

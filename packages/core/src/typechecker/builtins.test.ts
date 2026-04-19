@@ -143,7 +143,8 @@ describe("List Constructor Types", () => {
 
         expect(nil).toBeDefined();
         expect(nil?.vars.length).toBeGreaterThan(0);
-        expect(nil?.type.type).toBe("Fun");
+        // Nil is a nullary value of type List<T>, not a zero-arg function.
+        expect(nil?.type.type).toBe("App");
     });
 
     it("should have Cons take two parameters", () => {
@@ -156,14 +157,13 @@ describe("List Constructor Types", () => {
         }
     });
 
-    it("should have Nil take no parameters", () => {
+    it("should have Nil as a nullary-value constructor (not a function)", () => {
         const env = getBuiltinEnv();
         const nil = env.get("Nil");
 
-        expect(nil?.type.type).toBe("Fun");
-        if (nil?.type.type === "Fun") {
-            expect(nil.type.params).toHaveLength(0);
-        }
+        // Nullary constructors are values (List<T> here), not zero-arg
+        // functions — see type-declarations.ts / builtins.ts.
+        expect(nil?.type.type).toBe("App");
     });
 });
 
@@ -187,7 +187,8 @@ describe("Option Constructor Types", () => {
 
         expect(none).toBeDefined();
         expect(none?.vars.length).toBeGreaterThan(0);
-        expect(none?.type.type).toBe("Fun");
+        // None is a nullary value of type Option<T>, not a zero-arg function.
+        expect(none?.type.type).toBe("App");
     });
 
     it("should have Some take one parameter", () => {
@@ -200,14 +201,12 @@ describe("Option Constructor Types", () => {
         }
     });
 
-    it("should have None take no parameters", () => {
+    it("should represent None as a nullary value (Option<T>, not Fun)", () => {
         const env = getBuiltinEnv();
         const none = env.get("None");
 
-        expect(none?.type.type).toBe("Fun");
-        if (none?.type.type === "Fun") {
-            expect(none.type.params).toHaveLength(0);
-        }
+        // Nullary constructors are values, not zero-arg functions.
+        expect(none?.type.type).toBe("App");
     });
 });
 

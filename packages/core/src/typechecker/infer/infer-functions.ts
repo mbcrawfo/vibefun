@@ -110,7 +110,7 @@ export function inferApp(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
     const actualFuncType = applySubst(currentSubst, funcResult.type);
 
     // Unify function type with expected type
-    const unifyCtx = { loc: expr.loc };
+    const unifyCtx = { loc: expr.loc, types: ctx.env.types };
     const unifySubst = unify(actualFuncType, expectedFuncType, unifyCtx);
     const finalSubst = composeSubst(unifySubst, currentSubst);
 
