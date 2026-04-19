@@ -119,8 +119,9 @@ function generateIndex(): string {
 
     for (const def of allCodes) {
         const severity = def.severity === "error" ? "Error" : "Warning";
-        // Extract first sentence of explanation as description
-        const description = def.explanation.split(".")[0] ?? def.messageTemplate;
+        // Extract first sentence of explanation as description; escape any
+        // raw `|` so it does not split the containing markdown table cell.
+        const description = (def.explanation.split(".")[0] ?? def.messageTemplate).replace(/\|/g, "\\|");
         lines.push(
             `| [${def.code}](${phaseToFilename(def.phase)}#${def.code.toLowerCase()}) | ${def.title} | ${severity} | ${description} |`,
         );

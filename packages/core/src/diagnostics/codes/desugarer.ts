@@ -40,6 +40,25 @@ export const VF3101: DiagnosticDefinition = {
     },
 };
 
+export const VF3102: DiagnosticDefinition = {
+    code: "VF3102",
+    title: "OrPatternTooLarge",
+    messageTemplate: "Or-pattern would expand to {count} cases, which exceeds the limit of {max}",
+    severity: "error",
+    phase: "desugarer",
+    category: "pattern",
+    hintTemplate: "Simplify the pattern, or split the arm so each or-pattern has fewer nested alternatives",
+    explanation:
+        "Or-patterns are compiled by distributing their alternatives, so nesting them inside " +
+        "constructors, tuples, or other or-patterns multiplies the number of emitted match arms. " +
+        "A cap prevents a single surface arm from silently producing an enormous match.",
+    example: {
+        bad: "match x {\n" + "  | (1 | 2 | 3, 1 | 2 | 3, 1 | 2 | 3, 1 | 2 | 3, 1 | 2 | 3) => ...\n" + "}",
+        good: "match x {\n  | (a, b, c, d, e) when a < 4 && b < 4 => ...\n}",
+        description: "Use a guard for broad numeric predicates instead of exhaustive or-alternatives",
+    },
+};
+
 // =============================================================================
 // Registration
 // =============================================================================
@@ -47,6 +66,7 @@ export const VF3101: DiagnosticDefinition = {
 const desugarerCodes: readonly DiagnosticDefinition[] = [
     // Invalid transformations
     VF3101,
+    VF3102,
 ];
 
 /**

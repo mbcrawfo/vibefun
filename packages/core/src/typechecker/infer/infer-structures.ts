@@ -349,6 +349,14 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
  * 5. Return unified result type
  */
 export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreMatch" }>): InferResult {
+    // Reject unreachable arms before inferring guards/bodies so VF4405 fires
+    // before any unrelated type error inside a dead arm can mask it.
+    const exhaustivenessCases = expr.cases.map((c) => ({
+        pattern: c.pattern,
+        guarded: c.guard !== undefined,
+    }));
+    checkReachability(exhaustivenessCases);
+
     // Infer scrutinee type
     const scrutineeResult = inferExprFn(ctx, expr.expr);
     let currentCtx: InferenceContext = { ...ctx, subst: scrutineeResult.subst };
@@ -428,11 +436,6 @@ export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
     // This allows the substitution to contain unifications from pattern checking
     // which resolves type variables to concrete variant types
     scrutineeType = applySubst(currentCtx.subst, scrutineeType);
-    const exhaustivenessCases = expr.cases.map((c) => ({
-        pattern: c.pattern,
-        guarded: c.guard !== undefined,
-    }));
-    checkReachability(exhaustivenessCases);
     const missingCases = checkExhaustiveness(currentCtx.env, exhaustivenessCases, scrutineeType);
     if (missingCases.length > 0) {
         throwDiagnostic("VF4400", expr.loc, {
