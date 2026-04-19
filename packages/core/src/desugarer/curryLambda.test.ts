@@ -367,10 +367,11 @@ describe("curryLambda — destructuring params", () => {
         const outer = result as CoreLambda;
         expect(outer.body.kind).toBe("CoreMatch");
         const match = outer.body as CoreMatch;
-        const arm = match.cases[0]!;
+        expect(match.cases).toHaveLength(1);
+        const arm = match.cases[0];
 
-        expect(arm.pattern.kind).toBe("CoreRecordPattern");
-        const outerPat = arm.pattern as CoreRecordPattern;
+        expect(arm?.pattern.kind).toBe("CoreRecordPattern");
+        const outerPat = arm?.pattern as CoreRecordPattern;
         expect(outerPat.fields).toHaveLength(1);
         expect(outerPat.fields[0]?.name).toBe("outer");
 
