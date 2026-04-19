@@ -183,3 +183,27 @@ export function emitMatch(
 
     return lines.join("\n");
 }
+
+/** Identifier shape allowed for JavaScript catch binders after escaping. */
+const JS_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+/**
+ * Emit a try/catch expression as an IIFE so it produces a value (JavaScript's
+ * own try/catch is a statement). The catch binder comes from an IDENTIFIER
+ * token in the lexer, which is already constrained to a valid identifier;
+ * the explicit regex check here is defence-in-depth for any future caller
+ * that constructs the Core AST without going through the parser.
+ */
+export function emitTryCatch(
+    expr: { kind: "CoreTryCatch"; tryBody: CoreExpr; catchBinder: string; catchBody: CoreExpr },
+    ctx: EmitContext,
+): string {
+    const binderRaw = expr.catchBinder;
+    if (!JS_IDENTIFIER.test(binderRaw)) {
+        throw new Error(`Internal error: invalid catch binder '${binderRaw}'`);
+    }
+    const binder = escapeIdentifier(binderRaw);
+    const tryCode = emitExpr(expr.tryBody, ctx);
+    const catchCode = emitExpr(expr.catchBody, ctx);
+    return `(() => { try { return (${tryCode}); } catch (${binder}) { return (${catchCode}); } })()`;
+}

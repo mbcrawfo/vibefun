@@ -390,50 +390,67 @@ describe("EtaReductionPass", () => {
 
     describe("reduceEta traverses non-lambda shapes", () => {
         // These tests exercise the internal switch in `reduceEta` for node
-        // kinds that aren't directly eta-expandable but may contain
-        // reducible sub-expressions. Each starts with a top-level lambda
-        // so `transform` does not short-circuit at the outer `isEtaExpandable`
-        // check; the interesting work happens inside the body.
-        function wrapInLambda(body: CoreExpr): CoreExpr {
-            return {
-                kind: "CoreLambda",
-                param: { kind: "CoreVarPattern", name: "arg", loc: testLoc },
-                body,
+        // kinds that aren't directly eta-expandable but may contain a
+        // reducible sub-expression. Each test embeds an eta-reducible inner
+        // lambda `(x) => f(x)` and asserts it gets reduced to `f`, proving
+        // the surrounding case actually recurses rather than just not
+        // throwing.
+        const reducibleLambda: CoreExpr = {
+            kind: "CoreLambda",
+            param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+            body: {
+                kind: "CoreApp",
+                func: { kind: "CoreVar", name: "f", loc: testLoc },
+                args: [{ kind: "CoreVar", name: "x", loc: testLoc }],
                 loc: testLoc,
-            };
-        }
+            },
+            loc: testLoc,
+        };
+        const reducedTo: CoreExpr = { kind: "CoreVar", name: "f", loc: testLoc };
 
         it("recurses through CoreUnaryOp", () => {
-            const expr = wrapInLambda({
+            const expr: CoreExpr = {
                 kind: "CoreUnaryOp",
                 op: "Negate",
-                expr: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                expr: reducibleLambda,
                 loc: testLoc,
-            });
+            };
 
-            expect(() => pass.transform(expr)).not.toThrow();
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreUnaryOp");
+            if (result.kind === "CoreUnaryOp") {
+                expect(result.expr).toEqual(reducedTo);
+            }
         });
 
         it("recurses through CoreTypeAnnotation", () => {
-            const expr = wrapInLambda({
+            const expr: CoreExpr = {
                 kind: "CoreTypeAnnotation",
-                expr: { kind: "CoreIntLit", value: 1, loc: testLoc },
-                typeExpr: { kind: "CoreTypeConst", name: "Int", loc: testLoc },
+                expr: reducibleLambda,
+                typeExpr: { kind: "CoreTypeConst", name: "T", loc: testLoc },
                 loc: testLoc,
-            });
+            };
 
-            expect(() => pass.transform(expr)).not.toThrow();
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreTypeAnnotation");
+            if (result.kind === "CoreTypeAnnotation") {
+                expect(result.expr).toEqual(reducedTo);
+            }
         });
 
         it("recurses into CoreVariant args", () => {
-            const expr = wrapInLambda({
+            const expr: CoreExpr = {
                 kind: "CoreVariant",
                 constructor: "Some",
-                args: [{ kind: "CoreIntLit", value: 1, loc: testLoc }],
+                args: [reducibleLambda],
                 loc: testLoc,
-            });
+            };
 
-            expect(() => pass.transform(expr)).not.toThrow();
+            const result = pass.transform(expr);
+            expect(result.kind).toBe("CoreVariant");
+            if (result.kind === "CoreVariant") {
+                expect(result.args[0]).toEqual(reducedTo);
+            }
         });
     });
 
