@@ -546,3 +546,57 @@ describe("Lambda Currying - Zero Parameters", () => {
         expect(coreLambda.body.kind).toBe("CoreIntLit");
     });
 });
+
+describe("Lambda Currying - Explicit Type Parameters", () => {
+    it("should drop typeParams during desugaring", () => {
+        const baseParams = [{ pattern: { kind: "VarPattern" as const, name: "x", loc: testLoc }, loc: testLoc }];
+        const baseBody: Expr = { kind: "Var", name: "x", loc: testLoc };
+
+        const withTypeParams: Expr = {
+            kind: "Lambda",
+            params: baseParams,
+            body: baseBody,
+            typeParams: ["T"],
+            loc: testLoc,
+        };
+
+        const withoutTypeParams: Expr = {
+            kind: "Lambda",
+            params: baseParams,
+            body: baseBody,
+            loc: testLoc,
+        };
+
+        const resultWith = desugar(withTypeParams);
+        const resultWithout = desugar(withoutTypeParams);
+
+        expect(resultWith).toEqual(resultWithout);
+        expect(JSON.stringify(resultWith)).not.toContain("typeParams");
+    });
+
+    it("should drop typeParams alongside per-param type and return-type annotations", () => {
+        const lambda: Expr = {
+            kind: "Lambda",
+            params: [
+                {
+                    pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+                    type: { kind: "TypeConst", name: "T", loc: testLoc },
+                    loc: testLoc,
+                },
+            ],
+            body: { kind: "Var", name: "x", loc: testLoc },
+            returnType: { kind: "TypeConst", name: "T", loc: testLoc },
+            typeParams: ["T"],
+            loc: testLoc,
+        };
+
+        const result = desugar(lambda);
+
+        expect(result.kind).toBe("CoreLambda");
+        const coreLambda = result as CoreLambda;
+        expect(coreLambda.param.kind).toBe("CoreVarPattern");
+        expect((coreLambda.param as CoreVarPattern).name).toBe("x");
+        // No typeParams or type annotations should leak into the core AST
+        expect(JSON.stringify(coreLambda)).not.toContain("typeParams");
+    });
+});

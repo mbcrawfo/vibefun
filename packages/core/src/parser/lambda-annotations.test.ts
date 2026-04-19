@@ -608,4 +608,92 @@ describe("Lambda Parameter Type Annotations", () => {
             });
         });
     });
+
+    describe("Type-parameter prefix on lambdas", () => {
+        it("parses single type param: <T>(x: T): T => x", () => {
+            const expr = parseExpr("<T>(x: T): T => x");
+
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            expect(expr.typeParams).toEqual(["T"]);
+            expect(expr.params).toHaveLength(1);
+            expect(expr.params[0]).toMatchObject({
+                pattern: { kind: "VarPattern", name: "x" },
+                type: { kind: "TypeConst", name: "T" },
+            });
+            expect(expr.returnType).toMatchObject({ kind: "TypeConst", name: "T" });
+        });
+
+        it("parses multiple type params: <A, B>(a: A, b: B): A => a", () => {
+            const expr = parseExpr("<A, B>(a: A, b: B): A => a");
+
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            expect(expr.typeParams).toEqual(["A", "B"]);
+            expect(expr.params).toHaveLength(2);
+            expect(expr.params[0]).toMatchObject({
+                pattern: { kind: "VarPattern", name: "a" },
+                type: { kind: "TypeConst", name: "A" },
+            });
+            expect(expr.params[1]).toMatchObject({
+                pattern: { kind: "VarPattern", name: "b" },
+                type: { kind: "TypeConst", name: "B" },
+            });
+            expect(expr.returnType).toMatchObject({ kind: "TypeConst", name: "A" });
+        });
+
+        it("parses type param on zero-arg lambda: <T>() => 1", () => {
+            const expr = parseExpr("<T>() => 1");
+
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            expect(expr.typeParams).toEqual(["T"]);
+            expect(expr.params).toHaveLength(0);
+        });
+
+        it("parses type params with no per-param annotations: <T>(x) => x", () => {
+            const expr = parseExpr("<T>(x) => x");
+
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            expect(expr.typeParams).toEqual(["T"]);
+            expect(expr.params).toHaveLength(1);
+            expect(expr.params[0]?.type).toBeUndefined();
+        });
+
+        it("allows trailing comma in type-param list: <T,>(x: T) => x", () => {
+            const expr = parseExpr("<T,>(x: T) => x");
+
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            expect(expr.typeParams).toEqual(["T"]);
+        });
+
+        it("allows trailing commas in both lists: <T, U,>(x: T, y: U,) => x", () => {
+            const expr = parseExpr("<T, U,>(x: T, y: U,) => x");
+
+            expect(expr.kind).toBe("Lambda");
+            if (expr.kind !== "Lambda") return;
+
+            expect(expr.typeParams).toEqual(["T", "U"]);
+            expect(expr.params).toHaveLength(2);
+        });
+
+        it("rejects empty type-param list: <>(x) => x", () => {
+            expect(() => parseExpr("<>(x) => x")).toThrow();
+        });
+
+        it("rejects '<T>' not followed by '(': <T> x", () => {
+            expect(() => parseExpr("<T> x")).toThrow(/Expected '\(' after type parameters/);
+        });
+
+        it("rejects '<T>(x)' with no '=>': <T>(x)", () => {
+            expect(() => parseExpr("<T>(x)")).toThrow();
+        });
+    });
 });
