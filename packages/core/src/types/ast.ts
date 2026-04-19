@@ -94,6 +94,8 @@ export type Expr =
     | { kind: "TypeAnnotation"; expr: Expr; typeExpr: TypeExpr; loc: Location }
     // Unsafe
     | { kind: "Unsafe"; expr: Expr; loc: Location }
+    // Try/catch (only legal inside Unsafe blocks, enforced by the typechecker)
+    | { kind: "TryCatch"; tryBody: Expr; catchBinder: string; catchBody: Expr; loc: Location }
     // Tuples
     | { kind: "Tuple"; elements: Expr[]; loc: Location }
     // Loops

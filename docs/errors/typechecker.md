@@ -67,6 +67,7 @@ Errors during type checking and inference
 | [VF4803](#vf4803) | FFINotFunction | **Error** |
 | [VF4804](#vf4804) | FFIOverloadNotSupported | **Error** |
 | [VF4805](#vf4805) | ExternalCallOutsideUnsafe | **Error** |
+| [VF4806](#vf4806) | TryCatchOutsideUnsafe | **Error** |
 | [VF4900](#vf4900) | UnreachablePattern | **Warning** |
 | [VF5102](#vf5102) | DuplicateDeclaration | **Error** |
 
@@ -2354,6 +2355,45 @@ let _ = unsafe { log("hello") };
 ### Related
 
 [VF4800](typechecker.md#vf4800)
+
+
+---
+
+## VF4806
+
+**TryCatchOutsideUnsafe** **Error**
+
+### Message
+
+> try/catch is only allowed inside an unsafe block
+
+### Explanation
+
+try/catch exists specifically to handle exceptions thrown by JavaScript at the FFI boundary, so the language requires it to appear inside an `unsafe` block — the same way a bare call to an external function does. Pure Vibefun code should use `Result<T, E>` for error handling.
+
+### Example
+
+**Problem:**
+
+```vibefun
+let r = try { f(1); } catch (e) { 0; };
+```
+
+**Solution:**
+
+```vibefun
+let r = unsafe { try { f(1); } catch (e) { 0; } };
+```
+
+*Wrapped the try/catch in an unsafe block*
+
+### Hint
+
+> Wrap the try/catch in `unsafe { ... }` or move it into a helper that does
+
+### Related
+
+[VF4805](typechecker.md#vf4805)
 
 
 ---

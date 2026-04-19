@@ -693,6 +693,28 @@ match parseNumber("42") {
 }
 ```
 
+### try/catch (FFI only)
+
+`try { body } catch (binder) { handler }` is the only exception-style
+construct in Vibefun and is reserved for JavaScript interop. It must live
+inside an `unsafe` block — the compiler rejects bare `try/catch` with
+`VF4806 TryCatchOutsideUnsafe`. The catch binder is typed as `Json` so
+handlers treat the caught value as an opaque FFI payload.
+
+```vibefun
+// ✅ try/catch inside unsafe
+let safe = (s) => unsafe {
+    try { riskyExternal(s); }
+    catch (e) { fallback; }
+};
+
+// ❌ Compile error VF4806 — try/catch outside unsafe
+let bad = try { 1 } catch (e) { 0 };
+```
+
+For pure Vibefun error handling (no FFI involved), use `Result<T, E>` —
+don't reach for try/catch.
+
 ### Keywords as Field Names (JS Interop)
 
 JavaScript frequently uses reserved words as object properties. Vibefun allows keywords as field names for seamless interop:

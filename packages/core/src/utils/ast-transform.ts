@@ -181,6 +181,14 @@ export function transformChildren(expr: CoreExpr, fn: Transformer): CoreExpr {
                 expr: transformExpr(expr.expr, fn),
             };
 
+        // Try/catch
+        case "CoreTryCatch":
+            return {
+                ...expr,
+                tryBody: transformExpr(expr.tryBody, fn),
+                catchBody: transformExpr(expr.catchBody, fn),
+            };
+
         // Tuple
         case "CoreTuple":
             return {
@@ -340,6 +348,11 @@ export function visitExpr(expr: CoreExpr, fn: Visitor): void {
 
         case "CoreUnsafe":
             visitExpr(expr.expr, fn);
+            return;
+
+        case "CoreTryCatch":
+            visitExpr(expr.tryBody, fn);
+            visitExpr(expr.catchBody, fn);
             return;
     }
 }

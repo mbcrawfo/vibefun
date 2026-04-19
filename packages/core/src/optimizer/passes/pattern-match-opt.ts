@@ -164,6 +164,10 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
             case "CoreUnsafe":
                 return expr;
 
+            // Try/catch - don't optimize inside (unsafe boundary)
+            case "CoreTryCatch":
+                return expr;
+
             // Tuple
             case "CoreTuple":
                 return {

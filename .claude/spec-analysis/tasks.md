@@ -44,7 +44,7 @@ the root-cause groups that Package D remediated:
 - [x] 5.2 Pattern matching completeness
 - [x] 5.3 Explicit type parameters on functions
 - [x] 5.4 Lambda parameter destructuring
-- [ ] 5.5 JavaScript interop completeness
+- [x] 5.5 JavaScript interop completeness
 
 ## Phase 6: Module System
 - [x] 6.1 Fix module test fixtures (single→double quotes; done opportunistically in phase 2.9)

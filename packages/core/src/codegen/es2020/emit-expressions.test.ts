@@ -788,6 +788,33 @@ describe("Expression Emission", () => {
             };
             expect(emitExpr(outer, ctx)).toBe("5");
         });
+
+        it("should emit try/catch as an IIFE with try/catch semantics", () => {
+            const ctx = createTestContext();
+            const expr = {
+                kind: "CoreTryCatch" as const,
+                tryBody: intLit(1),
+                catchBinder: "e",
+                catchBody: intLit(0),
+                loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            };
+            expect(emitExpr(expr, ctx)).toBe("(() => { try { return (1); } catch (e) { return (0); } })()");
+        });
+
+        it("should escape a reserved-word catch binder", () => {
+            const ctx = createTestContext();
+            const expr = {
+                kind: "CoreTryCatch" as const,
+                tryBody: intLit(1),
+                catchBinder: "class",
+                catchBody: intLit(0),
+                loc: { file: "test.vf", line: 1, column: 1, offset: 0 },
+            };
+            // `class` is a JS reserved word; escapeIdentifier must keep the
+            // generated code syntactically valid.
+            expect(emitExpr(expr, ctx)).toContain("catch (");
+            expect(emitExpr(expr, ctx)).not.toContain("catch (class)");
+        });
     });
 });
 

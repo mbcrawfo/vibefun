@@ -332,6 +332,19 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
+        // Try/catch is lowered to a dedicated Core node because JavaScript's
+        // try/catch is a statement, not an expression, so codegen has to
+        // materialise it as an IIFE. Preserving a distinct node keeps the
+        // typechecker and codegen explicit about the boundary.
+        case "TryCatch":
+            return {
+                kind: "CoreTryCatch",
+                tryBody: desugar(expr.tryBody, gen),
+                catchBinder: expr.catchBinder,
+                catchBody: desugar(expr.catchBody, gen),
+                loc: expr.loc,
+            };
+
         // Tuple expression - desugar elements
         case "Tuple":
             return {

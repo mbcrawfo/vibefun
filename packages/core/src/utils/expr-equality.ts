@@ -167,6 +167,14 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
         case "CoreUnsafe":
             return e2.kind === "CoreUnsafe" && exprEquals(e1.expr, e2.expr);
 
+        case "CoreTryCatch":
+            return (
+                e2.kind === "CoreTryCatch" &&
+                e1.catchBinder === e2.catchBinder &&
+                exprEquals(e1.tryBody, e2.tryBody) &&
+                exprEquals(e1.catchBody, e2.catchBody)
+            );
+
         case "CoreTuple":
             if (e2.kind !== "CoreTuple") return false;
             if (e1.elements.length !== e2.elements.length) return false;

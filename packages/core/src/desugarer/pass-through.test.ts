@@ -16,6 +16,7 @@ import type {
     CoreExternalTypeDecl,
     CoreLet,
     CoreLetDecl,
+    CoreTryCatch,
     CoreTypeAnnotation,
     CoreUnaryOp,
     CoreUnsafe,
@@ -314,6 +315,34 @@ describe("Unsafe Blocks", () => {
         expect(result.kind).toBe("CoreUnsafe");
         // If should be desugared to CoreMatch
         expect((result as CoreUnsafe).expr.kind).toBe("CoreMatch");
+    });
+});
+
+describe("Try/Catch Expressions", () => {
+    it("should desugar to CoreTryCatch preserving binder and recursing into bodies", () => {
+        // try { if cond then 1 else 2 } catch (e) { 0 }
+        const expr: Expr = {
+            kind: "TryCatch",
+            tryBody: {
+                kind: "If",
+                condition: { kind: "Var", name: "cond", loc: testLoc },
+                then: { kind: "IntLit", value: 1, loc: testLoc },
+                else_: { kind: "IntLit", value: 2, loc: testLoc },
+                loc: testLoc,
+            },
+            catchBinder: "e",
+            catchBody: { kind: "IntLit", value: 0, loc: testLoc },
+            loc: testLoc,
+        };
+
+        const result = desugar(expr);
+
+        expect(result.kind).toBe("CoreTryCatch");
+        const tc = result as CoreTryCatch;
+        expect(tc.catchBinder).toBe("e");
+        // If-then-else should be desugared inside the try body
+        expect(tc.tryBody.kind).toBe("CoreMatch");
+        expect(tc.catchBody.kind).toBe("CoreIntLit");
     });
 });
 

@@ -230,6 +230,59 @@ describe("Expression Equality Utilities", () => {
         });
     });
 
+    describe("try/catch expressions", () => {
+        it("should compare equal try/catch expressions", () => {
+            const make = (): CoreExpr => ({
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            });
+
+            expect(exprEquals(make(), make())).toBe(true);
+        });
+
+        it("should distinguish different catch binders", () => {
+            const e1: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+            const e2: CoreExpr = { ...e1, catchBinder: "err" };
+
+            expect(exprEquals(e1, e2)).toBe(false);
+        });
+
+        it("should distinguish different try bodies", () => {
+            const e1: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+            const e2: CoreExpr = { ...e1, tryBody: { kind: "CoreIntLit", value: 2, loc: testLoc } };
+
+            expect(exprEquals(e1, e2)).toBe(false);
+        });
+
+        it("should reject try/catch vs other kinds", () => {
+            const e1: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+            const e2: CoreExpr = { kind: "CoreIntLit", value: 1, loc: testLoc };
+
+            expect(exprEquals(e1, e2)).toBe(false);
+        });
+    });
+
     describe("variant constructors", () => {
         it("should compare variant constructors with same name and args", () => {
             const e1: CoreExpr = {

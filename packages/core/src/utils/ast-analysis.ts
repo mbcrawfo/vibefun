@@ -136,6 +136,14 @@ export function freeVars(expr: CoreExpr): Set<string> {
                 analyzeExpr(e.expr, currentBound);
                 return;
 
+            case "CoreTryCatch": {
+                analyzeExpr(e.tryBody, currentBound);
+                const catchBound = new Set(currentBound);
+                catchBound.add(e.catchBinder);
+                analyzeExpr(e.catchBody, catchBound);
+                return;
+            }
+
             case "CoreTuple":
                 e.elements.forEach((elem) => analyzeExpr(elem, currentBound));
                 return;
