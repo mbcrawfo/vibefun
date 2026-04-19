@@ -119,12 +119,14 @@ function generateIndex(): string {
 
     for (const def of allCodes) {
         const severity = def.severity === "error" ? "Error" : "Warning";
-        // Use the first sentence of the explanation as the description.
-        // `String#split` always returns at least one element, so no fallback
-        // is needed. Escape backslashes and raw `|` so neither splits the
-        // containing markdown table cell.
-        const rawDescription = def.explanation.split(".")[0];
-        const description = (rawDescription ?? "").replace(/([\\|])/g, "\\$1");
+        // Use the first sentence of the explanation as the description, but
+        // fall back to the message template if it is empty (e.g. explanation
+        // is blank or starts with a period). `||` is used instead of `??` so
+        // empty strings trigger the fallback. Escape backslashes and raw `|`
+        // so neither splits the containing markdown table cell.
+        const firstSentence = def.explanation.split(".")[0]?.trim() ?? "";
+        const rawDescription = firstSentence || def.messageTemplate;
+        const description = rawDescription.replace(/([\\|])/g, "\\$1");
         lines.push(
             `| [${def.code}](${phaseToFilename(def.phase)}#${def.code.toLowerCase()}) | ${def.title} | ${severity} | ${description} |`,
         );
