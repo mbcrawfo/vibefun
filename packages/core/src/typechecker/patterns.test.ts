@@ -441,6 +441,164 @@ describe("Pattern Checking", () => {
         });
     });
 
+    describe("Tuple Patterns", () => {
+        it("should bind elements when matched against a tuple type", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    { kind: "CoreVarPattern", name: "y", loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+            const expected: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.String],
+            };
+
+            const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+
+            expect(result.bindings.size).toBe(2);
+            expect(result.bindings.get("x")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("y")).toEqual(primitiveTypes.String);
+        });
+
+        it("should only bind non-wildcard elements", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    { kind: "CoreWildcardPattern", loc: testLoc },
+                    { kind: "CoreVarPattern", name: "z", loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+            const expected: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Bool, primitiveTypes.String],
+            };
+
+            const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+
+            expect(result.bindings.size).toBe(2);
+            expect(result.bindings.get("x")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("z")).toEqual(primitiveTypes.String);
+        });
+
+        it("should accept literal element patterns and produce no bindings", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                    { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+            const expected: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+
+            const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+
+            expect(result.bindings.size).toBe(0);
+        });
+
+        it("should recurse into nested tuple patterns", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    {
+                        kind: "CoreTuplePattern",
+                        elements: [
+                            { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                            { kind: "CoreVarPattern", name: "b", loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                    {
+                        kind: "CoreTuplePattern",
+                        elements: [
+                            { kind: "CoreVarPattern", name: "c", loc: testLoc },
+                            { kind: "CoreVarPattern", name: "d", loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+            const innerTuple: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+            const expected: Type = {
+                type: "Tuple",
+                elements: [innerTuple, innerTuple],
+            };
+
+            const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+
+            expect(result.bindings.size).toBe(4);
+            expect(result.bindings.get("a")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("b")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("c")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("d")).toEqual(primitiveTypes.Int);
+        });
+
+        it("should reject arity mismatch with VF4026", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                    { kind: "CoreVarPattern", name: "b", loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+            const expected: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int, primitiveTypes.Int],
+            };
+
+            expect(() => {
+                checkPattern(env, pattern, expected, emptySubst(), 0);
+            }).toThrow("VF4026");
+        });
+
+        it("should reject non-tuple expected type with a unification diagnostic", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                    { kind: "CoreVarPattern", name: "b", loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+
+            expect(() => {
+                checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
+            }).toThrow(/VF40\d\d/);
+        });
+
+        it("should reject duplicate bindings across elements with VF4402", () => {
+            const pattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+            const expected: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+
+            expect(() => {
+                checkPattern(env, pattern, expected, emptySubst(), 0);
+            }).toThrow("VF4402");
+        });
+    });
+
     describe("Exhaustiveness Checking", () => {
         it("should accept wildcard as exhaustive", () => {
             const patterns: CorePattern[] = [
@@ -654,6 +812,124 @@ describe("Pattern Checking", () => {
             const missing = checkExhaustiveness(env, patterns, primitiveTypes.Int);
 
             expect(missing).toEqual(["<other values>"]);
+        });
+
+        it("should flag tuple matches without any catch-all pattern", () => {
+            // match pair { | (0, 0) => ... }
+            const tupleType: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+            const patterns: CorePattern[] = [
+                {
+                    kind: "CoreTuplePattern",
+                    elements: [
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                },
+            ];
+
+            const missing = checkExhaustiveness(env, patterns, tupleType);
+
+            expect(missing).toEqual(["(_, _)"]);
+        });
+
+        it("should treat a tuple of all-variable elements as exhaustive", () => {
+            // match pair { | (a, b) => ... }
+            const tupleType: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+            const patterns: CorePattern[] = [
+                {
+                    kind: "CoreTuplePattern",
+                    elements: [
+                        { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                        { kind: "CoreVarPattern", name: "b", loc: testLoc },
+                    ],
+                    loc: testLoc,
+                },
+            ];
+
+            const missing = checkExhaustiveness(env, patterns, tupleType);
+
+            expect(missing).toEqual([]);
+        });
+
+        it("should treat tuple with literal + catch-all arms as exhaustive", () => {
+            // match pair { | (0, 0) => ... | _ => ... }
+            const tupleType: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+            const patterns: CorePattern[] = [
+                {
+                    kind: "CoreTuplePattern",
+                    elements: [
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                },
+                { kind: "CoreWildcardPattern", loc: testLoc },
+            ];
+
+            const missing = checkExhaustiveness(env, patterns, tupleType);
+
+            expect(missing).toEqual([]);
+        });
+
+        it("should recognize nested all-catch-all tuple patterns", () => {
+            // match nested { | ((_, _), (_, _)) => ... }
+            const innerTuple: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int],
+            };
+            const outerTuple: Type = {
+                type: "Tuple",
+                elements: [innerTuple, innerTuple],
+            };
+            const wildcard: CorePattern = { kind: "CoreWildcardPattern", loc: testLoc };
+            const innerPattern: CorePattern = {
+                kind: "CoreTuplePattern",
+                elements: [wildcard, wildcard],
+                loc: testLoc,
+            };
+            const patterns: CorePattern[] = [
+                {
+                    kind: "CoreTuplePattern",
+                    elements: [innerPattern, innerPattern],
+                    loc: testLoc,
+                },
+            ];
+
+            const missing = checkExhaustiveness(env, patterns, outerTuple);
+
+            expect(missing).toEqual([]);
+        });
+
+        it("should report missing-case shape with correct arity for triples", () => {
+            const tripleType: Type = {
+                type: "Tuple",
+                elements: [primitiveTypes.Int, primitiveTypes.Int, primitiveTypes.Int],
+            };
+            const patterns: CorePattern[] = [
+                {
+                    kind: "CoreTuplePattern",
+                    elements: [
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                        { kind: "CoreLiteralPattern", literal: 0, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                },
+            ];
+
+            const missing = checkExhaustiveness(env, patterns, tripleType);
+
+            expect(missing).toEqual(["(_, _, _)"]);
         });
     });
 });

@@ -10,20 +10,22 @@ import type {
     CoreIntLit,
     CoreLambda,
     CoreStringLit,
+    CoreTuple,
     CoreTypeAnnotation,
     CoreTypeConst,
     CoreUnitLit,
     CoreVar,
     CoreVarPattern,
 } from "../types/core-ast.js";
-import type { TypeEnv } from "../types/environment.js";
+import type { Type, TypeEnv } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
-import { primitiveTypes, resetTypeVarCounter, typeToString } from "./types.js";
+import { freshTypeVar, primitiveTypes, resetTypeVarCounter, typeToString } from "./types.js";
+import { applySubst } from "./unify.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
@@ -365,5 +367,102 @@ describe("Type Inference - Complex Expressions", () => {
         // Should infer type: ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
         expect(result.type.type).toBe("Fun");
         expect(typeToString(result.type)).toContain("->");
+    });
+});
+
+describe("Type Inference - Tuples", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    function tupleExpr(elements: CoreTuple["elements"]): CoreTuple {
+        return { kind: "CoreTuple", elements, loc: testLoc };
+    }
+
+    it('should infer (Int, String) for (1, "hello")', () => {
+        const expr = tupleExpr([
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            { kind: "CoreStringLit", value: "hello", loc: testLoc },
+        ]);
+
+        const result = inferExpr(createContext(createTestEnv()), expr);
+
+        expect(result.type).toEqual({
+            type: "Tuple",
+            elements: [primitiveTypes.Int, primitiveTypes.String],
+        });
+    });
+
+    it("should infer a triple (Int, Int, Int)", () => {
+        const expr = tupleExpr([
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            { kind: "CoreIntLit", value: 2, loc: testLoc },
+            { kind: "CoreIntLit", value: 3, loc: testLoc },
+        ]);
+
+        const result = inferExpr(createContext(createTestEnv()), expr);
+
+        expect(result.type).toEqual({
+            type: "Tuple",
+            elements: [primitiveTypes.Int, primitiveTypes.Int, primitiveTypes.Int],
+        });
+    });
+
+    it("should infer nested ((Int, Int), (Int, Int))", () => {
+        const innerLeft = tupleExpr([
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            { kind: "CoreIntLit", value: 2, loc: testLoc },
+        ]);
+        const innerRight = tupleExpr([
+            { kind: "CoreIntLit", value: 3, loc: testLoc },
+            { kind: "CoreIntLit", value: 4, loc: testLoc },
+        ]);
+        const expr = tupleExpr([innerLeft, innerRight]);
+
+        const result = inferExpr(createContext(createTestEnv()), expr);
+
+        const innerTuple: Type = {
+            type: "Tuple",
+            elements: [primitiveTypes.Int, primitiveTypes.Int],
+        };
+        expect(result.type).toEqual({
+            type: "Tuple",
+            elements: [innerTuple, innerTuple],
+        });
+    });
+
+    it("should thread substitutions through elements so later inference sees refinements", () => {
+        // (x + 1, x) where x is registered as a fresh tyvar in the env.
+        // Inferring `x + 1` refines x's type to Int via the substitution;
+        // applying the final subst to the tuple type yields (Int, Int).
+        const env = createTestEnv();
+        const tv = freshTypeVar(0);
+        env.values.set("x", { kind: "Value", scheme: { vars: [], type: tv }, loc: testLoc });
+
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const one: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const xPlusOne: CoreBinOp = { kind: "CoreBinOp", op: "Add", left: xVar, right: one, loc: testLoc };
+        const expr = tupleExpr([xPlusOne, xVar]);
+
+        const result = inferExpr(createContext(env), expr);
+        const applied = applySubst(result.subst, result.type);
+
+        expect(applied).toEqual({
+            type: "Tuple",
+            elements: [primitiveTypes.Int, primitiveTypes.Int],
+        });
+    });
+
+    it("should treat (42) as a grouping (not a single-element tuple)", () => {
+        // The parser/desugarer is responsible for this invariant: a single
+        // parenthesized expression does not produce a CoreTuple. This test
+        // pins the typechecker contract — when inference sees a bare
+        // CoreIntLit (what the parser emits for `(42)`), it returns Int,
+        // not a tuple.
+        const expr: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+
+        const result = inferExpr(createContext(createTestEnv()), expr);
+
+        expect(result.type).toEqual(primitiveTypes.Int);
     });
 });

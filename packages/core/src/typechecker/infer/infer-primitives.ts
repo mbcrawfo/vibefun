@@ -10,7 +10,7 @@ import type { Type, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { throwDiagnostic } from "../../diagnostics/index.js";
-import { constType, funType, primitiveTypes } from "../types.js";
+import { constType, funType, primitiveTypes, tupleType } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
 
@@ -170,12 +170,16 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         case "CoreMatch":
             return inferMatchFn(ctx, expr);
 
-        // Tuple expressions (placeholder)
-        case "CoreTuple":
-            throwDiagnostic("VF4017", expr.loc, {
-                feature: "Tuple type inference",
-                hint: "Use pattern matching in a match expression instead",
-            });
+        case "CoreTuple": {
+            let subst = ctx.subst;
+            const elementTypes: Type[] = [];
+            for (const element of expr.elements) {
+                const result = inferExpr({ ...ctx, subst }, element);
+                subst = result.subst;
+                elementTypes.push(result.type);
+            }
+            return { type: tupleType(elementTypes), subst };
+        }
     }
 }
 
