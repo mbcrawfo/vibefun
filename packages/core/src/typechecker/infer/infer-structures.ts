@@ -50,8 +50,10 @@ export function inferRecord(ctx: InferenceContext, expr: Extract<CoreExpr, { kin
             const spreadResult = inferExprFn(currentCtx, field.expr);
             currentCtx = { ...currentCtx, subst: spreadResult.subst };
 
-            // The spread expression should be a record type
-            const spreadType = applySubst(currentCtx.subst, spreadResult.type);
+            // The spread expression should be a record type. Expand user-
+            // defined aliases / generic records (e.g. `type Box<T> = { value: T }`)
+            // so their fields merge correctly.
+            const spreadType = expandTypeAlias(applySubst(currentCtx.subst, spreadResult.type), ctx.env.types);
             if (spreadType.type === "Record") {
                 // Merge fields from the spread expression
                 for (const [fieldName, fieldType] of spreadType.fields) {
@@ -219,8 +221,9 @@ export function inferRecordUpdate(
             const spreadResult = inferExprFn(currentCtx, update.expr);
             currentCtx = { ...currentCtx, subst: spreadResult.subst };
 
-            // The spread expression should be a record type
-            const spreadType = applySubst(currentCtx.subst, spreadResult.type);
+            // The spread expression should be a record type. Expand user-
+            // defined aliases / generic records so their fields merge.
+            const spreadType = expandTypeAlias(applySubst(currentCtx.subst, spreadResult.type), ctx.env.types);
             if (spreadType.type !== "Record") {
                 throwDiagnostic("VF4500", update.loc, {
                     actual: typeToString(spreadType),

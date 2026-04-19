@@ -221,9 +221,10 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
     // Expand user-defined type aliases and generic record types transparently
     // before structural unification. This is what makes `type UserId = Int`
     // interchangeable with `Int` and `Box<Int>` interchangeable with
-    // `{ value: Int }`.
-    const expanded1 = expandAlias(t1, ctx);
-    const expanded2 = expandAlias(t2, ctx);
+    // `{ value: Int }`. Expansion is transitive so nested aliases like
+    // `type A = B; type B = Int` collapse in one step.
+    const expanded1 = expandAliasFully(t1, ctx);
+    const expanded2 = expandAliasFully(t2, ctx);
     if (expanded1 !== t1 || expanded2 !== t2) {
         return unify(expanded1, expanded2, ctx);
     }
@@ -574,9 +575,39 @@ function unifyVariants(
  * `unify()` itself (e.g. record field access in infer-structures.ts) that
  * need to peek at the expanded shape of a user-defined type before
  * proceeding with structural checks.
+ *
+ * Expansion is transitive: `type A = B; type B = Int` expanded from `A`
+ * yields `Int`, not `B`. A depth cap guards against pathological cycles
+ * that somehow slip past the alias-recursion validator.
  */
 export function expandTypeAlias(type: Type, types: Map<string, TypeBinding>): Type {
-    return expandAlias(type, { loc: { file: "", line: 0, column: 0, offset: 0 }, types });
+    const ctx: UnifyContext = { loc: { file: "", line: 0, column: 0, offset: 0 }, types };
+    let current = type;
+    for (let i = 0; i < 32; i++) {
+        const expanded = expandAlias(current, ctx);
+        if (expanded === current) {
+            return current;
+        }
+        current = expanded;
+    }
+    return current;
+}
+
+/**
+ * Transitive wrapper around `expandAlias` — applies expansion repeatedly
+ * until the type stabilises or a depth cap is hit. The depth cap guards
+ * against pathological alias cycles that slipped past validation.
+ */
+function expandAliasFully(type: Type, ctx: UnifyContext): Type {
+    let current = type;
+    for (let i = 0; i < 32; i++) {
+        const expanded = expandAlias(current, ctx);
+        if (expanded === current) {
+            return current;
+        }
+        current = expanded;
+    }
+    return current;
 }
 
 /**
