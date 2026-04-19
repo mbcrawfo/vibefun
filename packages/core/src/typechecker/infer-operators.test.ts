@@ -17,7 +17,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
-import { primitiveTypes, resetTypeVarCounter } from "./types.js";
+import { freshTypeVar, primitiveTypes, resetTypeVarCounter } from "./types.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
@@ -420,5 +420,67 @@ describe("Type Inference - Unary Operators", () => {
         const ctx = createContext(env);
 
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+    });
+
+    describe("prefix ! disambiguation (LogicalNot vs Deref)", () => {
+        it("keeps LogicalNot when the operand is Bool", () => {
+            const inner: CoreBoolLit = { kind: "CoreBoolLit", value: true, loc: testLoc };
+            const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "LogicalNot", expr: inner, loc: testLoc };
+
+            const env = createTestEnv();
+            const ctx = createContext(env);
+
+            const result = inferExpr(ctx, expr);
+
+            expect(result.type).toEqual(primitiveTypes.Bool);
+            expect(expr.op).toBe("LogicalNot");
+        });
+
+        it("rewrites LogicalNot to Deref when the operand resolves to Ref<T>", () => {
+            // !ref(42) — the inner expression is a ref() application producing Ref<Int>
+            const inner = {
+                kind: "CoreApp" as const,
+                func: { kind: "CoreVar" as const, name: "ref", loc: testLoc },
+                args: [{ kind: "CoreIntLit" as const, value: 42, loc: testLoc }],
+                loc: testLoc,
+            };
+            const expr: CoreUnaryOp = {
+                kind: "CoreUnaryOp",
+                op: "LogicalNot",
+                expr: inner,
+                loc: testLoc,
+            };
+
+            const env = createTestEnv();
+            const ctx = createContext(env);
+
+            const result = inferExpr(ctx, expr);
+
+            expect(result.type).toEqual(primitiveTypes.Int);
+            expect(expr.op).toBe("Deref");
+        });
+
+        it("keeps LogicalNot when the operand is a free type variable (default)", () => {
+            // `let f = (x) => !x` — without further constraints, x remains a type
+            // variable. The spec default is LogicalNot; operand unifies with Bool.
+            const inner = { kind: "CoreVar" as const, name: "x", loc: testLoc };
+            const expr: CoreUnaryOp = { kind: "CoreUnaryOp", op: "LogicalNot", expr: inner, loc: testLoc };
+
+            const env = createTestEnv();
+            // Register `x` as a free type variable by hand for this isolated test
+            const tv = freshTypeVar(0);
+            env.values.set("x", {
+                kind: "Value" as const,
+                scheme: { vars: [], type: tv },
+                loc: testLoc,
+            });
+
+            const ctx = createContext(env);
+
+            const result = inferExpr(ctx, expr);
+
+            expect(result.type).toEqual(primitiveTypes.Bool);
+            expect(expr.op).toBe("LogicalNot");
+        });
     });
 });
