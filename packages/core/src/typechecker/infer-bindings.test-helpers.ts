@@ -10,7 +10,7 @@ export const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
 export function createTestEnv(): TypeEnv {
     const builtins = getBuiltinEnv();
-    const values = new Map();
+    const values: TypeEnv["values"] = new Map();
 
     // Convert builtin type schemes to Value bindings
     for (const [name, scheme] of builtins.entries()) {
@@ -21,8 +21,6 @@ export function createTestEnv(): TypeEnv {
         });
     }
 
-    return {
-        values,
-        types: new Map(),
-    };
+    const types: TypeEnv["types"] = new Map();
+    return { values, types };
 }
