@@ -44,7 +44,9 @@ Within each phase, codes are organized by subcategory. Check existing codes in t
 
 ### 2. Create the Definition
 
-Add your definition to the appropriate phase file (e.g., `typechecker.ts`):
+Phases are stored as either a single file (e.g., `lexer.ts`, `desugarer.ts`, `modules.ts`) or a folder with one file per subcategory (e.g., `parser/`, `typechecker/`). For phase-folders, pick the subcategory file that matches the code's range (e.g., `typechecker/mismatch.ts` for VF4000–VF4019, `parser/expression.ts` for VF2100–VF2199) — follow the header comment in the phase's `index.ts` for the authoritative subcategory map. Adding a new subcategory file requires creating a sibling `<name>.ts` exporting an aggregated `<name>Codes` array, then threading it into the phase's `index.ts`.
+
+Add your definition to the appropriate phase file or subcategory file:
 
 ```typescript
 export const VF4XXX: DiagnosticDefinition = {
@@ -78,10 +80,20 @@ export const VF4XXX: DiagnosticDefinition = {
 
 ### 3. Register the Code
 
-Add your code to the registration array at the bottom of the file:
+**Single-file phases** (e.g., `lexer.ts`): add your code to the registration array at the bottom of the file:
 
 ```typescript
-const typecheckerCodes: readonly DiagnosticDefinition[] = [
+const lexerCodes: readonly DiagnosticDefinition[] = [
+    // ... existing codes ...
+    VF1XXX,  // Add your new code
+];
+```
+
+**Phase-folder phases** (e.g., `typechecker/`, `parser/`): add your code to the subcategory file's local array (e.g., `typechecker/mismatch.ts` exports `mismatchCodes`). The folder's `index.ts` already spreads every subcategory array into the phase-wide `registerXxxCodes()` aggregator, so no edit there is needed unless you are introducing a brand-new subcategory file.
+
+```typescript
+// typechecker/mismatch.ts
+export const mismatchCodes: readonly DiagnosticDefinition[] = [
     // ... existing codes ...
     VF4XXX,  // Add your new code
 ];
@@ -89,7 +101,10 @@ const typecheckerCodes: readonly DiagnosticDefinition[] = [
 
 ### 4. Export from Index
 
-The code should be automatically exported through the phase file's exports. Verify it appears in `codes/index.ts` re-exports.
+The code should be automatically exported through the phase's public surface:
+
+- **Single-file phases** export via the phase file directly, which is re-exported from `codes/index.ts`.
+- **Phase-folder phases** export via the folder's `index.ts`, which `codes/index.ts` re-exports. For phase-folders, verify the subcategory file is imported by the folder's `index.ts`.
 
 ### 5. Use the Code
 

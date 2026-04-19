@@ -20,6 +20,8 @@ Emitters recurse across each other (expressions emit patterns, patterns emit exp
 
 ```ts
 Expressions.setEmitPattern(Patterns.emitPattern);
+Expressions.setEmitMatchPattern(Patterns.emitMatchPattern);
+Expressions.setExtractPatternNames(Patterns.extractPatternNames);
 Patterns.setEmitExpr(Expressions.emitExpr);
 Declarations.setEmitExpr(Expressions.emitExpr);
 Declarations.setEmitPattern(Patterns.emitPattern);
