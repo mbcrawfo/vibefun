@@ -7,7 +7,7 @@
 import type { Expr, Location, MatchCase, RecordField, TypeExpr } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
-import { validateMutableBinding } from "./parse-declarations.js";
+import { validateMutableBinding } from "./parse-declarations/index.js";
 
 // Forward declarations (injected by aggregator)
 // Initialized to error-throwing functions for type safety and better error messages

@@ -5,7 +5,8 @@ Recursive-descent parser that turns tokens into the Surface AST. Split across fo
 ## Files
 
 - `parser-base.ts` — base class with cursor, lookahead, and `check`/`match`/`expect` helpers.
-- `parse-declarations.ts` — top-level declarations (let, type, import, export, external).
+- `parse-declarations/` — top-level declarations (let, type, import, export, external).
+  - Split by declaration kind: `let.ts`, `type.ts`, `external.ts`, `import-export.ts`, plus `shared-state.ts` for DI and `index.ts` for the dispatcher.
 - `parse-expressions.ts` — expression aggregator; wires the expression sub-modules.
   - `parse-expression-primary.ts` — literals, identifiers, parenthesized / block / record / lambda entry.
   - `parse-expression-operators.ts` — operator precedence climbing.
