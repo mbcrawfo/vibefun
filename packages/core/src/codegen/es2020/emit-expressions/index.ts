@@ -10,6 +10,7 @@
 import type { CoreExpr } from "../../../types/core-ast.js";
 import type { EmitContext } from "../context.js";
 
+import { escapeIdentifier } from "../reserved-words.js";
 import { emitRecord, emitRecordAccess, emitRecordUpdate, emitTuple, emitVariant } from "./collections.js";
 import { emitLet, emitLetRecExpr, emitMatch } from "./control.js";
 import { emitApp, emitLambda } from "./functions.js";
@@ -90,6 +91,16 @@ export function emitExpr(expr: CoreExpr, ctx: EmitContext): string {
         case "CoreUnsafe":
             // Unsafe blocks just pass through
             return emitExpr(expr.expr, ctx);
+
+        case "CoreTryCatch": {
+            // JavaScript's try/catch is a statement, so we wrap it in an IIFE
+            // to produce an expression. The catch binder uses the user's chosen
+            // name (escaped for JS reserved words).
+            const tryCode = emitExpr(expr.tryBody, ctx);
+            const catchCode = emitExpr(expr.catchBody, ctx);
+            const binder = escapeIdentifier(expr.catchBinder);
+            return `(() => { try { return (${tryCode}); } catch (${binder}) { return (${catchCode}); } })()`;
+        }
 
         default: {
             // Exhaustiveness check

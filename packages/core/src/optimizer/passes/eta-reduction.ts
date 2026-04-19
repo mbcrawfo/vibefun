@@ -234,6 +234,10 @@ export class EtaReductionPass extends OptimizationPass {
             case "CoreUnsafe":
                 return expr;
 
+            // Try/catch - don't optimize inside (treat as an unsafe boundary)
+            case "CoreTryCatch":
+                return expr;
+
             // Tuple
             case "CoreTuple":
                 return {

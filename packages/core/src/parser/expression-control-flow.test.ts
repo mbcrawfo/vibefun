@@ -364,6 +364,54 @@ describe("Parser - Control Flow", () => {
         });
     });
 
+    describe("try/catch expressions", () => {
+        it("should parse try/catch with single-expression bodies", () => {
+            const expr = parseExpression("try { f(x) } catch (e) { 0 }");
+
+            expect(expr).toMatchObject({
+                kind: "TryCatch",
+                tryBody: { kind: "App" },
+                catchBinder: "e",
+                catchBody: { kind: "IntLit", value: 0 },
+            });
+        });
+
+        it("should parse try/catch with multi-line bodies", () => {
+            const expr = parseExpression("try {\n  f(x);\n  g(y);\n} catch (err) {\n  fallback();\n}");
+
+            expect(expr).toMatchObject({
+                kind: "TryCatch",
+                tryBody: { kind: "Block" },
+                catchBinder: "err",
+                catchBody: { kind: "App" },
+            });
+        });
+
+        it("should parse try/catch nested inside unsafe", () => {
+            const expr = parseExpression("unsafe { try { f(x) } catch (e) { 0 } }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "TryCatch",
+                    catchBinder: "e",
+                },
+            });
+        });
+
+        it("should throw when catch is missing", () => {
+            expect(() => parseExpression("try { f(x) }")).toThrow(VibefunDiagnostic);
+        });
+
+        it("should throw when catch binder parens are missing", () => {
+            expect(() => parseExpression("try { f(x) } catch { 0 }")).toThrow(VibefunDiagnostic);
+        });
+
+        it("should throw when catch binder is missing", () => {
+            expect(() => parseExpression("try { f(x) } catch () { 0 }")).toThrow(VibefunDiagnostic);
+        });
+    });
+
     describe("control flow", () => {
         describe("if expressions", () => {
             it("should parse if-then-else", () => {

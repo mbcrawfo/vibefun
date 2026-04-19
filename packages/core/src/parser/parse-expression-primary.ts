@@ -50,16 +50,18 @@ export function setComplexParsers(fns: {
 }
 
 /**
- * Parse the body of an `unsafe { ... }` expression.
+ * Parse a permissive brace-delimited body.
  *
  * Accepts either a single expression (with optional surrounding whitespace)
  * or a multi-statement block with semicolon-separated statements. Returns
  * the single expression directly when there is one statement so the Core
- * AST after desugaring is unchanged from the historical behavior.
+ * AST after desugaring is unchanged from the historical single-expression
+ * shape. Used by the `unsafe` and `try` / `catch` parsers, which both
+ * allow either form.
  *
  * Consumes the closing RBRACE.
  */
-function parseUnsafeBody(parser: ParserBase, lbraceLoc: Location): Expr {
+function parseBraceBody(parser: ParserBase, lbraceLoc: Location): Expr {
     // Skip leading newlines inside the braces
     while (parser.match("NEWLINE"));
 
@@ -82,7 +84,7 @@ function parseUnsafeBody(parser: ParserBase, lbraceLoc: Location): Expr {
 
         if (!parser.check("SEMICOLON")) {
             throw parser.error("VF2107", parser.peek().loc, {
-                context: "statements in unsafe block",
+                context: "statements in block",
             });
         }
         parser.advance(); // consume ';'
@@ -90,7 +92,7 @@ function parseUnsafeBody(parser: ParserBase, lbraceLoc: Location): Expr {
         while (parser.match("NEWLINE"));
     }
 
-    parser.expect("RBRACE", "Expected '}' after unsafe block");
+    parser.expect("RBRACE", "Expected '}' to close block");
 
     if (exprs.length === 1) {
         // Preserve legacy shape: single-expression unsafe bodies are not wrapped
@@ -239,11 +241,45 @@ export function parsePrimary(parser: ParserBase): Expr {
 
         const lbraceToken = parser.expect("LBRACE", "Expected '{' after 'unsafe'");
 
-        const expr = parseUnsafeBody(parser, lbraceToken.loc);
+        const expr = parseBraceBody(parser, lbraceToken.loc);
 
         return {
             kind: "Unsafe",
             expr,
+            loc: startLoc,
+        };
+    }
+
+    // Try/catch: try { body } catch (binder) { body }
+    if (parser.check("KEYWORD") && parser.peek().value === "try") {
+        const startLoc = parser.peek().loc;
+        parser.advance(); // consume 'try'
+
+        const tryLBrace = parser.expect("LBRACE", "Expected '{' after 'try'");
+        const tryBody = parseBraceBody(parser, tryLBrace.loc);
+
+        // Newlines can appear between the try body and the 'catch' keyword
+        while (parser.match("NEWLINE"));
+
+        if (!(parser.check("KEYWORD") && parser.peek().value === "catch")) {
+            throw parser.error("VF2107", parser.peek().loc, {
+                context: "expected 'catch' after try block",
+            });
+        }
+        parser.advance(); // consume 'catch'
+
+        parser.expect("LPAREN", "Expected '(' after 'catch'");
+        const binderToken = parser.expect("IDENTIFIER", "Expected an identifier for catch binder");
+        parser.expect("RPAREN", "Expected ')' after catch binder");
+
+        const catchLBrace = parser.expect("LBRACE", "Expected '{' after catch binder");
+        const catchBody = parseBraceBody(parser, catchLBrace.loc);
+
+        return {
+            kind: "TryCatch",
+            tryBody,
+            catchBinder: binderToken.value as string,
+            catchBody,
             loc: startLoc,
         };
     }

@@ -90,4 +90,28 @@ describe("Unsafe-block enforcement", () => {
             expect(() => typecheckSource(`${EXT_ABS}let r = unsafe { -5 |> math_abs };`)).not.toThrow();
         });
     });
+
+    describe("try/catch enforcement and inference", () => {
+        it("rejects try/catch outside of an unsafe block", () => {
+            expectDiagnostic(() => typecheckSource(`let r = try { 1 } catch (e) { 0 };`), "VF4806");
+        });
+
+        it("accepts try/catch inside an unsafe block", () => {
+            expect(() =>
+                typecheckSource(`${EXT_ABS}let r = unsafe { try { math_abs(-5) } catch (e) { 0 } };`),
+            ).not.toThrow();
+        });
+
+        it("rejects body/handler type mismatch", () => {
+            expect(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { "oops" } };`)).toThrow();
+        });
+
+        it("binds the catch variable as Json only inside the catch body", () => {
+            // The binder is in scope in the catch body (typed as Json), but not
+            // after the try/catch expression.
+            expect(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { let _ = e; 0 } };`)).not.toThrow();
+
+            expect(() => typecheckSource(`let r = unsafe { try { 1 } catch (e) { 0 } };\nlet _ = e;`)).toThrow();
+        });
+    });
 });

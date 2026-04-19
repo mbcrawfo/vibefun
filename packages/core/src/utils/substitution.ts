@@ -382,6 +382,53 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
                     expr: substExpr(e.expr),
                 };
 
+            case "CoreTryCatch": {
+                // The catch binder introduces a fresh local binding inside
+                // catchBody. Handle shadowing (binder hides one of our
+                // replacements) and capture (the binder collides with a
+                // free name in any replacement), mirroring the CoreLet path.
+                const newTry = substExpr(e.tryBody);
+                const binder = e.catchBinder;
+
+                if (freeInReplacements.has(binder)) {
+                    const avoidSet = new Set([...freeInReplacements, ...freeVars(e.catchBody), ...bindings.keys()]);
+                    // Invent a fresh name that is guaranteed not to clash
+                    let fresh = binder;
+                    let counter = 0;
+                    while (avoidSet.has(fresh)) {
+                        counter += 1;
+                        fresh = `${binder}$${counter}`;
+                    }
+                    const renameMap = new Map<string, CoreExpr>([
+                        [binder, { kind: "CoreVar", name: fresh, loc: e.loc }],
+                    ]);
+                    const renamedCatch = substituteMultiple(e.catchBody, renameMap);
+                    return {
+                        ...e,
+                        catchBinder: fresh,
+                        tryBody: newTry,
+                        catchBody: substExpr(renamedCatch),
+                    };
+                }
+
+                if (bindings.has(binder)) {
+                    // Binder shadows one of our replacements; drop it for the body.
+                    const bodyBindings = new Map(bindings);
+                    bodyBindings.delete(binder);
+                    return {
+                        ...e,
+                        tryBody: newTry,
+                        catchBody: substituteMultiple(e.catchBody, bodyBindings),
+                    };
+                }
+
+                return {
+                    ...e,
+                    tryBody: newTry,
+                    catchBody: substExpr(e.catchBody),
+                };
+            }
+
             case "CoreTuple":
                 return {
                     ...e,

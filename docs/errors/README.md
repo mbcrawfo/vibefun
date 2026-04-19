@@ -120,6 +120,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4803](typechecker.md#vf4803) | FFINotFunction | Error | External declarations can only be overloaded if they have function types |
 | [VF4804](typechecker.md#vf4804) | FFIOverloadNotSupported | Error | Overloaded external functions cannot be used as first-class values or in certain contexts |
 | [VF4805](typechecker.md#vf4805) | ExternalCallOutsideUnsafe | Error | Calling or referencing an `external` binding is a trust boundary with JavaScript, so the language requires those references to appear inside an `unsafe` block |
+| [VF4806](typechecker.md#vf4806) | TryCatchOutsideUnsafe | Error | try/catch exists specifically to handle exceptions thrown by JavaScript at the FFI boundary, so the language requires it to appear inside an `unsafe` block — the same way a bare call to an external function does |
 | [VF4900](typechecker.md#vf4900) | UnreachablePattern | Warning | This pattern case will never be reached because previous patterns already cover all possible values |
 | [VF5000](modules.md#vf5000) | ModuleNotFound | Error | The import statement references a module that could not be found |
 | [VF5001](modules.md#vf5001) | ImportNotExported | Error | The import statement tries to import a name that is not exported from the target module |
@@ -147,7 +148,7 @@ Errors during syntax parsing (AST construction)
 
 Errors during desugaring (syntax transformation)
 
-### [Type Checker](typechecker.md) (58 errors, 1 warnings)
+### [Type Checker](typechecker.md) (59 errors, 1 warnings)
 
 Errors during type checking and inference
 
@@ -157,6 +158,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 122
-- **Errors:** 119
+- **Total diagnostic codes:** 123
+- **Errors:** 120
 - **Warnings:** 3

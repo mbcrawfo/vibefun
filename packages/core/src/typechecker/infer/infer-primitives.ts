@@ -166,6 +166,10 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         case "CoreUnsafe":
             return inferUnsafe(ctx, expr);
 
+        // Try/catch
+        case "CoreTryCatch":
+            return inferTryCatch(ctx, expr);
+
         // Pattern matching
         case "CoreMatch":
             return inferMatchFn(ctx, expr);
@@ -270,6 +274,45 @@ function inferUnsafe(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
     // uses this flag to decide whether referencing an `external` binding
     // is legal at this point in the program.
     return inferExpr({ ...ctx, inUnsafe: true }, expr.expr);
+}
+
+/**
+ * Infer the type of a try/catch expression.
+ *
+ * Rules:
+ * 1. try/catch is only legal inside an unsafe block.
+ * 2. The catch binder is typed as `Json` — we cannot statically know the
+ *    runtime shape of a thrown JavaScript value, so the conservative
+ *    choice is to expose it as the opaque FFI escape hatch type.
+ * 3. The try and catch bodies must unify to the same result type.
+ */
+function inferTryCatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreTryCatch" }>): InferResult {
+    if (!ctx.inUnsafe) {
+        throwDiagnostic("VF4806", expr.loc, {});
+    }
+
+    const tryResult = inferExpr(ctx, expr.tryBody);
+
+    const catchEnv = {
+        values: new Map(ctx.env.values),
+        types: ctx.env.types,
+    };
+    catchEnv.values.set(expr.catchBinder, {
+        kind: "Value",
+        scheme: { vars: [], type: constType("Json") },
+        loc: expr.loc,
+    });
+
+    const catchResult = inferExpr({ ...ctx, env: catchEnv, subst: tryResult.subst }, expr.catchBody);
+
+    // Unify try and catch result types so the whole expression has one type
+    const tryTypeApplied = applySubst(catchResult.subst, tryResult.type);
+    const unifyCtx = { loc: expr.loc, types: ctx.env.types };
+    const unifySubst = unify(tryTypeApplied, catchResult.type, unifyCtx);
+    const finalSubst = composeSubst(unifySubst, catchResult.subst);
+    const finalType = applySubst(finalSubst, tryTypeApplied);
+
+    return { type: finalType, subst: finalSubst };
 }
 
 /**

@@ -609,6 +609,10 @@ export function isSyntacticValue(expr: CoreExpr): boolean {
         case "CoreBinOp":
         case "CoreUnaryOp":
         case "CoreTuple":
+        case "CoreTryCatch":
+            // try/catch can throw or return either branch, so it's not a
+            // syntactic value — the value restriction applies to let
+            // bindings that wrap it.
             return false;
     }
 }

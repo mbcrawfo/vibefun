@@ -52,6 +52,7 @@ export type CoreExpr =
     // Other
     | CoreTypeAnnotation
     | CoreUnsafe
+    | CoreTryCatch
     // Tuples
     | CoreTuple;
 
@@ -296,6 +297,20 @@ export type CoreTypeAnnotation = {
 export type CoreUnsafe = {
     kind: "CoreUnsafe";
     expr: CoreExpr;
+    loc: Location;
+};
+
+/**
+ * Try/catch expression. Only legal inside an `unsafe` block; the
+ * catch binder is bound to a value typed as `Json` (the FFI escape
+ * hatch) so user code can inspect or propagate the caught value
+ * without claiming a specific JS exception shape.
+ */
+export type CoreTryCatch = {
+    kind: "CoreTryCatch";
+    tryBody: CoreExpr;
+    catchBinder: string;
+    catchBody: CoreExpr;
     loc: Location;
 };
 

@@ -254,6 +254,14 @@ export class InlineExpansionPass extends OptimizationPass {
                 case "CoreUnsafe":
                     countInExpr(e.expr);
                     return;
+
+                case "CoreTryCatch":
+                    countInExpr(e.tryBody);
+                    // catch binder shadows varName if they collide
+                    if (e.catchBinder !== varName) {
+                        countInExpr(e.catchBody);
+                    }
+                    return;
             }
         };
 

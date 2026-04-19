@@ -350,6 +350,75 @@ describe("Substitution Utilities - expressions", () => {
         });
     });
 
+    describe("substitute - try/catch expressions", () => {
+        it("should substitute free variables in both bodies", () => {
+            // try { x } catch (e) { x }
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreVar", name: "x", loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreVar", name: "x", loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = substitute(expr, "x", { kind: "CoreIntLit", value: 42, loc: testLoc });
+
+            expect(result.kind).toBe("CoreTryCatch");
+            if (result.kind === "CoreTryCatch") {
+                expect(result.tryBody).toEqual({ kind: "CoreIntLit", value: 42, loc: testLoc });
+                expect(result.catchBody).toEqual({ kind: "CoreIntLit", value: 42, loc: testLoc });
+            }
+        });
+
+        it("should respect the catch binder shadowing the substitution target", () => {
+            // try { 0 } catch (e) { e }   — substituting `e` must not touch catchBody
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreVar", name: "e", loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = substitute(expr, "e", { kind: "CoreIntLit", value: 99, loc: testLoc });
+
+            expect(result.kind).toBe("CoreTryCatch");
+            if (result.kind === "CoreTryCatch") {
+                expect(result.catchBinder).toBe("e");
+                expect(result.catchBody).toEqual({ kind: "CoreVar", name: "e", loc: testLoc });
+            }
+        });
+
+        it("should α-rename the catch binder to avoid capturing a free var in the replacement", () => {
+            // try { 0 } catch (e) { use(e) } — substitute `use` with `e` (which
+            // would be captured by the binder without renaming).
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                catchBinder: "e",
+                catchBody: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "use", loc: testLoc },
+                    args: [{ kind: "CoreVar", name: "e", loc: testLoc }],
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            };
+
+            const replacement: CoreExpr = { kind: "CoreVar", name: "e", loc: testLoc };
+            const result = substitute(expr, "use", replacement);
+
+            expect(result.kind).toBe("CoreTryCatch");
+            if (result.kind === "CoreTryCatch") {
+                expect(result.catchBinder).not.toBe("e");
+                // The original binder `e` in catchBody was renamed to the fresh name,
+                // so the free `e` from the replacement does not get captured.
+                const callee = (result.catchBody as { func: { name: string } }).func;
+                expect(callee.name).toBe("e");
+            }
+        });
+    });
+
     describe("substitute - let rec expressions", () => {
         it("should handle shadowing in recursive bindings", () => {
             // let rec x = 1 in x

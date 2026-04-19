@@ -141,6 +141,26 @@ describe("AST Analysis Utilities", () => {
             // f and g are bound, no free variables
             expect(freeVars(expr)).toEqual(new Set());
         });
+
+        it("should handle try/catch, binding the catch variable only in the catch body", () => {
+            // try { x } catch (e) { x + e }
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreVar", name: "x", loc: testLoc },
+                catchBinder: "e",
+                catchBody: {
+                    kind: "CoreBinOp",
+                    op: "Add",
+                    left: { kind: "CoreVar", name: "x", loc: testLoc },
+                    right: { kind: "CoreVar", name: "e", loc: testLoc },
+                    loc: testLoc,
+                },
+                loc: testLoc,
+            };
+
+            // `x` is free from both bodies; `e` is bound in catchBody only
+            expect(freeVars(expr)).toEqual(new Set(["x"]));
+        });
     });
 
     describe("patternBoundVars", () => {

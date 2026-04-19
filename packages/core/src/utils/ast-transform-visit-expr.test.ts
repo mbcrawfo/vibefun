@@ -256,6 +256,23 @@ describe("AST Transform Utilities", () => {
             expect(visited).toContain("CoreVar");
         });
 
+        it("should visit CoreTryCatch and both bodies", () => {
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreVar", name: "x", loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                loc: testLoc,
+            };
+
+            const visited: string[] = [];
+            visitExpr(expr, (e) => visited.push(e.kind));
+
+            expect(visited).toContain("CoreTryCatch");
+            expect(visited).toContain("CoreVar");
+            expect(visited).toContain("CoreIntLit");
+        });
+
         it("should visit literals without children", () => {
             const literals: CoreExpr[] = [
                 { kind: "CoreIntLit", value: 1, loc: testLoc },

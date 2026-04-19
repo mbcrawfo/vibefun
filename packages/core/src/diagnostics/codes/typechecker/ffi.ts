@@ -1,5 +1,5 @@
 /**
- * External/FFI Errors (VF4800-VF4805)
+ * External/FFI Errors (VF4800-VF4806)
  */
 
 import type { DiagnosticDefinition } from "../../diagnostic.js";
@@ -120,4 +120,24 @@ export const VF4805: DiagnosticDefinition = {
     relatedCodes: ["VF4800"],
 };
 
-export const ffiCodes: readonly DiagnosticDefinition[] = [VF4800, VF4801, VF4802, VF4803, VF4804, VF4805];
+export const VF4806: DiagnosticDefinition = {
+    code: "VF4806",
+    title: "TryCatchOutsideUnsafe",
+    messageTemplate: "try/catch is only allowed inside an unsafe block",
+    severity: "error",
+    phase: "typechecker",
+    category: "ffi",
+    hintTemplate: "Wrap the try/catch in `unsafe { ... }` or move it into a helper that does",
+    explanation:
+        "try/catch exists specifically to handle exceptions thrown by JavaScript at the FFI boundary, " +
+        "so the language requires it to appear inside an `unsafe` block — the same way a bare call to " +
+        "an external function does. Pure Vibefun code should use `Result<T, E>` for error handling.",
+    example: {
+        bad: "let r = try { f(1); } catch (e) { 0; };",
+        good: "let r = unsafe { try { f(1); } catch (e) { 0; } };",
+        description: "Wrapped the try/catch in an unsafe block",
+    },
+    relatedCodes: ["VF4805"],
+};
+
+export const ffiCodes: readonly DiagnosticDefinition[] = [VF4800, VF4801, VF4802, VF4803, VF4804, VF4805, VF4806];

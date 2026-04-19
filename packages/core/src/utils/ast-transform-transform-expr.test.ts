@@ -437,6 +437,30 @@ describe("AST Transform Utilities", () => {
             }
         });
 
+        it("should transform CoreTryCatch recursing into both bodies", () => {
+            const expr: CoreExpr = {
+                kind: "CoreTryCatch",
+                tryBody: { kind: "CoreVar", name: "x", loc: testLoc },
+                catchBinder: "e",
+                catchBody: { kind: "CoreVar", name: "x", loc: testLoc },
+                loc: testLoc,
+            };
+
+            const result = transformExpr(expr, (e) => {
+                if (e.kind === "CoreVar" && e.name === "x") {
+                    return { ...e, name: "y" };
+                }
+                return e;
+            });
+
+            expect(result.kind).toBe("CoreTryCatch");
+            if (result.kind === "CoreTryCatch") {
+                expect(result.catchBinder).toBe("e");
+                expect((result.tryBody as { name: string }).name).toBe("y");
+                expect((result.catchBody as { name: string }).name).toBe("y");
+            }
+        });
+
         it("should transform CoreTuple", () => {
             const expr: CoreExpr = {
                 kind: "CoreTuple",
