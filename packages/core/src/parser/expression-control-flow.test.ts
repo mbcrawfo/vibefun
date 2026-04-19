@@ -289,6 +289,79 @@ describe("Parser - Control Flow", () => {
                 },
             });
         });
+
+        it("should parse multi-line unsafe block with chained let bindings", () => {
+            // `let x = v; body` is a single Let node that consumes the trailing
+            // body, so a chain collapses into nested Lets — not a Block.
+            const expr = parseExpression("unsafe {\n  let x = 1;\n  let y = 2;\n  x + y;\n}");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "Let",
+                    value: { kind: "IntLit", value: 1 },
+                    body: {
+                        kind: "Let",
+                        value: { kind: "IntLit", value: 2 },
+                        body: { kind: "BinOp", op: "Add" },
+                    },
+                },
+            });
+        });
+
+        it("should parse multi-line unsafe block with bare side-effect calls", () => {
+            const expr = parseExpression('unsafe {\n  log("a");\n  log("b");\n  result;\n}');
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "Block",
+                    exprs: [{ kind: "App" }, { kind: "App" }, { kind: "Var", name: "result" }],
+                },
+            });
+        });
+
+        it("should parse empty unsafe block as an empty Block", () => {
+            const expr = parseExpression("unsafe { }");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: { kind: "Block", exprs: [] },
+            });
+        });
+
+        it("should parse nested multi-line unsafe blocks (matches the failing spec fixture)", () => {
+            const expr = parseExpression("unsafe {\n  let inner = unsafe { f(-5) };\n  inner;\n}");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "Let",
+                    value: {
+                        kind: "Unsafe",
+                        expr: { kind: "App" },
+                    },
+                    body: { kind: "Var", name: "inner" },
+                },
+            });
+        });
+
+        it("should allow trailing expression without a trailing semicolon", () => {
+            const expr = parseExpression("unsafe {\n  let x = 1;\n  x\n}");
+
+            expect(expr).toMatchObject({
+                kind: "Unsafe",
+                expr: {
+                    kind: "Let",
+                    value: { kind: "IntLit", value: 1 },
+                    body: { kind: "Var", name: "x" },
+                },
+            });
+        });
+
+        it("should throw on missing semicolon between statements", () => {
+            expect(() => parseExpression("unsafe { let x = 1 let y = 2; x + y; }")).toThrow(VibefunDiagnostic);
+        });
     });
 
     describe("control flow", () => {
