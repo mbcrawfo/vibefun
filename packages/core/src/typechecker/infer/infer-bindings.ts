@@ -10,6 +10,7 @@ import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { throwDiagnostic } from "../../diagnostics/index.js";
+import { checkPattern } from "../patterns.js";
 import { freeTypeVarsAtLevel, freshTypeVar, isSyntacticValue } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
@@ -67,15 +68,28 @@ export function generalize(ctx: InferenceContext, type: Type, expr: CoreExpr): T
  * @returns The inferred type and updated substitution
  */
 export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreLet" }>): InferResult {
-    // Variable and wildcard patterns are supported in let-bindings. Wildcard
-    // lets (`let _ = expr;`) evaluate the value for its side effects and
-    // introduce no binding — the desugarer uses this shape for while-loop
-    // body sequencing. Other patterns (literal, record, constructor) are
-    // still unsupported.
-    if (expr.pattern.kind !== "CoreVarPattern" && expr.pattern.kind !== "CoreWildcardPattern") {
+    // Supported patterns:
+    //   - CoreVarPattern — standard let-polymorphism
+    //   - CoreWildcardPattern — side-effect lets (`let _ = expr;`)
+    //   - CoreTuplePattern — destructuring let (`let (a, b) = pair;`)
+    // Other patterns (literal, record, constructor) are not yet supported.
+    if (
+        expr.pattern.kind !== "CoreVarPattern" &&
+        expr.pattern.kind !== "CoreWildcardPattern" &&
+        expr.pattern.kind !== "CoreTuplePattern"
+    ) {
         throwDiagnostic("VF4017", expr.loc, {
             feature: "Pattern matching in let-bindings",
-            hint: "Only variable or wildcard patterns are currently supported",
+            hint: "Only variable, wildcard, or tuple patterns are currently supported",
+        });
+    }
+
+    // Recursive tuple bindings (`let rec (a, b) = ...`) are not meaningful —
+    // there is no name to seed in the environment before inference.
+    if (expr.recursive && expr.pattern.kind === "CoreTuplePattern") {
+        throwDiagnostic("VF4017", expr.loc, {
+            feature: "Recursive tuple-destructuring let-bindings",
+            hint: "Use a variable pattern for recursive bindings",
         });
     }
 
@@ -123,24 +137,49 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
     }
 
-    // Build the body environment. For variable patterns, bind the name to
-    // the generalized scheme; for wildcard patterns, inherit the parent env.
-    const bodyEnv: TypeEnv =
-        expr.pattern.kind === "CoreVarPattern"
-            ? (() => {
-                  const valueScheme = generalize(valueCtx, valueResult.type, expr.value);
-                  const env: TypeEnv = {
-                      types: ctx.env.types,
-                      values: new Map(ctx.env.values),
-                  };
-                  env.values.set(expr.pattern.name, {
-                      kind: "Value",
-                      scheme: valueScheme,
-                      loc: expr.loc,
-                  });
-                  return env;
-              })()
-            : ctx.env;
+    // Build the body environment.
+    //   - CoreVarPattern: bind the generalized scheme.
+    //   - CoreTuplePattern: destructure via checkPattern and add each
+    //     element binding non-generalized. The value restriction applies
+    //     (tuples are not syntactic values), so generalizing would be
+    //     unsound anyway.
+    //   - CoreWildcardPattern: inherit the parent env.
+    let bodyEnv: TypeEnv;
+    if (expr.pattern.kind === "CoreVarPattern") {
+        const valueScheme = generalize(valueCtx, valueResult.type, expr.value);
+        bodyEnv = {
+            types: ctx.env.types,
+            values: new Map(ctx.env.values),
+        };
+        bodyEnv.values.set(expr.pattern.name, {
+            kind: "Value",
+            scheme: valueScheme,
+            loc: expr.loc,
+        });
+    } else if (expr.pattern.kind === "CoreTuplePattern") {
+        const patternResult = checkPattern(
+            valueCtx.env,
+            expr.pattern,
+            valueResult.type,
+            valueCtx.subst,
+            valueCtx.level,
+            { loc: expr.pattern.loc, types: ctx.env.types },
+        );
+        valueCtx = { ...valueCtx, subst: patternResult.subst };
+        bodyEnv = {
+            types: ctx.env.types,
+            values: new Map(ctx.env.values),
+        };
+        for (const [name, type] of patternResult.bindings) {
+            bodyEnv.values.set(name, {
+                kind: "Value",
+                scheme: { vars: [], type: applySubst(valueCtx.subst, type) },
+                loc: expr.loc,
+            });
+        }
+    } else {
+        bodyEnv = ctx.env;
+    }
 
     // Infer the type of the body with the updated environment
     const bodyCtx: InferenceContext = {
