@@ -924,4 +924,56 @@ describe("Parser - Declarations", () => {
             });
         });
     });
+
+    describe("top-level expression statements", () => {
+        // Spec: 08-modules.md "Top-Level Expression Evaluation" — modules
+        // may contain bare expressions that run at initialization time.
+        // The parser synthesizes `let _ = <expr>;` so downstream passes
+        // treat it uniformly.
+
+        it("parses a ref-assignment as a top-level expression", () => {
+            // Requires a prior `let mut x = ref(...)` to be meaningful,
+            // so test the second declaration in a two-decl module.
+            const module = parseModule("let mut x = ref(0);\nx := 5;");
+            expect(module.declarations).toHaveLength(2);
+            const second = module.declarations[1];
+            expect(second).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "WildcardPattern" },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                value: {
+                    kind: "BinOp",
+                    op: "RefAssign",
+                },
+            });
+        });
+
+        it("parses a function call as a top-level expression", () => {
+            const decl = parseDecl("log(42);");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "WildcardPattern" },
+                value: {
+                    kind: "App",
+                    func: { kind: "Var", name: "log" },
+                    args: [{ kind: "IntLit", value: 42 }],
+                },
+            });
+        });
+
+        it("rejects exporting a bare expression", () => {
+            expect(() => parseDecl("export 42;")).toThrow(/VF2000|Expected declaration keyword/);
+        });
+
+        it("still errors when the first token is a keyword not handled by the declaration switch", () => {
+            // `while` is a keyword but only legal inside an expression
+            // (and now indirectly at top level via the expression-statement
+            // fallthrough — but the fallthrough is *skipped* when the token
+            // is classified as a KEYWORD, so this routes into the switch's
+            // default branch and throws VF2001.
+            expect(() => parseDecl("while true { 1; };")).toThrow(/VF2001|Unknown keyword/);
+        });
+    });
 });

@@ -36,7 +36,7 @@ the root-cause groups that Package D remediated:
 
 ## Phase 4: Supporting Features
 - [x] 4.1 Nested `let mut` + codegen double-wrapping fix
-- [ ] 4.2 Top-level expression statements
+- [x] 4.2 Top-level expression statements
 - [ ] 4.3 Non-let expressions in block bodies
 
 ## Phase 5: Advanced Features

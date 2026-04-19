@@ -749,6 +749,22 @@ export { getUser, createUser } from './api';
 import { type User, getUser } from './user';  // Imports from index.vf
 ```
 
+### Top-Level Expression Statements
+
+Bare expressions are legal as top-level module statements; they run in
+declaration order at module initialisation time. Each must terminate
+with a semicolon like any other declaration.
+
+```vibefun
+let mut x = ref(0);
+x := 5;                       // Top-level ref assignment
+log("module loaded");         // Top-level side effect
+```
+
+Internally the parser synthesises `let _ = <expr>;`, so the expression's
+value is discarded. Use `let name = <expr>;` instead if you need to
+bind the result.
+
 ---
 
 ## 8. Idiomatic Patterns
