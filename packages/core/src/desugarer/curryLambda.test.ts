@@ -337,6 +337,59 @@ describe("curryLambda — destructuring params", () => {
         expect(innerTmp).not.toBe(outerTmp);
     });
 
+    it("preserves nested record destructuring inside the match arm", () => {
+        // ({ outer: { inner } }) => inner
+        const nested: LambdaParam = {
+            pattern: {
+                kind: "RecordPattern",
+                fields: [
+                    {
+                        name: "outer",
+                        pattern: {
+                            kind: "RecordPattern",
+                            fields: [
+                                {
+                                    name: "inner",
+                                    pattern: { kind: "VarPattern", name: "inner", loc: testLoc },
+                                    loc: testLoc,
+                                },
+                            ],
+                            loc: testLoc,
+                        },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        const result = curryLambda(
+            [nested],
+            body("inner"),
+            testLoc,
+            makeGen(),
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+        );
+
+        const outer = result as CoreLambda;
+        expect(outer.body.kind).toBe("CoreMatch");
+        const match = outer.body as CoreMatch;
+        const arm = match.cases[0]!;
+
+        expect(arm.pattern.kind).toBe("CoreRecordPattern");
+        const outerPat = arm.pattern as CoreRecordPattern;
+        expect(outerPat.fields).toHaveLength(1);
+        expect(outerPat.fields[0]?.name).toBe("outer");
+
+        const innerPat = outerPat.fields[0]?.pattern;
+        expect(innerPat?.kind).toBe("CoreRecordPattern");
+        const innerRecord = innerPat as CoreRecordPattern;
+        expect(innerRecord.fields.map((f) => f.name)).toEqual(["inner"]);
+    });
+
     it("preserves wildcard-pattern params without match wrapping", () => {
         const result = curryLambda(
             [wild(), v("y")],
