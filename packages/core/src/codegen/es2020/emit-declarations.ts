@@ -142,11 +142,6 @@ export function emitDeclaration(decl: CoreDeclaration, ctx: EmitContext): string
 function emitLetDecl(decl: CoreLetDecl, ctx: EmitContext): string {
     const indent = getIndent(ctx);
 
-    // Track mutable ref helper usage
-    if (decl.mutable) {
-        markNeedsRefHelper(ctx);
-    }
-
     // Collect exports
     if (decl.exported) {
         const names = extractPatternNames(decl.pattern);
@@ -155,12 +150,19 @@ function emitLetDecl(decl: CoreLetDecl, ctx: EmitContext): string {
         }
     }
 
+    // Mutable bindings are shaped `let mut x = ref(v)` at the parser —
+    // the explicit `ref(...)` call handles the `{ $value }` wrapping, so
+    // codegen emits the value as-is. The runtime helper still needs to be
+    // emitted so the call resolves. `mut` only influences the declaration
+    // keyword so the binding itself can be reassigned to a new ref.
+    if (decl.mutable) {
+        markNeedsRefHelper(ctx);
+    }
     const patternCode = emitPatternFn(decl.pattern, ctx);
-    const valueCode = decl.mutable
-        ? `{ $value: ${emitExprFn(decl.value, withPrecedence(ctx, 0))} }`
-        : emitExprFn(decl.value, withPrecedence(ctx, 0));
+    const valueCode = emitExprFn(decl.value, withPrecedence(ctx, 0));
 
-    // For recursive bindings, use let + assignment to allow self-reference
+    // For recursive bindings, use let + assignment to allow self-reference.
+    // Mutable bindings also use `let` so the binding can be rebound.
     if (decl.recursive) {
         // For simple variable patterns, we can use let + assignment
         if (decl.pattern.kind === "CoreVarPattern") {
@@ -170,7 +172,8 @@ function emitLetDecl(decl: CoreLetDecl, ctx: EmitContext): string {
         return `${indent}const ${patternCode} = ${valueCode};`;
     }
 
-    return `${indent}const ${patternCode} = ${valueCode};`;
+    const keyword = decl.mutable ? "let" : "const";
+    return `${indent}${keyword} ${patternCode} = ${valueCode};`;
 }
 
 // =============================================================================
@@ -210,16 +213,16 @@ function emitLetRecGroup(decl: CoreLetRecGroup, ctx: EmitContext): string {
     // Phase 1: Declare all names with let
     lines.push(`${indent}let ${allNames.join(", ")};`);
 
-    // Phase 2: Assign values
+    // Phase 2: Assign values. Mutable bindings use an explicit `ref(...)`
+    // in the value position (enforced at the parser); codegen emits that
+    // value as-is and must not add another `{ $value: ... }` wrapper. The
+    // helper must still be emitted for the call to resolve.
     for (const binding of decl.bindings) {
         if (binding.mutable) {
             markNeedsRefHelper(ctx);
         }
-
         const patternCode = emitPatternFn(binding.pattern, ctx);
-        const valueCode = binding.mutable
-            ? `{ $value: ${emitExprFn(binding.value, withPrecedence(ctx, 0))} }`
-            : emitExprFn(binding.value, withPrecedence(ctx, 0));
+        const valueCode = emitExprFn(binding.value, withPrecedence(ctx, 0));
 
         lines.push(`${indent}${patternCode} = ${valueCode};`);
     }

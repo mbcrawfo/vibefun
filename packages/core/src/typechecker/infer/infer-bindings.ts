@@ -79,13 +79,10 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         });
     }
 
-    // Mutable let-bindings are not supported yet
-    if (expr.mutable) {
-        throwDiagnostic("VF4017", expr.loc, {
-            feature: "Mutable let-bindings",
-            hint: "Use Ref<T> types for mutable values instead",
-        });
-    }
+    // Mutable bindings (`let mut x = ref(...)`) are just a surface marker —
+    // the parser already enforces the `ref(...)` shape, and the HM engine
+    // infers the value as `Ref<T>` through the ref builtin. No additional
+    // handling is required here.
 
     // Create new context with increased level for generalization
     const newLevel = ctx.level + 1;
@@ -186,15 +183,9 @@ export function inferLetRecExpr(
         }
     }
 
-    // Mutable bindings are not supported yet
-    for (const binding of expr.bindings) {
-        if (binding.mutable) {
-            throwDiagnostic("VF4017", binding.loc, {
-                feature: "Mutable bindings in mutually recursive groups",
-                hint: "Use Ref<T> types for mutable values instead",
-            });
-        }
-    }
+    // Mutable bindings in let-rec groups are treated the same as single
+    // mutable bindings — the parser enforces `ref(...)` at the value site,
+    // so no extra inference logic is required.
 
     // Step 1: Create new level for generalization
     const newLevel = ctx.level + 1;

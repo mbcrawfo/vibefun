@@ -7,6 +7,7 @@ import { emitExpr, setEmitMatchPattern, setEmitPattern as setExprEmitPattern } f
 import { emitMatchPattern, emitPattern } from "./emit-patterns.js";
 import {
     aliasTypeDecl,
+    app,
     binOp,
     createTestContext,
     externalDecl,
@@ -101,10 +102,14 @@ describe("Declaration Emission", () => {
             expect(emitDeclaration(decl, ctx)).toBe("const [a, b] = pair;");
         });
 
-        it("should emit mutable let declaration with ref wrapper", () => {
+        it("should emit mutable let declaration without wrapping the value", () => {
             const ctx = createTestContext();
-            const decl = letDecl(varPat("counter"), intLit(0), { mutable: true });
-            expect(emitDeclaration(decl, ctx)).toBe("const counter = { $value: 0 };");
+            // Parser enforces `let mut x = ref(v)`. Codegen emits the value
+            // as-is (the ref() call supplies the { $value } wrapper) and
+            // uses `let` so the binding can be reassigned to a new ref.
+            const refCall = app(varRef("ref"), intLit(0));
+            const decl = letDecl(varPat("counter"), refCall, { mutable: true });
+            expect(emitDeclaration(decl, ctx)).toBe("let counter = ref(0);");
             expect(ctx.needsRefHelper).toBe(true);
         });
 
@@ -166,11 +171,13 @@ describe("Declaration Emission", () => {
             expect(ctx.exportedNames.has("g")).toBe(true);
         });
 
-        it("should handle mutable bindings in let rec group", () => {
+        it("should handle mutable bindings in let rec group without double-wrapping", () => {
             const ctx = createTestContext();
-            const decl = letRecGroup([{ pattern: varPat("counter"), value: intLit(0), mutable: true }]);
+            const refCall = app(varRef("ref"), intLit(0));
+            const decl = letRecGroup([{ pattern: varPat("counter"), value: refCall, mutable: true }]);
             const result = emitDeclaration(decl, ctx);
-            expect(result).toContain("{ $value: 0 }");
+            expect(result).toContain("counter = ref(0);");
+            expect(result).not.toContain("{ $value:");
             expect(ctx.needsRefHelper).toBe(true);
         });
     });

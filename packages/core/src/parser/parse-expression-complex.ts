@@ -7,6 +7,8 @@
 import type { Expr, Location, MatchCase, RecordField, TypeExpr } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
+import { validateMutableBinding } from "./parse-declarations.js";
+
 // Forward declarations (injected by aggregator)
 // Initialized to error-throwing functions for type safety and better error messages
 let parsePatternFn: (parser: ParserBase) => import("../types/index.js").Pattern = () => {
@@ -436,6 +438,11 @@ export function parseLetExpr(parser: ParserBase, startLoc: Location): Expr {
 
     // Parse value expression
     let value = parseExpressionFn(parser);
+
+    // Enforce `let mut x = ref(...)` in expression context for parity with
+    // top-level declarations. The value restriction and the Ref<T> type
+    // surface are easier to reason about when mut is always paired with ref.
+    validateMutableBinding(parser, value, pattern, mutable);
 
     // Wrap value with type annotation if present
     if (typeAnnotation) {

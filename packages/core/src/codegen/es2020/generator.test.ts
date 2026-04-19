@@ -322,7 +322,9 @@ describe("ES2020 Generator", () => {
             const headerIndex = code.indexOf("// Vibefun compiled output");
             const importIndex = code.indexOf("import {");
             const helperIndex = code.indexOf("const ref =");
-            const declIndex = code.indexOf("const x =");
+            // Mutable bindings now emit `let x = ...;` so the ref runtime
+            // helper precedes the user declaration.
+            const declIndex = code.indexOf("let x =");
             const exportIndex = code.indexOf("export {");
 
             expect(headerIndex).toBeLessThan(importIndex);

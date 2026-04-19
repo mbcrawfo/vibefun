@@ -599,21 +599,20 @@ function emitLet(
     },
     ctx: EmitContext,
 ): string {
-    // For mutable bindings, track ref helper
+    // Mutable bindings carry their ref wrapping via an explicit `ref(...)`
+    // call in the value expression — the parser enforces this shape, so
+    // codegen must not double-wrap. We still need the ref runtime helper
+    // to exist because the emitted value will call it. Use `let` for
+    // mutable bindings so the binding itself can be reassigned
+    // (`x = ref(10)` per spec).
     if (expr.mutable) {
         markNeedsRefHelper(ctx);
     }
-
-    // In expression context, use IIFE
-    // In statement context, emit const/let declaration
-    // For now, always use IIFE (expression context)
     const patternCode = emitPatternFn(expr.pattern, ctx);
-    const valueCode = expr.mutable
-        ? `{ $value: ${emitExpr(expr.value, withPrecedence(ctx, 0))} }`
-        : emitExpr(expr.value, withPrecedence(ctx, 0));
+    const valueCode = emitExpr(expr.value, withPrecedence(ctx, 0));
     const bodyCode = emitExpr(expr.body, withPrecedence(ctx, 0));
 
-    const keyword = expr.recursive ? "let" : "const";
+    const keyword = expr.recursive || expr.mutable ? "let" : "const";
 
     return `(() => { ${keyword} ${patternCode} = ${valueCode}; return ${bodyCode}; })()`;
 }
@@ -642,16 +641,16 @@ function emitLetRecExpr(
         const names = extractPatternNamesFn(binding.pattern).map(escapeIdentifier);
         declarations.push(...names);
 
-        // Use full pattern for assignment
-        const patternCode = emitPatternFn(binding.pattern, ctx);
-        const valueCode = binding.mutable
-            ? `{ $value: ${emitExpr(binding.value, withPrecedence(ctx, 0))} }`
-            : emitExpr(binding.value, withPrecedence(ctx, 0));
-        assignments.push(`${patternCode} = ${valueCode}`);
-
+        // Use full pattern for assignment. Mutable bindings rely on the
+        // explicit `ref(...)` call inside `value` for their wrapping, so
+        // codegen must not wrap again — but the helper function still
+        // needs to be emitted to satisfy the call.
         if (binding.mutable) {
             markNeedsRefHelper(ctx);
         }
+        const patternCode = emitPatternFn(binding.pattern, ctx);
+        const valueCode = emitExpr(binding.value, withPrecedence(ctx, 0));
+        assignments.push(`${patternCode} = ${valueCode}`);
     }
 
     const bodyCode = emitExpr(expr.body, withPrecedence(ctx, 0));

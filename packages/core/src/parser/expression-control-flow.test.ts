@@ -174,6 +174,26 @@ describe("Parser - Control Flow", () => {
         });
     });
 
+    describe("nested let mut validation", () => {
+        // `parseLetExpr` reuses the top-level `validateMutableBinding` to
+        // enforce the `let mut x = ref(...)` shape inside blocks and
+        // lambda bodies.
+        it("accepts nested let mut = ref(...)", () => {
+            const expr = parseExpression("{ let mut x = ref(0); x; }");
+            expect(expr.kind).toBe("Block");
+        });
+
+        it("rejects nested let mut without ref()", () => {
+            expect(() => parseExpression("{ let mut x = 0; x; }")).toThrow("Mutable bindings must use ref() syntax");
+        });
+
+        it("rejects nested let mut with destructuring pattern", () => {
+            expect(() => parseExpression("{ let mut (a, b) = ref((1, 2)); a; }")).toThrow(
+                "Mutable bindings can only use simple variable patterns",
+            );
+        });
+    });
+
     describe("unsafe blocks", () => {
         it("should parse unsafe block with simple expression", () => {
             const expr = parseExpression("unsafe { x }");
