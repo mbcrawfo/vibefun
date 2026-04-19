@@ -125,9 +125,10 @@ describe("registerTypeDeclarations — validation coverage", () => {
         ).toThrow(VibefunDiagnostic);
     });
 
-    it("allows recursion through a type application whose constructor is a variant", () => {
-        // `type Pair<A, B>` is a generic record — recursion inside `<A, B>` args
-        // is guarded by the constructor, so this should not throw.
+    it("allows recursion through a type application whose constructor is a record", () => {
+        // `type Pair<A, B>` is a generic record — recursion inside a type
+        // application is guarded by the record constructor, so this should
+        // not throw.
         expect(() =>
             typeCheckSource(`
                 type Pair<A, B> = { first: A, second: B };

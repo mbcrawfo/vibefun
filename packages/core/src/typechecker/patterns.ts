@@ -22,7 +22,7 @@ import { throwDiagnostic } from "../diagnostics/index.js";
 import { typeToString } from "./format.js";
 import { instantiate } from "./infer/index.js";
 import { primitiveTypes } from "./types.js";
-import { applySubst, composeSubst, unify } from "./unify.js";
+import { applySubst, composeSubst, expandTypeAlias, unify } from "./unify.js";
 
 /**
  * Result of pattern type checking
@@ -55,9 +55,11 @@ export function checkPattern(
     level: number,
     ctx?: UnifyContext,
 ): PatternCheckResult {
-    // Create context from pattern location if not provided. Always thread
-    // env.types through so user-defined aliases expand during unification.
-    const effectiveCtx: UnifyContext = ctx ?? { loc: pattern.loc, types: env.types };
+    // Always thread env.types through so user-defined aliases expand during
+    // unification, regardless of whether the caller supplied its own context.
+    const effectiveCtx: UnifyContext = ctx
+        ? { ...ctx, types: ctx.types ?? env.types }
+        : { loc: pattern.loc, types: env.types };
 
     switch (pattern.kind) {
         case "CoreWildcardPattern":
@@ -356,14 +358,20 @@ export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrut
         return [];
     }
 
+    // Expand user-defined aliases before picking a variant name, so that
+    // e.g. `type Shade = Color` scrutinees still resolve to Color's
+    // constructor set. Without expansion, `variantName` would be "Shade"
+    // and `getConstructorsForType` would find nothing.
+    const effectiveScrutinee = expandTypeAlias(scrutineeType, env.types);
+
     // For variant types — both `App<Const, ...>` (generics like List<T>,
     // Option<T>) and bare `Const` (non-generic user types like `Color`) —
     // check constructor coverage against the declared constructor set.
     const variantName =
-        scrutineeType.type === "App" && scrutineeType.constructor.type === "Const"
-            ? scrutineeType.constructor.name
-            : scrutineeType.type === "Const"
-              ? scrutineeType.name
+        effectiveScrutinee.type === "App" && effectiveScrutinee.constructor.type === "Const"
+            ? effectiveScrutinee.constructor.name
+            : effectiveScrutinee.type === "Const"
+              ? effectiveScrutinee.name
               : undefined;
 
     if (variantName !== undefined) {
@@ -390,7 +398,7 @@ export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrut
     // patterns are present, the match is exhaustive.
     const hasLiterals = patterns.some((p) => p.kind === "CoreLiteralPattern");
     if (hasLiterals) {
-        if (scrutineeType.type === "Const" && scrutineeType.name === "Bool") {
+        if (effectiveScrutinee.type === "Const" && effectiveScrutinee.name === "Bool") {
             const covered = new Set<boolean>();
             for (const p of patterns) {
                 if (p.kind === "CoreLiteralPattern" && typeof p.literal === "boolean") {

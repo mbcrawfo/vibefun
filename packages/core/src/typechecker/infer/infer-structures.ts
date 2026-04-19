@@ -50,15 +50,19 @@ export function inferRecord(ctx: InferenceContext, expr: Extract<CoreExpr, { kin
             const spreadResult = inferExprFn(currentCtx, field.expr);
             currentCtx = { ...currentCtx, subst: spreadResult.subst };
 
-            // The spread expression should be a record type. Expand user-
+            // The spread expression must be a record type. Expand user-
             // defined aliases / generic records (e.g. `type Box<T> = { value: T }`)
-            // so their fields merge correctly.
+            // so their fields merge correctly. Anything that doesn't resolve
+            // to a record is a type error — silently dropping a non-record
+            // spread was hiding bugs.
             const spreadType = expandTypeAlias(applySubst(currentCtx.subst, spreadResult.type), ctx.env.types);
-            if (spreadType.type === "Record") {
-                // Merge fields from the spread expression
-                for (const [fieldName, fieldType] of spreadType.fields) {
-                    fieldTypes.set(fieldName, fieldType);
-                }
+            if (spreadType.type !== "Record") {
+                throwDiagnostic("VF4500", field.loc, {
+                    actual: typeToString(spreadType),
+                });
+            }
+            for (const [fieldName, fieldType] of spreadType.fields) {
+                fieldTypes.set(fieldName, fieldType);
             }
         }
     }
