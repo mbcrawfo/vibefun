@@ -43,8 +43,14 @@ describe("registerTypeDeclarations — variant types", () => {
         for (const ctor of ["Red", "Green", "Blue"]) {
             const binding = env.values.get(ctor);
             expect(binding?.kind).toBe("Value");
-            // Nullary constructors are values of the variant type, not Fun
-            expect(binding?.kind === "Value" && binding.scheme.type.type === "Const").toBe(true);
+            if (binding?.kind !== "Value") continue;
+            // Nullary constructors of a non-generic variant are plain values
+            // of the variant type (here `Color`), not zero-arg functions.
+            const type = binding.scheme.type;
+            expect(type.type).toBe("Const");
+            if (type.type === "Const") {
+                expect(type.name).toBe("Color");
+            }
         }
     });
 
@@ -55,14 +61,31 @@ describe("registerTypeDeclarations — variant types", () => {
         expect(typeBinding?.kind).toBe("Variant");
         expect(typeBinding?.kind === "Variant" && typeBinding.params).toEqual(["T"]);
 
+        // Leaf — nullary, should be App(Const("Tree"), [T])
         const leaf = env.values.get("Leaf");
-        // Nullary — should be an App type (Tree<T>)
-        expect(leaf?.kind === "Value" && leaf.scheme.type.type === "App").toBe(true);
+        expect(leaf?.kind).toBe("Value");
+        if (leaf?.kind === "Value") {
+            const leafType = leaf.scheme.type;
+            expect(leafType.type).toBe("App");
+            if (leafType.type === "App") {
+                expect(leafType.constructor).toEqual({ type: "Const", name: "Tree" });
+                expect(leafType.args).toHaveLength(1);
+            }
+        }
 
+        // Node — 3-arg function, returning App(Const("Tree"), [T])
         const node = env.values.get("Node");
-        expect(node?.kind === "Value" && node.scheme.type.type === "Fun").toBe(true);
-        if (node?.kind === "Value" && node.scheme.type.type === "Fun") {
-            expect(node.scheme.type.params).toHaveLength(3);
+        expect(node?.kind).toBe("Value");
+        if (node?.kind === "Value") {
+            const nodeType = node.scheme.type;
+            expect(nodeType.type).toBe("Fun");
+            if (nodeType.type === "Fun") {
+                expect(nodeType.params).toHaveLength(3);
+                expect(nodeType.return.type).toBe("App");
+                if (nodeType.return.type === "App") {
+                    expect(nodeType.return.constructor).toEqual({ type: "Const", name: "Tree" });
+                }
+            }
         }
     });
 
