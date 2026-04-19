@@ -52,6 +52,7 @@ Errors during type checking and inference
 | [VF4402](#vf4402) | DuplicateBinding | **Error** |
 | [VF4403](#vf4403) | OrPatternBindsVariable | **Error** |
 | [VF4404](#vf4404) | EmptyMatch | **Error** |
+| [VF4405](#vf4405) | UnreachablePattern | **Error** |
 | [VF4500](#vf4500) | NonRecordAccess | **Error** |
 | [VF4501](#vf4501) | MissingRecordField | **Error** |
 | [VF4502](#vf4502) | DuplicateRecordField | **Error** |
@@ -1741,6 +1742,51 @@ match x with
 ### Hint
 
 > Add at least one match case
+
+### Related
+
+[VF4400](typechecker.md#vf4400)
+
+
+---
+
+## VF4405
+
+**UnreachablePattern** **Error**
+
+### Message
+
+> Unreachable pattern: an earlier catch-all already matches every value
+
+### Explanation
+
+A pattern is unreachable when an earlier arm in the same match already matches every possible value of the scrutinee. An unguarded wildcard or variable pattern is a total fallback, so any arm that follows it can never run.
+
+### Example
+
+**Problem:**
+
+```vibefun
+match n {
+  | _ => "any"
+  | 0 => "zero"
+}
+```
+
+**Solution:**
+
+```vibefun
+match n {
+  | 0 => "zero"
+  | _ => "any"
+}
+```
+
+*Specific patterns must precede the catch-all*
+
+### Hint
+
+> Remove this arm, or move it before the catch-all so it can match before the fallback
 
 ### Related
 

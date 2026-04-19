@@ -104,6 +104,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4402](typechecker.md#vf4402) | DuplicateBinding | Error | The same variable name appears multiple times in the same pattern |
 | [VF4403](typechecker.md#vf4403) | OrPatternBindsVariable | Error | Alternatives of an or-pattern (|) must be irrefutable: literals, wildcards, or constructors whose arguments bind no variables |
 | [VF4404](typechecker.md#vf4404) | EmptyMatch | Error | A match expression must have at least one case to handle |
+| [VF4405](typechecker.md#vf4405) | UnreachablePattern | Error | A pattern is unreachable when an earlier arm in the same match already matches every possible value of the scrutinee |
 | [VF4500](typechecker.md#vf4500) | NonRecordAccess | Error | You tried to access a field using dot notation, but the value is not a record |
 | [VF4501](typechecker.md#vf4501) | MissingRecordField | Error | The record does not have a field with this name |
 | [VF4502](typechecker.md#vf4502) | DuplicateRecordField | Error | The same field name appears multiple times in the record |
@@ -144,7 +145,7 @@ Errors during syntax parsing (AST construction)
 
 Errors during desugaring (syntax transformation)
 
-### [Type Checker](typechecker.md) (56 errors, 1 warnings)
+### [Type Checker](typechecker.md) (57 errors, 1 warnings)
 
 Errors during type checking and inference
 
@@ -154,6 +155,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 119
-- **Errors:** 116
+- **Total diagnostic codes:** 120
+- **Errors:** 117
 - **Warnings:** 3

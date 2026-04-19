@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
 
 import { listType, optionType } from "./builtins.js";
 import { buildEnvironment } from "./environment.js";
-import { checkExhaustiveness, checkPattern } from "./patterns.js";
+import { checkExhaustiveness, checkPattern, checkReachability } from "./patterns.js";
 import { primitiveTypes } from "./types.js";
 import { emptySubst } from "./unify.js";
 
@@ -935,6 +935,60 @@ describe("Pattern Checking", () => {
             const missing = checkExhaustiveness(env, toCases(patterns), tripleType);
 
             expect(missing).toEqual(["(_, _, _)"]);
+        });
+    });
+
+    describe("Reachability (VF4405)", () => {
+        it("rejects a literal pattern after an unguarded wildcard", () => {
+            // match n { | _ => "any" | 0 => "zero" }
+            const cases: CaseForExhaustiveness[] = [
+                { pattern: { kind: "CoreWildcardPattern", loc: testLoc }, guarded: false },
+                { pattern: { kind: "CoreLiteralPattern", literal: 0, loc: testLoc }, guarded: false },
+            ];
+            expect(() => checkReachability(cases)).toThrow("VF4405");
+        });
+
+        it("rejects a wildcard after a wildcard", () => {
+            const cases: CaseForExhaustiveness[] = [
+                { pattern: { kind: "CoreWildcardPattern", loc: testLoc }, guarded: false },
+                { pattern: { kind: "CoreWildcardPattern", loc: testLoc }, guarded: false },
+            ];
+            expect(() => checkReachability(cases)).toThrow("VF4405");
+        });
+
+        it("rejects any arm after an unguarded variable pattern", () => {
+            const cases: CaseForExhaustiveness[] = [
+                { pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc }, guarded: false },
+                { pattern: { kind: "CoreLiteralPattern", literal: 0, loc: testLoc }, guarded: false },
+            ];
+            expect(() => checkReachability(cases)).toThrow("VF4405");
+        });
+
+        it("accepts a literal arm before a trailing wildcard", () => {
+            const cases: CaseForExhaustiveness[] = [
+                { pattern: { kind: "CoreLiteralPattern", literal: 0, loc: testLoc }, guarded: false },
+                { pattern: { kind: "CoreWildcardPattern", loc: testLoc }, guarded: false },
+            ];
+            expect(() => checkReachability(cases)).not.toThrow();
+        });
+
+        it("does not treat a guarded wildcard as a catch-all", () => {
+            // match n { | x when x > 0 => ... | 0 => ... }
+            const cases: CaseForExhaustiveness[] = [
+                { pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc }, guarded: true },
+                { pattern: { kind: "CoreLiteralPattern", literal: 0, loc: testLoc }, guarded: false },
+            ];
+            expect(() => checkReachability(cases)).not.toThrow();
+        });
+
+        it("allows a guarded arm to follow an unguarded catch-all? no — it is still unreachable", () => {
+            // A guard cannot resurrect a dead arm: the earlier catch-all has
+            // already consumed the value.
+            const cases: CaseForExhaustiveness[] = [
+                { pattern: { kind: "CoreWildcardPattern", loc: testLoc }, guarded: false },
+                { pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc }, guarded: true },
+            ];
+            expect(() => checkReachability(cases)).toThrow("VF4405");
         });
     });
 

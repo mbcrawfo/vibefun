@@ -10,7 +10,7 @@ import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { throwDiagnostic } from "../../diagnostics/index.js";
 import { typeToString } from "../format.js";
-import { checkExhaustiveness, checkPattern } from "../patterns.js";
+import { checkExhaustiveness, checkPattern, checkReachability } from "../patterns.js";
 import { freshTypeVar, primitiveTypes } from "../types.js";
 import { applySubst, composeSubst, expandTypeAlias, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
@@ -432,6 +432,7 @@ export function inferMatch(ctx: InferenceContext, expr: Extract<CoreExpr, { kind
         pattern: c.pattern,
         guarded: c.guard !== undefined,
     }));
+    checkReachability(exhaustivenessCases);
     const missingCases = checkExhaustiveness(currentCtx.env, exhaustivenessCases, scrutineeType);
     if (missingCases.length > 0) {
         throwDiagnostic("VF4400", expr.loc, {
