@@ -149,7 +149,10 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
 
         // Lambdas - curry multi-parameter lambdas
         case "Lambda": {
-            // Extract patterns from lambda params (type annotations are discarded during desugaring)
+            // Extract patterns from lambda params; per-param type annotations,
+            // return-type annotations, and explicit `<T>` type parameters are
+            // all discarded during desugaring. Hindley-Milner generalization at
+            // the binding site recovers the polymorphic type.
             const patterns = expr.params.map((p) => p.pattern);
             return curryLambda(patterns, expr.body, expr.loc, gen, desugar, desugarPattern);
         }

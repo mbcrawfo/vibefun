@@ -7,6 +7,8 @@
 import type { Expr, ListElement, Location } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
+import { parseTypeParameters } from "./parse-types.js";
+
 // Forward declarations for complex expression parsers (injected by aggregator)
 // Initialized to error-throwing functions for type safety and better error messages
 let parseLambdaOrParenFn: (parser: ParserBase, startLoc: Location) => Expr = () => {
@@ -89,6 +91,28 @@ export function parsePrimary(parser: ParserBase): Expr {
             value: token.value as boolean,
             loc: token.loc,
         };
+    }
+
+    // Lambda with explicit type parameters: <T>(x: T): T => x
+    // Type-inference still infers polymorphic types automatically; the prefix
+    // is captured on the AST for future tooling but discarded by the desugarer.
+    if (parser.check("OP_LT")) {
+        const startLoc = parser.peek().loc;
+        const typeParams = parseTypeParameters(parser); // consumes < ... >
+
+        parser.expect("LPAREN", "Expected '(' after type parameters in lambda");
+        const lparenLoc = parser.peek(-1).loc;
+        const lambda = parseLambdaOrParenFn(parser, lparenLoc);
+
+        if (lambda.kind !== "Lambda") {
+            throw parser.error("VF2101", startLoc, {
+                tokenType: "token",
+                value: "<",
+                hint: "Type parameters '<T>' must be followed by a lambda expression",
+            });
+        }
+
+        return { ...lambda, typeParams, loc: startLoc };
     }
 
     // Lambda, unit literal, or parenthesized expression

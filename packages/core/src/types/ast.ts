@@ -60,7 +60,14 @@ export type Expr =
           loc: Location;
       }
     // Functions
-    | { kind: "Lambda"; params: LambdaParam[]; body: Expr; returnType?: TypeExpr; loc: Location }
+    | {
+          kind: "Lambda";
+          params: LambdaParam[];
+          body: Expr;
+          returnType?: TypeExpr;
+          typeParams?: string[];
+          loc: Location;
+      }
     | { kind: "App"; func: Expr; args: Expr[]; loc: Location }
     // Control Flow
     | { kind: "If"; condition: Expr; then: Expr; else_: Expr; loc: Location }

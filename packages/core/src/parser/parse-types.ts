@@ -8,6 +8,63 @@ import type { RecordTypeField, TypeExpr } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
 /**
+ * Parse type parameters: <T, U, V>
+ * Returns array of type parameter names, or empty array if no type parameters
+ */
+export function parseTypeParameters(parser: ParserBase): string[] {
+    const params: string[] = [];
+
+    if (!parser.match("OP_LT")) {
+        return params;
+    }
+
+    // Parse comma-separated list of identifiers
+    do {
+        const paramToken = parser.expect("IDENTIFIER", "Expected type parameter");
+        params.push(paramToken.value as string);
+
+        // Skip newlines after parameter
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        // Check if there's a comma
+        if (!parser.match("COMMA")) {
+            break;
+        }
+
+        // Skip newlines after comma
+        while (parser.check("NEWLINE")) {
+            parser.advance();
+        }
+
+        // Check for trailing comma
+        if (parser.check("OP_GT") || parser.check("OP_GT_GT")) {
+            break; // Trailing comma allowed
+        }
+    } while (true); // eslint-disable-line no-constant-condition
+
+    // Handle >> as two > tokens for nested generics
+    // Access tokens via type assertion
+    const p = parser as unknown as {
+        tokens: Array<{ type: string; value: unknown; loc: unknown }>;
+        current: number;
+    };
+    if (parser.check("OP_GT_GT")) {
+        const token = parser.advance();
+        p.tokens.splice(p.current, 0, {
+            type: "OP_GT",
+            value: ">",
+            loc: token.loc,
+        });
+    } else {
+        parser.expect("OP_GT", "Expected '>' after type parameters");
+    }
+
+    return params;
+}
+
+/**
  * Parse a type expression (with union support)
  * Syntax: type ('|' type)*
  * Note: VariantType is constructed in type declarations, not type expressions
