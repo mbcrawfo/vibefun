@@ -25,17 +25,18 @@ These directives guide all development work on the vibefun project:
     - `./docs/spec/` contains the authoritative language specification for how Vibefun should function.
     - If you find a conflict between the code behavior and the language spec, always ask for clarification of the correct behavior.
     - When planning a feature where you have been instructed to change the language, always update the language spec to match.
-5. **Comprehensive Testing**: All code changes must include comprehensive test coverage. Tests should cover:
-   - Unit tests for individual functions/components
-   - Integration tests for module interactions
-   - Edge cases and error conditions
-   - Type checking validation
+5. **Comprehensive Testing**: All code changes must include coverage at every layer that the change touches. Default to adding tests at each of these layers unless a layer is clearly inapplicable:
+   - **Unit tests** — colocated with the source file (`*.test.ts` next to the implementation) for every new function, branch, and error path. Cover edge cases, boundary conditions, and error conditions.
+   - **Integration tests** — exercise module interactions (parser → desugarer → typechecker → codegen pipelines, e.g. `packages/core/src/codegen/es2020/execution-tests/`, `packages/core/src/desugarer/desugarer-integration.test.ts`).
+   - **End-to-end tests** — add a case under `tests/e2e/` whenever the change affects CLI behaviour, multi-file resolution, stdlib runtime, or user-visible output.
+   - **Spec-validation** — when the change affects language semantics, update or add tests in `tests/spec-validation/sections/` so the spec suite reflects the new behaviour; rerun `pnpm run spec:validate` and commit expected-pass flips.
 6. **Quality Checks**: After implementing any changes, always run the following in order:
    - `pnpm run check` - Type checking
    - `pnpm run lint` - Linting
-   - `pnpm test` - Tests
+   - `pnpm test` - Unit and integration tests
+   - `pnpm run test:e2e` - End-to-end CLI tests
    - `pnpm run format` - Code formatting with Prettier
-   - OR use the convenience command: `pnpm run verify` (runs all checks)
+   - OR use the convenience command: `pnpm run verify` (runs all of the above plus `build` and `spec:validate` is run separately as needed)
 
 ## Authoring CLAUDE.md Files
 
@@ -72,6 +73,7 @@ vibefun/
 │   └── stdlib/                  # @vibefun/std - Standard library
 │       └── src/                 # Standard library implementation
 ├── tests/
+│   ├── e2e/                     # End-to-end CLI tests (@vibefun/e2e-tests workspace)
 │   └── spec-validation/         # Test suite validating the implementation of language features
 ├── tsconfig.base.json           # Shared TypeScript configuration
 └── package.json                 # Workspace root configuration
@@ -82,6 +84,14 @@ vibefun/
 - **@vibefun/core**: The compiler core library containing the lexer, parser, type system, and code generator. Can be imported as a library by other projects.
 - **@vibefun/cli**: The vibefun command-line tool for compiling `.vf` files. Depends on @vibefun/core.
 - **@vibefun/std**: The vibefun standard library providing common functional programming utilities and operations.
+- **@vibefun/e2e-tests**: The end-to-end test suite that spawns the compiled CLI and validates full-pipeline behaviour (compile + run, multi-file projects, stdlib resolution from `node_modules`). Lives at `tests/e2e/`.
+
+### Maintenance
+
+Keep this document in sync with the repo layout and developer commands:
+- When you add, rename, or remove a workspace package or top-level directory, update the Project Structure tree and the Workspace Packages list in the same commit.
+- When you add, rename, or remove a `package.json` script exposed through the root (including any script added to the `verify` chain), update the Development Workflow command list in the same commit.
+- The root `CLAUDE.md` is the contract that tells every AI agent how the repo is shaped — stale content silently misleads them.
 
 ## Technical Decisions
 
@@ -128,20 +138,23 @@ pnpm --filter @vibefun/cli run build
 # Quality checks (run after every change)
 pnpm run check                   # Type checking (all workspaces)
 pnpm run lint                    # Linting (all packages)
-pnpm test                        # Run tests (all packages)
+pnpm test                        # Unit + integration tests (all packages)
+pnpm run test:e2e                # End-to-end CLI tests (tests/e2e)
 pnpm run format                  # Format code (all packages)
 
 # All checks at once
-pnpm run verify                  # Run all checks (read-only)
+pnpm run verify                  # build + check + lint + test + test:e2e + format:check
 
 # Testing
-pnpm test                        # Run all tests
+pnpm test                        # Run all unit + integration tests
 pnpm run test:watch              # Watch mode
 pnpm run test:coverage           # With coverage report
+pnpm run test:e2e                # End-to-end CLI tests (tests/e2e)
 
 # Workspace-specific testing
 pnpm --filter @vibefun/core test
 pnpm --filter @vibefun/std test
+pnpm --filter @vibefun/e2e-tests test
 
 # Regenerate error code docs (run after adding/changing/removing error codes)
 pnpm docs:errors
