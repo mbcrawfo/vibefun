@@ -430,6 +430,56 @@ describe("curryLambda — destructuring params", () => {
         expect(innerRecord.fields.map((f) => f.name)).toEqual(["inner"]);
     });
 
+    it("preserves source locations on every synthesized wrapper node", () => {
+        // Locations drive diagnostics; the match-wrap introduces new AST
+        // nodes (CoreLambda, CoreMatch, CoreMatchCase, CoreVarPattern,
+        // CoreVar, and — when annotated — CoreTypeAnnotation). Using a
+        // distinct `paramLoc` distinguishes "outer lambda location" from
+        // "destructuring-param location" so a regression that copies the
+        // wrong one is caught.
+        const paramLoc: Location = { file: "test.vf", line: 7, column: 3, offset: 42 };
+        const lambdaLoc: Location = { file: "test.vf", line: 7, column: 1, offset: 40 };
+        const annotated: LambdaParam = {
+            pattern: {
+                kind: "RecordPattern",
+                fields: [
+                    {
+                        name: "x",
+                        pattern: { kind: "VarPattern", name: "x", loc: paramLoc },
+                        loc: paramLoc,
+                    },
+                ],
+                loc: paramLoc,
+            },
+            type: { kind: "TypeConst", name: "Point", loc: paramLoc },
+            loc: paramLoc,
+        };
+
+        const result = curryLambda(
+            [annotated],
+            body("x"),
+            lambdaLoc,
+            makeGen(),
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+        );
+
+        const outer = result as CoreLambda;
+        expect(outer.loc).toBe(lambdaLoc);
+        expect(outer.param.loc).toBe(paramLoc);
+
+        const match = outer.body as CoreMatch;
+        expect(match.loc).toBe(paramLoc);
+
+        const annotation = match.expr as CoreTypeAnnotation;
+        expect(annotation.loc).toBe(paramLoc);
+        expect(annotation.expr.loc).toBe(paramLoc);
+
+        const arm = match.cases[0];
+        expect(arm?.loc).toBe(paramLoc);
+    });
+
     it("preserves wildcard-pattern params without match wrapping", () => {
         const result = curryLambda(
             [wild(), v("y")],
