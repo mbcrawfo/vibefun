@@ -76,8 +76,11 @@ function buildLambda(
     desugarTypeExpr: (typeExpr: TypeExpr) => CoreTypeExpr,
 ): CoreExpr {
     const param = params[index];
-    if (!param) {
-        throw new Error("Lambda has undefined parameter");
+    // Invariant: `index` is controlled by curryLambda (starts at 0, increments
+    // by 1, stops at params.length - 1) so this is always in bounds. The
+    // check exists to catch refactoring mistakes early.
+    if (param === undefined) {
+        throw new Error(`Internal error: Lambda parameter at index ${index} is undefined`);
     }
 
     const isLast = index === params.length - 1;
