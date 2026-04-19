@@ -40,7 +40,7 @@ the root-cause groups that Package D remediated:
 - [x] 4.3 Non-let expressions in block bodies
 
 ## Phase 5: Advanced Features
-- [ ] 5.1 Tuple type system
+- [x] 5.1 Tuple type system
 - [ ] 5.2 Pattern matching completeness
 - [ ] 5.3 Explicit type parameters on functions
 - [ ] 5.4 Lambda parameter destructuring
