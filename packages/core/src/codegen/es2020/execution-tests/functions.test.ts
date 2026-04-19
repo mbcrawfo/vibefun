@@ -111,6 +111,55 @@ describe("recursive functions", () => {
     });
 });
 
+describe("lambda parameter destructuring", () => {
+    it("should destructure a record param to pick a field", () => {
+        const result = compileAndGetExport(
+            `let getX = ({ x, y }: { x: Int, y: Int }) => x;
+            let result = getX({ x: 42, y: 10 });`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+
+    it("should destructure a record param and combine fields", () => {
+        const result = compileAndGetExport(
+            `let sum = ({ x, y }: { x: Int, y: Int }) => x + y;
+            let result = sum({ x: 17, y: 25 });`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+
+    it("should destructure a nested record param", () => {
+        const result = compileAndGetExport(
+            `let getAge = ({ profile }: { profile: { age: Int } }) =>
+                match profile { | { age } => age };
+            let result = getAge({ profile: { age: 42 } });`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+
+    it("should mix a regular and a destructured param", () => {
+        const result = compileAndGetExport(
+            `let offsetX = (base: Int, { x, y }: { x: Int, y: Int }) => base + x;
+            let result = offsetX(10, { x: 32, y: 99 });`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+
+    it("should destructure a tuple-literal argument", () => {
+        // Tuple destructuring in a lambda param: ((a, b)) => …
+        const result = compileAndGetExport(
+            `let fst = ((a, b): (Int, Int)) => a;
+            let result = fst((42, 99));`,
+            "result",
+        );
+        expect(result).toBe(42);
+    });
+});
+
 describe("explicit type parameters on lambdas", () => {
     it("should compile and apply <T>(x: T): T => x at multiple instantiations", () => {
         // Full pipeline regression: parser must accept the <T> prefix, the
