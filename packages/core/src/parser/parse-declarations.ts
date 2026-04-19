@@ -134,8 +134,31 @@ export function parseDeclaration(parser: ParserBase): Declaration {
     // Skip newlines
     while (parser.match("NEWLINE"));
 
+    // If no keyword follows, this is a top-level expression statement
+    // (per spec: 08-modules.md "Top-Level Expression Evaluation"). Parse
+    // the expression and synthesize a wildcard-let so downstream passes
+    // can treat it uniformly — `let _ = expr;` has well-defined semantics
+    // throughout the pipeline.
     if (!parser.check("KEYWORD")) {
-        throw parser.error("VF2000", parser.peek().loc);
+        if (exported) {
+            // `export <expr>;` is nonsense — bare expressions can't be
+            // exported. Fail with the same diagnostic as a missing
+            // declaration keyword.
+            throw parser.error("VF2000", parser.peek().loc);
+        }
+
+        const exprStart = parser.peek().loc;
+        const value = parseExpression(parser);
+
+        return {
+            kind: "LetDecl",
+            pattern: { kind: "WildcardPattern", loc: exprStart },
+            value,
+            mutable: false,
+            recursive: false,
+            exported: false,
+            loc: value.loc,
+        };
     }
 
     const keyword = parser.peek().value as string;
