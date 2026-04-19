@@ -107,10 +107,7 @@ vibefun/
 
 ### Maintenance
 
-Keep this document in sync with the repo layout and developer commands:
-- When you add, rename, or remove a workspace package or top-level directory, update the Project Structure tree and the Workspace Packages list in the same commit.
-- When you add, rename, or remove a `package.json` script exposed through the root (including any script added to the `verify` chain), update the Development Workflow command list in the same commit.
-- The root `CLAUDE.md` is the contract that tells every AI agent how the repo is shaped — stale content silently misleads them.
+Keep this document in sync with the repo layout and developer commands — see the one-line Maintenance footer at the end of this file.
 
 ## Technical Decisions
 
@@ -228,4 +225,4 @@ pnpm run vibefun compile src/main.vf --verbose
 
 ---
 
-Maintenance: This file names specific directories, workspace packages, and `package.json` scripts. If you rename, move, add, or remove any of them, update this `CLAUDE.md` in the same commit — stale content silently misleads every AI agent that reads it.
+Maintenance: This file names specific directories, workspace packages, and `package.json` scripts (including every script in the `verify` chain). If you rename, move, add, or remove any of them — or add a new top-level script — update this `CLAUDE.md` in the same commit. Stale content silently misleads every AI agent that reads it.
