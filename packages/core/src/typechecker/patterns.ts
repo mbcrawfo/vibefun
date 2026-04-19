@@ -11,6 +11,7 @@ import type {
     CoreLiteralPattern,
     CorePattern,
     CoreRecordPattern,
+    CoreTuplePattern,
     CoreVariantPattern,
     CoreVarPattern,
     CoreWildcardPattern,
@@ -21,7 +22,7 @@ import type { Substitution, UnifyContext } from "./unify.js";
 import { throwDiagnostic } from "../diagnostics/index.js";
 import { typeToString } from "./format.js";
 import { instantiate } from "./infer/index.js";
-import { primitiveTypes } from "./types.js";
+import { freshTypeVar, primitiveTypes, tupleType } from "./types.js";
 import { applySubst, composeSubst, expandTypeAlias, unify } from "./unify.js";
 
 /**
@@ -78,13 +79,7 @@ export function checkPattern(
             return checkRecordPattern(env, pattern, expectedType, subst, level, effectiveCtx);
 
         case "CoreTuplePattern":
-            // Placeholder: Tuple pattern type checking not yet implemented
-            // For now, return stub result to allow compilation
-            return {
-                type: expectedType,
-                bindings: new Map(),
-                subst,
-            };
+            return checkTuplePattern(env, pattern, expectedType, subst, level, effectiveCtx);
 
         default: {
             const _exhaustive: never = pattern;
@@ -336,6 +331,65 @@ function checkRecordPattern(
 }
 
 /**
+ * Check tuple pattern (x, y), (_, y, _)
+ * Unifies with a fresh tuple type of the correct arity, then recurses
+ * on each element. Arity mismatches surface via VF4026 from unification.
+ */
+function checkTuplePattern(
+    env: TypeEnv,
+    pattern: CoreTuplePattern,
+    expectedType: Type,
+    subst: Substitution,
+    level: number,
+    ctx: UnifyContext,
+): PatternCheckResult {
+    // Build a fresh tuple type skeleton of the correct arity and unify with
+    // the expected type. This yields VF4026 on arity mismatch and a general
+    // unification diagnostic when the expected type isn't a tuple.
+    const freshElements = pattern.elements.map(() => freshTypeVar(level));
+    const skeleton = tupleType(freshElements);
+
+    let currentSubst = subst;
+    const unifySubst = unify(applySubst(currentSubst, expectedType), skeleton, ctx);
+    currentSubst = composeSubst(unifySubst, currentSubst);
+
+    const allBindings = new Map<string, Type>();
+
+    for (let i = 0; i < pattern.elements.length; i++) {
+        const elemPattern = pattern.elements[i];
+        const elemSkeleton = freshElements[i];
+
+        if (!elemPattern || !elemSkeleton) {
+            throw new Error(`Missing tuple element pattern or skeleton at index ${i}`);
+        }
+
+        const elemCtx: UnifyContext = { loc: elemPattern.loc, types: env.types };
+        const elemResult = checkPattern(
+            env,
+            elemPattern,
+            applySubst(currentSubst, elemSkeleton),
+            currentSubst,
+            level,
+            elemCtx,
+        );
+        currentSubst = elemResult.subst;
+
+        for (const [name, type] of elemResult.bindings) {
+            if (allBindings.has(name)) {
+                throwDiagnostic("VF4402", elemPattern.loc, { name });
+            }
+            allBindings.set(name, type);
+        }
+    }
+
+    return {
+        type: applySubst(currentSubst, expectedType),
+        bindings: allBindings,
+        subst: currentSubst,
+    };
+}
+
+/**
  * Constructor information for exhaustiveness checking
  */
 type ConstructorInfo = {
@@ -352,8 +406,10 @@ type ConstructorInfo = {
  * @returns Missing constructors (empty array if exhaustive)
  */
 export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrutineeType: Type): string[] {
-    // If any pattern is wildcard or variable, it's exhaustive
-    const hasWildcard = patterns.some((p) => p.kind === "CoreWildcardPattern" || p.kind === "CoreVarPattern");
+    // If any pattern is wildcard or variable — or a tuple pattern whose
+    // every element is itself a catch-all (wildcard/variable/recursive
+    // all-catch-all tuple) — it covers every value of the scrutinee.
+    const hasWildcard = patterns.some(isCatchAllPattern);
     if (hasWildcard) {
         return [];
     }
@@ -420,8 +476,34 @@ export function checkExhaustiveness(env: TypeEnv, patterns: CorePattern[], scrut
         return [];
     }
 
+    // For tuple scrutinees, pairwise element coverage is out of scope for
+    // Phase 5.1 (see Phase 5.2 pattern matching completeness). Require an
+    // explicit catch-all — the `isCatchAllPattern` check above already
+    // accepts tuple patterns whose elements are all catch-alls, so this
+    // branch only fires for tuple matches that still have uncovered values.
+    if (effectiveScrutinee.type === "Tuple") {
+        const missing = effectiveScrutinee.elements.map(() => "_").join(", ");
+        return [`(${missing})`];
+    }
+
     // Default: not exhaustive
     return ["<uncovered cases>"];
+}
+
+/**
+ * A pattern is a "catch-all" (covers every value of its scrutinee type)
+ * if it is a wildcard, a variable, or a tuple pattern whose every
+ * element is itself a catch-all. Nested or-patterns and literals are
+ * intentionally excluded — literals match only specific values.
+ */
+function isCatchAllPattern(pattern: CorePattern): boolean {
+    if (pattern.kind === "CoreWildcardPattern" || pattern.kind === "CoreVarPattern") {
+        return true;
+    }
+    if (pattern.kind === "CoreTuplePattern") {
+        return pattern.elements.every(isCatchAllPattern);
+    }
+    return false;
 }
 
 /**
