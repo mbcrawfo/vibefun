@@ -806,19 +806,22 @@ export const VF4402: DiagnosticDefinition = {
 
 export const VF4403: DiagnosticDefinition = {
     code: "VF4403",
-    title: "OrPatternBindingMismatch",
-    messageTemplate: "Or-pattern branches bind different variables",
+    title: "OrPatternBindsVariable",
+    messageTemplate: "Or-pattern alternatives cannot bind variables",
     severity: "error",
     phase: "typechecker",
     category: "pattern",
-    hintTemplate: "All branches of an or-pattern must bind the same variables",
+    hintTemplate:
+        "Use only literals, wildcards, or constructors without bindings inside or-patterns, " +
+        "or split the or-pattern into separate match arms",
     explanation:
-        "When using or-patterns (|), all alternatives must bind exactly the same variable names " +
-        "with the same types, since the body can use any of them.",
+        "Alternatives of an or-pattern (|) must be irrefutable: literals, wildcards, or constructors " +
+        "whose arguments bind no variables. A variable binding inside one alternative would be unbound " +
+        "in the others, so the body could not safely reference it.",
     example: {
-        bad: "match opt with\n| Some(x) | None -> x",
-        good: "match opt with\n| Some(x) -> x\n| None -> 0",
-        description: "Split into separate patterns",
+        bad: "match opt {\n  | Some(x) | None => x\n}",
+        good: "match opt {\n  | Some(x) => x\n  | None => 0\n}",
+        description: "Split alternatives into separate arms so each binding is total",
     },
     relatedCodes: ["VF4402"],
 };

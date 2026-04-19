@@ -102,7 +102,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4400](typechecker.md#vf4400) | NonExhaustiveMatch | Error | The match expression does not cover all possible cases |
 | [VF4401](typechecker.md#vf4401) | InvalidGuard | Error | The pattern guard expression is not valid |
 | [VF4402](typechecker.md#vf4402) | DuplicateBinding | Error | The same variable name appears multiple times in the same pattern |
-| [VF4403](typechecker.md#vf4403) | OrPatternBindingMismatch | Error | When using or-patterns (|), all alternatives must bind exactly the same variable names with the same types, since the body can use any of them |
+| [VF4403](typechecker.md#vf4403) | OrPatternBindsVariable | Error | Alternatives of an or-pattern (|) must be irrefutable: literals, wildcards, or constructors whose arguments bind no variables |
 | [VF4404](typechecker.md#vf4404) | EmptyMatch | Error | A match expression must have at least one case to handle |
 | [VF4500](typechecker.md#vf4500) | NonRecordAccess | Error | You tried to access a field using dot notation, but the value is not a record |
 | [VF4501](typechecker.md#vf4501) | MissingRecordField | Error | The record does not have a field with this name |
