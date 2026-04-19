@@ -626,12 +626,16 @@ describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
 
-    it("should reject mutable bindings in let rec expr", () => {
-        // Mutable bindings in let rec are not supported
+    it("should accept mutable bindings in let rec expr (parser enforces ref shape)", () => {
+        // `let rec x = ref(42) and ... in x` — the typechecker no longer
+        // blocks mutable bindings; the parser enforces the `ref(...)`
+        // shape, and HM infers Ref<Int> naturally through the ref builtin.
         const env = createTestEnv();
         const ctx = createContext(env);
 
         const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const refVar: CoreVar = { kind: "CoreVar", name: "ref", loc: testLoc };
+        const refCall: CoreApp = { kind: "CoreApp", func: refVar, args: [intLit], loc: testLoc };
         const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
 
         const expr: import("../types/core-ast.js").CoreLetRecExpr = {
@@ -639,8 +643,8 @@ describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)
             bindings: [
                 {
                     pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
-                    value: intLit,
-                    mutable: true, // Not allowed
+                    value: refCall,
+                    mutable: true,
                     loc: testLoc,
                 },
             ],
@@ -648,7 +652,7 @@ describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)
             loc: testLoc,
         };
 
-        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+        expect(() => inferExpr(ctx, expr)).not.toThrow();
     });
 });
 
@@ -657,17 +661,20 @@ describe("Type Inference - Let-Binding Error Cases", () => {
         resetTypeVarCounter();
     });
 
-    it("should reject mutable let-bindings", () => {
-        // let mutable x = 42 in x (not supported)
+    it("should accept mutable let-bindings and infer Ref<T>", () => {
+        // `let mut x = ref(42) in x` — the typechecker accepts `mutable:
+        // true` and infers the value as Ref<Int> via the ref builtin.
         const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
-        const value: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const refVar: CoreVar = { kind: "CoreVar", name: "ref", loc: testLoc };
+        const refCall: CoreApp = { kind: "CoreApp", func: refVar, args: [intLit], loc: testLoc };
         const body: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
         const expr: CoreLet = {
             kind: "CoreLet",
             pattern,
-            value,
+            value: refCall,
             body,
-            mutable: true, // Not supported
+            mutable: true,
             recursive: false,
             loc: testLoc,
         };
@@ -675,7 +682,15 @@ describe("Type Inference - Let-Binding Error Cases", () => {
         const env = createTestEnv();
         const ctx = createContext(env);
 
-        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+        const result = inferExpr(ctx, expr);
+        // Ref<Int> is represented as App(Const("Ref"), [Int]).
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor.type).toBe("Const");
+            if (result.type.constructor.type === "Const") {
+                expect(result.type.constructor.name).toBe("Ref");
+            }
+        }
     });
 
     it("should reject non-variable patterns in let-bindings", () => {

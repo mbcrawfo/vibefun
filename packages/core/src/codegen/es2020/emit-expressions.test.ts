@@ -581,12 +581,16 @@ describe("Expression Emission", () => {
             expect(result).toContain("return f(5);");
         });
 
-        it("should emit mutable let with ref wrapper", () => {
+        it("should emit mutable let without wrapping the value (ref() provides it)", () => {
             const ctx = createTestContext();
-            // let mutable x = 5 in x
-            const expr = letExpr(varPat("x"), intLit(5), varRef("x"), { mutable: true });
+            // let mut x = ref(5); x
+            // Parser enforces `ref(...)` on mut bindings, so codegen must
+            // emit the value as-is and use `let` so the binding can be
+            // reassigned to a new ref.
+            const refCall = app(varRef("ref"), intLit(5));
+            const expr = letExpr(varPat("x"), refCall, varRef("x"), { mutable: true });
             const result = emitExpr(expr, ctx);
-            expect(result).toBe("(() => { const x = { $value: 5 }; return x; })()");
+            expect(result).toBe("(() => { let x = ref(5); return x; })()");
             expect(ctx.needsRefHelper).toBe(true);
         });
 
@@ -620,14 +624,13 @@ describe("Expression Emission", () => {
             expect(result).toContain("return isEven(10);");
         });
 
-        it("should handle mutable bindings in let rec", () => {
+        it("should handle mutable bindings in let rec without double-wrapping", () => {
             const ctx = createTestContext();
-            const expr = letRecExpr(
-                [{ pattern: varPat("counter"), value: intLit(0), mutable: true }],
-                varRef("counter"),
-            );
+            const refCall = app(varRef("ref"), intLit(0));
+            const expr = letRecExpr([{ pattern: varPat("counter"), value: refCall, mutable: true }], varRef("counter"));
             const result = emitExpr(expr, ctx);
-            expect(result).toContain("{ $value: 0 }");
+            expect(result).toContain("counter = ref(0)");
+            expect(result).not.toContain("{ $value:");
             expect(ctx.needsRefHelper).toBe(true);
         });
     });

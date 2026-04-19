@@ -35,7 +35,7 @@ the root-cause groups that Package D remediated:
 - [x] 3.3 Float arithmetic operators
 
 ## Phase 4: Supporting Features
-- [ ] 4.1 Nested `let mut` + codegen double-wrapping fix
+- [x] 4.1 Nested `let mut` + codegen double-wrapping fix
 - [ ] 4.2 Top-level expression statements
 - [ ] 4.3 Non-let expressions in block bodies
 
