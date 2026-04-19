@@ -167,6 +167,60 @@ let typeValue = "User";
 let obj = { type: typeValue };  // OK
 ```
 
+### Tuples (Structural, Fixed-Arity)
+
+Tuples are ordered, heterogeneous product types. Use them for temporary
+grouping and multiple return values; reach for records when fields have
+semantic names.
+
+```vibefun
+// Construction — comma inside parens, 2+ elements required
+let pair = (1, "hello");              // (Int, String)
+let triple = ("Alice", 30, true);     // (String, Int, Bool)
+let nested = ((1, 2), (3, 4));        // ((Int, Int), (Int, Int))
+
+// (x) is NOT a tuple — parentheses around a single expression are
+// grouping. () is Unit (the 0-tuple). There are no 1-tuples.
+let notATuple = (42);  // Just Int, not (Int)
+
+// Type annotations
+let point: (Int, Int) = (10, 20);
+type Point2D = (Int, Int);  // transparent alias
+
+// Destructuring — arity must match exactly (VF4026 on mismatch)
+let (a, b) = pair;                    // a = 1, b = "hello"
+let ((x1, y1), (x2, y2)) = nested;    // nested destructuring OK
+let (first, _, third) = triple;       // _ ignores an element
+
+// Destructuring in a block
+let sum = (p: (Int, Int)) => {
+    let (x, y) = p;
+    x + y;
+};
+
+// Pattern matching — tuple patterns whose elements are all catch-alls
+// (_, variable, or nested-all-catch-all tuples) count as exhaustive.
+// Literal elements require an explicit fallback.
+let classify = (p: (Int, Int)) => match p {
+    | (0, 0) => "origin"
+    | (0, _) => "y-axis"
+    | (_, 0) => "x-axis"
+    | _      => "general"       // fallback required: literals aren't exhaustive
+};
+
+// Returning multiple values
+let divMod = (a: Int, b: Int): (Int, Int) => (a / b, a % b);
+let (q, r) = divMod(17, 5);     // q = 3, r = 2
+
+// ❌ No index access — tuples are not arrays
+let pair = (1, 2);
+// let x = pair.0;  // compile error — destructure instead
+```
+
+**Tuples vs. records:** tuples are positional and anonymous (`(Int, String)`);
+records are named and unordered (`{ x: Int, name: String }`). Prefer records
+once you have 3+ fields or fields that will be read individually.
+
 ### Functions & Mutable References
 
 ```vibefun
@@ -253,6 +307,12 @@ match option {
 // Record patterns (partial OK)
 match person {
     | { name, age } => name & " is " & String.fromInt(age)
+}
+
+// Tuple patterns (arity must match)
+match pair {
+    | (0, 0) => "origin"
+    | (x, y) => "other"  // (x, y) is a catch-all — covers every tuple
 }
 
 // Nested patterns
