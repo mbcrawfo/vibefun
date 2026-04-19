@@ -9,14 +9,14 @@
  * - parse-expressions.ts: Expression parsing
  * - parse-patterns.ts: Pattern parsing
  * - parse-types.ts: Type expression parsing
- * - parse-declarations.ts: Declaration parsing
+ * - parse-declarations/: Declaration parsing
  */
 
 import type { Declaration, Expr, Module, Pattern, TypeExpr } from "../types/index.js";
 import type { Token } from "../types/token.js";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
-import * as Declarations from "./parse-declarations.js";
+import * as Declarations from "./parse-declarations/index.js";
 import * as Expressions from "./parse-expressions.js";
 import * as Patterns from "./parse-patterns.js";
 import * as Types from "./parse-types.js";
