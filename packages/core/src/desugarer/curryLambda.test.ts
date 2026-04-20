@@ -78,6 +78,17 @@ const mockDesugarTypeExpr = (typeExpr: TypeExpr): CoreTypeExpr => {
     if (typeExpr.kind === "TypeConst") {
         return { kind: "CoreTypeConst", name: typeExpr.name, loc: typeExpr.loc };
     }
+    if (typeExpr.kind === "RecordType") {
+        return {
+            kind: "CoreRecordType",
+            fields: typeExpr.fields.map((f) => ({
+                name: f.name,
+                typeExpr: mockDesugarTypeExpr(f.typeExpr),
+                loc: f.loc,
+            })),
+            loc: typeExpr.loc,
+        };
+    }
     throw new Error(`Unexpected type expr kind in mock: ${typeExpr.kind}`);
 };
 
@@ -308,6 +319,78 @@ describe("curryLambda — destructuring params", () => {
         const annotation = match.expr as CoreTypeAnnotation;
         expect(annotation.expr.kind).toBe("CoreVar");
         expect((annotation.typeExpr as { name: string }).name).toBe("Point");
+    });
+
+    it("drops a destructuring annotation that references an in-scope generic", () => {
+        // `<T>(({ x }: { x: T })) => x` — T is erased, so the scrutinee
+        // must stay a bare CoreVar (no CoreTypeAnnotation wrapping).
+        const annotated: LambdaParam = {
+            pattern: rec("x").pattern,
+            type: {
+                kind: "RecordType",
+                fields: [
+                    {
+                        name: "x",
+                        typeExpr: { kind: "TypeConst", name: "T", loc: testLoc },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        const gen = makeGen();
+        gen.pushGenerics(["T"]);
+        const result = curryLambda(
+            [annotated],
+            body("x"),
+            testLoc,
+            gen,
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+        );
+        gen.popGenerics();
+
+        const match = (result as CoreLambda).body as CoreMatch;
+        expect(match.expr.kind).toBe("CoreVar");
+    });
+
+    it("preserves a concrete destructuring annotation even under an outer generic", () => {
+        // `<T>(({ x }: { x: Int })) => x` — annotation is concrete, so
+        // pattern-inference still needs the Record type threaded through.
+        const annotated: LambdaParam = {
+            pattern: rec("x").pattern,
+            type: {
+                kind: "RecordType",
+                fields: [
+                    {
+                        name: "x",
+                        typeExpr: { kind: "TypeConst", name: "Int", loc: testLoc },
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            },
+            loc: testLoc,
+        };
+
+        const gen = makeGen();
+        gen.pushGenerics(["T"]);
+        const result = curryLambda(
+            [annotated],
+            body("x"),
+            testLoc,
+            gen,
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+        );
+        gen.popGenerics();
+
+        const match = (result as CoreLambda).body as CoreMatch;
+        expect(match.expr.kind).toBe("CoreTypeAnnotation");
     });
 
     it("wraps a tuple-pattern param in a match", () => {
