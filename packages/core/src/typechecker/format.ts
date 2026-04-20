@@ -75,6 +75,11 @@ export function typeToString(type: Type): string {
 
         case "Never":
             return "Never";
+
+        case "StringLit":
+            // Render as the user wrote it, including quotes and escaping,
+            // so diagnostics read like `expected "pending", got "unknown"`.
+            return JSON.stringify(type.value);
     }
 }
 

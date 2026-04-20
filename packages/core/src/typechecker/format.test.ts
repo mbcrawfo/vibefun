@@ -336,6 +336,26 @@ describe("typeToString", () => {
         });
     });
 
+    describe("StringLit types", () => {
+        it("should format a string literal type with quotes", () => {
+            const t: Type = { type: "StringLit", value: "pending" };
+            expect(typeToString(t)).toBe('"pending"');
+        });
+
+        it("should escape embedded quotes and backslashes", () => {
+            const t: Type = { type: "StringLit", value: 'a"b\\c' };
+            expect(typeToString(t)).toBe('"a\\"b\\\\c"');
+        });
+
+        it("should format a union of string literal types", () => {
+            const u = unionType([
+                { type: "StringLit", value: "pending" },
+                { type: "StringLit", value: "active" },
+            ]);
+            expect(typeToString(u)).toBe('"pending" | "active"');
+        });
+    });
+
     describe("complex nested types", () => {
         it("should format List<(Int, String)>", () => {
             const tuple = tupleType([primitiveTypes.Int, primitiveTypes.String]);

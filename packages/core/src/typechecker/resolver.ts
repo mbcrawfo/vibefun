@@ -212,6 +212,8 @@ function formatType(typeExpr: TypeExpr): string {
             const elements = typeExpr.elements.map((e) => formatType(e)).join(", ");
             return `(${elements})`;
         }
+        case "StringLiteralType":
+            return JSON.stringify(typeExpr.value);
     }
 }
 

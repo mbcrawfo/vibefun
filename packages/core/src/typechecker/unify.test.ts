@@ -807,3 +807,42 @@ describe("Alias and Record Expansion in Unify", () => {
         );
     });
 });
+
+describe("String Literal Singleton Unification", () => {
+    const stringLit = (value: string): Type => ({ type: "StringLit", value });
+
+    it("unifies equal string literal singletons", () => {
+        expect(unify(stringLit("pending"), stringLit("pending"), testCtx)).toEqual(emptySubst());
+    });
+
+    it("rejects unequal string literal singletons", () => {
+        expect(() => unify(stringLit("pending"), stringLit("active"), testCtx)).toThrow(VibefunDiagnostic);
+    });
+
+    it("allows a string literal to flow into String (widening)", () => {
+        expect(unify(stringLit("pending"), primitiveTypes.String, testCtx)).toEqual(emptySubst());
+    });
+
+    it("allows String to flow into a string literal (symmetric)", () => {
+        expect(unify(primitiveTypes.String, stringLit("pending"), testCtx)).toEqual(emptySubst());
+    });
+
+    it("rejects a string literal unified with a non-String constant", () => {
+        expect(() => unify(stringLit("pending"), primitiveTypes.Int, testCtx)).toThrow(VibefunDiagnostic);
+    });
+
+    it("unifies equal unions of string literals", () => {
+        const u = unionType([stringLit("a"), stringLit("b"), stringLit("c")]);
+        expect(unify(u, unionType([stringLit("a"), stringLit("b"), stringLit("c")]), testCtx)).toEqual(emptySubst());
+    });
+
+    it("applySubst is an identity for StringLit", () => {
+        const t = stringLit("pending");
+        const subst = singleSubst(0, primitiveTypes.Int);
+        expect(applySubst(subst, t)).toEqual(t);
+    });
+
+    it("occursIn returns false for StringLit", () => {
+        expect(occursIn(0, stringLit("pending"))).toBe(false);
+    });
+});

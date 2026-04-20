@@ -96,7 +96,8 @@ export type Type =
     | { type: "Tuple"; elements: Type[] } // Tuple type
     | { type: "Ref"; inner: Type } // Reference type (for mutable references)
     | { type: "Module"; path: string; exports: Map<string, TypeScheme> } // First-class module value
-    | { type: "Never" }; // Never type (bottom type, for functions that don't return)
+    | { type: "Never" } // Never type (bottom type, for functions that don't return)
+    | { type: "StringLit"; value: string }; // String literal singleton type (e.g. "pending")
 
 /**
  * Type binding in the type environment

@@ -219,5 +219,9 @@ function referencesNameUnguarded(
             return expr.types.some((t) => referencesNameUnguarded(t, target, allDecls, visiting));
         case "CoreTupleType":
             return expr.elements.some((e) => referencesNameUnguarded(e, target, allDecls, visiting));
+        case "CoreStringLiteralType":
+            // A string literal type is a closed singleton — it cannot name
+            // the declaration back, so recursion is impossible here.
+            return false;
     }
 }

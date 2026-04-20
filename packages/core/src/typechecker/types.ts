@@ -272,6 +272,8 @@ export function freeTypeVars(t: Type): Set<number> {
                 break;
             case "Never":
                 break;
+            case "StringLit":
+                break;
         }
     }
 
@@ -326,6 +328,8 @@ export function freeTypeVarsAtLevel(t: Type, maxLevel: number): Set<number> {
             case "Module":
                 break;
             case "Never":
+                break;
+            case "StringLit":
                 break;
         }
     }
@@ -455,6 +459,10 @@ export function typeEquals(t1: Type, t2: Type): boolean {
         }
         case "Never":
             return true; // Never types are always equal
+        case "StringLit": {
+            const s2 = t2 as Type & { type: "StringLit" };
+            return t1.value === s2.value;
+        }
     }
 }
 
@@ -510,6 +518,8 @@ export function typeToString(t: Type): string {
             return `module "${t.path}"`;
         case "Never":
             return "Never";
+        case "StringLit":
+            return JSON.stringify(t.value);
     }
 }
 
