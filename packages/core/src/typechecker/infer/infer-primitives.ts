@@ -274,7 +274,11 @@ function inferTypeAnnotation(
 
     // Unify annotation (expected) with inferred type (actual). Annotation
     // drives the required shape; an actual record value may carry extras.
-    const unifySubst = unify(annotationType, exprResult.type, unifyCtx);
+    // Apply the inferred substitution first so a type variable whose shape
+    // already got pinned upstream doesn't get re-bound by unifyVar and mask
+    // missing-field errors (VF4503) that are present in the concrete form.
+    const actualType = applySubst(exprResult.subst, exprResult.type);
+    const unifySubst = unify(annotationType, actualType, unifyCtx);
     const finalSubst = composeSubst(unifySubst, exprResult.subst);
 
     // Return annotation type (after substitution)
