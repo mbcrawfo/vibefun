@@ -102,4 +102,70 @@ describe("Type annotations on let bindings", () => {
             expectDiagnostic(() => typecheckSource('let result = { let x: Int = "hello"; x; };'), "VF4020");
         });
     });
+
+    describe("string literal union annotations", () => {
+        const statusDecl = `type Status = "pending" | "active" | "complete";\n`;
+
+        it("accepts a literal that is a member of the union", () => {
+            const result = typecheckSource(`${statusDecl}let s: Status = "pending";`);
+            expect(result.declarationTypes.has("s")).toBe(true);
+            // The annotation type flows through — the declaration is typed as
+            // the alias `Status`, not as the bare singleton.
+            expect(result.declarationTypes.get("s")).toMatchObject({ type: "Const", name: "Status" });
+        });
+
+        it("accepts each member of the union", () => {
+            for (const value of ["pending", "active", "complete"]) {
+                const result = typecheckSource(`${statusDecl}let s: Status = "${value}";`);
+                expect(result.declarationTypes.has("s")).toBe(true);
+            }
+        });
+
+        it("rejects a literal that is not in the union with VF4001", () => {
+            expectDiagnostic(() => typecheckSource(`${statusDecl}let s: Status = "unknown";`), "VF4001");
+        });
+
+        it("accepts a matching single-literal annotation", () => {
+            const result = typecheckSource(`type Ok = "ok";\nlet s: Ok = "ok";`);
+            expect(result.declarationTypes.has("s")).toBe(true);
+        });
+
+        it("rejects a mismatched single-literal annotation with VF4001", () => {
+            expectDiagnostic(() => typecheckSource(`type Ok = "ok";\nlet s: Ok = "no";`), "VF4001");
+        });
+
+        it("passes non-literal expressions through to ordinary unification", () => {
+            // Annotation is a string-literal union, but the body is a bound
+            // variable of type String — not a CoreStringLit — so the
+            // bidirectional narrowing must not fire. The ordinary unifier
+            // then rejects `String` vs the StringLit union structurally
+            // (VF4024 "Cannot unify"), which is what we'd get without the
+            // 7.1 narrowing code path involved at all.
+            expectDiagnostic(
+                () => typecheckSource(`${statusDecl}let raw: String = "pending";\nlet s: Status = raw;`),
+                "VF4024",
+            );
+        });
+
+        it("does not mis-fire on a plain String annotation", () => {
+            // Ensure the bidirectional path only fires when the expanded
+            // annotation is a StringLit shape — plain String keeps using
+            // ordinary unification.
+            const result = typecheckSource(`let s: String = "hello";`);
+            expect(result.declarationTypes.has("s")).toBe(true);
+            expect(result.declarationTypes.get("s")).toMatchObject({ type: "Const", name: "String" });
+        });
+
+        it("does not mis-fire on non-literal annotations with literal bodies", () => {
+            // Int annotation with a string body — this should still produce
+            // the normal unification error (not the new VF4001 path).
+            expectDiagnostic(() => typecheckSource(`let n: Int = "hello";`), "VF4020");
+        });
+
+        it("rejects every non-member of the union with VF4001", () => {
+            // Exercises the failing branch of `stringLiteralMatches` on a
+            // union — complements the earlier single-literal miss test.
+            expectDiagnostic(() => typecheckSource(`${statusDecl}let s: Status = "PENDING";`), "VF4001");
+        });
+    });
 });

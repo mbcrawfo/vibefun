@@ -27,6 +27,7 @@ import type {
     CoreVarPattern,
     CoreWildcardPattern,
 } from "../types/core-ast.js";
+import type { Type } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -285,6 +286,11 @@ describe("Free Type Variables", () => {
         const free = freeTypeVars(nestedType);
         expect(free.size).toBe(2);
     });
+
+    it("should find no free variables in a string literal singleton", () => {
+        const t: Type = { type: "StringLit", value: "pending" };
+        expect(freeTypeVars(t).size).toBe(0);
+    });
 });
 
 describe("Free Type Variables at Level", () => {
@@ -320,6 +326,11 @@ describe("Free Type Variables at Level", () => {
         expect(freeLevel3.size).toBe(1);
         expect(freeLevel3.has(1)).toBe(true); // t2 with level 3
         expect(freeLevel3.has(0)).toBe(false); // t1 with level 5 excluded
+    });
+
+    it("should find no free variables below level in a string literal singleton", () => {
+        const t: Type = { type: "StringLit", value: "pending" };
+        expect(freeTypeVarsAtLevel(t, 10).size).toBe(0);
     });
 });
 
@@ -403,6 +414,14 @@ describe("Type Equality", () => {
         expect(typeEquals(t1, t2)).toBe(true);
         expect(typeEquals(t1, t3)).toBe(false);
     });
+
+    it("should check string literal singleton equality by value", () => {
+        const a: Type = { type: "StringLit", value: "pending" };
+        const a2: Type = { type: "StringLit", value: "pending" };
+        const b: Type = { type: "StringLit", value: "active" };
+        expect(typeEquals(a, a2)).toBe(true);
+        expect(typeEquals(a, b)).toBe(false);
+    });
 });
 
 describe("Type Formatting", () => {
@@ -474,6 +493,11 @@ describe("Type Formatting", () => {
     it("should format complex nested types", () => {
         const t = funType([appType(constType("List"), [primitiveTypes.Int])], primitiveTypes.String);
         expect(typeToString(t)).toBe("List<Int> -> String");
+    });
+
+    it("should format a string literal singleton with quotes", () => {
+        const t: Type = { type: "StringLit", value: "pending" };
+        expect(typeToString(t)).toBe('"pending"');
     });
 });
 

@@ -10,8 +10,9 @@ import type { Type, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { throwDiagnostic } from "../../diagnostics/index.js";
+import { typeToString } from "../format.js";
 import { constType, funType, primitiveTypes, tupleType } from "../types.js";
-import { applySubst, composeSubst, unify } from "../unify.js";
+import { applySubst, composeSubst, expandAliasFully, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
 
 // Import functions from other infer modules
@@ -248,8 +249,30 @@ function inferTypeAnnotation(
     // Convert type expression to Type
     const annotationType = convertTypeExpr(expr.typeExpr);
 
-    // Unify inferred type with annotation
+    // Bidirectional narrowing for string-literal singleton / union annotations.
+    // `let s: Status = "pending"` where `Status = "pending" | "active" | …`
+    // requires comparing the *value* of the literal against the union — bare
+    // `String` does not structurally unify with the StringLit union. We only
+    // trigger this path when the expression is literally a string constant
+    // and the annotation is (after alias expansion) a StringLit or a union
+    // whose members are all StringLit, so ordinary `String` annotations and
+    // non-literal expressions fall through to the standard `unify` below.
     const unifyCtx = { loc: expr.loc, types: ctx.env.types };
+    if (expr.expr.kind === "CoreStringLit") {
+        const expanded = expandAliasFully(annotationType, unifyCtx);
+        if (isStringLiteralAnnotationShape(expanded)) {
+            if (stringLiteralMatches(expr.expr.value, expanded)) {
+                const finalType = applySubst(exprResult.subst, annotationType);
+                return { type: finalType, subst: exprResult.subst };
+            }
+            throwDiagnostic("VF4001", expr.loc, {
+                expected: typeToString(expanded),
+                actual: JSON.stringify(expr.expr.value),
+            });
+        }
+    }
+
+    // Unify inferred type with annotation
     const unifySubst = unify(exprResult.type, annotationType, unifyCtx);
     const finalSubst = composeSubst(unifySubst, exprResult.subst);
 
@@ -257,6 +280,34 @@ function inferTypeAnnotation(
     const finalType = applySubst(finalSubst, annotationType);
 
     return { type: finalType, subst: finalSubst };
+}
+
+/**
+ * True when `type` is either a string-literal singleton or a union whose
+ * members are *all* string-literal singletons. Any non-literal member short-
+ * circuits to `false` so mixed unions like `Int | "pending"` keep falling
+ * through to ordinary unification (which will reject them as expected).
+ */
+function isStringLiteralAnnotationShape(type: Type): type is Type & { type: "StringLit" | "Union" } {
+    if (type.type === "StringLit") {
+        return true;
+    }
+    if (type.type === "Union") {
+        return type.types.every((t) => t.type === "StringLit");
+    }
+    return false;
+}
+
+/**
+ * Assumes `type` has already been screened by `isStringLiteralAnnotationShape`,
+ * which guarantees `type.type` is either `"StringLit"` or `"Union"` (where
+ * every union member is a StringLit).
+ */
+function stringLiteralMatches(value: string, type: Type & { type: "StringLit" | "Union" }): boolean {
+    if (type.type === "StringLit") {
+        return type.value === value;
+    }
+    return type.types.some((t) => t.type === "StringLit" && t.value === value);
 }
 
 /**

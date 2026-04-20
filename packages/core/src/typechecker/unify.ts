@@ -629,7 +629,7 @@ export function expandTypeAlias(type: Type, types: Map<string, TypeBinding>): Ty
  * until the type stabilises or a depth cap is hit. The depth cap guards
  * against pathological alias cycles that slipped past validation.
  */
-function expandAliasFully(type: Type, ctx: UnifyContext): Type {
+export function expandAliasFully(type: Type, ctx: UnifyContext): Type {
     let current = type;
     for (let i = 0; i < 32; i++) {
         const expanded = expandAlias(current, ctx);
