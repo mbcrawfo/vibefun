@@ -153,11 +153,7 @@ function parsePrimaryType(parser: ParserBase): TypeExpr {
     // literal type on its own is legal too (e.g. `let s: "ok" = "ok"`).
     if (parser.check("STRING_LITERAL")) {
         const token = parser.advance();
-        if (token.type !== "STRING_LITERAL") {
-            // Unreachable: check() + advance() guarantees the token kind.
-            throw new Error("Internal error: expected STRING_LITERAL");
-        }
-        return { kind: "StringLiteralType", value: token.value, loc: startLoc };
+        return { kind: "StringLiteralType", value: token.value as string, loc: startLoc };
     }
 
     // Parenthesized type or tuple-style function params: (T) or (T, U, V) -> R
