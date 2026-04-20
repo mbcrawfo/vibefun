@@ -541,15 +541,21 @@ describe("Desugarer Integration - Cross-Module Sugar Features", () => {
 
         const desugaredMath = desugarModule(mathModule!);
 
-        // add should be curried: (x) => (y) => x + y
+        // add should be curried; each annotated param is wrapped in a
+        // `let ... = ($param: T) in ...` so the typechecker can enforce the
+        // Int annotation. Structure:
+        // CoreLambda($param0) { CoreLet(x) { CoreLambda($param1) { CoreLet(y) { ... } } } }
         expect(desugaredMath.declarations.length).toBe(1);
         const addDecl = desugaredMath.declarations[0]!;
         if (addDecl.kind === "CoreLetDecl") {
             expect(addDecl.value.kind).toBe("CoreLambda");
-            // Should be nested lambdas (curried)
             const outerLambda = addDecl.value;
             if (outerLambda.kind === "CoreLambda") {
-                expect(outerLambda.body.kind).toBe("CoreLambda");
+                expect(outerLambda.body.kind).toBe("CoreLet");
+                const outerLet = outerLambda.body;
+                if (outerLet.kind === "CoreLet") {
+                    expect(outerLet.body.kind).toBe("CoreLambda");
+                }
             }
         }
     });

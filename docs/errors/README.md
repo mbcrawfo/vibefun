@@ -109,6 +109,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4500](typechecker.md#vf4500) | NonRecordAccess | Error | You tried to access a field using dot notation, but the value is not a record |
 | [VF4501](typechecker.md#vf4501) | MissingRecordField | Error | The record does not have a field with this name |
 | [VF4502](typechecker.md#vf4502) | DuplicateRecordField | Error | The same field name appears multiple times in the record |
+| [VF4503](typechecker.md#vf4503) | MissingRequiredField | Error | A record value is being used where a record type with more fields is expected |
 | [VF4600](typechecker.md#vf4600) | UnknownConstructor | Error | The constructor name is not part of the expected variant type |
 | [VF4601](typechecker.md#vf4601) | ConstructorArgMismatch | Error | The type of the argument passed to a constructor does not match the expected type |
 | [VF4602](typechecker.md#vf4602) | VariantMismatch | Error | The variant type does not match what was expected |
@@ -148,7 +149,7 @@ Errors during syntax parsing (AST construction)
 
 Errors during desugaring (syntax transformation)
 
-### [Type Checker](typechecker.md) (59 errors, 1 warnings)
+### [Type Checker](typechecker.md) (60 errors, 1 warnings)
 
 Errors during type checking and inference
 
@@ -158,6 +159,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 123
-- **Errors:** 120
+- **Total diagnostic codes:** 124
+- **Errors:** 121
 - **Warnings:** 3

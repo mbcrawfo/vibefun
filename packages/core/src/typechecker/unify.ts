@@ -502,36 +502,36 @@ function updateLevels(type: Type, maxLevel: number): Type {
 }
 
 /**
- * Unify two record types with width subtyping
+ * Unify two record types with directional width subtyping.
  *
- * Records with more fields can be used where fewer fields are expected.
+ * Convention: r1 is the *expected* (narrower) record and r2 is the
+ * *actual* (possibly wider) record. r2 may carry extra fields that r1
+ * does not name — that's width subtyping. But every field r1 requires
+ * must exist in r2; missing fields raise VF4503.
  *
- * @param r1 - First record type
- * @param r2 - Second record type
+ * @param r1 - Expected record type (its fields must all be present in r2)
+ * @param r2 - Actual record type (may have extras)
  * @param ctx - Unification context for error reporting
  * @returns A substitution that unifies the records
  */
 function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record" }, ctx: UnifyContext): Substitution {
-    // Width subtyping: allow extra fields
-    // Find common fields that must unify
-    const commonFields = Array.from(r1.fields.keys()).filter((f) => r2.fields.has(f));
-
     let subst = emptySubst();
 
-    // Unify all common fields
-    for (const field of commonFields) {
-        const fieldType1 = r1.fields.get(field);
-        const fieldType2 = r2.fields.get(field);
-        if (!fieldType1 || !fieldType2) {
-            // Internal error - should never happen
-            throw new Error(`Missing field type for ${field}`);
+    // Every field required by r1 (expected) must appear in r2 (actual).
+    for (const [field, expectedFieldType] of r1.fields) {
+        const actualFieldType = r2.fields.get(field);
+        if (!actualFieldType) {
+            throwDiagnostic("VF4503", ctx.loc, {
+                field,
+                expected: typeToString(r1),
+                actual: typeToString(r2),
+            });
         }
-        const fieldSubst = unify(applySubst(subst, fieldType1), applySubst(subst, fieldType2), ctx);
+        const fieldSubst = unify(applySubst(subst, expectedFieldType), applySubst(subst, actualFieldType), ctx);
         subst = composeSubst(subst, fieldSubst);
     }
 
-    // Width subtyping: we don't require all fields to be present
-    // A record with {x: Int, y: Int, z: Int} can be used as {x: Int, y: Int}
+    // Extra fields in r2 are allowed (width subtyping).
     return subst;
 }
 

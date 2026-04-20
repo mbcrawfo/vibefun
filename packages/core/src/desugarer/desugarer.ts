@@ -147,14 +147,27 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Lambdas - curry multi-parameter lambdas. Per-param type annotations
-        // on simple variable/wildcard params are dropped (HM inference
-        // recovers the polymorphic type at the binding site); on destructuring
-        // params the annotation is threaded onto the synthesized match
-        // scrutinee so the pattern inference has a concrete type. Return-type
-        // annotations and explicit `<T>` type parameters remain discarded.
+        // Lambdas - curry multi-parameter lambdas. Simple-param annotations
+        // are preserved via `let p = ($raw: T) in body` wrapping so the
+        // typechecker can enforce them (including VF4503 missing-field
+        // rejection); destructuring params still thread the annotation onto
+        // the synthesized match scrutinee. When the lambda introduces
+        // explicit `<T>` type parameters, all annotations are dropped instead
+        // — those names aren't registered in the type environment yet, and
+        // HM recovers the polymorphic type without them. Return-type
+        // annotations and the explicit `<T>` parameter list itself remain
+        // discarded.
         case "Lambda":
-            return curryLambda(expr.params, expr.body, expr.loc, gen, desugar, desugarPattern, desugarTypeExprLocal);
+            return curryLambda(
+                expr.params,
+                expr.body,
+                expr.loc,
+                gen,
+                desugar,
+                desugarPattern,
+                desugarTypeExprLocal,
+                (expr.typeParams?.length ?? 0) > 0,
+            );
 
         // Function application - desugar to single-argument curried applications.
         // `f(a, b, c)` becomes `((f(a))(b))(c)`; `f()` becomes `f(unit)`.
