@@ -421,7 +421,8 @@ export type CoreTypeExpr =
     | CoreRecordType
     | CoreVariantType
     | CoreUnionType
-    | CoreTupleType;
+    | CoreTupleType
+    | CoreStringLiteralType;
 
 /**
  * Type variable
@@ -512,6 +513,16 @@ export type CoreUnionType = {
 export type CoreTupleType = {
     kind: "CoreTupleType";
     elements: CoreTypeExpr[];
+    loc: Location;
+};
+
+/**
+ * String literal singleton type (e.g. `"pending"` inside
+ * `type Status = "pending" | "active"`)
+ */
+export type CoreStringLiteralType = {
+    kind: "CoreStringLiteralType";
+    value: string;
     loc: Location;
 };
 

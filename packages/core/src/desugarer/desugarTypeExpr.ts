@@ -80,5 +80,12 @@ export function desugarTypeExpr(
                 ),
                 loc: typeExpr.loc,
             };
+
+        case "StringLiteralType":
+            return {
+                kind: "CoreStringLiteralType",
+                value: typeExpr.value,
+                loc: typeExpr.loc,
+            };
     }
 }

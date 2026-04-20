@@ -131,6 +131,8 @@ export function applySubst(subst: Substitution, type: Type): Type {
             return type;
         case "Never":
             return type;
+        case "StringLit":
+            return type;
     }
 }
 
@@ -193,6 +195,8 @@ export function occursIn(id: number, type: Type): boolean {
         case "Module":
             return false;
         case "Never":
+            return false;
+        case "StringLit":
             return false;
     }
 }
@@ -340,6 +344,31 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
         });
     }
 
+    // String literal singleton unification.
+    //
+    // Rules (symmetric):
+    //   - StringLit(v1) ~ StringLit(v2): unifies iff v1 === v2.
+    //   - StringLit(v)  ~ Const("String"): unifies. A singleton is a
+    //     legitimate inhabitant of `String`, so an expression typed as
+    //     `String` flowing into a literal-typed slot (or vice versa) is
+    //     accepted here — the narrower membership check for
+    //     string-literal *unions* happens at annotation sites, not here.
+    if (t1.type === "StringLit" && t2.type === "StringLit") {
+        if (t1.value === t2.value) {
+            return emptySubst();
+        }
+        throwDiagnostic("VF4020", ctx.loc, {
+            t1: typeToString(t1),
+            t2: typeToString(t2),
+        });
+    }
+    if (t1.type === "StringLit" && isConstType(t2) && t2.name === "String") {
+        return emptySubst();
+    }
+    if (isConstType(t1) && t1.name === "String" && t2.type === "StringLit") {
+        return emptySubst();
+    }
+
     // Tuple type unification
     if (t1.type === "Tuple" && t2.type === "Tuple") {
         if (t1.elements.length !== t2.elements.length) {
@@ -466,6 +495,8 @@ function updateLevels(type: Type, maxLevel: number): Type {
         case "Module":
             return type;
         case "Never":
+            return type;
+        case "StringLit":
             return type;
     }
 }

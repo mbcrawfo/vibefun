@@ -705,6 +705,58 @@ describe("desugarTypeExpr", () => {
         });
     });
 
+    describe("StringLiteralType", () => {
+        it("should desugar string literal type", () => {
+            const typeExpr: TypeExpr = { kind: "StringLiteralType", value: "pending", loc: testLoc };
+
+            const result = desugarTypeExpr(typeExpr, mockDesugarRecordField, mockDesugarVariantCtor);
+
+            expect(result.kind).toBe("CoreStringLiteralType");
+            if (result.kind === "CoreStringLiteralType") {
+                expect(result.value).toBe("pending");
+            }
+        });
+
+        it("should preserve empty string value", () => {
+            const typeExpr: TypeExpr = { kind: "StringLiteralType", value: "", loc: testLoc };
+
+            const result = desugarTypeExpr(typeExpr, mockDesugarRecordField, mockDesugarVariantCtor);
+
+            if (result.kind === "CoreStringLiteralType") {
+                expect(result.value).toBe("");
+            }
+        });
+
+        it("should preserve location in string literal type", () => {
+            const loc: Location = { file: "status.vf", line: 3, column: 15, offset: 42 };
+            const typeExpr: TypeExpr = { kind: "StringLiteralType", value: "active", loc };
+
+            const result = desugarTypeExpr(typeExpr, mockDesugarRecordField, mockDesugarVariantCtor);
+
+            expect(result.loc).toEqual(loc);
+        });
+
+        it("should desugar a union of string literals", () => {
+            const typeExpr: TypeExpr = {
+                kind: "UnionType",
+                types: [
+                    { kind: "StringLiteralType", value: "pending", loc: testLoc },
+                    { kind: "StringLiteralType", value: "active", loc: testLoc },
+                    { kind: "StringLiteralType", value: "complete", loc: testLoc },
+                ],
+                loc: testLoc,
+            };
+
+            const result = desugarTypeExpr(typeExpr, mockDesugarRecordField, mockDesugarVariantCtor);
+
+            expect(result.kind).toBe("CoreUnionType");
+            if (result.kind === "CoreUnionType") {
+                expect(result.types).toHaveLength(3);
+                expect(result.types.every((t) => t.kind === "CoreStringLiteralType")).toBe(true);
+            }
+        });
+    });
+
     describe("complex nested types", () => {
         it("should desugar List<(Int, String | Bool)>", () => {
             const typeExpr: TypeExpr = {

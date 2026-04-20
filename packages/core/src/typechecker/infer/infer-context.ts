@@ -152,5 +152,8 @@ export function substituteTypeVars(type: Type, mapping: Map<number, Type>): Type
 
         case "Never":
             return type;
+
+        case "StringLit":
+            return type;
     }
 }

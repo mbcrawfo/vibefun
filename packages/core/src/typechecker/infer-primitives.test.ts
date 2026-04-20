@@ -320,6 +320,21 @@ describe("Type Inference - Type Annotations", () => {
         // Type annotation mismatch now throws VibefunDiagnostic when unification fails
         expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
     });
+
+    it("converts a CoreStringLiteralType annotation to a StringLit singleton", () => {
+        // Widening: "pending" the expression (String) flows into the literal
+        // "pending" annotation because the unifier accepts StringLit ~ String.
+        const inner: CoreStringLit = { kind: "CoreStringLit", value: "pending", loc: testLoc };
+        const typeExpr = { kind: "CoreStringLiteralType", value: "pending", loc: testLoc } as const;
+        const expr: CoreTypeAnnotation = { kind: "CoreTypeAnnotation", expr: inner, typeExpr, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type).toEqual({ type: "StringLit", value: "pending" });
+    });
 });
 
 describe("Type Inference - Complex Expressions", () => {

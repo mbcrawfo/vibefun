@@ -407,5 +407,11 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr, typeParams?: Map<string,
                 elements,
             };
         }
+
+        case "CoreStringLiteralType":
+            // The literal `"pending"` in type position denotes the singleton
+            // type whose only inhabitant is that exact string. Used by
+            // string-literal unions like `type Status = "a" | "b"`.
+            return { type: "StringLit", value: typeExpr.value };
     }
 }

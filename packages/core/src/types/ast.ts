@@ -229,7 +229,8 @@ export type TypeExpr =
     | { kind: "RecordType"; fields: RecordTypeField[]; loc: Location }
     | { kind: "VariantType"; constructors: VariantConstructor[]; loc: Location }
     | { kind: "UnionType"; types: TypeExpr[]; loc: Location }
-    | { kind: "TupleType"; elements: TypeExpr[]; loc: Location };
+    | { kind: "TupleType"; elements: TypeExpr[]; loc: Location }
+    | { kind: "StringLiteralType"; value: string; loc: Location };
 
 /**
  * Record field in type definition
