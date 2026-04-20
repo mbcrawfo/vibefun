@@ -19,6 +19,7 @@ import { createContext } from "./context.js";
 import * as Declarations from "./emit-declarations.js";
 import * as Expressions from "./emit-expressions/index.js";
 import * as Patterns from "./emit-patterns.js";
+import { escapeIdentifier } from "./reserved-words.js";
 import { generateRuntimeHelpers } from "./runtime-helpers.js";
 
 /**
@@ -403,10 +404,12 @@ function generateImportStatement(from: string, items: TrackedImport[]): string {
 
     if (namedItems.length > 0) {
         const specifiers = namedItems.map((item) => {
-            if (item.alias) {
-                return `${item.name} as ${item.alias}`;
-            }
-            return item.name;
+            // Remote export names stay verbatim; only the local binding
+            // needs reserved-word escaping. See `emit-declarations.ts`
+            // for the longer note — same rule applies to both emitters.
+            const importedName = item.name;
+            const localName = escapeIdentifier(item.alias ?? item.name);
+            return localName === importedName ? importedName : `${importedName} as ${localName}`;
         });
         lines.push(`import { ${specifiers.join(", ")} } from "${path}";`);
     }
