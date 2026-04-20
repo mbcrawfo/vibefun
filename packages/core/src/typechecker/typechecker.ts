@@ -366,6 +366,13 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             return newEnv;
         }
 
+        case "CoreReExportDecl":
+            // Re-exports introduce no local bindings. Dependency ordering
+            // is handled by the module resolver, and codegen emits the
+            // `export … from` statement; cross-module type checking is
+            // deferred with regular imports.
+            return env;
+
         default: {
             const _exhaustive: never = decl;
             throw new Error(`Unknown declaration kind: ${(_exhaustive as CoreDeclaration).kind}`);

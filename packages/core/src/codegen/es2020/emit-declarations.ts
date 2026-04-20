@@ -11,6 +11,7 @@ import type {
     CoreLetDecl,
     CoreLetRecGroup,
     CorePattern,
+    CoreReExportDecl,
     CoreTypeDecl,
     CoreVariantConstructor,
 } from "../../types/core-ast.js";
@@ -118,6 +119,9 @@ export function emitDeclaration(decl: CoreDeclaration, ctx: EmitContext): string
 
         case "CoreImportDecl":
             return emitImportDecl(decl, ctx);
+
+        case "CoreReExportDecl":
+            return emitReExportDecl(decl, ctx);
 
         default: {
             const _exhaustive: never = decl;
@@ -406,6 +410,43 @@ export function emitImportDecl(decl: CoreImportDecl, ctx: EmitContext): string {
     const path = formatImportPath(decl.from);
 
     return `${indent}import { ${specifiers.join(", ")} } from "${path}";`;
+}
+
+// =============================================================================
+// Re-Export Declaration Emission
+// =============================================================================
+
+/**
+ * Emit a re-export declaration (`export { x } from "./mod"` or
+ * `export * from "./mod"`).
+ *
+ * Filters out type-only specifiers (the emitted JS has no type namespace).
+ * When every specifier is type-only the function returns "", mirroring
+ * `emitImportDecl`.
+ */
+export function emitReExportDecl(decl: CoreReExportDecl, ctx: EmitContext): string {
+    const indent = getIndent(ctx);
+    const path = formatImportPath(decl.from);
+
+    if (decl.items === null) {
+        return `${indent}export * from "${path}";`;
+    }
+
+    const valueItems = decl.items.filter((item) => !item.isType);
+    if (valueItems.length === 0) {
+        return "";
+    }
+
+    const specifiers = valueItems.map((item) => {
+        const name = escapeIdentifier(item.name);
+        if (item.alias) {
+            const alias = escapeIdentifier(item.alias);
+            return `${name} as ${alias}`;
+        }
+        return name;
+    });
+
+    return `${indent}export { ${specifiers.join(", ")} } from "${path}";`;
 }
 
 /**

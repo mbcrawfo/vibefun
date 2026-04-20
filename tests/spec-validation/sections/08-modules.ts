@@ -146,7 +146,8 @@ test(S, "08-modules.md", "namespace import with * as", () =>
     moduleTest(
         {
             "lib.vf": `export let x = 42;`,
-            "main.vf": `import * as Lib from "./lib";
+            "main.vf": `import { String } from "@vibefun/std";
+import * as Lib from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(Lib.x)) };`,
         },
@@ -198,7 +199,8 @@ test(S, "08-modules.md", "re-export from another module", () =>
         {
             "inner.vf": `export let x = 42;`,
             "outer.vf": `export { x } from "./inner";`,
-            "main.vf": `import { x } from "./outer";
+            "main.vf": `import { String } from "@vibefun/std";
+import { x } from "./outer";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(x)) };`,
         },

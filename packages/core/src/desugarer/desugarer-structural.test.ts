@@ -449,4 +449,61 @@ describe("Desugarer - Module", () => {
         expect(result.declarations[1]!.kind).toBe("CoreExternalDecl");
         expect(result.declarations[2]!.kind).toBe("CoreLetDecl");
     });
+
+    it("should desugar named re-export", () => {
+        const module: Module = {
+            imports: [],
+            declarations: [
+                {
+                    kind: "ReExportDecl",
+                    items: [
+                        { name: "x", isType: false },
+                        { name: "y", alias: "yy", isType: false },
+                        { name: "T", isType: true },
+                    ],
+                    from: "./inner",
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.imports).toHaveLength(0);
+        expect(result.declarations).toHaveLength(1);
+        const decl = result.declarations[0]!;
+        expect(decl.kind).toBe("CoreReExportDecl");
+        if (decl.kind !== "CoreReExportDecl") throw new Error("unreachable");
+        expect(decl.from).toBe("./inner");
+        expect(decl.items).not.toBeNull();
+        expect(decl.items).toHaveLength(3);
+        expect(decl.items![0]).toEqual({ name: "x", isType: false });
+        expect(decl.items![1]).toEqual({ name: "y", alias: "yy", isType: false });
+        expect(decl.items![2]).toEqual({ name: "T", isType: true });
+    });
+
+    it("should desugar wildcard re-export to null items", () => {
+        const module: Module = {
+            imports: [],
+            declarations: [
+                {
+                    kind: "ReExportDecl",
+                    items: null,
+                    from: "./inner",
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+
+        const result = desugarModule(module);
+
+        expect(result.declarations).toHaveLength(1);
+        const decl = result.declarations[0]!;
+        expect(decl.kind).toBe("CoreReExportDecl");
+        if (decl.kind !== "CoreReExportDecl") throw new Error("unreachable");
+        expect(decl.items).toBeNull();
+        expect(decl.from).toBe("./inner");
+    });
 });
