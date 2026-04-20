@@ -51,7 +51,7 @@ the root-cause groups that Package D remediated:
 - [x] 6.2 Multi-file compilation pipeline (wired in phase 2.9; strict cross-module export typechecking deferred)
 
 ## Phase 7: Remaining Items
-- [ ] 7.1 String literal union types
+- [x] 7.1 String literal union types
 - [ ] 7.2 Type declaration validation
 - [ ] 7.3 Re-exports, namespace imports
 

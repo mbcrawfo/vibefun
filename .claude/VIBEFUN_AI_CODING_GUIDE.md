@@ -167,6 +167,31 @@ let typeValue = "User";
 let obj = { type: typeValue };  // OK
 ```
 
+### String Literal Union Types
+
+A `type` declaration can restrict values to a fixed set of exact string
+literals. Membership is checked at compile time (case-sensitive).
+
+```vibefun
+type Status = "pending" | "active" | "complete";
+
+let ok: Status = "pending";    // ✅ member of the union
+// let bad: Status = "unknown"; // ❌ VF4001 — not in the union
+```
+
+Only bare string literals are narrowed against a literal-union
+annotation. A `String`-typed variable does **not** auto-narrow — assign
+the literal directly, or re-annotate:
+
+```vibefun
+let raw: String = "pending";
+// let s: Status = raw;        // ❌ VF4024 — String ≠ StringLit union
+let s: Status = "pending";     // ✅ assign the literal directly
+```
+
+Useful for discriminated unions, state machines, HTTP methods, and
+other finite string-tag domains (see spec §3.4 *Union Types*).
+
 ### Tuples (Structural, Fixed-Arity)
 
 Tuples are ordered, heterogeneous product types. Use them for temporary
