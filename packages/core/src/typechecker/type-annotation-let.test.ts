@@ -168,4 +168,67 @@ describe("Type annotations on let bindings", () => {
             expectDiagnostic(() => typecheckSource(`${statusDecl}let s: Status = "PENDING";`), "VF4001");
         });
     });
+
+    describe("record width subtyping on let annotations", () => {
+        it("accepts extra fields in the actual record (width subtyping)", () => {
+            // { name, age, city } is a subtype of { name }; assignment OK.
+            const result = typecheckSource(`let narrow: { name: String } = { name: "Alice", age: 30, city: "NYC" };`);
+            expect(result.declarationTypes.has("narrow")).toBe(true);
+        });
+
+        it("rejects a record that is missing a required field with VF4503", () => {
+            expectDiagnostic(
+                () => typecheckSource(`let partial: { name: String, age: Int } = { name: "Alice" };`),
+                "VF4503",
+            );
+        });
+
+        it("rejects a missing nested field with VF4503", () => {
+            // Nested check: outer fields match, but the inner record is
+            // missing a field the annotation requires.
+            expectDiagnostic(
+                () => typecheckSource(`let p: { user: { name: String, age: Int } } = { user: { name: "Alice" } };`),
+                "VF4503",
+            );
+        });
+    });
+
+    describe("record width subtyping on lambda parameter annotations", () => {
+        it("enforces the annotation at the call site (rejects missing fields)", () => {
+            // Lambda param annotations used to be dropped by the desugarer;
+            // they are now preserved via a `let ... = ($raw: T)` wrapping so
+            // width subtyping is enforced when the function is applied.
+            expectDiagnostic(
+                () =>
+                    typecheckSource(
+                        `let greet = (p: { name: String, age: Int }) => p.name;
+let partial = { name: "Alice" };
+let result = greet(partial);`,
+                    ),
+                "VF4503",
+            );
+        });
+
+        it("still allows extra fields in the argument (width subtyping)", () => {
+            const result = typecheckSource(
+                `let greet = (p: { name: String }) => p.name;
+let wide = { name: "Alice", age: 30, city: "NYC" };
+let result = greet(wide);`,
+            );
+            expect(result.declarationTypes.has("result")).toBe(true);
+        });
+
+        it("does not leak the explicit type parameter name into the env", () => {
+            // Regression guard for phase 5.3: when a lambda introduces
+            // `<T>`, simple-param annotations must keep being dropped so
+            // `T` doesn't reach the typechecker as an unknown Const type.
+            const result = typecheckSource(
+                `let id = <T>(x: T): T => x;
+let n = id(42);
+let s = id("hello");`,
+            );
+            expect(result.declarationTypes.has("n")).toBe(true);
+            expect(result.declarationTypes.has("s")).toBe(true);
+        });
+    });
 });
