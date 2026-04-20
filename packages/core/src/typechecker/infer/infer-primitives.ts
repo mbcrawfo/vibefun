@@ -272,8 +272,9 @@ function inferTypeAnnotation(
         }
     }
 
-    // Unify inferred type with annotation
-    const unifySubst = unify(exprResult.type, annotationType, unifyCtx);
+    // Unify annotation (expected) with inferred type (actual). Annotation
+    // drives the required shape; an actual record value may carry extras.
+    const unifySubst = unify(annotationType, exprResult.type, unifyCtx);
     const finalSubst = composeSubst(unifySubst, exprResult.subst);
 
     // Return annotation type (after substitution)

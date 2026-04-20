@@ -122,9 +122,10 @@ export function inferRecordAccess(
             fields: new Map([[expr.field, fieldType]]),
         };
 
-        // Unify the type variable with the record constraint
+        // Unify the constraint (expected shape: "must contain this field")
+        // against the variable (actual, may resolve to a wider record).
         const unifyCtx = { loc: expr.loc, types: ctx.env.types };
-        const unifySubst = unify(recordType, recordConstraint, unifyCtx);
+        const unifySubst = unify(recordConstraint, recordType, unifyCtx);
         currentSubst = composeSubst(unifySubst, currentSubst);
         recordType = applySubst(currentSubst, recordType);
 
@@ -213,9 +214,11 @@ export function inferRecordUpdate(
             const expectedType = applySubst(currentCtx.subst, originalFieldType);
             const actualType = updateResult.type;
 
-            // Unify the update value type with the field type
+            // Unify the field's declared type (expected) against the update
+            // value's inferred type (actual). Record convention: expected
+            // fields must all appear in the actual.
             const unifyCtx = { loc: update.loc, types: ctx.env.types };
-            const unifySubst = unify(actualType, expectedType, unifyCtx);
+            const unifySubst = unify(expectedType, actualType, unifyCtx);
             currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
 
             // Update the field in the new map
@@ -324,9 +327,11 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
         // Apply current substitution to expected type
         const expectedTypeSubst = applySubst(currentCtx.subst, expectedType);
 
-        // Unify argument type with expected type
+        // Unify the constructor's declared parameter type (expected) against
+        // the argument's inferred type (actual). The actual may be a wider
+        // record; missing fields are caught by the record-unification rule.
         const unifyCtx = { loc: arg.loc, types: ctx.env.types };
-        const unifySubst = unify(argResult.type, expectedTypeSubst, unifyCtx);
+        const unifySubst = unify(expectedTypeSubst, argResult.type, unifyCtx);
         currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
     }
 
