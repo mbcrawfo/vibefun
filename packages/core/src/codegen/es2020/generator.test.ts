@@ -221,6 +221,51 @@ describe("ES2020 Generator", () => {
             // Should not have duplicate
             expect(code.match(/import \{.*Thing/g)?.length).toBe(1);
         });
+
+        it("should emit namespace import on its own line", () => {
+            const imp = importDecl("./lib", [importItem("*", { alias: "Lib" })]) as CoreImportDecl;
+            const typedModule = createTypedModule([], [imp]);
+            const { code } = generate(typedModule);
+
+            expect(code).toContain('import * as Lib from "./lib.js";');
+            // And must not shove `*` into the named-specifier list.
+            expect(code).not.toMatch(/import\s*\{\s*\*/);
+        });
+
+        it("should split namespace + named imports into separate statements", () => {
+            const imp = importDecl("./lib", [
+                importItem("*", { alias: "Lib" }),
+                importItem("specific"),
+            ]) as CoreImportDecl;
+            const typedModule = createTypedModule([], [imp]);
+            const { code } = generate(typedModule);
+
+            expect(code).toContain('import * as Lib from "./lib.js";');
+            expect(code).toContain('import { specific } from "./lib.js";');
+        });
+
+        it("should escape reserved-word namespace alias", () => {
+            // Parallel to the `emit-declarations.ts` path — a reserved
+            // word as the namespace alias is a local binding and must
+            // be escaped or the emitted JS is invalid.
+            const imp = importDecl("./lib", [importItem("*", { alias: "class" })]) as CoreImportDecl;
+            const typedModule = createTypedModule([], [imp]);
+            const { code } = generate(typedModule);
+
+            expect(code).toContain('import * as class$ from "./lib.js";');
+        });
+
+        it("should preserve remote export name and escape only the local binding", () => {
+            // Remote `class` is the export name on the source module;
+            // the local binding is the reserved-word position that needs
+            // escaping. The emitted import must reference the remote
+            // export verbatim.
+            const imp = importDecl("./utils", [importItem("class")]) as CoreImportDecl;
+            const typedModule = createTypedModule([], [imp]);
+            const { code } = generate(typedModule);
+
+            expect(code).toContain('import { class as class$ } from "./utils.js";');
+        });
     });
 
     describe("external declaration imports", () => {

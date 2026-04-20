@@ -399,7 +399,9 @@ function generateImportStatement(from: string, items: TrackedImport[]): string {
         if (!item.alias) {
             throw new Error("Namespace import is missing its alias");
         }
-        lines.push(`import * as ${item.alias} from "${path}";`);
+        // The alias is a local binding; escape it so a reserved-word
+        // alias (`import * as class`) doesn't emit invalid JS.
+        lines.push(`import * as ${escapeIdentifier(item.alias)} from "${path}";`);
     }
 
     if (namedItems.length > 0) {

@@ -454,5 +454,14 @@ describe("Declaration Emission", () => {
             const decl = reExportDecl("./inner", [importItem("class", { alias: "cls" })]);
             expect(emitDeclaration(decl, ctx)).toBe('export { class as cls } from "./inner.js";');
         });
+
+        it("should leave reserved-word re-export alias verbatim", () => {
+            // Mirrors the "source side is a remote name" case — the
+            // re-exported side is also a remote ModuleExportName, so a
+            // reserved word as alias should not be escaped either.
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [importItem("foo", { alias: "class" })]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { foo as class } from "./inner.js";');
+        });
     });
 });
