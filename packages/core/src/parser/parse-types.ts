@@ -74,9 +74,16 @@ export function parseTypeExpr(parser: ParserBase): TypeExpr {
 
     // Check for union separators
     while (parser.check("PIPE")) {
-        // Lookahead to check if this is a union separator
+        // Lookahead to check if this is a union separator. STRING_LITERAL is
+        // accepted so that `type Status = "a" | "b" | "c"` parses as a union
+        // of string-literal singleton types.
         const nextToken = parser.peek(1);
-        if (nextToken.type === "IDENTIFIER" || nextToken.type === "LPAREN" || nextToken.type === "LBRACE") {
+        if (
+            nextToken.type === "IDENTIFIER" ||
+            nextToken.type === "LPAREN" ||
+            nextToken.type === "LBRACE" ||
+            nextToken.type === "STRING_LITERAL"
+        ) {
             parser.advance(); // consume |
             types.push(parseFunctionType(parser));
         } else {
@@ -140,6 +147,18 @@ export function parseFunctionType(parser: ParserBase): TypeExpr {
  */
 function parsePrimaryType(parser: ParserBase): TypeExpr {
     const startLoc = parser.peek().loc;
+
+    // String literal singleton type: `"pending"`. Used inside string-literal
+    // unions like `type Status = "pending" | "active" | "complete"`. A bare
+    // literal type on its own is legal too (e.g. `let s: "ok" = "ok"`).
+    if (parser.check("STRING_LITERAL")) {
+        const token = parser.advance();
+        if (token.type !== "STRING_LITERAL") {
+            // Unreachable: check() + advance() guarantees the token kind.
+            throw new Error("Internal error: expected STRING_LITERAL");
+        }
+        return { kind: "StringLiteralType", value: token.value, loc: startLoc };
+    }
 
     // Parenthesized type or tuple-style function params: (T) or (T, U, V) -> R
     if (parser.check("LPAREN")) {
