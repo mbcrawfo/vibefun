@@ -539,7 +539,8 @@ export type CoreDeclaration =
     | CoreTypeDecl
     | CoreExternalDecl
     | CoreExternalTypeDecl
-    | CoreImportDecl;
+    | CoreImportDecl
+    | CoreReExportDecl;
 
 /**
  * Let declaration at module level
@@ -654,6 +655,17 @@ export type CoreImportItem = {
     name: string;
     alias?: string;
     isType: boolean;
+};
+
+/**
+ * Re-export declaration: `export { x } from "./mod"` or `export * from "./mod"`.
+ * `items === null` means wildcard re-export.
+ */
+export type CoreReExportDecl = {
+    kind: "CoreReExportDecl";
+    items: CoreImportItem[] | null;
+    from: string;
+    loc: Location;
 };
 
 // =============================================================================

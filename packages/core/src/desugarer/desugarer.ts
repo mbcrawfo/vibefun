@@ -21,6 +21,7 @@
 import type {
     Declaration,
     Expr,
+    ImportItem,
     ListElement,
     Location,
     Module,
@@ -549,6 +550,17 @@ function desugarVariantConstructorLocal(ctor: VariantConstructor): CoreVariantCo
     return desugarVariantConstructor(ctor, desugarTypeExprLocal);
 }
 
+function toCoreImportItem(item: ImportItem): CoreImportItem {
+    const coreItem: CoreImportItem = {
+        name: item.name,
+        isType: item.isType,
+    };
+    if (item.alias) {
+        coreItem.alias = item.alias;
+    }
+    return coreItem;
+}
+
 /**
  * Desugar a declaration
  *
@@ -656,16 +668,16 @@ export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaratio
             // Import declarations pass through
             return {
                 kind: "CoreImportDecl",
-                items: decl.items.map((item): CoreImportItem => {
-                    const coreItem: CoreImportItem = {
-                        name: item.name,
-                        isType: item.isType,
-                    };
-                    if (item.alias) {
-                        coreItem.alias = item.alias;
-                    }
-                    return coreItem;
-                }),
+                items: decl.items.map(toCoreImportItem),
+                from: decl.from,
+                loc: decl.loc,
+            };
+
+        case "ReExportDecl":
+            // Re-exports pass through; codegen emits ES2020 `export … from`.
+            return {
+                kind: "CoreReExportDecl",
+                items: decl.items === null ? null : decl.items.map(toCoreImportItem),
                 from: decl.from,
                 loc: decl.loc,
             };

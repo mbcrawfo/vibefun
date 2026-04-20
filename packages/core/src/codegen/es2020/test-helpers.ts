@@ -558,6 +558,18 @@ export function importItem(name: string, options?: { alias?: string; isType?: bo
 }
 
 /**
+ * Create a re-export declaration node. Pass `null` for wildcard re-export.
+ */
+export function reExportDecl(from: string, items: CoreImportItem[] | null): CoreDeclaration {
+    return {
+        kind: "CoreReExportDecl",
+        items,
+        from,
+        loc: testLoc(),
+    };
+}
+
+/**
  * Create a dummy type expression (for tests that don't care about types)
  */
 function dummyTypeExpr(): CoreTypeExpr {

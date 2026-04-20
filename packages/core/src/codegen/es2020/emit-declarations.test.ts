@@ -20,6 +20,7 @@ import {
     letRecGroup,
     recordPat,
     recordTypeDecl,
+    reExportDecl,
     tuplePat,
     variantPat,
     variantTypeDecl,
@@ -360,6 +361,59 @@ describe("Declaration Emission", () => {
             const ctx = createTestContext();
             const decl = importDecl("./utils", [importItem("class")]);
             expect(emitDeclaration(decl, ctx)).toBe('import { class$ } from "./utils.js";');
+        });
+    });
+
+    describe("CoreReExportDecl", () => {
+        it("should emit named re-export", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [importItem("x")]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { x } from "./inner.js";');
+        });
+
+        it("should emit re-export with alias", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [importItem("x", { alias: "xx" })]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { x as xx } from "./inner.js";');
+        });
+
+        it("should emit re-export of multiple items", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [importItem("x"), importItem("y"), importItem("z")]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { x, y, z } from "./inner.js";');
+        });
+
+        it("should filter out type-only items", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [importItem("Type", { isType: true }), importItem("value")]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { value } from "./inner.js";');
+        });
+
+        it("should emit nothing when all items are type-only", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [
+                importItem("T1", { isType: true }),
+                importItem("T2", { isType: true }),
+            ]);
+            expect(emitDeclaration(decl, ctx)).toBe("");
+        });
+
+        it("should emit wildcard re-export", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", null);
+            expect(emitDeclaration(decl, ctx)).toBe('export * from "./inner.js";');
+        });
+
+        it("should not add .js to package imports", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("@vibefun/std", [importItem("List")]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { List } from "@vibefun/std";');
+        });
+
+        it("should escape reserved words in re-export names", () => {
+            const ctx = createTestContext();
+            const decl = reExportDecl("./inner", [importItem("class", { alias: "cls" })]);
+            expect(emitDeclaration(decl, ctx)).toBe('export { class$ as cls } from "./inner.js";');
         });
     });
 });
