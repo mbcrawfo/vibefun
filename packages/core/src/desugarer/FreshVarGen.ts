@@ -31,9 +31,14 @@ export class FreshVarGen {
     }
 
     /**
-     * Pop the most recently pushed generic-names frame.
+     * Pop the most recently pushed generic-names frame. Throws on an
+     * empty stack so an unbalanced push/pop surfaces at the bug site
+     * rather than silently skewing later annotation-erasure decisions.
      */
     popGenerics(): void {
+        if (this.genericScope.length === 0) {
+            throw new Error("FreshVarGen generic scope underflow: popGenerics without a matching pushGenerics");
+        }
         this.genericScope.pop();
     }
 
