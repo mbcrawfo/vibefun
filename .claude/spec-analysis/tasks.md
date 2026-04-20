@@ -52,7 +52,7 @@ the root-cause groups that Package D remediated:
 
 ## Phase 7: Remaining Items
 - [x] 7.1 String literal union types
-- [ ] 7.2 Type declaration validation
+- [x] 7.2 Type declaration validation
 - [ ] 7.3 Re-exports, namespace imports
 
 Critical path: Phase 1 → Phase 2 → Phase 3. After Phase 3, remaining phases can proceed in parallel.

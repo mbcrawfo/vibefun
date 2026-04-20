@@ -140,7 +140,11 @@ let bob = { name, age };  // Field shorthand
 
 // Width subtyping
 let detailed = { name: "Charlie", age: 28, city: "NYC" };
-let person: Person = detailed;  // ✅ OK - has required fields
+let person: Person = detailed;  // ✅ OK - has required fields + extras
+
+// Missing fields are rejected (VF4503) — extras OK, gaps are not.
+let partial = { name: "Dave" };
+// let person: Person = partial;  // ❌ Error: missing required field 'age'
 
 // Variants - nominal typing (constructors are functions)
 type Option<T> = Some(T) | None;
