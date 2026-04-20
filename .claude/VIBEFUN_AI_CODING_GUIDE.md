@@ -866,22 +866,26 @@ String.contains("hello", "ell")   // true
 
 ### Imports & Exports
 
+Vibefun string literals are double-quoted. Import paths are strings, so
+`from './x'` is a lexer error — always use `from "./x"`.
+
 ```vibefun
 // Named imports
-import { map, filter } from './list';
-import { type Person, getUser } from './api';
+import { map, filter } from "./list";
+import { type Person, getUser } from "./api";
 
-// Namespace imports
-import * as List from './list';
-import * as Utils from './utils';
+// Namespace imports — `Lib` is bound as a module value; access members
+// with dot notation (`Lib.helper`, `Lib.config`).
+import * as List from "./list";
+import * as Utils from "./utils";
 
 // Type-only imports
-import type { User, Profile } from './types';
+import type { User, Profile } from "./types";
 
 // Relative paths
-import { helper } from './utils';           // ./utils.vf
-import { config } from '../config';         // ../config.vf
-import { component } from '../../components/button';
+import { helper } from "./utils";           // ./utils.vf
+import { config } from "../config";         // ../config.vf
+import { component } from "../../components/button";
 
 // Stdlib — imported modules are first-class values. `String`, `List`,
 // `Option`, `Result`, `Int`, `Float`, `Math` are module-typed bindings;
@@ -890,8 +894,8 @@ import { component } from '../../components/button';
 // there are no ambient globals for them. Variant constructors (`Some`,
 // `None`, `Ok`, `Err`, `Cons`, `Nil`) stay ambient and don't need an
 // import.
-import { String, List, Option, Result, Int, Float, Math } from '@vibefun/std';
-import { Http } from '@myorg/http';
+import { String, List, Option, Result, Int, Float, Math } from "@vibefun/std";
+import { Http } from "@myorg/http";
 ```
 
 ```vibefun
@@ -899,10 +903,13 @@ import { Http } from '@myorg/http';
 export let add = (x, y) => x + y;
 export type Person = { name: String, age: Int };
 
-// Re-export
-export { map, filter } from './list';
-export type { User } from './types';
-export * from './utils';  // Re-export all
+// Re-export named bindings (use `as` to rename)
+export { map, filter } from "./list";
+export { helper as util } from "./utils";
+export type { User } from "./types";
+
+// Wildcard re-export — forwards every export from the source module.
+export * from "./utils";
 ```
 
 ### Module Organization (Barrel Pattern)
@@ -913,15 +920,15 @@ export type User = { id: Int, name: String };
 export type UserError = NotFound | InvalidEmail;
 
 // File: src/user/api.vf
-import type { User, UserError } from './types';
+import type { User, UserError } from "./types";
 export let getUser = (id): Result<User, UserError> => { ... };
 
 // File: src/user/index.vf (barrel export)
-export type { User, UserError } from './types';
-export { getUser, createUser } from './api';
+export type { User, UserError } from "./types";
+export { getUser, createUser } from "./api";
 
 // File: src/main.vf
-import { type User, getUser } from './user';  // Imports from index.vf
+import { type User, getUser } from "./user";  // Imports from index.vf
 ```
 
 ### Top-Level Expression Statements
