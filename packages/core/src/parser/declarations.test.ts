@@ -469,6 +469,57 @@ describe("Parser - Declarations", () => {
                 },
             });
         });
+
+        it("parses a string-literal union as an alias of a UnionType", () => {
+            const decl = parseDecl(`type Status = "pending" | "active" | "complete";`);
+            expect(decl).toMatchObject({
+                kind: "TypeDecl",
+                name: "Status",
+                definition: {
+                    kind: "AliasType",
+                    typeExpr: {
+                        kind: "UnionType",
+                        types: [
+                            { kind: "StringLiteralType", value: "pending" },
+                            { kind: "StringLiteralType", value: "active" },
+                            { kind: "StringLiteralType", value: "complete" },
+                        ],
+                    },
+                },
+            });
+        });
+
+        it("parses a single-literal alias without a union wrapper", () => {
+            const decl = parseDecl(`type Ok = "ok";`);
+            expect(decl).toMatchObject({
+                kind: "TypeDecl",
+                name: "Ok",
+                definition: {
+                    kind: "AliasType",
+                    typeExpr: { kind: "StringLiteralType", value: "ok" },
+                },
+            });
+        });
+
+        it("parses a multiline leading-pipe string-literal union", () => {
+            const decl = parseDecl(`type Status =
+    | "pending"
+    | "active";`);
+            expect(decl).toMatchObject({
+                kind: "TypeDecl",
+                name: "Status",
+                definition: {
+                    kind: "AliasType",
+                    typeExpr: {
+                        kind: "UnionType",
+                        types: [
+                            { kind: "StringLiteralType", value: "pending" },
+                            { kind: "StringLiteralType", value: "active" },
+                        ],
+                    },
+                },
+            });
+        });
     });
 
     describe("external declarations", () => {

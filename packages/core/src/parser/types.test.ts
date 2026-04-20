@@ -387,4 +387,41 @@ describe("Parser - Type Expressions", () => {
             });
         });
     });
+
+    describe("string literal types", () => {
+        it("parses a single string literal type", () => {
+            const type = parseType(`"pending"`);
+            expect(type).toMatchObject({ kind: "StringLiteralType", value: "pending" });
+        });
+
+        it("preserves the literal value, including escapes", () => {
+            const type = parseType(`"hello\\nworld"`);
+            expect(type).toMatchObject({ kind: "StringLiteralType", value: "hello\nworld" });
+        });
+
+        it("parses a union of string literal types", () => {
+            const type = parseType(`"pending" | "active" | "complete"`);
+            expect(type).toMatchObject({
+                kind: "UnionType",
+                types: [
+                    { kind: "StringLiteralType", value: "pending" },
+                    { kind: "StringLiteralType", value: "active" },
+                    { kind: "StringLiteralType", value: "complete" },
+                ],
+            });
+        });
+
+        it("parses a mixed union with a named constructor and a string literal", () => {
+            // Grammar accepts; downstream typechecking is responsible for
+            // rejecting semantic nonsense like `Int | "pending"`.
+            const type = parseType(`Int | "pending"`);
+            expect(type).toMatchObject({
+                kind: "UnionType",
+                types: [
+                    { kind: "TypeConst", name: "Int" },
+                    { kind: "StringLiteralType", value: "pending" },
+                ],
+            });
+        });
+    });
 });

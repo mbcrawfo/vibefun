@@ -117,6 +117,36 @@ function parseTypeDefinition(parser: ParserBase): TypeDefinition {
     // Skip newlines after first type (for multi-line variant types)
     while (parser.match("NEWLINE"));
 
+    // String-literal union alias: `type Status = "a" | "b" | "c"`. When the
+    // first alternative is a string-literal type, this cannot be a variant
+    // declaration — variants require constructor identifiers. Parse the tail
+    // as additional type alternatives and return an AliasType wrapping a
+    // UnionType. This must come before the variant-constructor branch below
+    // because that branch errors (VF2006) on any non-constructor `firstType`.
+    if (firstType.kind === "StringLiteralType" && parser.check("PIPE")) {
+        const alternatives: TypeExpr[] = [firstType];
+        while (true) {
+            while (parser.match("NEWLINE"));
+            if (!parser.match("PIPE")) {
+                break;
+            }
+            while (parser.match("NEWLINE"));
+            alternatives.push(parseFunctionType(parser));
+        }
+
+        const unionType: TypeExpr = {
+            kind: "UnionType",
+            types: alternatives,
+            loc: firstType.loc,
+        };
+
+        return {
+            kind: "AliasType",
+            typeExpr: unionType,
+            loc: startLoc,
+        };
+    }
+
     // Check if this is a variant type (has | separator)
     if (parser.check("PIPE")) {
         // Variant type: Constructor1(T) | Constructor2(U) | ...
