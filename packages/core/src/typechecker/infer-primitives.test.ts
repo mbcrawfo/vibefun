@@ -335,6 +335,27 @@ describe("Type Inference - Type Annotations", () => {
 
         expect(result.type).toEqual({ type: "StringLit", value: "pending" });
     });
+
+    it("rejects a mismatching CoreStringLiteralType annotation with VF4001", () => {
+        // Pins the negative branch at `inferTypeAnnotation` level — the
+        // integration test in `type-annotation-let.test.ts` covers the same
+        // behaviour end-to-end, but this test exercises the bidirectional
+        // check without involving the full lex/parse/desugar pipeline.
+        const inner: CoreStringLit = { kind: "CoreStringLit", value: "active", loc: testLoc };
+        const typeExpr = { kind: "CoreStringLiteralType", value: "pending", loc: testLoc } as const;
+        const expr: CoreTypeAnnotation = { kind: "CoreTypeAnnotation", expr: inner, typeExpr, loc: testLoc };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        try {
+            inferExpr(ctx, expr);
+            throw new Error("Expected inferExpr to throw");
+        } catch (error: unknown) {
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            expect((error as VibefunDiagnostic).code).toBe("VF4001");
+        }
+    });
 });
 
 describe("Type Inference - Complex Expressions", () => {
