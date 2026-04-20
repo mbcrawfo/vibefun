@@ -4,6 +4,7 @@
 
 export class FreshVarGen {
     private counter = 0;
+    private genericScope: string[][] = [];
 
     /**
      * Generate a fresh variable name with given prefix
@@ -21,9 +22,39 @@ export class FreshVarGen {
     }
 
     /**
+     * Push a lambda's explicit type-parameter names onto the in-scope
+     * generics stack. Callers must pair every push with a pop so the
+     * scope stays balanced across recursive descent.
+     */
+    pushGenerics(names: readonly string[]): void {
+        this.genericScope.push([...names]);
+    }
+
+    /**
+     * Pop the most recently pushed generic-names frame.
+     */
+    popGenerics(): void {
+        this.genericScope.pop();
+    }
+
+    /**
+     * True when `name` is a type-parameter name introduced by the current
+     * lambda or any enclosing lambda whose body we are still inside.
+     */
+    isGenericInScope(name: string): boolean {
+        for (const frame of this.genericScope) {
+            if (frame.includes(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Reset the counter (useful for testing)
      */
     reset(): void {
         this.counter = 0;
+        this.genericScope = [];
     }
 }

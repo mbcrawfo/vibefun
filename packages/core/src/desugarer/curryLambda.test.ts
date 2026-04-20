@@ -192,7 +192,7 @@ describe("curryLambda — simple params", () => {
         expect(letExpr.body.kind).toBe("CoreVar");
     });
 
-    it("drops simple-param annotations when the lambda has explicit type parameters", () => {
+    it("drops simple-param annotations that reference an in-scope generic", () => {
         // `<T>(x: T) => x` must keep the fast path so T (an erased generic
         // marker, not a registered type) never reaches the typechecker.
         const annotated: LambdaParam = {
@@ -200,21 +200,51 @@ describe("curryLambda — simple params", () => {
             type: { kind: "TypeConst", name: "T", loc: testLoc },
             loc: testLoc,
         };
+        const gen = makeGen();
+        gen.pushGenerics(["T"]);
         const result = curryLambda(
             [annotated],
             body("x"),
             testLoc,
-            makeGen(),
+            gen,
             mockDesugar,
             mockDesugarPattern,
             mockDesugarTypeExpr,
-            true,
         );
+        gen.popGenerics();
 
         const lambda = result as CoreLambda;
         expect(lambda.param.kind).toBe("CoreVarPattern");
         expect((lambda.param as CoreVarPattern).name).toBe("x");
         expect(lambda.body.kind).toBe("CoreVar");
+    });
+
+    it("preserves concrete simple-param annotations even under an outer generic lambda", () => {
+        // `<T>(x: Int) => x` — the annotation `Int` does NOT reference T,
+        // so it must still be enforced via the let-wrapping. Simulates a
+        // nested descent where `T` is in scope from an outer lambda.
+        const annotated: LambdaParam = {
+            pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+            type: { kind: "TypeConst", name: "Int", loc: testLoc },
+            loc: testLoc,
+        };
+        const gen = makeGen();
+        gen.pushGenerics(["T"]);
+        const result = curryLambda(
+            [annotated],
+            body("x"),
+            testLoc,
+            gen,
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+        );
+        gen.popGenerics();
+
+        const lambda = result as CoreLambda;
+        expect(lambda.param.kind).toBe("CoreVarPattern");
+        expect((lambda.param as CoreVarPattern).name).toBe("$param0");
+        expect(lambda.body.kind).toBe("CoreLet");
     });
 });
 

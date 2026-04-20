@@ -44,7 +44,6 @@ export function curryLambda(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
     desugarTypeExpr: (typeExpr: TypeExpr) => CoreTypeExpr,
-    hasTypeParams: boolean = false,
 ): CoreExpr {
     // Zero parameters: synthesize a wildcard-pattern lambda so `() => expr`
     // becomes a unit-accepting lambda. The parameter is never referenced, so
@@ -60,7 +59,7 @@ export function curryLambda(
         };
     }
 
-    return buildLambda(params, 0, body, loc, gen, desugar, desugarPattern, desugarTypeExpr, hasTypeParams);
+    return buildLambda(params, 0, body, loc, gen, desugar, desugarPattern, desugarTypeExpr);
 }
 
 /**
@@ -75,7 +74,6 @@ function buildLambda(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
     desugarTypeExpr: (typeExpr: TypeExpr) => CoreTypeExpr,
-    hasTypeParams: boolean,
 ): CoreExpr {
     const param = params[index];
     // Invariant: `index` is controlled by curryLambda (starts at 0, increments
@@ -88,20 +86,22 @@ function buildLambda(
     const isLast = index === params.length - 1;
     const innerBody: CoreExpr = isLast
         ? desugar(body, gen)
-        : buildLambda(params, index + 1, body, loc, gen, desugar, desugarPattern, desugarTypeExpr, hasTypeParams);
+        : buildLambda(params, index + 1, body, loc, gen, desugar, desugarPattern, desugarTypeExpr);
 
     const corePattern = desugarPattern(param.pattern, gen);
+    // An annotation that names any in-scope `<T>` generic is erased at the
+    // type level — preserving it would reach the typechecker as a bare
+    // `Const("T")` and either be rejected (VF4020) or collapse generalization.
+    // Annotations that are fully concrete (no generic reference) are kept in
+    // both the simple- and destructuring-param paths.
+    const annotationIsErased = param.type ? typeExprReferencesScopeGenerics(param.type, gen) : false;
 
     // Simple params (variable or wildcard): preserve a user-written annotation
     // by wrapping the body in `let p = ($raw : T) in body` so the typechecker
     // can enforce it at the call site (e.g. reject missing record fields via
-    // VF4503). The wrapping is skipped when the enclosing lambda introduces
-    // explicit type parameters via `<T>` — those annotations reference
-    // erased generic vars, and keeping the current "drop" behaviour lets HM
-    // recover the polymorphic type without the typechecker seeing stray
-    // `Const("T")` references.
+    // VF4503).
     if (corePattern.kind === "CoreVarPattern" || corePattern.kind === "CoreWildcardPattern") {
-        if (!param.type || hasTypeParams) {
+        if (!param.type || annotationIsErased) {
             return {
                 kind: "CoreLambda",
                 param: corePattern,
@@ -143,7 +143,7 @@ function buildLambda(
     // `typechecker/patterns.ts` requires a concrete Record type rather than
     // a bare type variable.
     let scrutinee: CoreExpr = { kind: "CoreVar", name: tmpName, loc: paramLoc };
-    if (param.type && !hasTypeParams) {
+    if (param.type && !annotationIsErased) {
         scrutinee = {
             kind: "CoreTypeAnnotation",
             expr: scrutinee,
@@ -169,4 +169,39 @@ function buildLambda(
         },
         loc,
     };
+}
+
+/**
+ * Walk a surface-AST `TypeExpr` and return `true` if any name reference
+ * matches an in-scope explicit type parameter (i.e. a `<T>` introduced by
+ * the current or an enclosing lambda). Both `TypeVar` and `TypeConst`
+ * nodes are checked because the parser classifies `<T>` references as
+ * `TypeConst` in type-expression position.
+ */
+function typeExprReferencesScopeGenerics(typeExpr: TypeExpr, gen: FreshVarGen): boolean {
+    switch (typeExpr.kind) {
+        case "TypeVar":
+        case "TypeConst":
+            return gen.isGenericInScope(typeExpr.name);
+        case "TypeApp":
+            return (
+                typeExprReferencesScopeGenerics(typeExpr.constructor, gen) ||
+                typeExpr.args.some((a) => typeExprReferencesScopeGenerics(a, gen))
+            );
+        case "FunctionType":
+            return (
+                typeExpr.params.some((p) => typeExprReferencesScopeGenerics(p, gen)) ||
+                typeExprReferencesScopeGenerics(typeExpr.return_, gen)
+            );
+        case "RecordType":
+            return typeExpr.fields.some((f) => typeExprReferencesScopeGenerics(f.typeExpr, gen));
+        case "VariantType":
+            return typeExpr.constructors.some((c) => c.args.some((a) => typeExprReferencesScopeGenerics(a, gen)));
+        case "UnionType":
+            return typeExpr.types.some((t) => typeExprReferencesScopeGenerics(t, gen));
+        case "TupleType":
+            return typeExpr.elements.some((e) => typeExprReferencesScopeGenerics(e, gen));
+        case "StringLiteralType":
+            return false;
+    }
 }

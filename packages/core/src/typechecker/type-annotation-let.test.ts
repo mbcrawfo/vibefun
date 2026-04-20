@@ -230,5 +230,31 @@ let s = id("hello");`,
             expect(result.declarationTypes.has("n")).toBe(true);
             expect(result.declarationTypes.has("s")).toBe(true);
         });
+
+        it("carries the generic scope into nested lambdas", () => {
+            // Regression guard: the inner lambda's `y: T` references the
+            // outer `<T>` and must also be dropped, or the typechecker
+            // sees an unknown Const("T").
+            const result = typecheckSource(
+                `let constFn = <T>(x: T) => (y: T) => x;
+let n = constFn(1)(2);`,
+            );
+            expect(result.declarationTypes.has("n")).toBe(true);
+        });
+
+        it("still enforces concrete annotations inside a generic lambda", () => {
+            // `<T>(x: T) => (y: Int) => y` — only `y`'s annotation is
+            // concrete, so VF4503 should fire if it's violated via a
+            // let-annotation on a user of the inner lambda.
+            expectDiagnostic(
+                () =>
+                    typecheckSource(
+                        `let f = <T>(x: T) => (y: { name: String, age: Int }) => y;
+let applied = f(1);
+let bad = applied({ name: "Alice" });`,
+                    ),
+                "VF4503",
+            );
+        });
     });
 });

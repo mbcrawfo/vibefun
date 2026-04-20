@@ -151,23 +151,41 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         // are preserved via `let p = ($raw: T) in body` wrapping so the
         // typechecker can enforce them (including VF4503 missing-field
         // rejection); destructuring params still thread the annotation onto
-        // the synthesized match scrutinee. When the lambda introduces
-        // explicit `<T>` type parameters, all annotations are dropped instead
-        // — those names aren't registered in the type environment yet, and
-        // HM recovers the polymorphic type without them. Return-type
-        // annotations and the explicit `<T>` parameter list itself remain
-        // discarded.
-        case "Lambda":
-            return curryLambda(
-                expr.params,
-                expr.body,
-                expr.loc,
-                gen,
-                desugar,
-                desugarPattern,
-                desugarTypeExprLocal,
-                (expr.typeParams?.length ?? 0) > 0,
-            );
+        // the synthesized match scrutinee. Annotations that reference an
+        // in-scope `<T>` generic (from this lambda OR any enclosing one)
+        // are dropped instead — those names aren't registered in the type
+        // environment, so HM must recover the polymorphic type without
+        // them. The generic-scope stack on FreshVarGen carries the outer
+        // context through recursive descent. Return-type annotations and
+        // the `<T>` parameter list itself remain discarded.
+        case "Lambda": {
+            const genericNames = expr.typeParams ?? [];
+            if (genericNames.length === 0) {
+                return curryLambda(
+                    expr.params,
+                    expr.body,
+                    expr.loc,
+                    gen,
+                    desugar,
+                    desugarPattern,
+                    desugarTypeExprLocal,
+                );
+            }
+            gen.pushGenerics(genericNames);
+            try {
+                return curryLambda(
+                    expr.params,
+                    expr.body,
+                    expr.loc,
+                    gen,
+                    desugar,
+                    desugarPattern,
+                    desugarTypeExprLocal,
+                );
+            } finally {
+                gen.popGenerics();
+            }
+        }
 
         // Function application - desugar to single-argument curried applications.
         // `f(a, b, c)` becomes `((f(a))(b))(c)`; `f()` becomes `f(unit)`.
