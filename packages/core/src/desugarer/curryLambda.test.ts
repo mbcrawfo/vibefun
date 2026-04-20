@@ -162,7 +162,10 @@ describe("curryLambda — simple params", () => {
         expect((inner.param as CoreVarPattern).name).toBe("y");
     });
 
-    it("drops type annotations on simple variable params", () => {
+    it("preserves type annotations on simple variable params via a let wrapping", () => {
+        // `(x: Int) => x` must desugar to `($param0) => let x = ($param0: Int) in x`
+        // so the typechecker can enforce the annotation at call sites
+        // (e.g. width-subtyping rejection of missing record fields).
         const annotated: LambdaParam = {
             pattern: { kind: "VarPattern", name: "x", loc: testLoc },
             type: { kind: "TypeConst", name: "Int", loc: testLoc },
@@ -178,9 +181,39 @@ describe("curryLambda — simple params", () => {
             mockDesugarTypeExpr,
         );
 
-        // Simple-param fast path: no type annotation wrapping.
         const lambda = result as CoreLambda;
         expect(lambda.param.kind).toBe("CoreVarPattern");
+        expect((lambda.param as CoreVarPattern).name).toBe("$param0");
+        expect(lambda.body.kind).toBe("CoreLet");
+        const letExpr = lambda.body as { kind: "CoreLet"; pattern: CorePattern; value: CoreExpr; body: CoreExpr };
+        expect(letExpr.pattern.kind).toBe("CoreVarPattern");
+        expect((letExpr.pattern as CoreVarPattern).name).toBe("x");
+        expect(letExpr.value.kind).toBe("CoreTypeAnnotation");
+        expect(letExpr.body.kind).toBe("CoreVar");
+    });
+
+    it("drops simple-param annotations when the lambda has explicit type parameters", () => {
+        // `<T>(x: T) => x` must keep the fast path so T (an erased generic
+        // marker, not a registered type) never reaches the typechecker.
+        const annotated: LambdaParam = {
+            pattern: { kind: "VarPattern", name: "x", loc: testLoc },
+            type: { kind: "TypeConst", name: "T", loc: testLoc },
+            loc: testLoc,
+        };
+        const result = curryLambda(
+            [annotated],
+            body("x"),
+            testLoc,
+            makeGen(),
+            mockDesugar,
+            mockDesugarPattern,
+            mockDesugarTypeExpr,
+            true,
+        );
+
+        const lambda = result as CoreLambda;
+        expect(lambda.param.kind).toBe("CoreVarPattern");
+        expect((lambda.param as CoreVarPattern).name).toBe("x");
         expect(lambda.body.kind).toBe("CoreVar");
     });
 });

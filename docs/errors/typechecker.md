@@ -56,6 +56,7 @@ Errors during type checking and inference
 | [VF4500](#vf4500) | NonRecordAccess | **Error** |
 | [VF4501](#vf4501) | MissingRecordField | **Error** |
 | [VF4502](#vf4502) | DuplicateRecordField | **Error** |
+| [VF4503](#vf4503) | MissingRequiredField | **Error** |
 | [VF4600](#vf4600) | UnknownConstructor | **Error** |
 | [VF4601](#vf4601) | ConstructorArgMismatch | **Error** |
 | [VF4602](#vf4602) | VariantMismatch | **Error** |
@@ -1910,6 +1911,49 @@ let point = { x: 3, y: 2 }
 ### Hint
 
 > Each field name can only appear once in a record
+
+### Related
+
+[VF4501](typechecker.md#vf4501)
+
+
+---
+
+## VF4503
+
+**MissingRequiredField** **Error**
+
+### Message
+
+> Record is missing required field '{field}' (expected {expected}, got {actual})
+
+### Explanation
+
+A record value is being used where a record type with more fields is expected. Width subtyping allows a record to have *extra* fields the expected type does not name, but every field the expected type requires must be present in the actual value.
+
+### Example
+
+**Problem:**
+
+```vibefun
+let greet = (p: { name: String, age: Int }) => p.name
+let partial = { name: "Alice" }
+let r = greet(partial)
+```
+
+**Solution:**
+
+```vibefun
+let greet = (p: { name: String, age: Int }) => p.name
+let full = { name: "Alice", age: 30 }
+let r = greet(full)
+```
+
+*Provided the missing age field expected by greet's parameter type*
+
+### Hint
+
+> Add field '{field}' to the record, or change the expected type
 
 ### Related
 

@@ -44,6 +44,7 @@ export function curryLambda(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
     desugarTypeExpr: (typeExpr: TypeExpr) => CoreTypeExpr,
+    hasTypeParams: boolean = false,
 ): CoreExpr {
     // Zero parameters: synthesize a wildcard-pattern lambda so `() => expr`
     // becomes a unit-accepting lambda. The parameter is never referenced, so
@@ -59,7 +60,7 @@ export function curryLambda(
         };
     }
 
-    return buildLambda(params, 0, body, loc, gen, desugar, desugarPattern, desugarTypeExpr);
+    return buildLambda(params, 0, body, loc, gen, desugar, desugarPattern, desugarTypeExpr, hasTypeParams);
 }
 
 /**
@@ -74,6 +75,7 @@ function buildLambda(
     desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
     desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
     desugarTypeExpr: (typeExpr: TypeExpr) => CoreTypeExpr,
+    hasTypeParams: boolean,
 ): CoreExpr {
     const param = params[index];
     // Invariant: `index` is controlled by curryLambda (starts at 0, increments
@@ -86,19 +88,47 @@ function buildLambda(
     const isLast = index === params.length - 1;
     const innerBody: CoreExpr = isLast
         ? desugar(body, gen)
-        : buildLambda(params, index + 1, body, loc, gen, desugar, desugarPattern, desugarTypeExpr);
+        : buildLambda(params, index + 1, body, loc, gen, desugar, desugarPattern, desugarTypeExpr, hasTypeParams);
 
     const corePattern = desugarPattern(param.pattern, gen);
 
-    // Simple params (variable or wildcard) produce a direct CoreLambda.
-    // Per-param type annotations on the surface AST are dropped here (HM
-    // inference at the binding site recovers the polymorphic type) — this
-    // matches the pre-destructuring behaviour.
+    // Simple params (variable or wildcard): preserve a user-written annotation
+    // by wrapping the body in `let p = ($raw : T) in body` so the typechecker
+    // can enforce it at the call site (e.g. reject missing record fields via
+    // VF4503). The wrapping is skipped when the enclosing lambda introduces
+    // explicit type parameters via `<T>` — those annotations reference
+    // erased generic vars, and keeping the current "drop" behaviour lets HM
+    // recover the polymorphic type without the typechecker seeing stray
+    // `Const("T")` references.
     if (corePattern.kind === "CoreVarPattern" || corePattern.kind === "CoreWildcardPattern") {
+        if (!param.type || hasTypeParams) {
+            return {
+                kind: "CoreLambda",
+                param: corePattern,
+                body: innerBody,
+                loc,
+            };
+        }
+        const rawName = gen.fresh("param");
+        const paramLoc = param.pattern.loc;
+        const annotatedRaw: CoreExpr = {
+            kind: "CoreTypeAnnotation",
+            expr: { kind: "CoreVar", name: rawName, loc: paramLoc },
+            typeExpr: desugarTypeExpr(param.type),
+            loc: paramLoc,
+        };
         return {
             kind: "CoreLambda",
-            param: corePattern,
-            body: innerBody,
+            param: { kind: "CoreVarPattern", name: rawName, loc: paramLoc },
+            body: {
+                kind: "CoreLet",
+                pattern: corePattern,
+                value: annotatedRaw,
+                body: innerBody,
+                mutable: false,
+                recursive: false,
+                loc: paramLoc,
+            },
             loc,
         };
     }
@@ -113,7 +143,7 @@ function buildLambda(
     // `typechecker/patterns.ts` requires a concrete Record type rather than
     // a bare type variable.
     let scrutinee: CoreExpr = { kind: "CoreVar", name: tmpName, loc: paramLoc };
-    if (param.type) {
+    if (param.type && !hasTypeParams) {
         scrutinee = {
             kind: "CoreTypeAnnotation",
             expr: scrutinee,

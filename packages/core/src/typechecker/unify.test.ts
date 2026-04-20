@@ -399,7 +399,24 @@ describe("Unify Record Types", () => {
         expect(subst.get(0)).toEqual(primitiveTypes.Int);
     });
 
-    it("should support width subtyping (extra fields allowed)", () => {
+    it("should support width subtyping when actual (r2) has extra fields", () => {
+        // r1 = expected (narrower); r2 = actual (may have extras). Every
+        // field in r1 is present in r2, so the call succeeds.
+        const r1 = recordType(new Map([["x", primitiveTypes.Int]]));
+        const r2 = recordType(
+            new Map([
+                ["x", primitiveTypes.Int],
+                ["y", primitiveTypes.String],
+            ]),
+        );
+
+        const subst = unify(r1, r2, testCtx);
+        expect(subst.size).toBe(0);
+    });
+
+    it("should reject when expected (r1) has a field the actual (r2) is missing", () => {
+        // r1 requires both x and y; r2 only provides x. Width subtyping
+        // allows extras in the actual, but never missing required fields.
         const r1 = recordType(
             new Map([
                 ["x", primitiveTypes.Int],
@@ -408,19 +425,16 @@ describe("Unify Record Types", () => {
         );
         const r2 = recordType(new Map([["x", primitiveTypes.Int]]));
 
-        // r1 has more fields than r2 - should unify with width subtyping
-        const subst = unify(r1, r2, testCtx);
-        expect(subst.size).toBe(0);
+        expect(() => unify(r1, r2, testCtx)).toThrow(VibefunDiagnostic);
+        expect(() => unify(r1, r2, testCtx)).toThrow(/VF4503/);
     });
 
-    it("should unify common fields even with different field sets", () => {
+    it("should bind a type var inside an expected field when actual has extras", () => {
+        // Expected = { x: 'a }, Actual = { x: Int, z: Bool }. r1 has only
+        // the x field (with a type variable); r2 has x plus an extra z.
+        // Width subtyping permits z in the actual, and 'a unifies with Int.
         const t = freshTypeVar();
-        const r1 = recordType(
-            new Map([
-                ["x", t],
-                ["y", primitiveTypes.String],
-            ]),
-        );
+        const r1 = recordType(new Map([["x", t]]));
         const r2 = recordType(
             new Map([
                 ["x", primitiveTypes.Int],
