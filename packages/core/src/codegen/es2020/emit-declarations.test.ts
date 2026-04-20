@@ -357,10 +357,20 @@ describe("Declaration Emission", () => {
             expect(emitDeclaration(decl, ctx)).toBe('import { x } from "./utils.js";');
         });
 
-        it("should escape reserved words in import names", () => {
+        it("should preserve remote names and escape only the local binding", () => {
+            // Remote `class` is a valid JS export name (reached via
+            // `import { class as ... }` or a string-literal specifier), so
+            // it must stay verbatim. The local binding gets escaped to
+            // sidestep the JS reserved word.
             const ctx = createTestContext();
             const decl = importDecl("./utils", [importItem("class")]);
-            expect(emitDeclaration(decl, ctx)).toBe('import { class$ } from "./utils.js";');
+            expect(emitDeclaration(decl, ctx)).toBe('import { class as class$ } from "./utils.js";');
+        });
+
+        it("should escape only the alias, not the remote name, when aliased", () => {
+            const ctx = createTestContext();
+            const decl = importDecl("./utils", [importItem("foo", { alias: "class" })]);
+            expect(emitDeclaration(decl, ctx)).toBe('import { foo as class$ } from "./utils.js";');
         });
 
         it("should emit namespace import", () => {
@@ -436,10 +446,13 @@ describe("Declaration Emission", () => {
             expect(emitDeclaration(decl, ctx)).toBe('export { List } from "@vibefun/std";');
         });
 
-        it("should escape reserved words in re-export names", () => {
+        it("should leave re-export names verbatim (no local binding to escape)", () => {
+            // `export { … } from "./…"` creates no local binding, so
+            // neither the source nor the re-exported name should be
+            // escaped — both are remote ModuleExportNames.
             const ctx = createTestContext();
             const decl = reExportDecl("./inner", [importItem("class", { alias: "cls" })]);
-            expect(emitDeclaration(decl, ctx)).toBe('export { class$ as cls } from "./inner.js";');
+            expect(emitDeclaration(decl, ctx)).toBe('export { class as cls } from "./inner.js";');
         });
     });
 });

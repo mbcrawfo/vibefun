@@ -408,12 +408,13 @@ export function emitImportDecl(decl: CoreImportDecl, ctx: EmitContext): string {
 
     if (namedItems.length > 0) {
         const specifiers = namedItems.map((item) => {
-            const name = escapeIdentifier(item.name);
-            if (item.alias) {
-                const alias = escapeIdentifier(item.alias);
-                return `${name} as ${alias}`;
-            }
-            return name;
+            // `item.name` is the remote export name and must stay verbatim
+            // — escaping it would try to import a different symbol. Only
+            // the local binding (`alias`, or `name` when no alias) is the
+            // JS identifier that needs to dodge reserved words.
+            const importedName = item.name;
+            const localName = escapeIdentifier(item.alias ?? item.name);
+            return localName === importedName ? importedName : `${importedName} as ${localName}`;
         });
         lines.push(`${indent}import { ${specifiers.join(", ")} } from "${path}";`);
     }
@@ -446,13 +447,10 @@ export function emitReExportDecl(decl: CoreReExportDecl, ctx: EmitContext): stri
         return "";
     }
 
+    // Re-export specifiers name remote exports on both sides and create
+    // no local binding, so neither position needs reserved-word escaping.
     const specifiers = valueItems.map((item) => {
-        const name = escapeIdentifier(item.name);
-        if (item.alias) {
-            const alias = escapeIdentifier(item.alias);
-            return `${name} as ${alias}`;
-        }
-        return name;
+        return item.alias ? `${item.name} as ${item.alias}` : item.name;
     });
 
     return `${indent}export { ${specifiers.join(", ")} } from "${path}";`;
