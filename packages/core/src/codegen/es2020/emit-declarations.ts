@@ -376,40 +376,49 @@ function emitExternalDecl(decl: CoreExternalDecl, ctx: EmitContext): string {
 // =============================================================================
 
 /**
- * Emit an import declaration
+ * Emit an import declaration.
  *
  * Filters out type-only imports (they have no runtime representation).
  * If ALL imports are type-only, returns empty string.
  *
- * @param decl - Import declaration
- * @param ctx - Emission context
- * @returns JavaScript import statement or empty string
+ * Namespace specifiers (`{ name: "*" }`, produced by `import * as Name`)
+ * are emitted as their own `import * as Alias from …` line, because
+ * ES2020 does not allow `*` to share a `{ … }` list with named
+ * specifiers.
  */
 export function emitImportDecl(decl: CoreImportDecl, ctx: EmitContext): string {
     const indent = getIndent(ctx);
-
-    // Filter out type-only imports
     const valueImports = decl.items.filter((item) => !item.isType);
-
-    // If all imports were type-only, emit nothing
     if (valueImports.length === 0) {
         return "";
     }
 
-    // Build import specifiers
-    const specifiers = valueImports.map((item) => {
-        const name = escapeIdentifier(item.name);
-        if (item.alias) {
-            const alias = escapeIdentifier(item.alias);
-            return `${name} as ${alias}`;
-        }
-        return name;
-    });
-
-    // Build the path - add .js extension for relative imports
     const path = formatImportPath(decl.from);
+    const namespaceItems = valueImports.filter((item) => item.name === "*");
+    const namedItems = valueImports.filter((item) => item.name !== "*");
 
-    return `${indent}import { ${specifiers.join(", ")} } from "${path}";`;
+    const lines: string[] = [];
+    for (const item of namespaceItems) {
+        if (!item.alias) {
+            throw new Error("Namespace import is missing its alias");
+        }
+        const alias = escapeIdentifier(item.alias);
+        lines.push(`${indent}import * as ${alias} from "${path}";`);
+    }
+
+    if (namedItems.length > 0) {
+        const specifiers = namedItems.map((item) => {
+            const name = escapeIdentifier(item.name);
+            if (item.alias) {
+                const alias = escapeIdentifier(item.alias);
+                return `${name} as ${alias}`;
+            }
+            return name;
+        });
+        lines.push(`${indent}import { ${specifiers.join(", ")} } from "${path}";`);
+    }
+
+    return lines.join("\n");
 }
 
 // =============================================================================

@@ -362,6 +362,32 @@ describe("Declaration Emission", () => {
             const decl = importDecl("./utils", [importItem("class")]);
             expect(emitDeclaration(decl, ctx)).toBe('import { class$ } from "./utils.js";');
         });
+
+        it("should emit namespace import", () => {
+            const ctx = createTestContext();
+            const decl = importDecl("./lib", [importItem("*", { alias: "Lib" })]);
+            expect(emitDeclaration(decl, ctx)).toBe('import * as Lib from "./lib.js";');
+        });
+
+        it("should emit namespace and named imports as separate statements", () => {
+            const ctx = createTestContext();
+            const decl = importDecl("./lib", [importItem("*", { alias: "Lib" }), importItem("specific")]);
+            expect(emitDeclaration(decl, ctx)).toBe(
+                'import * as Lib from "./lib.js";\nimport { specific } from "./lib.js";',
+            );
+        });
+
+        it("should escape reserved words in namespace alias", () => {
+            const ctx = createTestContext();
+            const decl = importDecl("./lib", [importItem("*", { alias: "class" })]);
+            expect(emitDeclaration(decl, ctx)).toBe('import * as class$ from "./lib.js";');
+        });
+
+        it("should throw when namespace import is missing its alias", () => {
+            const ctx = createTestContext();
+            const decl = importDecl("./lib", [importItem("*")]);
+            expect(() => emitDeclaration(decl, ctx)).toThrow(/Namespace import is missing its alias/);
+        });
     });
 
     describe("CoreReExportDecl", () => {

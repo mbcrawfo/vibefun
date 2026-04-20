@@ -373,28 +373,45 @@ function addOrMergeImport(items: TrackedImport[], newItem: TrackedImport): void 
 }
 
 /**
- * Generate a single import statement
+ * Generate import statement(s) for one source module.
+ *
+ * Namespace specifiers (`{ name: "*" }`, produced by `import * as Name`)
+ * cannot share a `{ ... }` list with named specifiers in ES2020, so each
+ * namespace specifier is emitted as its own `import * as Alias from ...`
+ * line. Named specifiers collapse into a single `import { ... }` line.
  */
 function generateImportStatement(from: string, items: TrackedImport[]): string {
-    // Filter out type-only imports
     const valueImports = items.filter((i) => !i.isType);
-
     if (valueImports.length === 0) {
         return "";
     }
 
-    // Build specifiers
-    const specifiers = valueImports.map((item) => {
-        if (item.alias) {
-            return `${item.name} as ${item.alias}`;
-        }
-        return item.name;
-    });
-
-    // Format path
     const path = formatImportPath(from);
+    const namespaceItems = valueImports.filter((i) => i.name === "*");
+    const namedItems = valueImports.filter((i) => i.name !== "*");
 
-    return `import { ${specifiers.join(", ")} } from "${path}";`;
+    const lines: string[] = [];
+    for (const item of namespaceItems) {
+        // The parser requires an alias for `import * as …`, but the
+        // tracked-import shape is shared with the named path, so assert
+        // here to surface any regression that drops the alias.
+        if (!item.alias) {
+            throw new Error("Namespace import is missing its alias");
+        }
+        lines.push(`import * as ${item.alias} from "${path}";`);
+    }
+
+    if (namedItems.length > 0) {
+        const specifiers = namedItems.map((item) => {
+            if (item.alias) {
+                return `${item.name} as ${item.alias}`;
+            }
+            return item.name;
+        });
+        lines.push(`import { ${specifiers.join(", ")} } from "${path}";`);
+    }
+
+    return lines.join("\n");
 }
 
 /**
