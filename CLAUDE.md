@@ -221,7 +221,6 @@ pnpm run vibefun compile src/main.vf --verbose
 ### Additional Instructions
 - Documentation Rules @.claude/DOCUMENTATION_RULES.md
 - Coding Standards @.claude/CODING_STANDARDS.md
-- Ignore files in the ./claude/archive folder.  These are old plan documents that may be outdated and incorrect.
 
 ---
 
