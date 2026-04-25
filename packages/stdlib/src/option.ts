@@ -10,12 +10,12 @@ import { None, Some } from "./variants.js";
 export const map =
     <A, B>(opt: Option<A>) =>
     (fn: (a: A) => B): Option<B> =>
-        opt.$tag === "Some" ? Some(fn(opt.$0)) : None();
+        opt.$tag === "Some" ? Some(fn(opt.$0)) : None;
 
 export const flatMap =
     <A, B>(opt: Option<A>) =>
     (fn: (a: A) => Option<B>): Option<B> =>
-        opt.$tag === "Some" ? fn(opt.$0) : None();
+        opt.$tag === "Some" ? fn(opt.$0) : None;
 
 export const getOrElse =
     <A>(opt: Option<A>) =>

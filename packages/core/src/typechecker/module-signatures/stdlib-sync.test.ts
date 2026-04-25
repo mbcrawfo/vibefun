@@ -76,11 +76,21 @@ describe("stdlib sync", () => {
         // NOT fields of getStdlibRootSignature(), so the asymmetry
         // below between the registry root (7 modules) and the runtime
         // __std__ aggregate (7 modules + 6 constructors) is by design.
+        //
+        // Nullary constructors (Nil, None) are exported as singleton
+        // values matching the codegen for user-defined zero-arg variants
+        // (`const Red = { $tag: "Red" };`). Constructors taking arguments
+        // are exported as curried factory functions.
+        const NULLARY_CTORS: ReadonlySet<string> = new Set(["Nil", "None"]);
         for (const ctor of VARIANT_CTORS) {
-            it(`${ctor}: runtime export is callable`, () => {
-                const fn = stdRecord[ctor];
-                expect(fn, `@vibefun/std.${ctor} should be exported`).toBeDefined();
-                expect(typeof fn).toBe("function");
+            it(`${ctor}: runtime export is the expected shape`, () => {
+                const exported = stdRecord[ctor];
+                expect(exported, `@vibefun/std.${ctor} should be exported`).toBeDefined();
+                if (NULLARY_CTORS.has(ctor)) {
+                    expect(exported).toMatchObject({ $tag: ctor });
+                } else {
+                    expect(typeof exported).toBe("function");
+                }
             });
         }
     });

@@ -58,15 +58,15 @@ describe("String", () => {
     it("toInt returns Some for valid integers, None otherwise", () => {
         expect(S.toInt("42")).toEqual(Some(42));
         expect(S.toInt("-10")).toEqual(Some(-10));
-        expect(S.toInt("3.14")).toEqual(None());
-        expect(S.toInt("hello")).toEqual(None());
-        expect(S.toInt("")).toEqual(None());
+        expect(S.toInt("3.14")).toEqual(None);
+        expect(S.toInt("hello")).toEqual(None);
+        expect(S.toInt("")).toEqual(None);
     });
     it("toFloat returns Some for valid numbers, None otherwise", () => {
         expect(S.toFloat("3.14")).toEqual(Some(3.14));
         expect(S.toFloat("42")).toEqual(Some(42));
         expect(S.toFloat("-2.5")).toEqual(Some(-2.5));
-        expect(S.toFloat("hello")).toEqual(None());
-        expect(S.toFloat("")).toEqual(None());
+        expect(S.toFloat("hello")).toEqual(None);
+        expect(S.toFloat("")).toEqual(None);
     });
 });

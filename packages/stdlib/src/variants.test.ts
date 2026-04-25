@@ -4,7 +4,7 @@ import { Cons, Err, Nil, None, Ok, Some } from "./variants.js";
 
 describe("variants", () => {
     it("Cons builds a two-field node with $tag Cons", () => {
-        const node = Cons(1)(Cons(2)(Nil()));
+        const node = Cons(1)(Cons(2)(Nil));
         expect(node).toEqual({
             $tag: "Cons",
             $0: 1,
@@ -12,20 +12,16 @@ describe("variants", () => {
         });
     });
 
-    it("Nil produces a fresh zero-field node each call", () => {
-        const a = Nil<number>();
-        const b = Nil<number>();
-        expect(a).toEqual({ $tag: "Nil" });
-        expect(a).not.toBe(b);
+    it("Nil is a singleton zero-field node", () => {
+        expect(Nil).toEqual({ $tag: "Nil" });
     });
 
     it("Some wraps a value", () => {
         expect(Some(42)).toEqual({ $tag: "Some", $0: 42 });
     });
 
-    it("None produces a fresh zero-field node each call", () => {
-        expect(None()).toEqual({ $tag: "None" });
-        expect(None()).not.toBe(None());
+    it("None is a singleton zero-field node", () => {
+        expect(None).toEqual({ $tag: "None" });
     });
 
     it("Ok and Err carry the value in $0", () => {

@@ -19,11 +19,11 @@ describe("@vibefun/std index", () => {
 
     it("exposes top-level variant constructors", () => {
         expect(StdLib.Some(1)).toEqual({ $tag: "Some", $0: 1 });
-        expect(StdLib.None()).toEqual({ $tag: "None" });
+        expect(StdLib.None).toEqual({ $tag: "None" });
         expect(StdLib.Ok(1)).toEqual({ $tag: "Ok", $0: 1 });
         expect(StdLib.Err("bad")).toEqual({ $tag: "Err", $0: "bad" });
-        expect(StdLib.Nil()).toEqual({ $tag: "Nil" });
-        expect(StdLib.Cons(1)(StdLib.Nil())).toEqual({
+        expect(StdLib.Nil).toEqual({ $tag: "Nil" });
+        expect(StdLib.Cons(1)(StdLib.Nil)).toEqual({
             $tag: "Cons",
             $0: 1,
             $1: { $tag: "Nil" },
