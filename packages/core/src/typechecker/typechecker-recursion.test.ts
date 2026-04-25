@@ -4,6 +4,7 @@
  */
 
 import type { CoreLetRecGroup } from "../types/core-ast.js";
+import type { Type } from "../types/environment.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -27,6 +28,33 @@ function expectVF4018(run: () => unknown): void {
             expect(err.code).toBe("VF4018");
         }
     }
+}
+
+// Used by the let-rec back-propagation regression tests to prove that
+// the prior decl `r: Ref<Option<t>>` was actually narrowed to
+// `Ref<Option<Int>>` after a subsequent let-rec group consumed
+// `Option<Int>`. A weaker assertion (e.g. `consume(!r): Int`) would
+// pass even when back-propagation is broken, because the second
+// `consume(!r)` use re-unifies `t := Int` at its own call site.
+
+function expectAppHead(t: Type | undefined, name: string, label: string): asserts t is Type & { type: "App" } {
+    expect(t?.type, `${label}: expected App, got ${t?.type ?? "undefined"}`).toBe("App");
+    if (t?.type !== "App") throw new Error(`${label}: expected App`);
+    expect(t.constructor.type, `${label}: expected Const head`).toBe("Const");
+    if (t.constructor.type !== "Const") throw new Error(`${label}: expected Const head`);
+    expect(t.constructor.name, `${label}: expected ${name}<…>`).toBe(name);
+}
+
+function expectOptionIntType(t: Type | undefined, label: string): void {
+    expectAppHead(t, "Option", label);
+    expect(t.args, `${label}: Option<…> takes one type arg`).toHaveLength(1);
+    expect(t.args[0], `${label}: Option<Int> arg should be Int`).toEqual({ type: "Const", name: "Int" });
+}
+
+function expectRefOptionIntType(t: Type | undefined, label: string): void {
+    expectAppHead(t, "Ref", label);
+    expect(t.args, `${label}: Ref<…> takes one type arg`).toHaveLength(1);
+    expectOptionIntType(t.args[0], `${label}: Ref's element`);
 }
 
 describe("typeCheck - Recursion and Let Expressions", () => {
@@ -823,20 +851,20 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                 exported: false,
                 loc: testLoc,
             },
+            // The third declaration reads `r` *directly* via `!r`. If
+            // the let-rec group's `finalSubst` weren't propagated, this
+            // would produce `Option<t>` (an un-narrowed type variable)
+            // rather than `Option<Int>`. Routing through `consume(!r)`
+            // here would silently re-unify `t := Int` at the call site
+            // and mask a broken back-propagation, so we deliberately
+            // skip the second `consume` use.
             {
                 kind: "CoreLetDecl",
                 pattern: { kind: "CoreVarPattern", name: "extracted", loc: testLoc },
                 value: {
-                    kind: "CoreApp",
-                    func: { kind: "CoreVar", name: "consume", loc: testLoc },
-                    args: [
-                        {
-                            kind: "CoreUnaryOp",
-                            op: "Deref",
-                            expr: { kind: "CoreVar", name: "r", loc: testLoc },
-                            loc: testLoc,
-                        },
-                    ],
+                    kind: "CoreUnaryOp",
+                    op: "Deref",
+                    expr: { kind: "CoreVar", name: "r", loc: testLoc },
                     loc: testLoc,
                 },
                 mutable: false,
@@ -846,16 +874,15 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         ]);
 
         // The let-rec group narrows `r`'s element type from `Option<t>`
-        // to `Option<Int>`. If that narrowing weren't propagated to
-        // env.values, the third declaration's `consume(!r)` would see a
-        // stale `r` whose `!r` produces `Option<t>` and would get a
-        // fresh, ungeneralized `t`. The test passes if type checking
-        // succeeds and `extracted`'s type is `Int` (the body of `consume`
-        // returns the contents of `Option<Int>` or `0`).
+        // to `Option<Int>`. The assertions below pin both halves of the
+        // back-propagation: `extracted` (read via env.values) and
+        // `declarationTypes.get("r")` (the prior-decl map). Without the
+        // narrowing reaching either side, the corresponding assertion
+        // surfaces a stale type variable instead of the expected
+        // `Option<Int>`.
         const result = typeCheck(module);
-        const extractedType = result.declarationTypes.get("extracted");
-        expect(extractedType?.type).toBe("Const");
-        if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
+        expectOptionIntType(result.declarationTypes.get("extracted"), "extracted");
+        expectRefOptionIntType(result.declarationTypes.get("r"), "r");
     });
 
     it("should propagate substitution from a recursive single-binding CoreLetRecGroup back into earlier top-level bindings", () => {
@@ -958,23 +985,17 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                 loc: testLoc,
             },
             // Subsequent read of `r` must observe the narrowed
-            // `Option<Int>` element type. If `finalSubst` from the
-            // recursive branch wasn't applied to env.values, this
-            // declaration would fail (or pick up a stale `Option<t>`).
+            // `Option<Int>` element type. The read is a direct `!r` (no
+            // second `consume` call) so the only way `extracted` resolves
+            // to `Option<Int>` is via `propagateSubstAcrossDeclarations`
+            // updating `env.values` for `r`.
             {
                 kind: "CoreLetDecl",
                 pattern: { kind: "CoreVarPattern", name: "extracted", loc: testLoc },
                 value: {
-                    kind: "CoreApp",
-                    func: { kind: "CoreVar", name: "consume", loc: testLoc },
-                    args: [
-                        {
-                            kind: "CoreUnaryOp",
-                            op: "Deref",
-                            expr: { kind: "CoreVar", name: "r", loc: testLoc },
-                            loc: testLoc,
-                        },
-                    ],
+                    kind: "CoreUnaryOp",
+                    op: "Deref",
+                    expr: { kind: "CoreVar", name: "r", loc: testLoc },
                     loc: testLoc,
                 },
                 mutable: false,
@@ -984,9 +1005,8 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         ]);
 
         const result = typeCheck(module);
-        const extractedType = result.declarationTypes.get("extracted");
-        expect(extractedType?.type).toBe("Const");
-        if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
+        expectOptionIntType(result.declarationTypes.get("extracted"), "extracted");
+        expectRefOptionIntType(result.declarationTypes.get("r"), "r");
     });
 
     it("should reject a recursive single-binding mutable CoreLetRecGroup whose RHS isn't Ref<T>", () => {
