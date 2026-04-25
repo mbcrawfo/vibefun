@@ -8,7 +8,7 @@
 
 import type { CliResult } from "./helpers.js";
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -118,6 +118,93 @@ describe("circular dependency", () => {
         expect(compileResult.exitCode).toBe(0);
         const diagnostics = `${compileResult.stdout}\n${compileResult.stderr}`;
         expect(diagnostics).toMatch(/VF5900/);
+    });
+
+    it("runs a value cycle correctly under Node when functions cross the boundary", () => {
+        const p = project({
+            "a.vf": [
+                `import { getFromB } from "./b";`,
+                `export let baseA = 10;`,
+                `export let useB = () => getFromB();`,
+            ].join("\n"),
+            "b.vf": [
+                `import { baseA } from "./a";`,
+                `export let baseB = 20;`,
+                `export let getFromB = () => baseA + baseB;`,
+            ].join("\n"),
+            "main.vf": [
+                WRAPPER,
+                `import { useB } from "./a";`,
+                `let _ = unsafe { console_log(String.fromInt(useB())) };`,
+            ].join("\n"),
+        });
+        const result = runFile("main.vf", p.dir);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout.trim()).toBe("30");
+    });
+});
+
+describe("type-only imports", () => {
+    it("erases type-only imports from emitted JS and doesn't warn on type-only cycles", () => {
+        const p = project({
+            "a.vf": [
+                `import type { TypeB } from "./b";`,
+                `export type TypeA = { label: String };`,
+                `export let makeA = (): TypeA => ({ label: "a" });`,
+            ].join("\n"),
+            "b.vf": [
+                `import type { TypeA } from "./a";`,
+                `export type TypeB = { tag: String };`,
+                `export let makeB = (): TypeB => ({ tag: "b" });`,
+            ].join("\n"),
+            "main.vf": [
+                WRAPPER,
+                `import { makeA } from "./a";`,
+                `import { makeB } from "./b";`,
+                `let _ = unsafe { console_log(makeA().label & "-" & makeB().tag) };`,
+            ].join("\n"),
+        });
+
+        const compileResult = compileFile("main.vf", p.dir);
+        expect(compileResult.exitCode).toBe(0);
+        const diagnostics = `${compileResult.stdout}\n${compileResult.stderr}`;
+        expect(diagnostics).not.toMatch(/VF5900/);
+
+        const aJs = readFileSync(join(p.dir, "a.js"), "utf-8");
+        const bJs = readFileSync(join(p.dir, "b.js"), "utf-8");
+        expect(aJs).not.toContain(`"./b"`);
+        expect(aJs).not.toContain(`"./b.js"`);
+        expect(bJs).not.toContain(`"./a"`);
+        expect(bJs).not.toContain(`"./a.js"`);
+
+        const runResult = runFile("main.vf", p.dir);
+        expect(runResult.exitCode).toBe(0);
+        expect(runResult.stdout.trim()).toBe("a-b");
+    });
+});
+
+describe("init-time errors", () => {
+    it("propagates a thrown error from a dependency's top-level unsafe block", () => {
+        const p = project({
+            "thrower.vf": [
+                `external js_throw: (String) -> Unit = "((msg) => { throw new Error(msg); })";`,
+                `let _ = unsafe { js_throw("init failed") };`,
+                `export let value = 42;`,
+            ].join("\n"),
+            "main.vf": [
+                WRAPPER,
+                `import { value } from "./thrower";`,
+                `let _ = unsafe { console_log(String.fromInt(value)) };`,
+            ].join("\n"),
+        });
+
+        const compileResult = compileFile("main.vf", p.dir);
+        expect(compileResult.exitCode).toBe(0);
+
+        const runResult = runFile("main.vf", p.dir);
+        expect(runResult.exitCode).not.toBe(0);
+        expect(runResult.stderr).toContain("init failed");
+        expect(runResult.stdout).not.toContain("42");
     });
 });
 
