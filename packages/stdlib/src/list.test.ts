@@ -6,7 +6,7 @@ import * as L from "./list.js";
 import { Cons, Nil, None, Some } from "./variants.js";
 
 const fromArray = <A>(arr: A[]): List<A> => {
-    let result: List<A> = Nil<A>();
+    let result: List<A> = Nil;
     for (let i = arr.length - 1; i >= 0; i--) result = Cons(arr[i] as A)(result);
     return result;
 };
@@ -27,7 +27,7 @@ describe("List", () => {
             expect(toArray(L.map(fromArray([1, 2, 3]))((x) => x * 2))).toEqual([2, 4, 6]);
         });
         it("empty list stays empty", () => {
-            expect(toArray(L.map(Nil<number>())((x) => x * 2))).toEqual([]);
+            expect(toArray(L.map(Nil)((x) => x * 2))).toEqual([]);
         });
     });
 
@@ -46,15 +46,13 @@ describe("List", () => {
             expect(sum).toBe(10);
         });
         it("returns init for empty list", () => {
-            expect(L.fold<number, number>(Nil<number>())(99)((acc) => (x) => acc + x)).toBe(99);
+            expect(L.fold<number, number>(Nil)(99)((acc) => (x) => acc + x)).toBe(99);
         });
     });
 
     describe("foldRight", () => {
         it("preserves order when rebuilding", () => {
-            const rebuilt = L.foldRight<number, List<number>>(fromArray([1, 2, 3]))(Nil<number>())(
-                (x) => (acc) => Cons(x)(acc),
-            );
+            const rebuilt = L.foldRight<number, List<number>>(fromArray([1, 2, 3]))(Nil)((x) => (acc) => Cons(x)(acc));
             expect(toArray(rebuilt)).toEqual([1, 2, 3]);
         });
         it("subtraction demonstrates right-to-left order", () => {
@@ -65,27 +63,27 @@ describe("List", () => {
     describe("length", () => {
         it("counts elements", () => {
             expect(L.length(fromArray([1, 2, 3]))).toBe(3);
-            expect(L.length(Nil<number>())).toBe(0);
+            expect(L.length(Nil)).toBe(0);
         });
     });
 
     describe("head/tail", () => {
         it("head returns Some for non-empty, None for empty", () => {
             expect(L.head(fromArray([1, 2, 3]))).toEqual(Some(1));
-            expect(L.head(Nil<number>())).toEqual(None());
+            expect(L.head(Nil)).toEqual(None);
         });
         it("tail returns Some(rest) for non-empty, None for empty", () => {
             const got = L.tail(fromArray([1, 2, 3]));
             expect(got.$tag).toBe("Some");
             if (got.$tag === "Some") expect(toArray(got.$0)).toEqual([2, 3]);
-            expect(L.tail(Nil<number>())).toEqual(None());
+            expect(L.tail(Nil)).toEqual(None);
         });
     });
 
     describe("reverse", () => {
         it("reverses elements", () => {
             expect(toArray(L.reverse(fromArray([1, 2, 3])))).toEqual([3, 2, 1]);
-            expect(toArray(L.reverse(Nil<number>()))).toEqual([]);
+            expect(toArray(L.reverse(Nil))).toEqual([]);
         });
     });
 
@@ -94,8 +92,8 @@ describe("List", () => {
             expect(toArray(L.concat(fromArray([1, 2]))(fromArray([3, 4])))).toEqual([1, 2, 3, 4]);
         });
         it("handles empty operands", () => {
-            expect(toArray(L.concat(Nil<number>())(fromArray([1, 2])))).toEqual([1, 2]);
-            expect(toArray(L.concat(fromArray([1, 2]))(Nil<number>()))).toEqual([1, 2]);
+            expect(toArray(L.concat<number>(Nil)(fromArray([1, 2])))).toEqual([1, 2]);
+            expect(toArray(L.concat(fromArray([1, 2]))(Nil as List<number>))).toEqual([1, 2]);
         });
     });
 });

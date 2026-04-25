@@ -5,9 +5,11 @@
  * These helpers produce matching shapes so hand-written JS interop or synthesized
  * compiler references can construct variants without duplicating the layout.
  *
- * Arity-0 variants are re-exported as functions that return a fresh object each
- * call so user-visible bindings behave like curried constructors: `None()` or
- * `Nil()`. The same `None()` also unifies with the pattern-matched shape.
+ * Arity-0 variants (`None`, `Nil`) are exported as singleton values, matching the
+ * codegen for user-defined zero-arg variants (e.g. `type Color = Red | ...` emits
+ * `const Red = { $tag: "Red" };`). User code that writes `let x = None;` therefore
+ * binds `x` to the variant instance, so `Option.isNone(x)` and pattern matching
+ * both observe the expected `$tag === "None"`.
  */
 
 export type Variant = { $tag: string; [k: `$${number}`]: unknown };
@@ -28,11 +30,11 @@ export const Cons =
     <A>(head: A) =>
     (tail: List<A>): List<A> => ({ $tag: "Cons", $0: head, $1: tail });
 
-export const Nil = <A>(): List<A> => ({ $tag: "Nil" });
+export const Nil: List<never> = { $tag: "Nil" };
 
 export const Some = <A>(value: A): Option<A> => ({ $tag: "Some", $0: value });
 
-export const None = <A>(): Option<A> => ({ $tag: "None" });
+export const None: Option<never> = { $tag: "None" };
 
 export const Ok = <T, E>(value: T): Result<T, E> => ({ $tag: "Ok", $0: value });
 

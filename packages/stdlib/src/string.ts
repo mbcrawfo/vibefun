@@ -33,7 +33,7 @@ export const split =
     (s: string) =>
     (sep: string): List<string> => {
         const parts = s.split(sep);
-        let result: List<string> = Nil<string>();
+        let result: List<string> = Nil;
         for (let i = parts.length - 1; i >= 0; i--) {
             result = Cons(parts[i] as string)(result);
         }
@@ -56,14 +56,14 @@ export const endsWith =
         s.endsWith(suffix);
 
 export const toInt = (s: string): Option<number> => {
-    if (!/^-?\d+$/.test(s.trim())) return None();
+    if (!/^-?\d+$/.test(s.trim())) return None;
     const n = Number(s);
-    return Number.isSafeInteger(n) ? Some(n) : None();
+    return Number.isSafeInteger(n) ? Some(n) : None;
 };
 
 export const toFloat = (s: string): Option<number> => {
     const trimmed = s.trim();
-    if (trimmed === "") return None();
+    if (trimmed === "") return None;
     const n = Number(trimmed);
-    return Number.isFinite(n) ? Some(n) : None();
+    return Number.isFinite(n) ? Some(n) : None;
 };

@@ -11,7 +11,7 @@ import type { List, Option } from "./variants.js";
 import { Cons, Nil, None, Some } from "./variants.js";
 
 const buildFromArray = <A>(items: A[]): List<A> => {
-    let result: List<A> = Nil<A>();
+    let result: List<A> = Nil;
     for (let i = items.length - 1; i >= 0; i--) {
         result = Cons(items[i] as A)(result);
     }
@@ -82,12 +82,12 @@ export const length = <A>(list: List<A>): number => {
     return n;
 };
 
-export const head = <A>(list: List<A>): Option<A> => (list.$tag === "Cons" ? Some(list.$0) : None());
+export const head = <A>(list: List<A>): Option<A> => (list.$tag === "Cons" ? Some(list.$0) : None);
 
-export const tail = <A>(list: List<A>): Option<List<A>> => (list.$tag === "Cons" ? Some(list.$1) : None());
+export const tail = <A>(list: List<A>): Option<List<A>> => (list.$tag === "Cons" ? Some(list.$1) : None);
 
 export const reverse = <A>(list: List<A>): List<A> => {
-    let result: List<A> = Nil();
+    let result: List<A> = Nil;
     let cur: List<A> = list;
     while (cur.$tag === "Cons") {
         result = Cons(cur.$0)(result);
