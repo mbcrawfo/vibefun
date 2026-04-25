@@ -503,6 +503,69 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expect(result.env.values.has("Nil")).toBe(true);
     });
 
+    it("should generalize a non-mutable single-binding recursive CoreLetDecl", () => {
+        // Regression: `let rec id = x => x` at module scope should
+        // yield the polymorphic scheme `∀a. a -> a`, mirroring how
+        // both the non-recursive `CoreLetDecl` path and the
+        // `CoreLetRecGroup` path already generalize the same shape.
+        // Without bumping the inference level and calling
+        // `generalize` here, the binding stays at a concrete type var
+        // and any later use at two different argument types fails to
+        // unify. The two non-unifying uses below force generalization
+        // to be observable.
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "id", loc: testLoc },
+                value: {
+                    kind: "CoreLambda",
+                    param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    body: { kind: "CoreVar", name: "x", loc: testLoc },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: true,
+                exported: true,
+                loc: testLoc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "asInt", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "id", loc: testLoc },
+                    args: [{ kind: "CoreIntLit", value: 1, loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "asBool", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "id", loc: testLoc },
+                    args: [{ kind: "CoreBoolLit", value: true, loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        // Should not throw — the polymorphic `id` schema must let
+        // `asInt` and `asBool` both succeed.
+        const result = typeCheck(module);
+        expect(result.declarationTypes.has("id")).toBe(true);
+        expect(result.declarationTypes.has("asInt")).toBe(true);
+        expect(result.declarationTypes.has("asBool")).toBe(true);
+    });
+
     it("should generalize non-mutable bindings in a top-level CoreLetRecGroup", () => {
         // `let rec id x = x and …` at module scope should yield the
         // polymorphic scheme `∀a. a -> a` for `id`, mirroring how the

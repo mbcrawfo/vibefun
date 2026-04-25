@@ -164,8 +164,21 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 // Handle recursive binding
                 const name = decl.pattern.name;
 
-                // Create placeholder type for recursive reference
-                const placeholderType = freshTypeVar(ctx.level);
+                // Bump the level for inference so `generalize` can
+                // identify the type vars introduced inside this RHS
+                // (and quantify only those, not vars from the outer
+                // scope). Mirrors the non-recursive branch and the
+                // `CoreLetRecGroup` branch — without it, a single-
+                // binding `let rec id = x => x` would stay
+                // monomorphic and get pinned by its first use, even
+                // though the equivalent grouped form `let rec id = x => x and …`
+                // already generalizes.
+                const newLevel = ctx.level + 1;
+
+                // Placeholder type lives at the bumped level so the
+                // recursive self-reference unifies with vars that can
+                // be generalized.
+                const placeholderType = freshTypeVar(newLevel);
 
                 // Create temporary environment with binding in scope
                 const tempEnv: TypeEnv = {
@@ -178,8 +191,8 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                     loc: decl.loc,
                 });
 
-                // Infer with name in scope
-                const result = inferExpr({ ...ctx, env: tempEnv }, decl.value);
+                // Infer with name in scope at the bumped level.
+                const result = inferExpr({ ...ctx, env: tempEnv, level: newLevel }, decl.value);
 
                 // Unify placeholder with inferred type
                 const unifyCtx = { loc: decl.loc, types: env.types };
@@ -231,11 +244,20 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                     types: env.types,
                 };
 
-                // Store the inferred type and add to environment
+                // Store the inferred type and add to environment.
+                // Generalize unless the binding is mutable: mutable
+                // bindings must stay monomorphic (the value
+                // restriction is also enforced inside `generalize`,
+                // but skipping the call here mirrors the other two
+                // branches' explicit `skipGeneralize` rule).
                 declarationTypes.set(name, finalType);
+                const generalizeCtx = { ...ctx, subst: finalSubst, level: newLevel };
+                const scheme: TypeScheme = decl.mutable
+                    ? { vars: [], type: finalType }
+                    : generalize(generalizeCtx, finalType, decl.value);
                 newEnv.values.set(name, {
                     kind: "Value",
-                    scheme: { vars: [], type: finalType },
+                    scheme,
                     loc: decl.loc,
                 });
 
