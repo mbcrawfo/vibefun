@@ -184,8 +184,33 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 // Unify placeholder with inferred type
                 const unifyCtx = { loc: decl.loc, types: env.types };
                 const unifySubst = unify(applySubst(result.subst, placeholderType), result.type, unifyCtx);
-                const finalSubst = composeSubst(unifySubst, result.subst);
-                const finalType = applySubst(finalSubst, result.type);
+                let finalSubst = composeSubst(unifySubst, result.subst);
+                let finalType = applySubst(finalSubst, result.type);
+
+                // Top-level `let rec mut x = …` must hold a `Ref<T>`,
+                // mirroring the non-recursive `CoreLetDecl` and the
+                // expression-level VF4018 check. Without this, a
+                // recursive single-binding mutable let with a non-Ref
+                // RHS would slip through type checking even though
+                // the sibling non-recursive and `CoreLetRecGroup`
+                // paths now reject it.
+                if (decl.mutable) {
+                    const elemTypeVar = freshTypeVar(ctx.level + 1);
+                    const expectedRefType = appType(constType("Ref"), [elemTypeVar]);
+                    try {
+                        const refUnifySubst = unify(finalType, expectedRefType, {
+                            loc: decl.value.loc,
+                            types: env.types,
+                        });
+                        finalSubst = composeSubst(refUnifySubst, finalSubst);
+                        finalType = applySubst(finalSubst, result.type);
+                    } catch (err) {
+                        if (err instanceof VibefunDiagnostic) {
+                            throwDiagnostic("VF4018", decl.value.loc, {});
+                        }
+                        throw err;
+                    }
+                }
 
                 // Substitution learned in this declaration must also be
                 // baked into earlier `declarationTypes` entries and

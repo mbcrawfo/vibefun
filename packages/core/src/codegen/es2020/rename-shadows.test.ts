@@ -391,23 +391,13 @@ describe("renameTopLevelShadows", () => {
         ]);
 
         const { module: renamed } = renameTopLevelShadows(module);
-        // The first two are the rename-pass's primary subject; assert
-        // each non-value decl came through unchanged (and in order)
-        // so each `applyRenamesToDecl` branch is observed.
+        // The first two are the rename-pass's primary subject; the
+        // remaining five must come through structurally identical to
+        // their input — full deep equality catches field-level
+        // regressions in any of the pass-through branches, not just
+        // a `kind` mismatch.
         expect(renamed.declarations).toHaveLength(7);
-        expect(renamed.declarations[2]?.kind).toBe("CoreTypeDecl");
-        expect(renamed.declarations[3]?.kind).toBe("CoreExternalDecl");
-        expect(renamed.declarations[4]?.kind).toBe("CoreExternalTypeDecl");
-        expect(renamed.declarations[5]?.kind).toBe("CoreImportDecl");
-        expect(renamed.declarations[6]?.kind).toBe("CoreReExportDecl");
-        // Verify the re-export's items are forwarded verbatim, not
-        // accidentally mutated by the rename pass.
-        const reExport = renamed.declarations[6];
-        if (reExport?.kind !== "CoreReExportDecl") {
-            throw new Error("Expected CoreReExportDecl");
-        }
-        expect(reExport.items).toEqual([{ name: "x", isType: false }]);
-        expect(reExport.from).toBe("./other");
+        expect(renamed.declarations.slice(2)).toEqual(module.declarations.slice(2));
     });
 
     it("renames a CoreLetRecGroup binding that shadows a prior top-level name", () => {
