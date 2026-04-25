@@ -552,6 +552,179 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expect(result.declarationTypes.has("asBool")).toBe(true);
     });
 
+    it("should propagate within-group substitution to earlier-stored bindings", () => {
+        // Regression: in `let rec f = g and g = 1`, the substitution that
+        // pins `g` (and transitively `f`) to `Int` is learned during
+        // `g`'s inference iteration — *after* `f`'s entry has been
+        // written into `inferredTypes`. Without re-applying the final
+        // substitution to every entry before storing, `f` would remain
+        // at its placeholder type variable instead of resolving to `Int`.
+        const module = createModule([
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                        value: { kind: "CoreVar", name: "g", loc: testLoc },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "g", loc: testLoc },
+                        value: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                ],
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        const result = typeCheck(module);
+        const fType = result.declarationTypes.get("f");
+        const gType = result.declarationTypes.get("g");
+        expect(fType?.type).toBe("Const");
+        expect(gType?.type).toBe("Const");
+        if (fType?.type === "Const") expect(fType.name).toBe("Int");
+        if (gType?.type === "Const") expect(gType.name).toBe("Int");
+    });
+
+    it("should propagate substitution from a CoreLetRecGroup back into earlier top-level bindings", () => {
+        // Regression: a prior monomorphic top-level binding holding a
+        // type variable (e.g. `let r = ref(None)` inferred as
+        // `Ref<Option<a>>`) must be updated when a subsequent let-rec
+        // group narrows that variable. Without applying `currentSubst`
+        // to `env.values`, the prior binding's scheme keeps the un-
+        // narrowed type and a *later* declaration that reads it sees
+        // the wrong type.
+        //
+        // Construction: `let r = ref(None)` (monomorphic Ref<Option<t>>)
+        // followed by `let rec consume = (x: Option<Int>) => x and tap = consume(!r)`.
+        // The let-rec group unifies `Option<t>` with `Option<Int>`, so
+        // `t := Int` must propagate back into `r`'s scheme stored in env.
+        // We then add a third declaration `let extracted = !r` whose
+        // inferred type pins down the propagation: it should be
+        // `Option<Int>`, not the un-narrowed type variable.
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "r", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "ref", loc: testLoc },
+                    args: [{ kind: "CoreVar", name: "None", loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "consume", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                            body: {
+                                kind: "CoreMatch",
+                                expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                                cases: [
+                                    {
+                                        pattern: {
+                                            kind: "CoreVariantPattern",
+                                            constructor: "Some",
+                                            args: [
+                                                {
+                                                    kind: "CoreVarPattern",
+                                                    name: "v",
+                                                    loc: testLoc,
+                                                },
+                                            ],
+                                            loc: testLoc,
+                                        },
+                                        body: { kind: "CoreVar", name: "v", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                    {
+                                        pattern: {
+                                            kind: "CoreVariantPattern",
+                                            constructor: "None",
+                                            args: [],
+                                            loc: testLoc,
+                                        },
+                                        body: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "tap", loc: testLoc },
+                        value: {
+                            kind: "CoreApp",
+                            func: { kind: "CoreVar", name: "consume", loc: testLoc },
+                            args: [
+                                {
+                                    kind: "CoreUnaryOp",
+                                    op: "Deref",
+                                    expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                                    loc: testLoc,
+                                },
+                            ],
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                ],
+                exported: false,
+                loc: testLoc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "extracted", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "consume", loc: testLoc },
+                    args: [
+                        {
+                            kind: "CoreUnaryOp",
+                            op: "Deref",
+                            expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        // The let-rec group narrows `r`'s element type from `Option<t>`
+        // to `Option<Int>`. If that narrowing weren't propagated to
+        // env.values, the third declaration's `consume(!r)` would see a
+        // stale `r` whose `!r` produces `Option<t>` and would get a
+        // fresh, ungeneralized `t`. The test passes if type checking
+        // succeeds and `extracted`'s type is `Int` (the body of `consume`
+        // returns the contents of `Option<Int>` or `0`).
+        const result = typeCheck(module);
+        const extractedType = result.declarationTypes.get("extracted");
+        expect(extractedType?.type).toBe("Const");
+        if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
+    });
+
     it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
         // Mirrors the VF4018 check that already existed for non-recursive
         // `let mut x = 0;` — the recursive group form must reject the
