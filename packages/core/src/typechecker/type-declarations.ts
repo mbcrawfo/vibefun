@@ -123,12 +123,15 @@ function registerVariant(decl: CoreTypeDecl, def: CoreVariantTypeDef, env: TypeE
             throw new Error(`Missing constructor arg types for ${ctor.name}`);
         }
         // Nullary constructors are values of the variant type (not zero-arg
-        // functions). Constructors that take args are auto-curried functions
-        // whose return type is the variant type applied to its params.
+        // functions). Constructors that take args become *curried* function
+        // types — the desugarer rewrites every multi-arg call into a chain
+        // of single-arg `CoreApp`s, so the constructor's type must be
+        // `(arg1) -> (arg2) -> … -> Variant<…>` to unify with each
+        // single-arg application.
         const scheme: TypeScheme =
             argTypes.length === 0
                 ? { vars: paramIds, type: returnType }
-                : { vars: paramIds, type: funType(argTypes, returnType) };
+                : { vars: paramIds, type: curriedFunType(argTypes, returnType) };
         const binding: ValueBinding = {
             kind: "Value",
             scheme,
@@ -136,6 +139,20 @@ function registerVariant(decl: CoreTypeDecl, def: CoreVariantTypeDef, env: TypeE
         };
         env.values.set(ctor.name, binding);
     }
+}
+
+/**
+ * Build a curried function type from N argument types and a return type.
+ * `[A, B, C]` and `R` produce `(A) -> (B) -> (C) -> R`.
+ */
+function curriedFunType(argTypes: Type[], returnType: Type): Type {
+    let result = returnType;
+    for (let i = argTypes.length - 1; i >= 0; i--) {
+        const arg = argTypes[i];
+        if (arg === undefined) continue;
+        result = funType([arg], result);
+    }
+    return result;
 }
 
 function buildTypeParams(params: string[]): {

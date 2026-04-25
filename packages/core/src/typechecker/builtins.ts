@@ -80,8 +80,10 @@ export function getBuiltinEnv(): Map<string, TypeScheme> {
     const tVarId = isTypeVar(tVar) ? tVar.id : 0;
     const listOfT = listType(tVar);
 
-    // Cons: (T, List<T>) -> List<T>
-    env.set("Cons", polyScheme([tVarId], funType([tVar, listOfT], listOfT)));
+    // Cons: (T) -> (List<T>) -> List<T> (curried — every multi-arg
+    // call is desugared to single-arg CoreApps, so the constructor's
+    // type must be curried to unify with each application).
+    env.set("Cons", polyScheme([tVarId], funType([tVar], funType([listOfT], listOfT))));
 
     // Nil: List<T> — nullary constructor value (not a function)
     env.set("Nil", polyScheme([tVarId], listOfT));

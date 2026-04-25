@@ -214,36 +214,43 @@ function checkVariantPattern(
         };
     }
 
-    // Function constructor (Some, Cons, etc.)
-    const funType = constructorType;
+    // Function constructor (Some, Cons, etc.). Variant constructors are
+    // registered as curried function types — `(A) -> (B) -> Variant<…>`
+    // for `Cons(A, B)`. Decompose the curried scheme into a flat list of
+    // parameter types plus a final result type, then verify the result
+    // unifies with the expected type *before* checking each arg pattern
+    // so type variables in the result propagate into the params (e.g.
+    // a nested record pattern can see the resolved field types).
+    const paramTypes: Type[] = [];
+    let resultType: Type = constructorType;
+    while (resultType.type === "Fun" && resultType.params.length > 0) {
+        for (const p of resultType.params) {
+            paramTypes.push(p);
+        }
+        resultType = resultType.return;
+    }
 
-    // Verify argument count
-    if (pattern.args.length !== funType.params.length) {
+    if (pattern.args.length !== paramTypes.length) {
         throwDiagnostic("VF4200", pattern.loc, {
             name: pattern.constructor,
-            expected: funType.params.length,
+            expected: paramTypes.length,
             actual: pattern.args.length,
         });
     }
 
-    // Unify return type with expected type to get type variable bindings
+    // Unify the result type with the expected scrutinee type first so the
+    // constructor's quantified type vars get bound to the scrutinee's
+    // concrete shape. Subsequent arg-pattern checks then see resolved
+    // record/variant types instead of bare type variables.
     let currentSubst = subst;
-    const returnUnifySubst = unify(
-        applySubst(currentSubst, funType.return),
-        applySubst(currentSubst, expectedType),
-        ctx,
-    );
-    currentSubst = composeSubst(returnUnifySubst, currentSubst);
+    const resultUnifySubst = unify(applySubst(currentSubst, resultType), applySubst(currentSubst, expectedType), ctx);
+    currentSubst = composeSubst(resultUnifySubst, currentSubst);
 
-    // Check each argument pattern against parameter type
     const allBindings = new Map<string, Type>();
-
     for (let i = 0; i < pattern.args.length; i++) {
         const argPattern = pattern.args[i];
-        const paramType = funType.params[i];
-
-        if (!argPattern || !paramType) {
-            // Internal error - should never happen
+        const paramType = paramTypes[i];
+        if (!argPattern || paramType === undefined) {
             throw new Error(`Missing argument pattern or parameter type at index ${i}`);
         }
 
@@ -258,7 +265,6 @@ function checkVariantPattern(
         );
         currentSubst = argResult.subst;
 
-        // Collect bindings from argument patterns
         for (const [name, type] of argResult.bindings) {
             if (allBindings.has(name)) {
                 throwDiagnostic("VF4402", argPattern.loc, { name });
@@ -564,7 +570,17 @@ function getConstructorsForType(env: TypeEnv, typeName: string): ConstructorInfo
         }
 
         const scheme = binding.scheme;
-        const returnType = scheme.type.type === "Fun" ? scheme.type.return : scheme.type;
+
+        // Multi-arg variant constructors are stored as curried function
+        // types — `(A) -> ((B) -> Variant<…>)`. Walk through every
+        // function layer to find the ultimate return type and to count
+        // the constructor's total arity.
+        let arity = 0;
+        let returnType: Type = scheme.type;
+        while (returnType.type === "Fun") {
+            arity += returnType.params.length;
+            returnType = returnType.return;
+        }
 
         // Check if return type matches the scrutinee type. Constructors return:
         //   - `App(Const(T), ...)` for generic variants (List<T>, Box<T>, ...)
@@ -573,11 +589,9 @@ function getConstructorsForType(env: TypeEnv, typeName: string): ConstructorInfo
         if (returnType.type === "App") {
             const constructor = returnType.constructor;
             if (constructor.type === "Const" && constructor.name === typeName) {
-                const arity = scheme.type.type === "Fun" ? scheme.type.params.length : 0;
                 constructors.push({ name, arity });
             }
         } else if (returnType.type === "Const" && returnType.name === typeName) {
-            const arity = scheme.type.type === "Fun" ? scheme.type.params.length : 0;
             constructors.push({ name, arity });
         }
     }

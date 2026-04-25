@@ -147,13 +147,21 @@ describe("List Constructor Types", () => {
         expect(nil?.type.type).toBe("App");
     });
 
-    it("should have Cons take two parameters", () => {
+    it("should have Cons as a curried two-parameter constructor", () => {
+        // Multi-arg variant constructors are stored as curried function
+        // types — `Cons(A, B)` becomes `(A) -> ((List<A>) -> List<A>)`
+        // — so each desugared single-arg `CoreApp` can unify with one
+        // layer of the constructor's type.
         const env = getBuiltinEnv();
         const cons = env.get("Cons");
 
         expect(cons?.type.type).toBe("Fun");
         if (cons?.type.type === "Fun") {
-            expect(cons.type.params).toHaveLength(2);
+            expect(cons.type.params).toHaveLength(1);
+            expect(cons.type.return.type).toBe("Fun");
+            if (cons.type.return.type === "Fun") {
+                expect(cons.type.return.params).toHaveLength(1);
+            }
         }
     });
 
