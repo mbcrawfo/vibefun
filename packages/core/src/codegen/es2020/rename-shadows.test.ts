@@ -268,4 +268,111 @@ describe("renameTopLevelShadows", () => {
         if (yDecl.value.kind !== "CoreVar") return;
         expect(yDecl.value.name).toBe("x");
     });
+
+    it("rewrites references inside a CoreLetRecGroup binding's value", () => {
+        // Verifies the let-rec branch of applyRenamesToDecl: when the
+        // pre-pass has already established x → x$1, a subsequent
+        // mutually recursive group's binding values must be rewritten
+        // to use the renamed binding.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(2),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "f", loc },
+                        value: varRef("x"),
+                        mutable: false,
+                        loc,
+                    },
+                ],
+                exported: false,
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        const recGroup = renamed.declarations[2];
+        if (recGroup?.kind !== "CoreLetRecGroup") throw new Error("Expected CoreLetRecGroup");
+        const fBinding = recGroup.bindings[0];
+        if (fBinding === undefined || fBinding.value.kind !== "CoreVar") return;
+        expect(fBinding.value.name).toBe("x$1");
+    });
+
+    it("leaves type/external/import/re-export decls untouched", () => {
+        // The non-value declaration kinds — which can't reference
+        // top-level value bindings — pass straight through
+        // applyRenamesToDecl unchanged.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(2),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreTypeDecl",
+                name: "Color",
+                params: [],
+                definition: {
+                    kind: "CoreVariantTypeDef",
+                    constructors: [{ name: "Red", args: [], loc }],
+                    loc,
+                },
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreExternalDecl",
+                name: "log",
+                typeExpr: { kind: "CoreTypeConst", name: "Unit", loc },
+                jsName: "console.log",
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreImportDecl",
+                from: "./other",
+                items: [],
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        // The first two are the rename-pass's primary subject — assert
+        // they came through unchanged in shape so this test stays focused.
+        expect(renamed.declarations).toHaveLength(5);
+        expect(renamed.declarations[2]?.kind).toBe("CoreTypeDecl");
+        expect(renamed.declarations[3]?.kind).toBe("CoreExternalDecl");
+        expect(renamed.declarations[4]?.kind).toBe("CoreImportDecl");
+    });
 });

@@ -283,6 +283,16 @@ describe("Parser - Declarations", () => {
             );
         });
 
+        it("should reject ref() bindings with each literal hint variant", () => {
+            // Coverage for the VF2008 hint-formatting branches: float,
+            // string, bool, and non-literal arg expressions all flow
+            // through `refArgHint`'s `literalHint` switch.
+            expect(() => parseDecl("let x = ref(3.14);")).toThrow(/mut/);
+            expect(() => parseDecl('let x = ref("hi");')).toThrow(/mut/);
+            expect(() => parseDecl("let x = ref(true);")).toThrow(/mut/);
+            expect(() => parseDecl("let x = ref(someVar);")).toThrow(/mut/);
+        });
+
         it("should still accept immutable bindings to non-ref values", () => {
             // Sanity check that the new VF2008 path doesn't fire on
             // ordinary immutable bindings.
