@@ -6,6 +6,18 @@ This is a custom integration test suite that validates the Vibefun compiler agai
 
 **CRITICAL:** When making changes to the architecture or code structure of this test suite you must update this document to be in sync with the source code.
 
+## When to use this suite vs `tests/e2e/`
+
+Spec-validation tests are **informative**, not gating:
+
+- The runner only exits non-zero on infrastructure errors. Feature failures are tolerated by design — they signal unimplemented or partially-implemented spec items, which is useful signal but not a merge blocker.
+- The suite is **not** part of `pnpm run verify`.
+- CI runs the suite but tolerates feature failures here.
+
+Therefore, **most actual regression tests belong in `tests/e2e/`**, not here. Use this suite *only* for tests that exist to track spec conformance — "section 7 says X works; does it?" Use `tests/e2e/` for any test you want to gate merges on: soundness regressions, refactor safety nets, anything whose failure should fail `pnpm run verify`.
+
+Rule of thumb: if you'd be upset that a CI run was green while this test was red, the test belongs in `tests/e2e/`.
+
 ## Architecture
 
 ```
