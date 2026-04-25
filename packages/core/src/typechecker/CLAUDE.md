@@ -61,11 +61,11 @@ They now live in `let-binding-helpers.ts`; **call the helper, don't inline**.
 
 ### Cross-path equivalence matrix
 
-`tests/spec-validation/sections/07b-let-binding-matrix.ts` runs every soundness
-scenario through every surface let-form. Adding a new form or scenario means
-adding one line to that file — divergence between paths surfaces as a single
-flat-list cell. Adding a new top-level let path (or breaking the helpers)
-fails matrix tests immediately.
+`tests/e2e/let-binding-matrix.test.ts` runs every soundness scenario through
+every surface let-form. Adding a new form or scenario means adding one line
+to that file — divergence between paths surfaces as a single failing cell.
+Adding a new top-level let path (or breaking the helpers) fails matrix tests
+immediately under `pnpm run test:e2e` (and therefore `pnpm run verify`).
 
 ## `constraints.ts`
 

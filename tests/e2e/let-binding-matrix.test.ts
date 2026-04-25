@@ -2,28 +2,31 @@
  * Cross-path equivalence matrix for let-binding forms.
  *
  * PR #73 closed five copies of the same soundness invariants — one per
- * let-binding code path. Phase A of the simplification refactor extracted
- * those invariants into shared helpers; this matrix is the regression
- * safety net that guarantees every surface form continues to honour them
- * identically.
+ * let-binding code path. The Phase A refactor extracted those invariants
+ * into shared helpers (`packages/core/src/typechecker/infer/let-binding-helpers.ts`);
+ * this matrix is the regression safety net that guarantees every surface
+ * form continues to honour them identically.
  *
- * The matrix is the Cartesian product of N scenarios × 6 forms, with each
+ * The matrix is the Cartesian product of N scenarios × 5 forms, with each
  * scenario rendered through every form whose `requires` capabilities the
- * form `supports`. Divergence across paths surfaces as a failure on a
- * specific (scenario × form) cell — the flat-list output makes it
+ * form `supports`. Divergence across paths surfaces as a vitest failure on
+ * a specific (scenario × form) cell — the per-cell test name makes it
  * immediately scannable.
  *
  * **Adding a new let-binding form** (or refactoring a path)? Add it to
  * `forms` below. **Adding a new soundness scenario?** Add it to
  * `scenarios`. The grid stays exhaustive automatically.
+ *
+ * **Why this lives under `tests/e2e/` and not `tests/spec-validation/`:**
+ * spec validation is informative — its failures don't fail CI or
+ * `pnpm run verify`. A cross-path soundness regression must be gating, so
+ * the matrix runs through vitest where any expectation miss hard-fails the
+ * suite.
  */
 
-import type { TestResult } from "../framework/types.ts";
+import { describe, expect, it } from "vitest";
 
-import { expectCompileError, expectCompiles, expectRunOutput } from "../framework/helpers.ts";
-import { test } from "../framework/runner.ts";
-
-const S = "07b-let-binding-matrix";
+import { compileSource, runSource } from "./helpers.js";
 
 /**
  * A scenario describes one piece of let-binding semantics that must hold
@@ -278,23 +281,25 @@ function appliesTo(scenario: Scenario, form: Form): boolean {
     return true;
 }
 
-function runScenarioOnForm(scenario: Scenario, form: Form): TestResult {
-    const source = form.render(scenario);
-    if (scenario.expectation.kind === "runOutput") {
-        return expectRunOutput(source, scenario.expectation.output);
+describe("e2e let-binding matrix", () => {
+    for (const scenario of scenarios) {
+        for (const form of forms) {
+            if (!appliesTo(scenario, form)) continue;
+            const name = `${scenario.name} × ${form.name}`;
+            it(name, () => {
+                const source = form.render(scenario);
+                if (scenario.expectation.kind === "runOutput") {
+                    const result = runSource(source);
+                    expect(result.exitCode).toBe(0);
+                    expect(result.stdout.trim()).toBe(scenario.expectation.output);
+                } else {
+                    const result = compileSource(source);
+                    expect(result.exitCode).not.toBe(0);
+                    if (scenario.expectation.code !== undefined) {
+                        expect(result.stderr).toContain(scenario.expectation.code);
+                    }
+                }
+            });
+        }
     }
-    return expectCompileError(source, scenario.expectation.code);
-}
-
-for (const scenario of scenarios) {
-    for (const form of forms) {
-        if (!appliesTo(scenario, form)) continue;
-        const name = `${scenario.name} × ${form.name}`;
-        test(S, "07-mutable-references.md", name, () => runScenarioOnForm(scenario, form));
-    }
-}
-
-// Mark `expectCompiles` as referenced — reserved for future scenarios that
-// only need a "type-checks" assertion (no runtime value) without an
-// expected error code.
-void expectCompiles;
+});

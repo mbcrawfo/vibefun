@@ -3,8 +3,8 @@
  *
  * Each helper encapsulates a soundness invariant that PR #73 had to patch
  * across five paths. Tests here exercise every branch of every helper —
- * the matrix in `tests/spec-validation/sections/07b-let-binding-matrix.ts`
- * covers the user-observable side; these unit tests pin internal contract.
+ * the matrix in `tests/e2e/let-binding-matrix.test.ts` covers the
+ * user-observable side; these unit tests pin internal contract.
  */
 
 import type { CoreExpr, CoreVarPattern } from "../../types/core-ast.js";
