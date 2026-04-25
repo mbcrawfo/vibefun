@@ -31,6 +31,14 @@ export interface UnifyContext {
      * module-signature synthesis) may leave this undefined.
      */
     readonly types?: Map<string, TypeBinding>;
+    /**
+     * When true, record unification requires the field sets to match
+     * exactly (no width subtyping). Set automatically once unification
+     * descends into a generic type-application argument position to
+     * enforce invariance of generic type parameters per spec
+     * docs/spec/03-type-system/subtyping.md "Type Parameter Invariance".
+     */
+    readonly exact?: boolean;
 }
 
 /**
@@ -227,10 +235,20 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
     // interchangeable with `Int` and `Box<Int>` interchangeable with
     // `{ value: Int }`. Expansion is transitive so nested aliases like
     // `type A = B; type B = Int` collapse in one step.
-    const expanded1 = expandAliasFully(t1, ctx);
-    const expanded2 = expandAliasFully(t2, ctx);
-    if (expanded1 !== t1 || expanded2 !== t2) {
-        return unify(expanded1, expanded2, ctx);
+    //
+    // Exception: when both types are App applications of the same generic
+    // constructor (e.g. `Box<A>` vs `Box<B>`), skip the expansion so the
+    // dedicated App-unification path runs and unifies the type arguments
+    // *invariantly*. Expanding both sides into structural records would
+    // otherwise let width subtyping leak through generic type parameters,
+    // violating spec docs/spec/03-type-system/subtyping.md "Type Parameter
+    // Invariance".
+    if (!sameGenericApplication(t1, t2)) {
+        const expanded1 = expandAliasFully(t1, ctx);
+        const expanded2 = expandAliasFully(t2, ctx);
+        if (expanded1 !== t1 || expanded2 !== t2) {
+            return unify(expanded1, expanded2, ctx);
+        }
     }
 
     // Handle Never type (bottom type) - unifies with anything
@@ -287,7 +305,13 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
         // Unify constructors
         let subst = unify(t1.constructor, t2.constructor, ctx);
 
-        // Unify arguments
+        // Unify arguments invariantly: generic type parameters are not
+        // subject to width subtyping (per spec
+        // docs/spec/03-type-system/subtyping.md). Once we cross into a
+        // type-application argument, the `exact` flag stays on for the
+        // entire subtree so nested records / Apps are also matched
+        // structurally.
+        const argCtx: UnifyContext = ctx.exact ? ctx : { ...ctx, exact: true };
         for (let i = 0; i < t1.args.length; i++) {
             const arg1 = t1.args[i];
             const arg2 = t2.args[i];
@@ -295,14 +319,15 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
                 // Internal error - should never happen
                 throw new Error(`Missing argument at index ${i}`);
             }
-            const argSubst = unify(applySubst(subst, arg1), applySubst(subst, arg2), ctx);
+            const argSubst = unify(applySubst(subst, arg1), applySubst(subst, arg2), argCtx);
             subst = composeSubst(subst, argSubst);
         }
 
         return subst;
     }
 
-    // Record type unification (structural with width subtyping)
+    // Record type unification (structural with width subtyping, unless
+    // we're inside an invariant App-arg position).
     if (isRecordType(t1) && isRecordType(t2)) {
         return unifyRecords(t1, t2, ctx);
     }
@@ -509,8 +534,13 @@ function updateLevels(type: Type, maxLevel: number): Type {
  * does not name — that's width subtyping. But every field r1 requires
  * must exist in r2; missing fields raise VF4503.
  *
- * @param r1 - Expected record type (its fields must all be present in r2)
- * @param r2 - Actual record type (may have extras)
+ * When `ctx.exact` is set (e.g. unification has descended into an
+ * App-argument position), records must match exactly — neither side
+ * may carry extra fields. This enforces invariance of generic type
+ * parameters per spec docs/spec/03-type-system/subtyping.md.
+ *
+ * @param r1 - Expected record type
+ * @param r2 - Actual record type
  * @param ctx - Unification context for error reporting
  * @returns A substitution that unifies the records
  */
@@ -531,7 +561,22 @@ function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record"
         subst = composeSubst(subst, fieldSubst);
     }
 
-    // Extra fields in r2 are allowed (width subtyping).
+    // In exact mode (invariant position) extra fields in r2 break the
+    // invariance — reject them with the same diagnostic used for the
+    // missing-field case.
+    if (ctx.exact) {
+        for (const field of r2.fields.keys()) {
+            if (!r1.fields.has(field)) {
+                throwDiagnostic("VF4503", ctx.loc, {
+                    field,
+                    expected: typeToString(r1),
+                    actual: typeToString(r2),
+                });
+            }
+        }
+    }
+
+    // Extra fields in r2 are allowed in width-subtyping mode.
     return subst;
 }
 
@@ -639,6 +684,25 @@ export function expandAliasFully(type: Type, ctx: UnifyContext): Type {
         current = expanded;
     }
     return current;
+}
+
+/**
+ * Return true if both types are App applications of the same generic
+ * constructor — that is, structurally `App(Const(name), …)` on both sides
+ * with matching constructor names. The App-unification path enforces
+ * invariance of generic type parameters; expanding either side into a
+ * structural record would re-introduce width subtyping at the parameter
+ * position, so the unify entrypoint skips the expansion in this case.
+ */
+function sameGenericApplication(t1: Type, t2: Type): boolean {
+    return (
+        isAppType(t1) &&
+        isAppType(t2) &&
+        t1.constructor.type === "Const" &&
+        t2.constructor.type === "Const" &&
+        t1.constructor.name === t2.constructor.name &&
+        t1.args.length === t2.args.length
+    );
 }
 
 /**

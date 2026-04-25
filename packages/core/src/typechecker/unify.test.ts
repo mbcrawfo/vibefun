@@ -820,6 +820,68 @@ describe("Alias and Record Expansion in Unify", () => {
             VibefunDiagnostic,
         );
     });
+
+    describe("Type Parameter Invariance", () => {
+        // Per docs/spec/03-type-system/subtyping.md "Type Parameter
+        // Invariance": generic type parameters are strictly invariant.
+        // `Box<{x:Int}>` and `Box<{x:Int, y:Int}>` are not interchangeable
+        // even though `{x:Int, y:Int} <: {x:Int}` structurally.
+        function makeBoxBinding() {
+            const tVar = freshTypeVar();
+            const tVarId = isTypeVar(tVar) ? tVar.id : 0;
+            const fields = new Map<string, Type>();
+            fields.set("value", tVar);
+            const types = new Map();
+            types.set("Box", {
+                kind: "Record" as const,
+                params: ["T"],
+                paramIds: [tVarId],
+                fields,
+                loc,
+            });
+            return { types, tVar };
+        }
+
+        it("rejects width subtyping inside a generic type-application argument", () => {
+            const { types } = makeBoxBinding();
+            const ctx: UnifyContext = { loc, types };
+
+            const narrow: Type = {
+                type: "Record",
+                fields: new Map([["x", primitiveTypes.Int]]),
+            };
+            const wide: Type = {
+                type: "Record",
+                fields: new Map([
+                    ["x", primitiveTypes.Int],
+                    ["y", primitiveTypes.Int],
+                ]),
+            };
+
+            // Box<{x:Int}> vs Box<{x:Int, y:Int}> — the extra `y` in the
+            // App-arg position must NOT be tolerated.
+            expect(() => unify(appType(constType("Box"), [narrow]), appType(constType("Box"), [wide]), ctx)).toThrow(
+                VibefunDiagnostic,
+            );
+        });
+
+        it("still accepts width subtyping in non-App-arg positions", () => {
+            const ctx: UnifyContext = { loc };
+            const narrow: Type = {
+                type: "Record",
+                fields: new Map([["x", primitiveTypes.Int]]),
+            };
+            const wide: Type = {
+                type: "Record",
+                fields: new Map([
+                    ["x", primitiveTypes.Int],
+                    ["y", primitiveTypes.Int],
+                ]),
+            };
+            // Plain record-vs-record at the top level is still permissive.
+            expect(unify(narrow, wide, ctx)).toBeDefined();
+        });
+    });
 });
 
 describe("String Literal Singleton Unification", () => {
