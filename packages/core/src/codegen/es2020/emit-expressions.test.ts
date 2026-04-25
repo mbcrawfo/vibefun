@@ -376,6 +376,30 @@ describe("Expression Emission", () => {
             const outer = lambda(varPat("x"), inner);
             expect(emitExpr(outer, ctx)).toBe("(x) => (y) => x + y");
         });
+
+        // JS parses `(x) => { label: ... }` as a block body with a labeled
+        // statement. Wrap brace-starting bodies in parens so the record is
+        // returned as an expression.
+        it("should wrap a record-literal body in parens", () => {
+            const ctx = createTestContext();
+            const body = record([{ name: "label", value: stringLit("a") }]);
+            const expr = lambda(varPat("_"), body);
+            expect(emitExpr(expr, ctx)).toBe('(_) => ({ label: "a" })');
+        });
+
+        it("should wrap a record-update body in parens", () => {
+            const ctx = createTestContext();
+            const body = recordUpdate(varRef("base"), [{ name: "label", value: stringLit("a") }]);
+            const expr = lambda(varPat("base"), body);
+            expect(emitExpr(expr, ctx)).toBe('(base) => ({ ...base, label: "a" })');
+        });
+
+        it("should wrap a variant-constructor body in parens", () => {
+            const ctx = createTestContext();
+            const body = variant("None", []);
+            const expr = lambda(varPat("_"), body);
+            expect(emitExpr(expr, ctx)).toBe('(_) => ({ $tag: "None" })');
+        });
     });
 
     describe("Tuples", () => {

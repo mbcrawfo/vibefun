@@ -27,8 +27,12 @@ export function emitLambda(expr: { kind: "CoreLambda"; param: CorePattern; body:
     const paramCode = emitPattern(expr.param, ctx);
     const bodyCode = emitExpr(expr.body, withPrecedence(ctx, 0));
 
-    // Use concise arrow function syntax
-    const code = `(${paramCode}) => ${bodyCode}`;
+    // JS parses a concise arrow body starting with `{` as a block, not an
+    // expression. Records, record updates, and variant constructors all
+    // emit `{ ... }`, so wrap those bodies in parens to force expression
+    // parsing: `(x) => ({ ... })`.
+    const wrappedBody = bodyCode.startsWith("{") ? `(${bodyCode})` : bodyCode;
+    const code = `(${paramCode}) => ${wrappedBody}`;
 
     // Arrow functions have very low precedence
     return maybeParens(code, 2, ctx.precedence);
