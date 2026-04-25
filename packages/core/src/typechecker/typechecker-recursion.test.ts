@@ -854,6 +854,27 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
     });
 
+    it("should reject a recursive single-binding mutable CoreLetDecl whose RHS isn't Ref<T>", () => {
+        // Mirrors the VF4018 check that already existed for the
+        // non-recursive `let mut x = 0;` case and the
+        // `CoreLetRecGroup` mutable case — the recursive single-
+        // binding form must reject the same way, otherwise
+        // `let rec mut x = 0` slips through.
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                value: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                mutable: true,
+                recursive: true,
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        expect(() => typeCheck(module)).toThrow(/VF4018/);
+    });
+
     it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
         // Mirrors the VF4018 check that already existed for non-recursive
         // `let mut x = 0;` — the recursive group form must reject the
