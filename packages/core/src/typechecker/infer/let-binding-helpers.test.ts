@@ -68,8 +68,15 @@ describe("enforceMutableRefBinding", () => {
         });
         // The unification with Ref<fresh> should succeed and bind the fresh
         // var to Int. The returned substitution is valid — applying it to
-        // the inferred type must yield Ref<Int>.
-        expect(applySubst(result, refOfInt).type).toBe("App");
+        // the inferred type must yield Ref<Int>, not just any App.
+        const applied = applySubst(result, refOfInt);
+        expect(applied.type).toBe("App");
+        if (applied.type !== "App") throw new Error("Expected applied type to be App");
+        expect(applied.constructor.type).toBe("Const");
+        if (applied.constructor.type !== "Const") throw new Error("Expected Const head constructor");
+        expect(applied.constructor.name).toBe("Ref");
+        expect(applied.args).toHaveLength(1);
+        expect(applied.args[0]).toEqual(primitiveTypes.Int);
     });
 
     it("throws VF4018 at the RHS location when RHS is not Ref<T>", () => {
@@ -104,8 +111,16 @@ describe("enforceMutableRefBinding", () => {
             level: 1,
             types: new Map(),
         });
-        // Resulting subst still maps id 1 to Ref<Int>; no error.
-        expect(applySubst(result, tvar).type).toBe("App");
+        // Resulting subst still maps id 1 to Ref<Int>; no error. Verify the
+        // applied type is specifically Ref<Int>, not any App.
+        const applied = applySubst(result, tvar);
+        expect(applied.type).toBe("App");
+        if (applied.type !== "App") throw new Error("Expected applied type to be App");
+        expect(applied.constructor.type).toBe("Const");
+        if (applied.constructor.type !== "Const") throw new Error("Expected Const head constructor");
+        expect(applied.constructor.name).toBe("Ref");
+        expect(applied.args).toHaveLength(1);
+        expect(applied.args[0]).toEqual(primitiveTypes.Int);
     });
 });
 
