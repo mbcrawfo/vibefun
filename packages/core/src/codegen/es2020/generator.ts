@@ -19,6 +19,7 @@ import { createContext } from "./context.js";
 import * as Declarations from "./emit-declarations.js";
 import * as Expressions from "./emit-expressions/index.js";
 import * as Patterns from "./emit-patterns.js";
+import { renameTopLevelShadows } from "./rename-shadows.js";
 import { escapeIdentifier } from "./reserved-words.js";
 import { generateRuntimeHelpers } from "./runtime-helpers.js";
 
@@ -112,7 +113,12 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
     // Ensure DI is initialized
     initializeDependencies();
 
-    const module = typedModule.module;
+    // α-rename top-level shadowed bindings BEFORE codegen runs. JS forbids
+    // redeclaring a `const` / `let` in the same scope, so `let x = 1; let x = 2;`
+    // becomes `const x = 1; const x$1 = 2;` with all subsequent free
+    // references rewritten. See rename-shadows.ts for details.
+    const { module: renamedModule, exportAliases } = renameTopLevelShadows(typedModule.module);
+    const module = renamedModule;
     const filename = options?.filename ?? "unknown";
 
     // Create emission context
@@ -131,7 +137,7 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
         needsIntDiv: ctx.shared.needsIntDivHelper,
         needsIntMod: ctx.shared.needsIntModHelper,
     });
-    const exports = generateExports(ctx);
+    const exports = generateExports(ctx, exportAliases);
 
     // Assemble final output
     const sections: string[] = [];
@@ -469,13 +475,31 @@ function generateDeclarations(module: CoreModule, ctx: EmitContext): string {
  *
  * All exports are collected during declaration emission and emitted
  * as a single `export { ... }` statement at the end of the module.
+ *
+ * `exportAliases` maps original (source-level) names to the α-renamed
+ * names produced by the top-level shadow renaming pass; the renamed
+ * binding is exported under the original name via `as` aliasing so the
+ * module's public API stays stable across shadow renaming.
  */
-function generateExports(ctx: EmitContext): string {
+function generateExports(ctx: EmitContext, exportAliases: Map<string, string>): string {
     const names = Array.from(ctx.exportedNames).sort();
 
     if (names.length === 0) {
         return "export {};";
     }
 
-    return `export { ${names.join(", ")} };`;
+    // Reverse the map so we can look up "renamed name → original name" in
+    // ctx.exportedNames (which holds the renamed names, since
+    // emitLetDecl reads them off the rewritten pattern).
+    const renamedToSource = new Map<string, string>();
+    for (const [source, renamed] of exportAliases) {
+        renamedToSource.set(renamed, source);
+    }
+
+    const specifiers = names.map((name) => {
+        const sourceName = renamedToSource.get(name);
+        return sourceName !== undefined ? `${name} as ${sourceName}` : name;
+    });
+
+    return `export { ${specifiers.join(", ")} };`;
 }
