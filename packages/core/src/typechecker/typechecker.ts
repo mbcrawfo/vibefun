@@ -310,7 +310,7 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 newEnv.values.set(name, {
                     kind: "Value",
                     scheme,
-                    loc: decl.loc,
+                    loc: binding.loc,
                 });
             }
 

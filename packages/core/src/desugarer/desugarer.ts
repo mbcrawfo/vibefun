@@ -59,6 +59,7 @@ import { desugarTypeExpr } from "./desugarTypeExpr.js";
 import { desugarVariantConstructor } from "./desugarVariantConstructor.js";
 import { expandOrPatterns } from "./expandOrPatterns.js";
 import { FreshVarGen } from "./FreshVarGen.js";
+import { lowerLetBinding } from "./lowerLetBinding.js";
 
 /**
  * Desugar a surface expression to a core expression
@@ -139,31 +140,10 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         // Let bindings — `let rec x = … in body` is lowered to a single-
         // binding `CoreLetRecExpr` so all recursive forms share one path
         // (`inferLetRecExpr` / `emitLetRecExpr`). Non-recursive `let`s
-        // produce a `CoreLet` directly.
+        // produce a `CoreLet` directly. Both shapes are built by
+        // `lowerLetBinding`, which `desugarBlock` reuses to avoid drift.
         case "Let":
-            if (expr.recursive) {
-                return {
-                    kind: "CoreLetRecExpr",
-                    bindings: [
-                        {
-                            pattern: desugarPattern(expr.pattern, gen),
-                            value: desugar(expr.value, gen),
-                            mutable: expr.mutable,
-                            loc: expr.loc,
-                        },
-                    ],
-                    body: desugar(expr.body, gen),
-                    loc: expr.loc,
-                };
-            }
-            return {
-                kind: "CoreLet",
-                pattern: desugarPattern(expr.pattern, gen),
-                value: desugar(expr.value, gen),
-                body: desugar(expr.body, gen),
-                mutable: expr.mutable,
-                loc: expr.loc,
-            };
+            return lowerLetBinding(expr, desugar(expr.body, gen), gen, desugar, desugarPattern);
 
         // Lambdas - curry multi-parameter lambdas. Simple-param annotations
         // are preserved via `let p = ($raw: T) in body` wrapping so the

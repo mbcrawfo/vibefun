@@ -297,14 +297,14 @@ describe("propagateSubstAcrossDeclarations", () => {
         const env: TypeEnv = createTestEnv();
 
         const subst1 = singleSubst(1, appType(constType("Option"), [b]));
-        let resultEnv = propagateSubstAcrossDeclarations({
+        const resultEnv = propagateSubstAcrossDeclarations({
             subst: subst1,
             declarationTypes,
             env,
         });
 
         const subst2 = singleSubst(2, primitiveTypes.Int);
-        resultEnv = propagateSubstAcrossDeclarations({
+        propagateSubstAcrossDeclarations({
             subst: composeSubst(subst2, subst1),
             declarationTypes,
             env: resultEnv,
