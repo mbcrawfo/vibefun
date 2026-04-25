@@ -858,16 +858,16 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
     });
 
-    it("should propagate substitution from a recursive single-binding CoreLetDecl back into earlier top-level bindings", () => {
-        // Regression: same stale-substitution bug as the
-        // `CoreLetRecGroup` regression above, but for the sibling
-        // `decl.recursive && pattern.kind === "CoreVarPattern"` path
-        // in `typeCheckDeclaration`. A top-level `let rec` whose body
-        // narrows a prior monomorphic binding (here, a `Ref<Option<t>>`
-        // refined to `Ref<Option<Int>>` by `consume(!r)` inside the
-        // recursive body) must thread `finalSubst` through `env.values`
-        // and `declarationTypes` so a subsequent declaration sees the
-        // narrowed scheme.
+    it("should propagate substitution from a recursive single-binding CoreLetRecGroup back into earlier top-level bindings", () => {
+        // Regression: same stale-substitution bug as the multi-binding
+        // `CoreLetRecGroup` regression above, but for the single-binding
+        // recursive top-level path in `typeCheckDeclaration` (post-Phase-C
+        // `let rec x = …;` desugars to a one-element `CoreLetRecGroup`).
+        // A top-level `let rec` whose body narrows a prior monomorphic
+        // binding (here, a `Ref<Option<t>>` refined to `Ref<Option<Int>>`
+        // by `consume(!r)` inside the recursive body) must thread
+        // `finalSubst` through `env.values` and `declarationTypes` so a
+        // subsequent declaration sees the narrowed scheme.
         const module = createModule([
             {
                 kind: "CoreLetDecl",
@@ -989,7 +989,7 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
     });
 
-    it("should reject a recursive single-binding mutable CoreLetDecl whose RHS isn't Ref<T>", () => {
+    it("should reject a recursive single-binding mutable CoreLetRecGroup whose RHS isn't Ref<T>", () => {
         // Mirrors the VF4018 check that already existed for the
         // non-recursive `let mut x = 0;` case and the
         // `CoreLetRecGroup` mutable case. After Phase C the recursive
