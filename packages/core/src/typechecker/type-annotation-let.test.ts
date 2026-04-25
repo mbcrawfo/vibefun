@@ -83,6 +83,16 @@ describe("Type annotations on let bindings", () => {
             expectDiagnostic(() => typecheckSource("let rec f: (Int) -> String = (n) => n;"), "VF4020");
         });
 
+        it("rejects mismatched annotation on an `and` binding in a mutual recursion group", () => {
+            // g is annotated as (Int) -> String but returns Int (n). The
+            // wrap survives `LetRecGroup` desugaring per-binding, so the
+            // unifier should still reject it.
+            expectDiagnostic(
+                () => typecheckSource("let rec f = (n) => g(n) and g: (Int) -> String = (n) => n;"),
+                "VF4020",
+            );
+        });
+
         it("rejects mutable let when Ref element type mismatches annotation", () => {
             expectDiagnostic(() => typecheckSource('let mut x: Ref<Int> = ref("hello");'), "VF4020");
         });
