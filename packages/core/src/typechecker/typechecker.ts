@@ -379,12 +379,34 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 types: env.types,
             };
 
-            // Store all bindings in declarationTypes and environment
+            // Store all bindings in declarationTypes and environment.
+            // Mirror the non-recursive `CoreLetDecl` and the
+            // expression-level `inferLetRecExpr` flows: non-mutable
+            // simple-variable bindings are generalized so a top-level
+            // mutually recursive `let rec id x = x and …` can produce
+            // a polymorphic scheme. Mutable and non-`CoreVarPattern`
+            // bindings stay monomorphic (the value restriction is
+            // already enforced inside `generalize`, but we also skip
+            // mutable bindings here for symmetry with the non-recursive
+            // path's `skipGeneralize` rule).
+            const generalizeCtx = { ...ctx, subst: currentSubst, level: ctx.level + 1 };
+            const bindingByName = new Map<string, (typeof decl.bindings)[number]>();
+            for (const binding of decl.bindings) {
+                if (binding.pattern.kind === "CoreVarPattern") {
+                    bindingByName.set(binding.pattern.name, binding);
+                }
+            }
             for (const [name, type] of inferredTypes) {
                 declarationTypes.set(name, type);
+                const binding = bindingByName.get(name);
+                const skipGeneralize =
+                    binding === undefined || binding.mutable || binding.pattern.kind !== "CoreVarPattern";
+                const scheme: TypeScheme = skipGeneralize
+                    ? { vars: [], type }
+                    : generalize(generalizeCtx, type, binding.value);
                 newEnv.values.set(name, {
                     kind: "Value",
-                    scheme: { vars: [], type },
+                    scheme,
                     loc: decl.loc,
                 });
             }

@@ -484,6 +484,74 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expect(result.env.values.has("Nil")).toBe(true);
     });
 
+    it("should generalize non-mutable bindings in a top-level CoreLetRecGroup", () => {
+        // `let rec id x = x and …` at module scope should yield the
+        // polymorphic scheme `∀a. a -> a` for `id`, mirroring how the
+        // expression-level `inferLetRecExpr` and the non-recursive
+        // top-level `CoreLetDecl` paths already generalize. Without
+        // generalization, the binding stays at a concrete type var
+        // and any later use of `id` at two different argument types
+        // fails to unify.
+        const module = createModule([
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "id", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                ],
+                exported: true,
+                loc: testLoc,
+            },
+            // Two non-unifying uses force generalization to be observable:
+            // if `id` were monomorphic at `t -> t`, the first use at Int
+            // would pin `t := Int` and the second use at Bool would fail.
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "asInt", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "id", loc: testLoc },
+                    args: [{ kind: "CoreIntLit", value: 1, loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "asBool", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "id", loc: testLoc },
+                    args: [{ kind: "CoreBoolLit", value: true, loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        // Should not throw — the polymorphic `id` schema must let
+        // `asInt` and `asBool` both succeed.
+        const result = typeCheck(module);
+        expect(result.declarationTypes.has("id")).toBe(true);
+        expect(result.declarationTypes.has("asInt")).toBe(true);
+        expect(result.declarationTypes.has("asBool")).toBe(true);
+    });
+
     it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
         // Mirrors the VF4018 check that already existed for non-recursive
         // `let mut x = 0;` — the recursive group form must reject the

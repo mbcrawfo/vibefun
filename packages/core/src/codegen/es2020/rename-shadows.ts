@@ -44,25 +44,42 @@ export function renameTopLevelShadows(module: CoreModule): {
     for (const decl of module.declarations) {
         // Substitute current renames into the declaration before processing
         // it. Imports/types/externals aren't rewritten — they don't reference
-        // value bindings.
-        const transformed = applyRenamesToDecl(decl, renames);
+        // value bindings. For recursive bindings (`let rec` or
+        // `CoreLetRecGroup`), the names being introduced *must* be excluded
+        // from the active rename map: otherwise a self/mutual reference like
+        // `let rec x = … x …` whose `x` was previously shadowed would be
+        // pre-rewritten to point at the prior renamed binding (`x$1`)
+        // instead of the new recursive binding (`x$2`).
+        const transformed = applyRenamesToDecl(decl, renamesForDecl(decl, renames));
 
         if (transformed.kind === "CoreLetDecl" && transformed.pattern.kind === "CoreVarPattern") {
             const sourceName = transformed.pattern.name;
 
             if (seen.has(sourceName)) {
                 const renamedName = nextRenamedName(sourceName, counters, seen);
-
-                const renamedDecl: CoreDeclaration = {
-                    ...transformed,
-                    pattern: { ...transformed.pattern, name: renamedName },
-                };
-
-                renames.set(sourceName, {
+                const renamedVarExpr: CoreExpr = {
                     kind: "CoreVar",
                     name: renamedName,
                     loc: transformed.pattern.loc,
-                });
+                };
+
+                // For a non-recursive `let`, the body is evaluated in the
+                // outer scope, so its references to `sourceName` already
+                // resolved against `renames` in the pre-pass above and
+                // correctly point at the prior shadow. For a recursive
+                // `let rec`, the body's `sourceName` references are
+                // self-references — the masked pre-pass left them as
+                // literal `sourceName`, so substitute the new alias in
+                // here.
+                const renamedDecl: CoreDeclaration = {
+                    ...transformed,
+                    pattern: { ...transformed.pattern, name: renamedName },
+                    value: transformed.recursive
+                        ? substituteMultiple(transformed.value, new Map([[sourceName, renamedVarExpr]]))
+                        : transformed.value,
+                };
+
+                renames.set(sourceName, renamedVarExpr);
 
                 if (renamedDecl.kind === "CoreLetDecl" && renamedDecl.exported) {
                     exportAliases.set(sourceName, renamedName);
@@ -135,6 +152,47 @@ export function renameTopLevelShadows(module: CoreModule): {
         module: { ...module, declarations: newDeclarations },
         exportAliases,
     };
+}
+
+/**
+ * Compute the rename map to apply to a declaration before processing
+ * it. Recursive declarations must mask the names they bind: their
+ * bodies legitimately reference those names as self/mutual references,
+ * and pre-rewriting them to a prior shadow would point the recursive
+ * call at the wrong binding.
+ */
+function renamesForDecl(decl: CoreDeclaration, renames: Map<string, CoreExpr>): Map<string, CoreExpr> {
+    if (renames.size === 0) return renames;
+    if (decl.kind === "CoreLetRecGroup") {
+        return withoutKeys(renames, boundVarNamesInRecGroup(decl));
+    }
+    if (decl.kind === "CoreLetDecl" && decl.recursive && decl.pattern.kind === "CoreVarPattern") {
+        return withoutKeys(renames, new Set([decl.pattern.name]));
+    }
+    return renames;
+}
+
+/**
+ * Return a copy of `renames` with every entry whose key is in
+ * `blocked` removed. Returns `renames` unchanged when there is
+ * nothing to filter so the common no-op case stays cheap.
+ */
+function withoutKeys(renames: Map<string, CoreExpr>, blocked: Set<string>): Map<string, CoreExpr> {
+    if (renames.size === 0 || blocked.size === 0) return renames;
+    const filtered = new Map<string, CoreExpr>();
+    for (const [name, expr] of renames) {
+        if (!blocked.has(name)) filtered.set(name, expr);
+    }
+    return filtered;
+}
+
+/** Names introduced by a `CoreLetRecGroup` (only simple var patterns). */
+function boundVarNamesInRecGroup(decl: Extract<CoreDeclaration, { kind: "CoreLetRecGroup" }>): Set<string> {
+    const names = new Set<string>();
+    for (const binding of decl.bindings) {
+        if (binding.pattern.kind === "CoreVarPattern") names.add(binding.pattern.name);
+    }
+    return names;
 }
 
 /**

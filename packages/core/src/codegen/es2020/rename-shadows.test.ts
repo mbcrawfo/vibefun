@@ -106,7 +106,9 @@ describe("renameTopLevelShadows", () => {
         const yDecl = renamed.declarations[2];
         if (yDecl?.kind !== "CoreLetDecl") throw new Error("Expected CoreLetDecl");
         expect(yDecl.value.kind).toBe("CoreVar");
-        if (yDecl.value.kind !== "CoreVar") return;
+        if (yDecl.value.kind !== "CoreVar") {
+            throw new Error("Expected y declaration value to be CoreVar");
+        }
         expect(yDecl.value.name).toBe("x$1");
     });
 
@@ -157,7 +159,9 @@ describe("renameTopLevelShadows", () => {
         }
         // f's body should still reference the un-renamed x — closure semantics.
         expect(fDecl.value.body.kind).toBe("CoreVar");
-        if (fDecl.value.body.kind !== "CoreVar") return;
+        if (fDecl.value.body.kind !== "CoreVar") {
+            throw new Error("Expected lambda body to be CoreVar");
+        }
         expect(fDecl.value.body.name).toBe("x");
     });
 
@@ -209,7 +213,9 @@ describe("renameTopLevelShadows", () => {
         // The lambda's `x` param shadows the renamed top-level `x$1`, so the
         // body's `x` reference must remain `x` (the param), not `x$1`.
         expect(fDecl.value.body.kind).toBe("CoreVar");
-        if (fDecl.value.body.kind !== "CoreVar") return;
+        if (fDecl.value.body.kind !== "CoreVar") {
+            throw new Error("Expected lambda body to be CoreVar");
+        }
         expect(fDecl.value.body.name).toBe("x");
     });
 
@@ -465,6 +471,138 @@ describe("renameTopLevelShadows", () => {
 
         const { exportAliases } = renameTopLevelShadows(module);
         expect(exportAliases.get("x")).toBe("x$1");
+    });
+
+    it("rewrites a recursive let's self-reference to the renamed binder, not the prior shadow", () => {
+        // Regression: when a recursive `let rec x = … x …` shadows a
+        // prior top-level `x`, naively pre-applying the active rename
+        // map (`x → x$1`) to the body before discovering that the new
+        // declaration *also* binds `x` would point the recursive
+        // self-reference at the previous shadow `x$1` instead of the
+        // new binder `x$2`. The fix masks the bound name from the
+        // pre-pass and substitutes the new alias in afterwards.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(2),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: {
+                    kind: "CoreLambda",
+                    param: { kind: "CoreVarPattern", name: "_", loc },
+                    body: varRef("x"),
+                    loc,
+                },
+                mutable: false,
+                recursive: true,
+                exported: false,
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        const third = renamed.declarations[2];
+        if (third?.kind !== "CoreLetDecl" || third.pattern.kind !== "CoreVarPattern") {
+            throw new Error("Expected third decl to be CoreLetDecl with VarPattern");
+        }
+        expect(third.pattern.name).toBe("x$2");
+        if (third.value.kind !== "CoreLambda") {
+            throw new Error("Expected third decl value to be CoreLambda");
+        }
+        if (third.value.body.kind !== "CoreVar") {
+            throw new Error("Expected lambda body to be CoreVar");
+        }
+        // The recursive self-reference must point at the new binder
+        // (`x$2`), not the prior shadow (`x$1`).
+        expect(third.value.body.name).toBe("x$2");
+    });
+
+    it("rewrites a let-rec group's body refs to the new binder when shadowing a prior renamed binding", () => {
+        // Regression: when a `CoreLetRecGroup` binding's name was
+        // already shadowed (so `renames` carried `x → x$1`), pre-
+        // applying the rename map would rewrite mutual references like
+        // `let rec x = … and y = … x …` so that `y`'s `x` pointed at
+        // the prior shadow rather than the new recursive `x` binder.
+        // The fix masks the group's bound names from the pre-pass.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(2),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc },
+                        value: varRef("y"),
+                        mutable: false,
+                        loc,
+                    },
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "y", loc },
+                        value: varRef("x"),
+                        mutable: false,
+                        loc,
+                    },
+                ],
+                exported: false,
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        const group = renamed.declarations[2];
+        if (group?.kind !== "CoreLetRecGroup") {
+            throw new Error("Expected CoreLetRecGroup");
+        }
+        const xBinding = group.bindings[0];
+        const yBinding = group.bindings[1];
+        if (xBinding === undefined || yBinding === undefined) {
+            throw new Error("Expected two bindings in let-rec group");
+        }
+        if (xBinding.pattern.kind !== "CoreVarPattern" || yBinding.pattern.kind !== "CoreVarPattern") {
+            throw new Error("Expected VarPattern bindings");
+        }
+        // The group's `x` is renamed to `x$2` because the `let x = 1; let x = 2;`
+        // pair already produced `x` and `x$1`.
+        expect(xBinding.pattern.name).toBe("x$2");
+        expect(yBinding.pattern.name).toBe("y");
+        // y references the *new* recursive `x`, so it must resolve to
+        // `x$2`, not the prior shadow `x$1`.
+        if (yBinding.value.kind !== "CoreVar") {
+            throw new Error("Expected y's value to be CoreVar");
+        }
+        expect(yBinding.value.name).toBe("x$2");
     });
 
     it("avoids colliding with an existing user-bound `x$1` when α-renaming", () => {
