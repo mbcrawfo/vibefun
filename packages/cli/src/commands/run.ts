@@ -24,12 +24,15 @@ import {
 } from "./compile.js";
 
 /**
- * Same heuristic as compile.ts — detect non-`@vibefun/std` imports or
+ * Same heuristic as compile.ts — detect relative imports or
  * re-exports so we only take the multi-file tempdir path when the
- * entry truly needs it. Single-file programs keep their fast
- * stdin-to-node execution. The `export` arm requires a `from` clause
- * so ordinary `export const path = "./lib"` string literals don't
- * flip the heuristic.
+ * entry truly needs it. Single-file programs (and entries that
+ * import only from packages like `@vibefun/std`) keep their fast
+ * stdin-to-node execution. The `export` arm requires a `from`
+ * clause so ordinary `export const path = "./lib"` string literals
+ * don't flip the heuristic. Behavior must stay identical to
+ * compile.ts so a given `.vf` file picks the same compilation path
+ * regardless of which command is invoked.
  */
 function hasUserModuleImports(source: string): boolean {
     const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
@@ -38,8 +41,9 @@ function hasUserModuleImports(source: string): boolean {
         let match;
         while ((match = re.exec(source)) !== null) {
             const path = match[1] ?? "";
-            if (path === "@vibefun/std" || path.startsWith("@vibefun/std/")) continue;
-            return true;
+            if (path.startsWith("./") || path.startsWith("../")) {
+                return true;
+            }
         }
     }
     return false;
