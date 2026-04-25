@@ -1,5 +1,5 @@
 /**
- * Type Mismatch Errors (VF4001-VF4017)
+ * Type Mismatch Errors (VF4001-VF4018)
  */
 
 import type { DiagnosticDefinition } from "../../diagnostic.js";

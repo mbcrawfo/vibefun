@@ -248,10 +248,6 @@ export function inferLetRecExpr(
         }
     }
 
-    // Mutable bindings in let-rec groups are treated the same as single
-    // mutable bindings — the parser enforces `ref(...)` at the value site,
-    // so no extra inference logic is required.
-
     // Step 1: Create new level for generalization
     const newLevel = ctx.level + 1;
 
@@ -308,6 +304,28 @@ export function inferLetRecExpr(
         const unifyCtx = { loc: binding.loc, types: ctx.env.types };
         const unifySubst = unify(tempTypeSubst, inferredType, unifyCtx);
         currentSubst = composeSubst(unifySubst, currentSubst);
+
+        // Mutable bindings inside a let-rec group must still hold a
+        // `Ref<T>` value — see VF4018 in single-binding `inferLet`.
+        // Without this check, `let rec mut x = 0 and …` slips past
+        // even though the equivalent non-recursive form errors.
+        if (binding.mutable) {
+            const elemTypeVar = freshTypeVar(newLevel);
+            const expectedRefType = refType(elemTypeVar);
+            const valueType = applySubst(currentSubst, inferredType);
+            try {
+                const refUnifySubst = unify(valueType, expectedRefType, {
+                    loc: binding.loc,
+                    types: ctx.env.types,
+                });
+                currentSubst = composeSubst(refUnifySubst, currentSubst);
+            } catch (err) {
+                if (err instanceof VibefunDiagnostic) {
+                    throwDiagnostic("VF4018", binding.loc, {});
+                }
+                throw err;
+            }
+        }
     }
 
     // Step 5: Generalize all bindings together

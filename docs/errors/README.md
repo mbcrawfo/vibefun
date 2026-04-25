@@ -112,6 +112,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4501](typechecker.md#vf4501) | MissingRecordField | Error | The record does not have a field with this name |
 | [VF4502](typechecker.md#vf4502) | DuplicateRecordField | Error | The same field name appears multiple times in the record |
 | [VF4503](typechecker.md#vf4503) | MissingRequiredField | Error | A record value is being used where a record type with more fields is expected |
+| [VF4504](typechecker.md#vf4504) | RecordExtraFieldInInvariantPosition | Error | Width subtyping permits records with extra fields in ordinary parameter positions, but generic type parameters are strictly invariant per spec docs/spec/03-type-system/subtyping |
 | [VF4600](typechecker.md#vf4600) | UnknownConstructor | Error | The constructor name is not part of the expected variant type |
 | [VF4601](typechecker.md#vf4601) | ConstructorArgMismatch | Error | The type of the argument passed to a constructor does not match the expected type |
 | [VF4602](typechecker.md#vf4602) | VariantMismatch | Error | The variant type does not match what was expected |
@@ -151,7 +152,7 @@ Errors during syntax parsing (AST construction)
 
 Errors during desugaring (syntax transformation)
 
-### [Type Checker](typechecker.md) (61 errors, 1 warnings)
+### [Type Checker](typechecker.md) (62 errors, 1 warnings)
 
 Errors during type checking and inference
 
@@ -161,6 +162,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 126
-- **Errors:** 123
+- **Total diagnostic codes:** 127
+- **Errors:** 124
 - **Warnings:** 3

@@ -1062,6 +1062,37 @@ describe("Parser - Declarations", () => {
             expect(decl.value.kind).toBe("While");
         });
 
+        it("accepts if at the top level as an expression statement", () => {
+            const decl = parseDecl("if true then ();");
+            expect(decl.kind).toBe("LetDecl");
+            if (decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("If");
+        });
+
+        it("accepts match at the top level as an expression statement", () => {
+            const decl = parseDecl("match 1 { | _ => () };");
+            expect(decl.kind).toBe("LetDecl");
+            if (decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("Match");
+        });
+
+        it("accepts unsafe at the top level as an expression statement", () => {
+            const decl = parseDecl("unsafe { 42 };");
+            expect(decl.kind).toBe("LetDecl");
+            if (decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("Unsafe");
+        });
+
+        it("rejects exporting an expression-keyword statement", () => {
+            // The expression-keyword fallthrough also rejects `export`
+            // — bare expressions can't be exported, regardless of the
+            // leading keyword. Same VF2000 the non-keyword path raises.
+            expect(() => parseDecl("export while true { 1; };")).toThrow(/VF2000|Expected declaration keyword/);
+        });
+
         it("still errors when the first token is an unknown keyword", () => {
             // Pick any keyword that isn't a declaration keyword and isn't
             // an expression-introducing keyword either; the switch's
