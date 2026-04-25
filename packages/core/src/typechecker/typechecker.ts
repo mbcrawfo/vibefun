@@ -10,13 +10,13 @@ import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme, ValueBinding } from "../types/environment.js";
 import type { Substitution } from "./unify.js";
 
-import { throwDiagnostic } from "../diagnostics/index.js";
+import { throwDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
 import { buildEnvironment } from "./environment.js";
 import { convertTypeExpr, createContext, generalize, inferExpr } from "./infer/index.js";
 import { getStdlibModuleSignature, STDLIB_PACKAGE } from "./module-signatures/index.js";
 import { checkPattern } from "./patterns.js";
 import { registerTypeDeclarations } from "./type-declarations.js";
-import { freshTypeVar } from "./types.js";
+import { appType, constType, freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
 
 /**
@@ -45,7 +45,11 @@ function applySubstToScheme(subst: Substitution, scheme: TypeScheme): TypeScheme
  */
 function applySubstToValues(subst: Substitution, values: Map<string, ValueBinding>): Map<string, ValueBinding> {
     if (subst.size === 0) {
-        return values;
+        // Always return a fresh map: the caller `.set(...)`s on the result
+        // and a shared map would mutate the previous environment in place,
+        // violating the no-mutate-TypeEnv invariant in
+        // packages/core/src/typechecker/CLAUDE.md.
+        return new Map(values);
     }
     const out = new Map<string, ValueBinding>();
     for (const [name, binding] of values) {
@@ -226,14 +230,28 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
 
                 // Generalize each pattern-bound name's type. Use the
                 // bumped-level context so generalize captures the vars
-                // that were introduced inside this RHS — value-restricted
-                // expressions (like `ref(...)`) stay monomorphic, while
-                // syntactic values (lambdas, literals, variants) become
-                // polymorphic and instantiate independently at each use.
+                // introduced inside this RHS.
+                //
+                // Two extra rules keep the value restriction sound:
+                //   - Mutable bindings (`let mut x = …`) must stay
+                //     monomorphic — generalizing a `Ref<t>` would let
+                //     subsequent `:=` assignments instantiate `t`
+                //     independently and re-open the polymorphic-ref
+                //     hole, *including* the alias case `let mut b = a`
+                //     where the RHS is itself a syntactic value.
+                //   - Non-`CoreVarPattern` bindings (tuple destructuring,
+                //     wildcard) inherit the restriction by analogy with
+                //     `inferLet`'s body-env construction; the spec
+                //     reserves let-polymorphism for plain variable
+                //     bindings.
                 const generalizeCtx = { ...valueCtx, subst: finalSubst };
+                const skipGeneralize = decl.mutable || decl.pattern.kind !== "CoreVarPattern";
                 for (const [name, type] of patternResult.bindings) {
-                    declarationTypes.set(name, type);
-                    const scheme = generalize(generalizeCtx, type, decl.value);
+                    const appliedType = applySubst(finalSubst, type);
+                    declarationTypes.set(name, appliedType);
+                    const scheme = skipGeneralize
+                        ? { vars: [], type: appliedType }
+                        : generalize(generalizeCtx, appliedType, decl.value);
                     newEnv.values.set(name, {
                         kind: "Value",
                         scheme,
@@ -295,6 +313,27 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                         const unifyCtx = { loc: binding.loc, types: env.types };
                         const unifySubst = unify(placeholderApplied, result.type, unifyCtx);
                         currentSubst = composeSubst(unifySubst, result.subst);
+
+                        // Mutable bindings inside a top-level let-rec
+                        // group must hold a `Ref<T>` (mirrors VF4018 in
+                        // inferLet). Without this check, a mutable
+                        // recursive binding could slip past with a
+                        // non-Ref RHS even though the non-recursive
+                        // form errors.
+                        if (binding.mutable) {
+                            const elemTypeVar = freshTypeVar(ctx.level + 1);
+                            const expectedRefType = appType(constType("Ref"), [elemTypeVar]);
+                            const valueType = applySubst(currentSubst, result.type);
+                            try {
+                                const refUnifySubst = unify(valueType, expectedRefType, unifyCtx);
+                                currentSubst = composeSubst(refUnifySubst, currentSubst);
+                            } catch (err) {
+                                if (err instanceof VibefunDiagnostic) {
+                                    throwDiagnostic("VF4018", binding.loc, {});
+                                }
+                                throw err;
+                            }
+                        }
 
                         // Store the inferred type
                         const finalType = applySubst(currentSubst, result.type);

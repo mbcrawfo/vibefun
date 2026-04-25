@@ -87,6 +87,10 @@ describe("stdlib sync", () => {
                 const exported = stdRecord[ctor];
                 expect(exported, `@vibefun/std.${ctor} should be exported`).toBeDefined();
                 if (NULLARY_CTORS.has(ctor)) {
+                    // Tighten the assertion so a function-like export
+                    // accidentally carrying `$tag` doesn't pass.
+                    expect(typeof exported).toBe("object");
+                    expect(exported).not.toBeNull();
                     expect(exported).toMatchObject({ $tag: ctor });
                 } else {
                     expect(typeof exported).toBe("function");

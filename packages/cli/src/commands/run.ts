@@ -24,14 +24,16 @@ import {
 } from "./compile.js";
 
 /**
- * Same heuristic as compile.ts — detect non-`@vibefun/std` imports so
- * we only take the multi-file tempdir path when the entry truly needs
- * it. Single-file programs keep their fast stdin-to-node execution.
+ * Same heuristic as compile.ts — detect non-`@vibefun/std` imports or
+ * re-exports so we only take the multi-file tempdir path when the
+ * entry truly needs it. Single-file programs keep their fast
+ * stdin-to-node execution. Includes `export … from "./x"` so a
+ * re-export-only entry module still pulls its sibling into the graph.
  */
 function hasUserModuleImports(source: string): boolean {
-    const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
+    const specifierRegex = /^\s*(?:import|export)\b[^"']*["']([^"']+)["']/gm;
     let match;
-    while ((match = importRegex.exec(source)) !== null) {
+    while ((match = specifierRegex.exec(source)) !== null) {
         const path = match[1] ?? "";
         if (path === "@vibefun/std" || path.startsWith("@vibefun/std/")) continue;
         return true;

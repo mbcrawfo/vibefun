@@ -1,5 +1,5 @@
 /**
- * Record Errors (VF4500-VF4503)
+ * Record Errors (VF4500-VF4504)
  */
 
 import type { DiagnosticDefinition } from "../../diagnostic.js";
@@ -81,4 +81,27 @@ export const VF4503: DiagnosticDefinition = {
     relatedCodes: ["VF4501"],
 };
 
-export const recordCodes: readonly DiagnosticDefinition[] = [VF4500, VF4501, VF4502, VF4503];
+export const VF4504: DiagnosticDefinition = {
+    code: "VF4504",
+    title: "RecordExtraFieldInInvariantPosition",
+    messageTemplate:
+        "Record has unexpected field '{field}' not allowed at this generic-parameter position " +
+        "(expected {expected}, got {actual})",
+    severity: "error",
+    phase: "typechecker",
+    category: "record",
+    hintTemplate: "Generic type parameters are invariant — record fields must match exactly here",
+    explanation:
+        "Width subtyping permits records with extra fields in ordinary parameter positions, but " +
+        "generic type parameters are strictly invariant per spec docs/spec/03-type-system/subtyping.md " +
+        '"Type Parameter Invariance". Inside a generic type argument like `Box<{x:Int}>`, the ' +
+        "actual record's fields must match the expected fields exactly.",
+    example: {
+        bad: "type Box<T> = { value: T }\nlet f = (b: Box<{ x: Int }>) => b\nlet b: Box<{ x: Int, y: Int }> = { value: { x: 1, y: 2 } }\nlet result = f(b)",
+        good: "type Box<T> = { value: T }\nlet f = (b: Box<{ x: Int, y: Int }>) => b\nlet b: Box<{ x: Int, y: Int }> = { value: { x: 1, y: 2 } }\nlet result = f(b)",
+        description: "Aligned the parameter type's record shape with the value's shape",
+    },
+    relatedCodes: ["VF4503"],
+};
+
+export const recordCodes: readonly DiagnosticDefinition[] = [VF4500, VF4501, VF4502, VF4503, VF4504];

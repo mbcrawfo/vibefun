@@ -51,9 +51,7 @@ export function renameTopLevelShadows(module: CoreModule): {
             const sourceName = transformed.pattern.name;
 
             if (seen.has(sourceName)) {
-                const next = (counters.get(sourceName) ?? 0) + 1;
-                counters.set(sourceName, next);
-                const renamedName = `${sourceName}$${next}`;
+                const renamedName = nextRenamedName(sourceName, counters);
 
                 const renamedDecl: CoreDeclaration = {
                     ...transformed,
@@ -77,16 +75,56 @@ export function renameTopLevelShadows(module: CoreModule): {
             seen.add(sourceName);
         }
 
-        // Mark any names introduced by this decl so subsequent same-name
-        // bindings shadow them. We only need this for kinds the codegen
-        // actually emits as JS bindings — let-rec groups, externals.
+        // Let-rec groups bind multiple names at once; each binding name
+        // must also be checked against `seen` so a recursive group can't
+        // accidentally redeclare a prior top-level binding's name. The
+        // group as a whole is rewritten in place: we walk its bindings,
+        // rename any that shadow, and update `renames` *as we go* so
+        // mutually-recursive references inside the group also see the
+        // rename. (Re-substituting the group's own bodies after the
+        // rename keeps cross-binding references consistent.)
         if (transformed.kind === "CoreLetRecGroup") {
-            for (const binding of transformed.bindings) {
-                if (binding.pattern.kind === "CoreVarPattern") {
-                    seen.add(binding.pattern.name);
+            const groupRenames = new Map<string, CoreExpr>();
+            const newBindings = transformed.bindings.map((binding) => {
+                if (binding.pattern.kind !== "CoreVarPattern") {
+                    return binding;
                 }
-            }
-        } else if (transformed.kind === "CoreExternalDecl") {
+                const sourceName = binding.pattern.name;
+                if (!seen.has(sourceName)) {
+                    seen.add(sourceName);
+                    return binding;
+                }
+
+                const renamedName = nextRenamedName(sourceName, counters);
+                groupRenames.set(sourceName, {
+                    kind: "CoreVar",
+                    name: renamedName,
+                    loc: binding.pattern.loc,
+                });
+                renames.set(sourceName, {
+                    kind: "CoreVar",
+                    name: renamedName,
+                    loc: binding.pattern.loc,
+                });
+                if (transformed.exported) {
+                    exportAliases.set(sourceName, renamedName);
+                }
+                return { ...binding, pattern: { ...binding.pattern, name: renamedName } };
+            });
+
+            // Re-apply the group's intra-group renames so any recursive
+            // references between bindings (mutual recursion) resolve to
+            // the renamed binding rather than the original name.
+            const finalBindings = newBindings.map((binding) => ({
+                ...binding,
+                value: substituteIfNeeded(binding.value, groupRenames),
+            }));
+
+            newDeclarations.push({ ...transformed, bindings: finalBindings });
+            continue;
+        }
+
+        if (transformed.kind === "CoreExternalDecl") {
             seen.add(transformed.name);
         }
 
@@ -97,6 +135,23 @@ export function renameTopLevelShadows(module: CoreModule): {
         module: { ...module, declarations: newDeclarations },
         exportAliases,
     };
+}
+
+/**
+ * Generate a fresh `<name>$<N>` and bump the counter for the next collision.
+ */
+function nextRenamedName(sourceName: string, counters: Map<string, number>): string {
+    const next = (counters.get(sourceName) ?? 0) + 1;
+    counters.set(sourceName, next);
+    return `${sourceName}$${next}`;
+}
+
+/**
+ * Run substituteMultiple iff the rename map is non-empty. Avoids the
+ * cost of a full traversal when nothing changed.
+ */
+function substituteIfNeeded(expr: CoreExpr, renames: Map<string, CoreExpr>): CoreExpr {
+    return renames.size === 0 ? expr : substituteMultiple(expr, renames);
 }
 
 /**

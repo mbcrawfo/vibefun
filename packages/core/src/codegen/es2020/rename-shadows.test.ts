@@ -265,7 +265,7 @@ describe("renameTopLevelShadows", () => {
         expect(exportAliases.size).toBe(0);
         const yDecl = renamed.declarations[1];
         if (yDecl?.kind !== "CoreLetDecl") throw new Error("Expected CoreLetDecl");
-        if (yDecl.value.kind !== "CoreVar") return;
+        if (yDecl.value.kind !== "CoreVar") throw new Error("Expected y declaration value to be CoreVar");
         expect(yDecl.value.name).toBe("x");
     });
 
@@ -312,7 +312,8 @@ describe("renameTopLevelShadows", () => {
         const recGroup = renamed.declarations[2];
         if (recGroup?.kind !== "CoreLetRecGroup") throw new Error("Expected CoreLetRecGroup");
         const fBinding = recGroup.bindings[0];
-        if (fBinding === undefined || fBinding.value.kind !== "CoreVar") return;
+        if (fBinding === undefined) throw new Error("Expected first let-rec binding to exist");
+        if (fBinding.value.kind !== "CoreVar") throw new Error("Expected let-rec binding value to be CoreVar");
         expect(fBinding.value.name).toBe("x$1");
     });
 
@@ -374,5 +375,61 @@ describe("renameTopLevelShadows", () => {
         expect(renamed.declarations[2]?.kind).toBe("CoreTypeDecl");
         expect(renamed.declarations[3]?.kind).toBe("CoreExternalDecl");
         expect(renamed.declarations[4]?.kind).toBe("CoreImportDecl");
+    });
+
+    it("renames a CoreLetRecGroup binding that shadows a prior top-level name", () => {
+        // Regression: previously the let-rec branch only added names to
+        // `seen` without renaming, so `let x = 1; let rec x and y = …`
+        // emitted `const x = 1; let x, y;` (illegal duplicate const/let).
+        // The fix renames the conflicting binding to `x$1` and rewrites
+        // mutually recursive references inside the group.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc },
+                        value: varRef("y"),
+                        mutable: false,
+                        loc,
+                    },
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "y", loc },
+                        value: varRef("x"),
+                        mutable: false,
+                        loc,
+                    },
+                ],
+                exported: false,
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        const group = renamed.declarations[1];
+        if (group?.kind !== "CoreLetRecGroup") throw new Error("Expected CoreLetRecGroup");
+        const xBinding = group.bindings[0];
+        const yBinding = group.bindings[1];
+        if (xBinding === undefined || yBinding === undefined) throw new Error("Expected two bindings in let-rec group");
+        if (xBinding.pattern.kind !== "CoreVarPattern") throw new Error("Expected x binding pattern to be VarPattern");
+        if (yBinding.pattern.kind !== "CoreVarPattern") throw new Error("Expected y binding pattern to be VarPattern");
+        // The x in the let-rec group is renamed to x$1 because the
+        // top-level `let x = 1` already claimed `x`.
+        expect(xBinding.pattern.name).toBe("x$1");
+        // y stays as-is (no shadow).
+        expect(yBinding.pattern.name).toBe("y");
+        // Mutual recursion inside the group must use the renamed name
+        // (y references x$1, not the outer x = 1).
+        if (yBinding.value.kind !== "CoreVar") throw new Error("Expected y's value to be CoreVar");
+        expect(yBinding.value.name).toBe("x$1");
     });
 });

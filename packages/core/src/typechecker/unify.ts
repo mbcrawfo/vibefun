@@ -562,12 +562,13 @@ function unifyRecords(r1: Type & { type: "Record" }, r2: Type & { type: "Record"
     }
 
     // In exact mode (invariant position) extra fields in r2 break the
-    // invariance — reject them with the same diagnostic used for the
-    // missing-field case.
+    // invariance. Use a dedicated diagnostic so the message matches the
+    // actual problem ("unexpected field") instead of reusing VF4503's
+    // semantically-inverted "missing required field" wording.
     if (ctx.exact) {
         for (const field of r2.fields.keys()) {
             if (!r1.fields.has(field)) {
-                throwDiagnostic("VF4503", ctx.loc, {
+                throwDiagnostic("VF4504", ctx.loc, {
                     field,
                     expected: typeToString(r1),
                     actual: typeToString(r2),

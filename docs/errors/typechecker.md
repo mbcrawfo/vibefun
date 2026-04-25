@@ -58,6 +58,7 @@ Errors during type checking and inference
 | [VF4501](#vf4501) | MissingRecordField | **Error** |
 | [VF4502](#vf4502) | DuplicateRecordField | **Error** |
 | [VF4503](#vf4503) | MissingRequiredField | **Error** |
+| [VF4504](#vf4504) | RecordExtraFieldInInvariantPosition | **Error** |
 | [VF4600](#vf4600) | UnknownConstructor | **Error** |
 | [VF4601](#vf4601) | ConstructorArgMismatch | **Error** |
 | [VF4602](#vf4602) | VariantMismatch | **Error** |
@@ -1998,6 +1999,51 @@ let r = greet(full)
 ### Related
 
 [VF4501](typechecker.md#vf4501)
+
+
+---
+
+## VF4504
+
+**RecordExtraFieldInInvariantPosition** **Error**
+
+### Message
+
+> Record has unexpected field '{field}' not allowed at this generic-parameter position (expected {expected}, got {actual})
+
+### Explanation
+
+Width subtyping permits records with extra fields in ordinary parameter positions, but generic type parameters are strictly invariant per spec docs/spec/03-type-system/subtyping.md "Type Parameter Invariance". Inside a generic type argument like `Box<{x:Int}>`, the actual record's fields must match the expected fields exactly.
+
+### Example
+
+**Problem:**
+
+```vibefun
+type Box<T> = { value: T }
+let f = (b: Box<{ x: Int }>) => b
+let b: Box<{ x: Int, y: Int }> = { value: { x: 1, y: 2 } }
+let result = f(b)
+```
+
+**Solution:**
+
+```vibefun
+type Box<T> = { value: T }
+let f = (b: Box<{ x: Int, y: Int }>) => b
+let b: Box<{ x: Int, y: Int }> = { value: { x: 1, y: 2 } }
+let result = f(b)
+```
+
+*Aligned the parameter type's record shape with the value's shape*
+
+### Hint
+
+> Generic type parameters are invariant — record fields must match exactly here
+
+### Related
+
+[VF4503](typechecker.md#vf4503)
 
 
 ---

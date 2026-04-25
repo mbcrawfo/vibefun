@@ -385,16 +385,21 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
 
 /**
  * Heuristic: does the source contain any `import … from "./x"` or
- * `"../x"`? Multi-file emission is scoped to relative imports only —
- * package imports would let `relative(entryDir, modulePath)` produce
- * `..` segments that escape both the compile output root and the run
- * tempdir. A full parse would be more accurate, but a regex keeps the
- * single-file fast path cheap.
+ * `export … from "./x"` (or their `"../x"` variants)? Multi-file
+ * emission is scoped to relative imports/re-exports only — package
+ * imports would let `relative(entryDir, modulePath)` produce `..`
+ * segments that escape both the compile output root and the run
+ * tempdir. A full parse would be more accurate, but a regex keeps
+ * the single-file fast path cheap.
+ *
+ * Re-exports must trigger multi-file mode too: an entry module with
+ * `export { x } from "./lib";` has no `import` at all but still
+ * pulls a sibling `.vf` into the compilation graph.
  */
 function hasUserModuleImports(source: string): boolean {
-    const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
+    const specifierRegex = /^\s*(?:import|export)\b[^"']*["']([^"']+)["']/gm;
     let match;
-    while ((match = importRegex.exec(source)) !== null) {
+    while ((match = specifierRegex.exec(source)) !== null) {
         const path = match[1] ?? "";
         if (path.startsWith("./") || path.startsWith("../")) {
             return true;
@@ -698,17 +703,38 @@ function rewriteRelativeImportPaths(
 
     if (replacements.size === 0) return code;
 
-    let out = code;
-    for (const [oldPath, newPath] of replacements) {
-        if (oldPath === newPath) continue;
-        // Match `from "<oldPath>"` literally to avoid corrupting unrelated
-        // string content. Imports always close with `from "..."` in the
-        // generated JS.
-        const escaped = oldPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const re = new RegExp(`from\\s+"${escaped}"`, "g");
-        out = out.replace(re, `from "${newPath}"`);
+    // Walk the code line-by-line and only rewrite import/export statements
+    // whose `from "..."` specifier matches a key in the replacement map.
+    // A bare regex search-and-replace would also clobber occurrences of
+    // `from "./X.js"` that happen to appear inside string literals in the
+    // generated JS (e.g. a user-supplied error message).
+    const lines = code.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line === undefined) continue;
+        if (!isImportOrExportStatement(line)) continue;
+
+        const match = line.match(/from\s+"([^"]*)"/);
+        if (match === null) continue;
+        const oldPath = match[1];
+        if (oldPath === undefined) continue;
+        const newPath = replacements.get(oldPath);
+        if (newPath === undefined || newPath === oldPath) continue;
+
+        lines[i] = line.replace(`from "${oldPath}"`, `from "${newPath}"`);
     }
-    return out;
+    return lines.join("\n");
+}
+
+/**
+ * Heuristic: does the trimmed line begin with a top-level `import` or
+ * `export … from` form? The codegen emits these as their own lines
+ * (one statement per line), so a leading-keyword check is enough to
+ * exclude `from "..."` substrings buried inside expression contexts.
+ */
+function isImportOrExportStatement(line: string): boolean {
+    const trimmed = line.trimStart();
+    return trimmed.startsWith("import ") || trimmed.startsWith("import{") || trimmed.startsWith("export ");
 }
 
 /**
