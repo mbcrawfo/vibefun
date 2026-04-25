@@ -345,7 +345,16 @@ export function inferLetRecExpr(
             throw new Error(`Internal error: missing inferred type for '${varName}'`);
         }
 
-        const scheme = generalize(valueCtxForGeneralize, inferredType, binding.value);
+        // Mutable bindings stay monomorphic — generalizing a `Ref<t>`
+        // would let subsequent `:=` assignments instantiate `t`
+        // independently, including the alias case
+        // `let rec a = ref(None) and mut b = a` where `a` is a
+        // syntactic value at this level. Mirrors the same restriction
+        // the non-recursive `inferLet` path applies.
+        const appliedType = applySubst(currentSubst, inferredType);
+        const scheme = binding.mutable
+            ? { vars: [], type: appliedType }
+            : generalize(valueCtxForGeneralize, appliedType, binding.value);
         generalizedSchemes.set(varName, scheme);
     }
 

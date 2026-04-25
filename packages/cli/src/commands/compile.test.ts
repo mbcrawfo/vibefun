@@ -688,6 +688,11 @@ describe("compile command", () => {
             const result = compile(entryPath, { quiet: true });
             expect(result.exitCode).toBe(EXIT_SUCCESS);
 
+            // Rewritten target must point at a JS file that was actually
+            // emitted — not just text-rewritten — otherwise Node ESM
+            // would still throw ERR_MODULE_NOT_FOUND.
+            expect(() => readOutputFile("lib/index.js")).not.toThrow();
+
             const mainJs = readOutputFile("main.js");
             expect(mainJs).toContain('from "./lib/index.js"');
             expect(mainJs).not.toContain('from "./lib.js"');

@@ -432,4 +432,83 @@ describe("renameTopLevelShadows", () => {
         if (yBinding.value.kind !== "CoreVar") throw new Error("Expected y's value to be CoreVar");
         expect(yBinding.value.name).toBe("x$1");
     });
+
+    it("records an export alias when a CoreLetRecGroup binding shadows an exported name", () => {
+        // Regression: when an exported let-rec binding shadows a prior
+        // top-level name and gets α-renamed, `exportAliases` must map
+        // the source name to the renamed binding so the codegen emits
+        // `export { x$1 as x }` and the public API stays stable.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc },
+                        value: intLit(2),
+                        mutable: false,
+                        loc,
+                    },
+                ],
+                exported: true,
+                loc,
+            },
+        ]);
+
+        const { exportAliases } = renameTopLevelShadows(module);
+        expect(exportAliases.get("x")).toBe("x$1");
+    });
+
+    it("avoids colliding with an existing user-bound `x$1` when α-renaming", () => {
+        // Regression: bumping the per-source counter without consulting
+        // `seen` produced `let x = 1; let x$1 = 2; let x = 3;`
+        //   →  `const x = 1; const x$1 = 2; const x$1 = 3;` (duplicate).
+        // The pass must skip past `x$1` to a fresh slot like `x$2`.
+        const module = makeModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x$1", loc },
+                value: intLit(2),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "x", loc },
+                value: intLit(3),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        const third = renamed.declarations[2];
+        if (third?.kind !== "CoreLetDecl" || third.pattern.kind !== "CoreVarPattern") {
+            throw new Error("Expected third decl to be CoreLetDecl with VarPattern");
+        }
+        // Must not collide with the user-bound `x$1` from decl 2.
+        expect(third.pattern.name).not.toBe("x$1");
+        expect(third.pattern.name).toBe("x$2");
+    });
 });

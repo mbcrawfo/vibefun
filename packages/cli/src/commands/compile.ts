@@ -339,6 +339,24 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
     const moduleOutputRelatives = new Map<string, string>();
     for (const modulePath of resolution.compilationOrder) {
         const rel = relative(entryDir, modulePath);
+        // A module at `../parent/shared.vf` (relative to the entry's
+        // directory) would escape both the compile output root and the
+        // run tempdir when later combined with `join(runDir, rel)`.
+        // Reject the whole compilation rather than silently writing
+        // outside the destination — supporting that flow needs a
+        // common-root design and a real test plan.
+        if (rel.startsWith("..") || rel.startsWith("/")) {
+            return {
+                kind: "error",
+                result: {
+                    exitCode: EXIT_INTERNAL_ERROR,
+                    stderr: colors.red(
+                        `Internal error: module ${modulePath} resolves outside the entry's directory ` +
+                            `(${entryDir}). Multi-file compilation only supports modules under the entry.`,
+                    ),
+                },
+            };
+        }
         const out = rel.endsWith(".vf") ? rel.slice(0, -".vf".length) + ".js" : rel + ".js";
         moduleOutputRelatives.set(modulePath, out);
     }
@@ -384,25 +402,26 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
 }
 
 /**
- * Heuristic: does the source contain any `import … from "./x"` or
+ * Heuristic: does the source contain any `import … "./x"` or
  * `export … from "./x"` (or their `"../x"` variants)? Multi-file
  * emission is scoped to relative imports/re-exports only — package
  * imports would let `relative(entryDir, modulePath)` produce `..`
  * segments that escape both the compile output root and the run
- * tempdir. A full parse would be more accurate, but a regex keeps
- * the single-file fast path cheap.
- *
- * Re-exports must trigger multi-file mode too: an entry module with
- * `export { x } from "./lib";` has no `import` at all but still
- * pulls a sibling `.vf` into the compilation graph.
+ * tempdir. A full parse would be more accurate, but two narrow
+ * regexes keep the single-file fast path cheap while excluding
+ * ordinary `export const path = "./lib"` string literals (the
+ * `export` regex requires a `from` clause).
  */
 function hasUserModuleImports(source: string): boolean {
-    const specifierRegex = /^\s*(?:import|export)\b[^"']*["']([^"']+)["']/gm;
-    let match;
-    while ((match = specifierRegex.exec(source)) !== null) {
-        const path = match[1] ?? "";
-        if (path.startsWith("./") || path.startsWith("../")) {
-            return true;
+    const importRegex = /^\s*import\b[^"']*["']([^"']+)["']/gm;
+    const exportRegex = /^\s*export\b[^"']*\bfrom\s*["']([^"']+)["']/gm;
+    for (const re of [importRegex, exportRegex]) {
+        let match;
+        while ((match = re.exec(source)) !== null) {
+            const path = match[1] ?? "";
+            if (path.startsWith("./") || path.startsWith("../")) {
+                return true;
+            }
         }
     }
     return false;
@@ -753,7 +772,23 @@ function resolveRelativeImportToOutput(
     const cleaned = sourcePath.endsWith(".vf") ? sourcePath.slice(0, -".vf".length) : sourcePath;
 
     // Candidate absolute paths the loader may have resolved this import to.
-    const candidates = [`${cleaned}.vf`, `${cleaned}/index.vf`].map((suffix) => resolve(importerDir, suffix));
+    // `moduleOutputRelatives` is keyed by the resolver's canonical paths
+    // (realpath-resolved), so an importer that traverses a symlinked
+    // directory needs `realpathSync` here too — otherwise the lookup
+    // misses, the rewrite is skipped, and the emitted JS keeps the
+    // wrong specifier. Falls back to the un-canonical path when
+    // realpath errors (e.g. the file doesn't exist).
+    const baseCandidates = [`${cleaned}.vf`, `${cleaned}/index.vf`].map((suffix) => resolve(importerDir, suffix));
+    const candidates: string[] = [];
+    for (const candidate of baseCandidates) {
+        candidates.push(candidate);
+        try {
+            const real = realpathSync(candidate);
+            if (real !== candidate) candidates.push(real);
+        } catch {
+            // candidate doesn't exist — keep walking the list
+        }
+    }
 
     for (const candidate of candidates) {
         const out = moduleOutputRelatives.get(candidate);
