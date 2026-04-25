@@ -9,6 +9,7 @@ Emits ES2020 JavaScript from a typed Core module.
 - `emit-declarations.ts`, `emit-expressions/`, `emit-patterns.ts`, `emit-operators.ts` — the per-node emitters.
 - `runtime-helpers.ts` — small JS helpers inserted into generated output.
 - `reserved-words.ts` — ES2020 reserved-name list for identifier sanitization.
+- `rename-shadows.ts` — pre-codegen pass that α-renames top-level shadowed bindings (`x` → `x$1`, capture-avoiding) and tracks `exportAliases` so the emitter produces `export { x$1 as x }` for shadowed exports. Runs before emission, so it is *not* part of the DI cycle below — it transforms the Core module ahead of `generate()`.
 
 ## Public API
 

@@ -26,6 +26,10 @@ Always `applySubst(ctx.subst, ty)` before unifying a type you just pulled from t
 
 `Type` carries a `level`; `generalize` quantifies only variables whose level exceeds the current binding's level. This enforces the value restriction and the soundness of polymorphic let bindings. Do not modify `generalize` or the level-bumping in `infer-bindings` without tests that exercise polymorphic lets, mutable refs, and escaping type variables.
 
+## Mutable Bindings (`let mut`) — cross-path invariant
+
+Four code paths handle `let` / `let rec` bindings: non-recursive `CoreLetDecl`, recursive single-binding `CoreLetDecl`, and `CoreLetRecGroup` in `typechecker.ts`, plus `inferLetRecExpr` in `infer/infer-bindings.ts`. Each must (a) skip `generalize` when `binding.mutable === true` — without this, ref aliasing (`let mut b = a`) reopens the polymorphic-ref hole — and (b) unify the RHS type against `Ref<fresh>`, throwing **VF4018** at `binding.value.loc` on failure. Symmetry across the four paths is a soundness invariant; a new let-binding path needs the same checks.
+
 ## `constraints.ts`
 
 Currently only referenced by its own test file — unused by the inference pipeline. Treat it as work-in-progress or dead code; confirm the intent before extending it.
