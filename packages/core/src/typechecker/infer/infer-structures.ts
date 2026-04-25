@@ -282,22 +282,8 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
     // Instantiate the type scheme
     const constructorType = instantiate(scheme, ctx.level);
 
-    // Check if constructor is a function type (expects arguments)
-    if (constructorType.type === "Fun") {
-        // Constructor expects arguments
-
-        // Check that the number of arguments matches
-        if (expr.args.length !== constructorType.params.length) {
-            throwDiagnostic("VF4200", expr.loc, {
-                name: expr.constructor,
-                expected: constructorType.params.length,
-                actual: expr.args.length,
-            });
-        }
-    } else {
-        // Constructor takes no arguments (e.g., None, Nil)
-
-        // Check that we're not trying to pass arguments
+    // Nullary constructors (None, Nil, …) are values, not functions.
+    if (constructorType.type !== "Fun") {
         if (expr.args.length > 0) {
             throwDiagnostic("VF4200", expr.loc, {
                 name: expr.constructor,
@@ -305,38 +291,58 @@ export function inferVariant(ctx: InferenceContext, expr: Extract<CoreExpr, { ki
                 actual: expr.args.length,
             });
         }
-
-        // Return the constructor type directly
         return { type: constructorType, subst: ctx.subst };
     }
 
-    // Infer the type of each argument and unify with the expected parameter type
+    // Multi-arg variant constructors are curried: their type is
+    // `(A) -> (B) -> … -> Variant<…>`. Walk one arg at a time, peeling
+    // a layer of function type per application. This mirrors the
+    // desugarer's curried CoreApp emission and accepts both direct
+    // user calls (`Cons(1)(Nil)`) and the synthesized list-literal
+    // `CoreVariant` form (`{ kind: "CoreVariant", args: [head, tail] }`).
+    let currentType: Type = constructorType;
     let currentCtx: InferenceContext = ctx;
-    for (let i = 0; i < expr.args.length; i++) {
-        const arg = expr.args[i];
-        const expectedType = constructorType.params[i];
-
-        if (!arg || !expectedType) {
-            throw new Error(`Missing argument or parameter at index ${i}`);
+    let argIndex = 0;
+    for (const arg of expr.args) {
+        const liveType = applySubst(currentCtx.subst, currentType);
+        if (liveType.type !== "Fun" || liveType.params.length === 0) {
+            throwDiagnostic("VF4200", expr.loc, {
+                name: expr.constructor,
+                expected: argIndex,
+                actual: expr.args.length,
+            });
         }
 
-        // Infer argument type
+        const expectedType = liveType.params[0];
+        if (expectedType === undefined) {
+            throw new Error(`Missing parameter at index ${argIndex}`);
+        }
+
         const argResult = inferExprFn(currentCtx, arg);
         currentCtx = { ...currentCtx, subst: argResult.subst };
 
-        // Apply current substitution to expected type
-        const expectedTypeSubst = applySubst(currentCtx.subst, expectedType);
-
-        // Unify the constructor's declared parameter type (expected) against
-        // the argument's inferred type (actual). The actual may be a wider
-        // record; missing fields are caught by the record-unification rule.
         const unifyCtx = { loc: arg.loc, types: ctx.env.types };
-        const unifySubst = unify(expectedTypeSubst, argResult.type, unifyCtx);
+        const unifySubst = unify(applySubst(currentCtx.subst, expectedType), argResult.type, unifyCtx);
         currentCtx.subst = composeSubst(unifySubst, currentCtx.subst);
+
+        currentType =
+            liveType.params.length === 1 ? liveType.return : { ...liveType, params: liveType.params.slice(1) };
+        argIndex++;
     }
 
-    // Return the constructor's return type
-    const resultType = applySubst(currentCtx.subst, constructorType.return);
+    const resultType = applySubst(currentCtx.subst, currentType);
+    if (resultType.type === "Fun") {
+        // The constructor was applied to fewer args than its arity;
+        // this is a partial application but variant constructors are
+        // not partially applicable in expression position. Per the
+        // desugarer, the user's surface call always provides every
+        // arg, so this case shouldn't occur in practice.
+        throwDiagnostic("VF4200", expr.loc, {
+            name: expr.constructor,
+            expected: argIndex + 1,
+            actual: argIndex,
+        });
+    }
     return { type: resultType, subst: currentCtx.subst };
 }
 

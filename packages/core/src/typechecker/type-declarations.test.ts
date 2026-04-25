@@ -73,18 +73,23 @@ describe("registerTypeDeclarations — variant types", () => {
             }
         }
 
-        // Node — 3-arg function, returning App(Const("Tree"), [T])
+        // Node — curried 3-arg constructor:
+        //   (T) -> ((Tree<T>) -> ((Tree<T>) -> Tree<T>))
+        // Each layer is a single-param function so the desugared
+        // single-arg CoreApps can unify against it.
         const node = env.values.get("Node");
         expect(node?.kind).toBe("Value");
         if (node?.kind === "Value") {
-            const nodeType = node.scheme.type;
-            expect(nodeType.type).toBe("Fun");
-            if (nodeType.type === "Fun") {
-                expect(nodeType.params).toHaveLength(3);
-                expect(nodeType.return.type).toBe("App");
-                if (nodeType.return.type === "App") {
-                    expect(nodeType.return.constructor).toEqual({ type: "Const", name: "Tree" });
-                }
+            let cur = node.scheme.type;
+            for (let i = 0; i < 3; i++) {
+                expect(cur.type).toBe("Fun");
+                if (cur.type !== "Fun") return;
+                expect(cur.params).toHaveLength(1);
+                cur = cur.return;
+            }
+            expect(cur.type).toBe("App");
+            if (cur.type === "App") {
+                expect(cur.constructor).toEqual({ type: "Const", name: "Tree" });
             }
         }
     });
