@@ -62,11 +62,11 @@ describe("desugarBlock", () => {
         const exprs: Expr[] = [
             {
                 kind: "Let",
+                recursive: false,
                 pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                 value: { kind: "IntLit", value: 42, loc: testLoc },
                 body: { kind: "Var", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             },
             { kind: "Var", name: "x", loc: testLoc },
@@ -95,7 +95,6 @@ describe("desugarBlock", () => {
         if (result.kind === "CoreLet") {
             expect(result.pattern.kind).toBe("CoreWildcardPattern");
             expect(result.mutable).toBe(false);
-            expect(result.recursive).toBe(false);
             expect(result.value).toEqual({ kind: "CoreIntLit", value: 1, loc: testLoc });
             expect(result.body).toEqual({ kind: "CoreIntLit", value: 2, loc: testLoc });
         }

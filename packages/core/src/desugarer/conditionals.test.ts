@@ -224,6 +224,7 @@ describe("If-Then-Else - Complex Branches", () => {
             condition: { kind: "Var", name: "cond", loc: testLoc },
             then: {
                 kind: "Let",
+                recursive: false,
                 pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                 value: { kind: "IntLit", value: 10, loc: testLoc },
                 body: {
@@ -234,7 +235,6 @@ describe("If-Then-Else - Complex Branches", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             },
             else_: { kind: "IntLit", value: 0, loc: testLoc },

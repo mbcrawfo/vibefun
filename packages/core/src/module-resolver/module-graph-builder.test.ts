@@ -69,10 +69,10 @@ function createLetDecl(name: string, loc: Location, exported: boolean = false): 
     const pattern: Pattern = { kind: "VarPattern", name, loc };
     return {
         kind: "LetDecl",
+        recursive: false,
         pattern,
         value: { kind: "IntLit", value: 0, loc },
         mutable: false,
-        recursive: false,
         exported,
         loc,
     };

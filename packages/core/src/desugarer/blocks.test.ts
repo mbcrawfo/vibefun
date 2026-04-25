@@ -49,11 +49,11 @@ describe("Block Desugaring - Basic Cases", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc }, // Dummy body
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "Var", name: "x", loc: testLoc },
@@ -79,20 +79,20 @@ describe("Block Desugaring - Basic Cases", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "y", loc: testLoc },
                     value: { kind: "IntLit", value: 20, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 {
@@ -132,29 +132,29 @@ describe("Block Desugaring - Basic Cases", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "a", loc: testLoc },
                     value: { kind: "IntLit", value: 1, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "b", loc: testLoc },
                     value: { kind: "IntLit", value: 2, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "c", loc: testLoc },
                     value: { kind: "IntLit", value: 3, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "StringLit", value: "done", loc: testLoc },
@@ -190,11 +190,11 @@ describe("Block Desugaring - Mutable and Recursive Let", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: true,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "Var", name: "x", loc: testLoc },
@@ -228,8 +228,9 @@ describe("Block Desugaring - Mutable and Recursive Let", () => {
 
         const result = desugar(block);
 
-        expect(result.kind).toBe("CoreLet");
-        expect((result as CoreLet).recursive).toBe(true);
+        // Recursive let inside a block desugars to a single-binding
+        // CoreLetRecExpr (not CoreLet), per Phase C.
+        expect(result.kind).toBe("CoreLetRecExpr");
     });
 });
 
@@ -240,6 +241,7 @@ describe("Block Desugaring - Nested Blocks", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: {
                         // Inner block
@@ -247,11 +249,11 @@ describe("Block Desugaring - Nested Blocks", () => {
                         exprs: [
                             {
                                 kind: "Let",
+                                recursive: false,
                                 pattern: { kind: "VarPattern", name: "a", loc: testLoc },
                                 value: { kind: "IntLit", value: 5, loc: testLoc },
                                 body: { kind: "UnitLit", loc: testLoc },
                                 mutable: false,
-                                recursive: false,
                                 loc: testLoc,
                             },
                             { kind: "Var", name: "a", loc: testLoc },
@@ -260,7 +262,6 @@ describe("Block Desugaring - Nested Blocks", () => {
                     },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "Var", name: "x", loc: testLoc },
@@ -292,11 +293,11 @@ describe("Block Desugaring - Complex Expressions", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 {
@@ -335,6 +336,7 @@ describe("Block Desugaring - Complex Expressions", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "sum", loc: testLoc },
                     value: {
                         // Complex value
@@ -346,7 +348,6 @@ describe("Block Desugaring - Complex Expressions", () => {
                     },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "Var", name: "sum", loc: testLoc },
@@ -378,11 +379,11 @@ describe("Block Desugaring - Source Locations", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 42, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: letLoc,
                 },
                 { kind: "Var", name: "x", loc: testLoc },
@@ -431,7 +432,6 @@ describe("Block Desugaring - Bare Expressions", () => {
         if (result.kind === "CoreLet") {
             expect(result.pattern.kind).toBe("CoreWildcardPattern");
             expect(result.mutable).toBe(false);
-            expect(result.recursive).toBe(false);
             expect(result.value.kind).toBe("CoreIntLit");
             expect(result.body.kind).toBe("CoreVar");
         }
@@ -443,11 +443,11 @@ describe("Block Desugaring - Bare Expressions", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "IntLit", value: 20, loc: testLoc },
@@ -478,6 +478,7 @@ describe("Block Desugaring - Pattern Matching", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: {
                         kind: "ConstructorPattern",
                         constructor: "Some",
@@ -487,7 +488,6 @@ describe("Block Desugaring - Pattern Matching", () => {
                     value: { kind: "IntLit", value: 42, loc: testLoc }, // Dummy value
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 { kind: "Var", name: "x", loc: testLoc },
@@ -509,6 +509,7 @@ describe("Block Desugaring - Pattern Matching", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: {
                         kind: "RecordPattern",
                         fields: [
@@ -528,7 +529,6 @@ describe("Block Desugaring - Pattern Matching", () => {
                     value: { kind: "IntLit", value: 0, loc: testLoc }, // Dummy value
                     body: { kind: "UnitLit", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 {

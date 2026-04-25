@@ -87,11 +87,9 @@ describe("Optimizer Integration Tests", () => {
                     },
                     body: { kind: "CoreVar", name: "y", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -137,11 +135,9 @@ describe("Optimizer Integration Tests", () => {
                     value: { kind: "CoreIntLit", value: 42, loc: testLoc },
                     body: { kind: "CoreVar", name: "f", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -331,7 +327,6 @@ describe("Optimizer Integration Tests", () => {
                 },
                 body: { kind: "CoreIntLit", value: 42, loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

@@ -71,7 +71,6 @@ describe("AST Analysis Utilities", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -298,7 +297,6 @@ describe("AST Analysis Utilities", () => {
                 },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

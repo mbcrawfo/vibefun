@@ -55,13 +55,11 @@ export class InlineExpansionPass extends OptimizationPass {
             return expr;
         }
 
-        // Only inline let bindings
+        // Only inline let bindings. `CoreLet` is always non-recursive
+        // post-Phase-C; recursive forms (`CoreLetRecExpr`) are not
+        // matched here, which preserves the previous behaviour of
+        // skipping recursive bindings to avoid infinite expansion.
         if (expr.kind !== "CoreLet") {
-            return expr;
-        }
-
-        // Skip recursive bindings (would cause infinite expansion)
-        if (expr.recursive) {
             return expr;
         }
 

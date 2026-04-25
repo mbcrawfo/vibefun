@@ -3,6 +3,8 @@
  * Tests recursive functions, mutual recursion, and nested let expressions
  */
 
+import type { CoreLetRecGroup } from "../types/core-ast.js";
+
 import { describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
@@ -29,96 +31,99 @@ function expectVF4018(run: () => unknown): void {
 
 describe("typeCheck - Recursion and Let Expressions", () => {
     it("should type check recursive factorial with pattern matching", () => {
-        // Note: CoreLetDecl with recursive:true not fully supported in typeCheckDeclaration
-        // Use CoreLetRecGroup for mutual recursion instead
+        // Surface `let rec factorial = …;` desugars to a single-binding
+        // `CoreLetRecGroup`, so we construct that form directly here.
         // let rec factorial = (n) => match n { | 0 => 1 | m => m * factorial(m - 1) }
-        const module = createModule([
-            {
-                kind: "CoreLetDecl",
-                pattern: {
+        const factorialBinding: CoreLetRecGroup["bindings"][number] = {
+            pattern: {
+                kind: "CoreVarPattern",
+                name: "factorial",
+                loc: testLoc,
+            },
+            value: {
+                kind: "CoreLambda",
+                param: {
                     kind: "CoreVarPattern",
-                    name: "factorial",
+                    name: "n",
                     loc: testLoc,
                 },
-                value: {
-                    kind: "CoreLambda",
-                    param: {
-                        kind: "CoreVarPattern",
+                body: {
+                    kind: "CoreMatch",
+                    expr: {
+                        kind: "CoreVar",
                         name: "n",
                         loc: testLoc,
                     },
-                    body: {
-                        kind: "CoreMatch",
-                        expr: {
-                            kind: "CoreVar",
-                            name: "n",
-                            loc: testLoc,
-                        },
-                        cases: [
-                            {
-                                pattern: {
-                                    kind: "CoreLiteralPattern",
-                                    literal: 0,
-                                    loc: testLoc,
-                                },
-                                body: {
-                                    kind: "CoreIntLit",
-                                    value: 1,
-                                    loc: testLoc,
-                                },
+                    cases: [
+                        {
+                            pattern: {
+                                kind: "CoreLiteralPattern",
+                                literal: 0,
                                 loc: testLoc,
                             },
-                            {
-                                pattern: {
-                                    kind: "CoreVarPattern",
+                            body: {
+                                kind: "CoreIntLit",
+                                value: 1,
+                                loc: testLoc,
+                            },
+                            loc: testLoc,
+                        },
+                        {
+                            pattern: {
+                                kind: "CoreVarPattern",
+                                name: "m",
+                                loc: testLoc,
+                            },
+                            body: {
+                                kind: "CoreBinOp",
+                                op: "Multiply",
+                                left: {
+                                    kind: "CoreVar",
                                     name: "m",
                                     loc: testLoc,
                                 },
-                                body: {
-                                    kind: "CoreBinOp",
-                                    op: "Multiply",
-                                    left: {
+                                right: {
+                                    kind: "CoreApp",
+                                    func: {
                                         kind: "CoreVar",
-                                        name: "m",
+                                        name: "factorial",
                                         loc: testLoc,
                                     },
-                                    right: {
-                                        kind: "CoreApp",
-                                        func: {
-                                            kind: "CoreVar",
-                                            name: "factorial",
-                                            loc: testLoc,
-                                        },
-                                        args: [
-                                            {
-                                                kind: "CoreBinOp",
-                                                op: "Subtract",
-                                                left: {
-                                                    kind: "CoreVar",
-                                                    name: "m",
-                                                    loc: testLoc,
-                                                },
-                                                right: {
-                                                    kind: "CoreIntLit",
-                                                    value: 1,
-                                                    loc: testLoc,
-                                                },
+                                    args: [
+                                        {
+                                            kind: "CoreBinOp",
+                                            op: "Subtract",
+                                            left: {
+                                                kind: "CoreVar",
+                                                name: "m",
                                                 loc: testLoc,
                                             },
-                                        ],
-                                        loc: testLoc,
-                                    },
+                                            right: {
+                                                kind: "CoreIntLit",
+                                                value: 1,
+                                                loc: testLoc,
+                                            },
+                                            loc: testLoc,
+                                        },
+                                    ],
                                     loc: testLoc,
                                 },
                                 loc: testLoc,
                             },
-                        ],
-                        loc: testLoc,
-                    },
+                            loc: testLoc,
+                        },
+                    ],
                     loc: testLoc,
                 },
-                mutable: false,
-                recursive: true,
+                loc: testLoc,
+            },
+            mutable: false,
+            loc: testLoc,
+        };
+        const module = createModule([
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [factorialBinding],
                 exported: true,
                 loc: testLoc,
             },
@@ -348,11 +353,9 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: true,
                 loc: testLoc,
             },
@@ -425,15 +428,12 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        recursive: false,
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: true,
                 loc: testLoc,
             },
@@ -483,7 +483,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: true,
                 loc: testLoc,
             },
@@ -503,28 +502,28 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expect(result.env.values.has("Nil")).toBe(true);
     });
 
-    it("should generalize a non-mutable single-binding recursive CoreLetDecl", () => {
-        // Regression: `let rec id = x => x` at module scope should
-        // yield the polymorphic scheme `∀a. a -> a`, mirroring how
-        // both the non-recursive `CoreLetDecl` path and the
-        // `CoreLetRecGroup` path already generalize the same shape.
-        // Without bumping the inference level and calling
-        // `generalize` here, the binding stays at a concrete type var
-        // and any later use at two different argument types fails to
-        // unify. The two non-unifying uses below force generalization
-        // to be observable.
+    it("should generalize a non-mutable single-binding recursive CoreLetRecGroup", () => {
+        // Regression: `let rec id = x => x` at module scope should yield
+        // the polymorphic scheme `∀a. a -> a`. After Phase C the
+        // surface form desugars to a single-binding `CoreLetRecGroup`,
+        // which must still produce a polymorphic scheme — exercised by
+        // the two non-unifying uses below.
         const module = createModule([
             {
-                kind: "CoreLetDecl",
-                pattern: { kind: "CoreVarPattern", name: "id", loc: testLoc },
-                value: {
-                    kind: "CoreLambda",
-                    param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
-                    body: { kind: "CoreVar", name: "x", loc: testLoc },
-                    loc: testLoc,
-                },
-                mutable: false,
-                recursive: true,
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "id", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                ],
                 exported: true,
                 loc: testLoc,
             },
@@ -538,7 +537,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -552,7 +550,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -606,7 +603,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -620,7 +616,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -699,7 +694,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -788,7 +782,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -828,7 +821,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -868,38 +860,42 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
             // A recursive single-binding let whose body reads `r` via
-            // `consume(!r)`. The match in `consume` pins `r`'s element
-            // type to `Option<Int>`, and the recursive self-reference
-            // forces this branch (not the non-recursive one) to be
-            // taken in `typeCheckDeclaration`.
+            // `consume(!r)`. After Phase C this desugars to a
+            // single-binding `CoreLetRecGroup`. The match in `consume`
+            // pins `r`'s element type to `Option<Int>`, and `r`'s
+            // narrowing must flow through `propagateSubstAcrossDeclarations`
+            // into env.values for the subsequent `extracted` decl.
             {
-                kind: "CoreLetDecl",
-                pattern: { kind: "CoreVarPattern", name: "loop", loc: testLoc },
-                value: {
-                    kind: "CoreLambda",
-                    param: { kind: "CoreVarPattern", name: "_", loc: testLoc },
-                    body: {
-                        kind: "CoreApp",
-                        func: { kind: "CoreVar", name: "consume", loc: testLoc },
-                        args: [
-                            {
-                                kind: "CoreUnaryOp",
-                                op: "Deref",
-                                expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "loop", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "_", loc: testLoc },
+                            body: {
+                                kind: "CoreApp",
+                                func: { kind: "CoreVar", name: "consume", loc: testLoc },
+                                args: [
+                                    {
+                                        kind: "CoreUnaryOp",
+                                        op: "Deref",
+                                        expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
                                 loc: testLoc,
                             },
-                        ],
+                            loc: testLoc,
+                        },
+                        mutable: false,
                         loc: testLoc,
                     },
-                    loc: testLoc,
-                },
-                mutable: false,
-                recursive: true,
+                ],
                 exported: false,
                 loc: testLoc,
             },
@@ -924,7 +920,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc: testLoc,
             },
@@ -939,16 +934,20 @@ describe("typeCheck - Recursion and Let Expressions", () => {
     it("should reject a recursive single-binding mutable CoreLetDecl whose RHS isn't Ref<T>", () => {
         // Mirrors the VF4018 check that already existed for the
         // non-recursive `let mut x = 0;` case and the
-        // `CoreLetRecGroup` mutable case — the recursive single-
-        // binding form must reject the same way, otherwise
-        // `let rec mut x = 0` slips through.
+        // `CoreLetRecGroup` mutable case. After Phase C the recursive
+        // single-binding form desugars to a single-binding
+        // `CoreLetRecGroup`, which must reject the same way.
         const module = createModule([
             {
-                kind: "CoreLetDecl",
-                pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
-                value: { kind: "CoreIntLit", value: 0, loc: testLoc },
-                mutable: true,
-                recursive: true,
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                        value: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                        mutable: true,
+                        loc: testLoc,
+                    },
+                ],
                 exported: false,
                 loc: testLoc,
             },

@@ -9,10 +9,11 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { throwDiagnostic, VibefunDiagnostic } from "../../diagnostics/index.js";
+import { throwDiagnostic } from "../../diagnostics/index.js";
 import { checkPattern } from "../patterns.js";
-import { freeTypeVarsAtLevel, freshTypeVar, isSyntacticValue, refType } from "../types.js";
+import { freshTypeVar } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
+import { computeBindingScheme, enforceMutableRefBinding, generalize } from "./let-binding-helpers.js";
 
 // Import inferExpr - will be set via dependency injection
 // Initialized to error-throwing function for type safety and better error messages
@@ -27,35 +28,11 @@ export function setInferExpr(fn: typeof inferExprFn): void {
     inferExprFn = fn;
 }
 
-/**
- * Generalize a type to a type scheme
- *
- * Quantifies over all type variables at the current level, respecting
- * the value restriction for sound polymorphism with mutable references.
- *
- * @param ctx - The inference context
- * @param type - The type to generalize
- * @param expr - The expression being generalized (for value restriction)
- * @returns A type scheme with quantified variables
- */
-export function generalize(ctx: InferenceContext, type: Type, expr: CoreExpr): TypeScheme {
-    // Apply current substitution to the type
-    const finalType = applySubst(ctx.subst, type);
-
-    // Find all free type variables at the current level
-    const freeVarsSet = freeTypeVarsAtLevel(finalType, ctx.level);
-    const freeVars = Array.from(freeVarsSet);
-
-    // Value restriction: only generalize if the expression is a syntactic value
-    // This prevents unsound generalization of mutable references
-    // For example: let x = ref None should have type Ref<'a option>, not ∀'a. Ref<'a option>
-    if (isSyntacticValue(expr)) {
-        return { vars: freeVars, type: finalType };
-    } else {
-        // Not a syntactic value - don't generalize (monomorphic)
-        return { vars: [], type: finalType };
-    }
-}
+// Re-export generalize so existing import sites that pull it from this
+// module continue to work without churn. The implementation now lives in
+// `./let-binding-helpers.js` to avoid a module-init cycle through
+// `../patterns.js → ./index.js → ./infer-bindings.js`.
+export { generalize };
 
 /**
  * Infer the type of a let-binding
@@ -73,6 +50,11 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
     //   - CoreWildcardPattern — side-effect lets (`let _ = expr;`)
     //   - CoreTuplePattern — destructuring let (`let (a, b) = pair;`)
     // Other patterns (literal, record, constructor) are not yet supported.
+    //
+    // Recursive `let` (`let rec x = … in body`) is lowered by the
+    // desugarer to a single-binding `CoreLetRecExpr`, so this path
+    // handles non-recursive forms only. See
+    // `docs/compiler-architecture/07-let-binding-paths.md`.
     if (
         expr.pattern.kind !== "CoreVarPattern" &&
         expr.pattern.kind !== "CoreWildcardPattern" &&
@@ -81,15 +63,6 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         throwDiagnostic("VF4017", expr.loc, {
             feature: "Pattern matching in let-bindings",
             hint: "Only variable, wildcard, or tuple patterns are currently supported",
-        });
-    }
-
-    // Recursive tuple bindings (`let rec (a, b) = ...`) are not meaningful —
-    // there is no name to seed in the environment before inference.
-    if (expr.recursive && expr.pattern.kind === "CoreTuplePattern") {
-        throwDiagnostic("VF4017", expr.loc, {
-            feature: "Recursive tuple-destructuring let-bindings",
-            hint: "Use a variable pattern for recursive bindings",
         });
     }
 
@@ -103,75 +76,38 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
     const newLevel = ctx.level + 1;
     let valueCtx: InferenceContext = { ...ctx, level: newLevel };
 
-    // Track temp type for recursive bindings
-    let tempType: Type | null = null;
-
-    // Handle recursive bindings (only meaningful for variable patterns;
-    // wildcard recursive would reference nothing, so we simply skip env seeding)
-    if (expr.recursive && expr.pattern.kind === "CoreVarPattern") {
-        // For recursive bindings, add a temporary binding with a fresh type variable
-        tempType = freshTypeVar(newLevel);
-        const tempScheme: TypeScheme = { vars: [], type: tempType };
-
-        const newEnv: TypeEnv = {
-            types: ctx.env.types,
-            values: new Map(ctx.env.values),
-        };
-        newEnv.values.set(expr.pattern.name, {
-            kind: "Value",
-            scheme: tempScheme,
-            loc: expr.loc,
-        });
-
-        valueCtx = { ...valueCtx, env: newEnv };
-    }
-
     // Infer the type of the value
     const valueResult = inferExprFn(valueCtx, expr.value);
     valueCtx = { ...valueCtx, subst: valueResult.subst };
 
-    // For recursive bindings, unify the inferred type with the temporary type variable
-    if (expr.recursive && tempType) {
-        const tempTypeSubst = applySubst(valueResult.subst, tempType);
-        const unifyCtx = { loc: expr.loc, types: ctx.env.types };
-        const unifySubst = unify(tempTypeSubst, valueResult.type, unifyCtx);
-        valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
-    }
-
     // Mutable bindings: enforce that the value's inferred type is `Ref<T>`.
-    // Unifies the RHS against `Ref<fresh>` so `let mut x = ref(0)`,
+    // The helper unifies the RHS against `Ref<fresh>` so `let mut x = ref(0)`,
     // `let mut b = a;` (alias), and any other Ref-typed expression pass,
     // while `let mut x = 5;` (or any non-Ref RHS) is rejected.
-    if (expr.mutable) {
-        const elemTypeVar = freshTypeVar(newLevel);
-        const expectedRefType = refType(elemTypeVar);
-        const valueType = applySubst(valueCtx.subst, valueResult.type);
-        try {
-            const refUnifySubst = unify(valueType, expectedRefType, {
-                loc: expr.value.loc,
-                types: ctx.env.types,
-            });
-            valueCtx.subst = composeSubst(refUnifySubst, valueCtx.subst);
-        } catch (err) {
-            // Replace the generic unification error with a focused
-            // "mutable binding requires Ref<T>" diagnostic.
-            if (err instanceof VibefunDiagnostic) {
-                throwDiagnostic("VF4018", expr.value.loc, {});
-            }
-            throw err;
-        }
-    }
+    valueCtx.subst = enforceMutableRefBinding({
+        binding: { mutable: expr.mutable, value: { loc: expr.value.loc } },
+        inferredType: valueResult.type,
+        subst: valueCtx.subst,
+        level: newLevel,
+        types: ctx.env.types,
+    });
 
     // Build the body environment.
-    //   - CoreVarPattern: bind the generalized scheme.
+    //   - CoreVarPattern: bind the (possibly generalised) scheme.
     //   - CoreTuplePattern: destructure via checkPattern and add each
-    //     element binding non-generalized. The value restriction applies
-    //     (tuples are not syntactic values), so generalizing would be
+    //     element binding non-generalised. The value restriction applies
+    //     (tuples are not syntactic values), so generalising would be
     //     unsound anyway.
     //   - CoreWildcardPattern: inherit the parent env.
     let bodyEnv: TypeEnv;
     if (expr.pattern.kind === "CoreVarPattern") {
-        const valueScheme = generalize(valueCtx, valueResult.type, expr.value);
+        const valueScheme = computeBindingScheme({
+            binding: { mutable: expr.mutable, value: expr.value, pattern: expr.pattern },
+            inferredType: valueResult.type,
+            subst: valueCtx.subst,
+            level: newLevel,
+            env: valueCtx.env,
+        });
         bodyEnv = {
             types: ctx.env.types,
             values: new Map(ctx.env.values),
@@ -309,33 +245,20 @@ export function inferLetRecExpr(
         // `Ref<T>` value — see VF4018 in single-binding `inferLet`.
         // Without this check, `let rec mut x = 0 and …` slips past
         // even though the equivalent non-recursive form errors.
-        if (binding.mutable) {
-            const elemTypeVar = freshTypeVar(newLevel);
-            const expectedRefType = refType(elemTypeVar);
-            const valueType = applySubst(currentSubst, inferredType);
-            try {
-                const refUnifySubst = unify(valueType, expectedRefType, {
-                    loc: binding.loc,
-                    types: ctx.env.types,
-                });
-                currentSubst = composeSubst(refUnifySubst, currentSubst);
-            } catch (err) {
-                if (err instanceof VibefunDiagnostic) {
-                    throwDiagnostic("VF4018", binding.loc, {});
-                }
-                throw err;
-            }
-        }
+        currentSubst = enforceMutableRefBinding({
+            binding: { mutable: binding.mutable, value: { loc: binding.value.loc } },
+            inferredType,
+            subst: currentSubst,
+            level: newLevel,
+            types: ctx.env.types,
+        });
     }
 
-    // Step 5: Generalize all bindings together
+    // Step 5: Generalize all bindings together. The helper enforces the
+    // skip-generalize rule for mutable bindings — without that skip,
+    // `let rec a = ref(None) and mut b = a` re-opens the polymorphic-ref
+    // hole because `a` is a syntactic value at this level.
     const generalizedSchemes: Map<string, TypeScheme> = new Map();
-    const valueCtxForGeneralize: InferenceContext = {
-        ...ctx,
-        env: newEnv,
-        subst: currentSubst,
-        level: newLevel,
-    };
 
     for (const binding of expr.bindings) {
         const varName = (binding.pattern as Extract<typeof binding.pattern, { kind: "CoreVarPattern" }>).name;
@@ -345,16 +268,13 @@ export function inferLetRecExpr(
             throw new Error(`Internal error: missing inferred type for '${varName}'`);
         }
 
-        // Mutable bindings stay monomorphic — generalizing a `Ref<t>`
-        // would let subsequent `:=` assignments instantiate `t`
-        // independently, including the alias case
-        // `let rec a = ref(None) and mut b = a` where `a` is a
-        // syntactic value at this level. Mirrors the same restriction
-        // the non-recursive `inferLet` path applies.
-        const appliedType = applySubst(currentSubst, inferredType);
-        const scheme = binding.mutable
-            ? { vars: [], type: appliedType }
-            : generalize(valueCtxForGeneralize, appliedType, binding.value);
+        const scheme = computeBindingScheme({
+            binding: { mutable: binding.mutable, value: binding.value, pattern: binding.pattern },
+            inferredType,
+            subst: currentSubst,
+            level: newLevel,
+            env: newEnv,
+        });
         generalizedSchemes.set(varName, scheme);
     }
 

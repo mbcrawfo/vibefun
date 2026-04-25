@@ -37,6 +37,7 @@ import "./sections/04-expressions.ts";
 import "./sections/05-pattern-matching.ts";
 import "./sections/06-functions.ts";
 import "./sections/07-mutable-references.ts";
+import "./sections/07b-let-binding-matrix.ts";
 import "./sections/08-modules.ts";
 import "./sections/09-error-handling.ts";
 import "./sections/10-javascript-interop.ts";

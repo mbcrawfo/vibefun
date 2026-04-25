@@ -165,17 +165,8 @@ function emitLetDecl(decl: CoreLetDecl, ctx: EmitContext): string {
     const patternCode = emitPatternFn(decl.pattern, ctx);
     const valueCode = emitExprFn(decl.value, withPrecedence(ctx, 0));
 
-    // For recursive bindings, use let + assignment to allow self-reference.
-    // Mutable bindings also use `let` so the binding can be rebound.
-    if (decl.recursive) {
-        // For simple variable patterns, we can use let + assignment
-        if (decl.pattern.kind === "CoreVarPattern") {
-            return `${indent}let ${patternCode};\n${indent}${patternCode} = ${valueCode};`;
-        }
-        // For complex patterns with recursion, still use const (edge case)
-        return `${indent}const ${patternCode} = ${valueCode};`;
-    }
-
+    // `CoreLetDecl` is always non-recursive post-Phase-C; recursive forms
+    // (single or grouped) emit through `emitLetRecGroup` instead.
     const keyword = decl.mutable ? "let" : "const";
     return `${indent}${keyword} ${patternCode} = ${valueCode};`;
 }

@@ -114,9 +114,12 @@ describe("Declaration Emission", () => {
             expect(ctx.needsRefHelper).toBe(true);
         });
 
-        it("should emit recursive let declaration with let + assignment", () => {
+        it("should emit recursive let declaration via letRecGroup with let + assignment", () => {
+            // Post-Phase-C, `let rec f = …;` desugars to a single-binding
+            // CoreLetRecGroup, which the rec-group emitter renders as
+            // `let f; f = …;` (forward declaration + assignment).
             const ctx = createTestContext();
-            const decl = letDecl(varPat("f"), lambda(varPat("n"), varRef("n")), { recursive: true });
+            const decl = letRecGroup([{ pattern: varPat("f"), value: lambda(varPat("n"), varRef("n")) }]);
             const result = emitDeclaration(decl, ctx);
             expect(result).toContain("let f;");
             expect(result).toContain("f = (n) => n;");

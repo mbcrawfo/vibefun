@@ -338,7 +338,6 @@ describe("AST Transform Utilities", () => {
                 value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

@@ -146,11 +146,11 @@ describe("Desugarer - Let Bindings", () => {
     it("should desugar let bindings", () => {
         const expr: Expr = {
             kind: "Let",
+            recursive: false,
             pattern: { kind: "VarPattern", name: "x", loc: testLoc },
             value: { kind: "IntLit", value: 42, loc: testLoc },
             body: { kind: "Var", name: "x", loc: testLoc },
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -162,17 +162,16 @@ describe("Desugarer - Let Bindings", () => {
         expect(letResult.value.kind).toBe("CoreIntLit");
         expect(letResult.body.kind).toBe("CoreVar");
         expect(letResult.mutable).toBe(false);
-        expect(letResult.recursive).toBe(false);
     });
 
     it("should preserve mutable flag", () => {
         const expr: Expr = {
             kind: "Let",
+            recursive: false,
             pattern: { kind: "VarPattern", name: "x", loc: testLoc },
             value: { kind: "IntLit", value: 42, loc: testLoc },
             body: { kind: "Var", name: "x", loc: testLoc },
             mutable: true,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -181,7 +180,7 @@ describe("Desugarer - Let Bindings", () => {
         expect((result as CoreLet).mutable).toBe(true);
     });
 
-    it("should preserve recursive flag", () => {
+    it("should lower recursive let into CoreLetRecExpr", () => {
         const expr: Expr = {
             kind: "Let",
             pattern: { kind: "VarPattern", name: "f", loc: testLoc },
@@ -194,7 +193,7 @@ describe("Desugarer - Let Bindings", () => {
 
         const result = desugar(expr);
 
-        expect((result as CoreLet).recursive).toBe(true);
+        expect(result.kind).toBe("CoreLetRecExpr");
     });
 });
 
@@ -419,11 +418,11 @@ describe("Desugarer - Unsafe Blocks", () => {
             kind: "Unsafe",
             expr: {
                 kind: "Let",
+                recursive: false,
                 pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                 value: { kind: "IntLit", value: 42, loc: testLoc },
                 body: { kind: "Var", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             },
             loc: testLoc,

@@ -42,7 +42,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -51,7 +50,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -77,7 +75,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -86,7 +83,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -95,7 +91,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "y", loc },
                 value: varRef("x"),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -122,7 +117,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -136,7 +130,6 @@ describe("renameTopLevelShadows", () => {
                     loc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -145,7 +138,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -175,7 +167,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -184,7 +175,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -198,7 +188,6 @@ describe("renameTopLevelShadows", () => {
                     loc,
                 },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -226,7 +215,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -235,7 +223,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: true,
                 loc,
             },
@@ -252,7 +239,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -261,7 +247,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "y", loc },
                 value: varRef("x"),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -286,7 +271,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -295,7 +279,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -336,7 +319,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -345,7 +327,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -412,7 +393,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -467,7 +447,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -496,15 +475,16 @@ describe("renameTopLevelShadows", () => {
         // map (`x → x$1`) to the body before discovering that the new
         // declaration *also* binds `x` would point the recursive
         // self-reference at the previous shadow `x$1` instead of the
-        // new binder `x$2`. The fix masks the bound name from the
-        // pre-pass and substitutes the new alias in afterwards.
+        // new binder `x$2`. After Phase C this case is a single-binding
+        // `CoreLetRecGroup`; the `boundVarNamesInRecGroup` mask in
+        // `renamesForDecl` keeps the body's `x` reference unrewritten so
+        // the post-pass alias substitution can point it at the new binder.
         const module = makeModule([
             {
                 kind: "CoreLetDecl",
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -513,21 +493,24 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
             {
-                kind: "CoreLetDecl",
-                pattern: { kind: "CoreVarPattern", name: "x", loc },
-                value: {
-                    kind: "CoreLambda",
-                    param: { kind: "CoreVarPattern", name: "_", loc },
-                    body: varRef("x"),
-                    loc,
-                },
-                mutable: false,
-                recursive: true,
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "_", loc },
+                            body: varRef("x"),
+                            loc,
+                        },
+                        mutable: false,
+                        loc,
+                    },
+                ],
                 exported: false,
                 loc,
             },
@@ -535,19 +518,23 @@ describe("renameTopLevelShadows", () => {
 
         const { module: renamed } = renameTopLevelShadows(module);
         const third = renamed.declarations[2];
-        if (third?.kind !== "CoreLetDecl" || third.pattern.kind !== "CoreVarPattern") {
-            throw new Error("Expected third decl to be CoreLetDecl with VarPattern");
+        if (third?.kind !== "CoreLetRecGroup") {
+            throw new Error("Expected third decl to be CoreLetRecGroup");
         }
-        expect(third.pattern.name).toBe("x$2");
-        if (third.value.kind !== "CoreLambda") {
-            throw new Error("Expected third decl value to be CoreLambda");
+        const binding = third.bindings[0];
+        if (!binding || binding.pattern.kind !== "CoreVarPattern") {
+            throw new Error("Expected one CoreVarPattern binding");
         }
-        if (third.value.body.kind !== "CoreVar") {
+        expect(binding.pattern.name).toBe("x$2");
+        if (binding.value.kind !== "CoreLambda") {
+            throw new Error("Expected binding value to be CoreLambda");
+        }
+        if (binding.value.body.kind !== "CoreVar") {
             throw new Error("Expected lambda body to be CoreVar");
         }
         // The recursive self-reference must point at the new binder
         // (`x$2`), not the prior shadow (`x$1`).
-        expect(third.value.body.name).toBe("x$2");
+        expect(binding.value.body.name).toBe("x$2");
     });
 
     it("rewrites a let-rec group's body refs to the new binder when shadowing a prior renamed binding", () => {
@@ -563,7 +550,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -572,7 +558,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -641,7 +626,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "log", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -666,7 +650,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(1),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -675,7 +658,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x$1", loc },
                 value: intLit(2),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },
@@ -684,7 +666,6 @@ describe("renameTopLevelShadows", () => {
                 pattern: { kind: "CoreVarPattern", name: "x", loc },
                 value: intLit(3),
                 mutable: false,
-                recursive: false,
                 exported: false,
                 loc,
             },

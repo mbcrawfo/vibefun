@@ -38,7 +38,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: refCall,
             body,
             mutable: true,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -70,7 +69,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: intLit,
             body,
             mutable: true,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -107,7 +105,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: aRef,
             body: innerBody,
             mutable: true,
-            recursive: false,
             loc: testLoc,
         };
         const outer: CoreLet = {
@@ -116,7 +113,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: refCall,
             body: inner,
             mutable: true,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -157,7 +153,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: tuple,
             body: aVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -169,7 +164,8 @@ describe("Type Inference - Let-Binding Error Cases", () => {
     });
 
     it("should reject recursive tuple let-bindings", () => {
-        // let rec (a, b) = (1, 2) in a
+        // let rec (a, b) = (1, 2) in a — desugars to CoreLetRecExpr,
+        // which rejects non-`CoreVarPattern` bindings with VF4017.
         const tuplePattern: import("../types/core-ast.js").CoreTuplePattern = {
             kind: "CoreTuplePattern",
             elements: [
@@ -189,13 +185,17 @@ describe("Type Inference - Let-Binding Error Cases", () => {
 
         const aVar: CoreVar = { kind: "CoreVar", name: "a", loc: testLoc };
 
-        const expr: CoreLet = {
-            kind: "CoreLet",
-            pattern: tuplePattern,
-            value: tuple,
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: tuplePattern,
+                    value: tuple,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
             body: aVar,
-            mutable: false,
-            recursive: true,
             loc: testLoc,
         };
 
@@ -240,7 +240,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: recordExpr,
             body: xVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -268,7 +267,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: value2,
             body: xVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -278,7 +276,6 @@ describe("Type Inference - Let-Binding Error Cases", () => {
             value: value1,
             body: innerLet,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -312,7 +309,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
             value: lambda,
             body: fVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -343,7 +339,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
             value: app,
             body: yVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -368,7 +363,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
             value: intLit,
             body: xVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -393,7 +387,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
                 value: intLit,
                 body,
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -415,7 +408,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
                 value: intLit,
                 body: underscoreRef,
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -436,7 +428,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
                 value: intLit,
                 body,
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -480,7 +471,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
                 value: tupleExpr,
                 body,
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -542,7 +532,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
                 value: outerTuple,
                 body,
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -579,7 +568,6 @@ describe("Type Inference - Generalization Edge Cases", () => {
                 value: tupleExpr,
                 body: { kind: "CoreVar", name: "a", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

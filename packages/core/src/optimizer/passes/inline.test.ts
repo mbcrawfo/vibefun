@@ -29,7 +29,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -51,7 +50,6 @@ describe("InlineExpansionPass", () => {
                 value: { kind: "CoreVar", name: "x", loc: testLoc },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -81,7 +79,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -98,19 +95,26 @@ describe("InlineExpansionPass", () => {
 
     describe("Non-inlining cases", () => {
         it("should not inline recursive bindings", () => {
-            // let rec factorial = (n) => ... in factorial
+            // let rec factorial = (n) => ... in factorial — desugars to
+            // CoreLetRecExpr. The inliner deliberately doesn't match
+            // `CoreLetRecExpr`, preserving the previous "skip recursive
+            // bindings" behaviour without an explicit flag.
             const expr: CoreExpr = {
-                kind: "CoreLet",
-                pattern: { kind: "CoreVarPattern", name: "factorial", loc: testLoc },
-                value: {
-                    kind: "CoreLambda",
-                    param: { kind: "CoreVarPattern", name: "n", loc: testLoc },
-                    body: { kind: "CoreVar", name: "factorial", loc: testLoc }, // Simplified recursive reference
-                    loc: testLoc,
-                },
+                kind: "CoreLetRecExpr",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "factorial", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "n", loc: testLoc },
+                            body: { kind: "CoreVar", name: "factorial", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                ],
                 body: { kind: "CoreVar", name: "factorial", loc: testLoc },
-                mutable: false,
-                recursive: true, // Marked as recursive
                 loc: testLoc,
             };
 
@@ -128,7 +132,6 @@ describe("InlineExpansionPass", () => {
                 value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: true, // Mutable
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -153,7 +156,6 @@ describe("InlineExpansionPass", () => {
                 value: { kind: "CoreVar", name: "tuple", loc: testLoc },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -175,7 +177,6 @@ describe("InlineExpansionPass", () => {
                 },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -195,7 +196,6 @@ describe("InlineExpansionPass", () => {
                 value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -220,11 +220,9 @@ describe("InlineExpansionPass", () => {
                     value: { kind: "CoreIntLit", value: 2, loc: testLoc },
                     body: { kind: "CoreVar", name: "x", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -253,7 +251,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -306,7 +303,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -327,7 +323,6 @@ describe("InlineExpansionPass", () => {
                     value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                     body: { kind: "CoreVar", name: "x", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 loc: testLoc,
@@ -363,7 +358,6 @@ describe("InlineExpansionPass", () => {
                 value: mediumValue,
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -398,11 +392,9 @@ describe("InlineExpansionPass", () => {
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -440,7 +432,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -469,7 +460,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -494,7 +484,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -525,7 +514,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -563,7 +551,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -591,7 +578,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -620,7 +606,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -644,7 +629,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -669,7 +653,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -696,7 +679,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -717,7 +699,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -738,7 +719,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -763,7 +743,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -787,7 +766,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -811,7 +789,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -835,7 +812,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -873,7 +849,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -911,7 +886,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -943,7 +917,6 @@ describe("InlineExpansionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

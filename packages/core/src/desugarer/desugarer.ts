@@ -136,15 +136,32 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 loc: expr.loc,
             };
 
-        // Let bindings - desugar value and body
+        // Let bindings — `let rec x = … in body` is lowered to a single-
+        // binding `CoreLetRecExpr` so all recursive forms share one path
+        // (`inferLetRecExpr` / `emitLetRecExpr`). Non-recursive `let`s
+        // produce a `CoreLet` directly.
         case "Let":
+            if (expr.recursive) {
+                return {
+                    kind: "CoreLetRecExpr",
+                    bindings: [
+                        {
+                            pattern: desugarPattern(expr.pattern, gen),
+                            value: desugar(expr.value, gen),
+                            mutable: expr.mutable,
+                            loc: expr.loc,
+                        },
+                    ],
+                    body: desugar(expr.body, gen),
+                    loc: expr.loc,
+                };
+            }
             return {
                 kind: "CoreLet",
                 pattern: desugarPattern(expr.pattern, gen),
                 value: desugar(expr.value, gen),
                 body: desugar(expr.body, gen),
                 mutable: expr.mutable,
-                recursive: expr.recursive,
                 loc: expr.loc,
             };
 
@@ -410,7 +427,6 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
                 value: desugaredBody,
                 body: loopCall,
                 mutable: false,
-                recursive: false,
                 loc: expr.loc,
             };
 
@@ -571,12 +587,29 @@ function toCoreImportItem(item: ImportItem): CoreImportItem {
 export function desugarDecl(decl: Declaration, gen: FreshVarGen): CoreDeclaration | CoreDeclaration[] {
     switch (decl.kind) {
         case "LetDecl":
+            // `let rec x = …;` is lowered to a single-binding
+            // `CoreLetRecGroup` so all recursive forms share one path.
+            // Non-recursive `let`s produce a `CoreLetDecl` directly.
+            if (decl.recursive) {
+                return {
+                    kind: "CoreLetRecGroup",
+                    bindings: [
+                        {
+                            pattern: desugarPattern(decl.pattern, gen),
+                            value: desugar(decl.value, gen),
+                            mutable: decl.mutable,
+                            loc: decl.loc,
+                        },
+                    ],
+                    exported: decl.exported,
+                    loc: decl.loc,
+                };
+            }
             return {
                 kind: "CoreLetDecl",
                 pattern: desugarPattern(decl.pattern, gen),
                 value: desugar(decl.value, gen),
                 mutable: decl.mutable,
-                recursive: decl.recursive,
                 exported: decl.exported,
                 loc: decl.loc,
             };

@@ -392,6 +392,7 @@ describe("Or-Pattern - Complex Bodies", () => {
                     },
                     body: {
                         kind: "Let",
+                        recursive: false,
                         pattern: { kind: "VarPattern", name: "y", loc: testLoc },
                         value: {
                             kind: "BinOp",
@@ -408,7 +409,6 @@ describe("Or-Pattern - Complex Bodies", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        recursive: false,
                         loc: testLoc,
                     },
                     loc: testLoc,

@@ -145,7 +145,6 @@ describe("AST Transform Utilities", () => {
                     loc: { file: "test", line: 1, column: 1, offset: 0 },
                 },
                 mutable: false,
-                recursive: false,
                 loc: { file: "test", line: 1, column: 1, offset: 0 },
             };
 

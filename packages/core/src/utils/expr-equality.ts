@@ -44,8 +44,7 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
                 patternEquals(e1.pattern, e2.pattern) &&
                 exprEquals(e1.value, e2.value) &&
                 exprEquals(e1.body, e2.body) &&
-                e1.mutable === e2.mutable &&
-                e1.recursive === e2.recursive
+                e1.mutable === e2.mutable
             );
 
         case "CoreLetRecExpr":

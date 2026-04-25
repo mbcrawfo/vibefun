@@ -126,7 +126,6 @@ function buildLambda(
                 value: annotatedRaw,
                 body: innerBody,
                 mutable: false,
-                recursive: false,
                 loc: paramLoc,
             },
             loc,

@@ -110,7 +110,11 @@ export type CoreVar = {
 };
 
 /**
- * Let binding - single binding only (blocks are desugared to nested lets)
+ * Let binding - single binding only (blocks are desugared to nested lets).
+ *
+ * Always non-recursive: `let rec x = … in body` is lowered to a single-
+ * binding `CoreLetRecExpr` by the desugarer so all recursive forms route
+ * through one path. See `docs/compiler-architecture/07-let-binding-paths.md`.
  */
 export type CoreLet = {
     kind: "CoreLet";
@@ -118,7 +122,6 @@ export type CoreLet = {
     value: CoreExpr;
     body: CoreExpr;
     mutable: boolean;
-    recursive: boolean;
     loc: Location;
 };
 
@@ -543,14 +546,17 @@ export type CoreDeclaration =
     | CoreReExportDecl;
 
 /**
- * Let declaration at module level
+ * Let declaration at module level.
+ *
+ * Always non-recursive: `let rec x = …;` is lowered to a single-binding
+ * `CoreLetRecGroup` by the desugarer so all recursive forms route through
+ * one path. See `docs/compiler-architecture/07-let-binding-paths.md`.
  */
 export type CoreLetDecl = {
     kind: "CoreLetDecl";
     pattern: CorePattern;
     value: CoreExpr;
     mutable: boolean;
-    recursive: boolean;
     exported: boolean;
     loc: Location;
 };

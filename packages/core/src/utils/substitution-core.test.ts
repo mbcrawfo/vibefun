@@ -59,7 +59,6 @@ describe("Substitution Utilities", () => {
                 value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -81,7 +80,6 @@ describe("Substitution Utilities", () => {
                 value: { kind: "CoreVar", name: "x", loc: testLoc },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -104,7 +102,6 @@ describe("Substitution Utilities", () => {
                 value: { kind: "CoreIntLit", value: 1, loc: testLoc },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

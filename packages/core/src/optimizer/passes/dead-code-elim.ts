@@ -57,17 +57,15 @@ export class DeadCodeEliminationPass extends OptimizationPass {
      * Eliminate unused let bindings
      */
     private eliminateDeadLet(expr: CoreExpr & { kind: "CoreLet" }): CoreExpr {
-        const { pattern, value, body, mutable, recursive } = expr;
+        const { pattern, value, body, mutable } = expr;
 
         // Never eliminate mutable bindings (identity and side effects matter)
         if (mutable) {
             return expr;
         }
 
-        // Never eliminate recursive bindings (may be used in their own definition)
-        if (recursive) {
-            return expr;
-        }
+        // `CoreLet` is always non-recursive — recursive forms desugar to
+        // `CoreLetRecExpr` (handled separately via the default branch).
 
         // Never eliminate bindings with side effects (unsafe blocks, etc.)
         if (containsUnsafe(value)) {

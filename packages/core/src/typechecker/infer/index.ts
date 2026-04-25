@@ -59,3 +59,11 @@ export { inferExpr };
 
 // Re-export generalize for use by other modules
 export { generalize };
+
+// Re-export let-binding helpers used by both top-level (typechecker.ts)
+// and expression-level (infer-bindings.ts) let-paths.
+export {
+    computeBindingScheme,
+    enforceMutableRefBinding,
+    propagateSubstAcrossDeclarations,
+} from "./let-binding-helpers.js";

@@ -69,11 +69,9 @@ describe("CommonSubexpressionEliminationPass", () => {
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

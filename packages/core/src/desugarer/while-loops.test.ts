@@ -285,6 +285,7 @@ describe("While Loop - Multi-Statement Body", () => {
                 exprs: [
                     {
                         kind: "Let",
+                        recursive: false,
                         pattern: { kind: "VarPattern", name: "y", loc: testLoc },
                         value: {
                             kind: "BinOp",
@@ -300,7 +301,6 @@ describe("While Loop - Multi-Statement Body", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        recursive: false,
                         loc: testLoc,
                     },
                 ],
@@ -351,6 +351,7 @@ describe("While Loop - In Larger Context", () => {
         // let x = while (cond) { action() } in x
         const expr: Expr = {
             kind: "Let",
+            recursive: false,
             pattern: { kind: "VarPattern", name: "x", loc: testLoc },
             value: {
                 kind: "While",
@@ -365,7 +366,6 @@ describe("While Loop - In Larger Context", () => {
             },
             body: { kind: "Var", name: "x", loc: testLoc },
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 

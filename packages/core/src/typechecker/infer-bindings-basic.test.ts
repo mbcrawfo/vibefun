@@ -6,6 +6,7 @@ import type {
     CoreApp,
     CoreBinOp,
     CoreBoolLit,
+    CoreExpr,
     CoreIntLit,
     CoreLambda,
     CoreLet,
@@ -40,7 +41,6 @@ describe("Type Inference - Let-Bindings", () => {
             value,
             body,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -76,7 +76,6 @@ describe("Type Inference - Let-Bindings", () => {
             value: idFunc,
             body: idInt,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -95,7 +94,6 @@ describe("Type Inference - Let-Bindings", () => {
             value: idFunc,
             body: idBool,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -105,7 +103,8 @@ describe("Type Inference - Let-Bindings", () => {
 
     it("should support recursive let-bindings", () => {
         // let rec factorial = n => if n == 0 then 1 else n * factorial(n - 1) in factorial(5)
-        // Simplified: let rec f = x => f(x) in f(42)
+        // Simplified: let rec f = x => f(x) in f(42).
+        // Recursive `let` desugars to single-binding `CoreLetRecExpr`.
         const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "f", loc: testLoc };
         const param: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
         const fVar: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
@@ -117,13 +116,17 @@ describe("Type Inference - Let-Bindings", () => {
         const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
         const body: CoreApp = { kind: "CoreApp", func: fVar2, args: [intLit], loc: testLoc };
 
-        const expr: CoreLet = {
-            kind: "CoreLet",
-            pattern,
-            value: recFunc,
+        const expr: CoreExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern,
+                    value: recFunc,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
             body,
-            mutable: false,
-            recursive: true,
             loc: testLoc,
         };
 
@@ -294,7 +297,6 @@ describe("Type Inference - Value Restriction", () => {
             value: idFunc,
             body: bodyVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -342,7 +344,6 @@ describe("Type Inference - Value Restriction", () => {
             value,
             body: xVar,
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 

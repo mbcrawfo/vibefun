@@ -87,7 +87,6 @@ describe("EtaReductionPass", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

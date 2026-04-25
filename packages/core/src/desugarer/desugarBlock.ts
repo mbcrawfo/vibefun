@@ -66,15 +66,32 @@ export function desugarBlock(
         }
 
         if (expr.kind === "Let") {
-            result = {
-                kind: "CoreLet",
-                pattern: desugarPattern(expr.pattern, gen),
-                value: desugar(expr.value, gen),
-                body: result,
-                mutable: expr.mutable,
-                recursive: expr.recursive,
-                loc: expr.loc,
-            };
+            // `let rec x = … in body` lowers to a single-binding
+            // `CoreLetRecExpr` so all recursive forms share one path.
+            if (expr.recursive) {
+                result = {
+                    kind: "CoreLetRecExpr",
+                    bindings: [
+                        {
+                            pattern: desugarPattern(expr.pattern, gen),
+                            value: desugar(expr.value, gen),
+                            mutable: expr.mutable,
+                            loc: expr.loc,
+                        },
+                    ],
+                    body: result,
+                    loc: expr.loc,
+                };
+            } else {
+                result = {
+                    kind: "CoreLet",
+                    pattern: desugarPattern(expr.pattern, gen),
+                    value: desugar(expr.value, gen),
+                    body: result,
+                    mutable: expr.mutable,
+                    loc: expr.loc,
+                };
+            }
         } else {
             result = {
                 kind: "CoreLet",
@@ -82,7 +99,6 @@ export function desugarBlock(
                 value: desugar(expr, gen),
                 body: result,
                 mutable: false,
-                recursive: false,
                 loc: expr.loc,
             };
         }
