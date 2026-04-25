@@ -373,9 +373,21 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 }
             }
 
-            // Create updated environment with new bindings
+            // Substitution learned across the let-rec group must also
+            // be baked into earlier `declarationTypes` entries and
+            // every existing binding's scheme — mirroring the
+            // non-recursive `CoreLetDecl` flow above. Without this,
+            // narrowings discovered while inferring later group
+            // members (e.g. a `let rec f = g and g = (x: Int) => x`
+            // pinning `f`'s placeholder to `Int -> Int`) would be
+            // dropped from the outer environment, and a `Ref<Option<t>>`
+            // narrowed inside the group wouldn't carry forward to
+            // subsequent declarations.
+            for (const [name, type] of declarationTypes) {
+                declarationTypes.set(name, applySubst(currentSubst, type));
+            }
             const newEnv: TypeEnv = {
-                values: new Map(env.values),
+                values: applySubstToValues(currentSubst, env.values),
                 types: env.types,
             };
 
@@ -389,6 +401,12 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             // already enforced inside `generalize`, but we also skip
             // mutable bindings here for symmetry with the non-recursive
             // path's `skipGeneralize` rule).
+            //
+            // `inferredTypes` was built incrementally; each entry has
+            // been folded through `currentSubst` only up to the point
+            // at which it was inserted. Re-apply the *final* substitution
+            // to every entry so bindings settled earlier in the group
+            // pick up any narrowings produced later in the same group.
             const generalizeCtx = { ...ctx, subst: currentSubst, level: ctx.level + 1 };
             const bindingByName = new Map<string, (typeof decl.bindings)[number]>();
             for (const binding of decl.bindings) {
@@ -396,7 +414,8 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                     bindingByName.set(binding.pattern.name, binding);
                 }
             }
-            for (const [name, type] of inferredTypes) {
+            for (const [name, inferredType] of inferredTypes) {
+                const type = applySubst(currentSubst, inferredType);
                 declarationTypes.set(name, type);
                 const binding = bindingByName.get(name);
                 const skipGeneralize =

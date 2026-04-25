@@ -605,6 +605,39 @@ describe("renameTopLevelShadows", () => {
         expect(yBinding.value.name).toBe("x$2");
     });
 
+    it("renames a CoreLetDecl that shadows a prior CoreExternalDecl name", () => {
+        // External declarations also reserve a top-level name in the
+        // generated module (they emit `const log = …` from the FFI
+        // shim). A subsequent `let log = …` would otherwise produce
+        // a duplicate-binding `SyntaxError`.
+        const module = makeModule([
+            {
+                kind: "CoreExternalDecl",
+                name: "log",
+                typeExpr: { kind: "CoreTypeConst", name: "Unit", loc },
+                jsName: "console.log",
+                exported: false,
+                loc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "log", loc },
+                value: intLit(1),
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc,
+            },
+        ]);
+
+        const { module: renamed } = renameTopLevelShadows(module);
+        const letDecl = renamed.declarations[1];
+        if (letDecl?.kind !== "CoreLetDecl" || letDecl.pattern.kind !== "CoreVarPattern") {
+            throw new Error("Expected CoreLetDecl with VarPattern");
+        }
+        expect(letDecl.pattern.name).toBe("log$1");
+    });
+
     it("avoids colliding with an existing user-bound `x$1` when α-renaming", () => {
         // Regression: bumping the per-source counter without consulting
         // `seen` produced `let x = 1; let x$1 = 2; let x = 3;`
