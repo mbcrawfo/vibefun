@@ -87,7 +87,8 @@ test(S, "08-modules.md", "export let binding", () =>
     moduleTest(
         {
             "lib.vf": `export let x = 42;`,
-            "main.vf": `import { x } from "./lib";
+            "main.vf": `import { String } from "@vibefun/std";
+import { x } from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(x)) };`,
         },
@@ -113,7 +114,8 @@ test(S, "08-modules.md", "export function", () =>
     moduleTest(
         {
             "math.vf": `export let add = (x: Int, y: Int) => x + y;`,
-            "main.vf": `import { add } from "./math";
+            "main.vf": `import { String } from "@vibefun/std";
+import { add } from "./math";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(add(2, 3))) };`,
         },
@@ -181,7 +183,8 @@ let _ = unsafe { console_log("init") };
 export let value = 42;`,
             "a.vf": `import { value } from "./counter";
 export let a = value;`,
-            "main.vf": `import { value } from "./counter";
+            "main.vf": `import { String } from "@vibefun/std";
+import { value } from "./counter";
 import { a } from "./a";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(value + a)) };`,
@@ -216,7 +219,8 @@ test(S, "08-modules.md", "index.vf resolution for directory imports", () =>
     moduleTest(
         {
             "lib/index.vf": `export let x = 42;`,
-            "main.vf": `import { x } from "./lib";
+            "main.vf": `import { String } from "@vibefun/std";
+import { x } from "./lib";
 external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(String.fromInt(x)) };`,
         },
@@ -308,7 +312,8 @@ test(S, "08-modules.md", "exported external declaration", () =>
     moduleTest(
         {
             "ffi.vf": `export external math_floor: (Float) -> Int = "Math.floor";`,
-            "main.vf": `import { math_floor } from "./ffi";
+            "main.vf": `import { String } from "@vibefun/std";
+import { math_floor } from "./ffi";
 external console_log: (String) -> Unit = "console.log";
 let result = unsafe { math_floor(3.7) };
 let _ = unsafe { console_log(String.fromInt(result)) };`,
