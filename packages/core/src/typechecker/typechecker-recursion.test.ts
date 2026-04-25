@@ -725,6 +725,135 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
     });
 
+    it("should propagate substitution from a recursive single-binding CoreLetDecl back into earlier top-level bindings", () => {
+        // Regression: same stale-substitution bug as the
+        // `CoreLetRecGroup` regression above, but for the sibling
+        // `decl.recursive && pattern.kind === "CoreVarPattern"` path
+        // in `typeCheckDeclaration`. A top-level `let rec` whose body
+        // narrows a prior monomorphic binding (here, a `Ref<Option<t>>`
+        // refined to `Ref<Option<Int>>` by `consume(!r)` inside the
+        // recursive body) must thread `finalSubst` through `env.values`
+        // and `declarationTypes` so a subsequent declaration sees the
+        // narrowed scheme.
+        const module = createModule([
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "r", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "ref", loc: testLoc },
+                    args: [{ kind: "CoreVar", name: "None", loc: testLoc }],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "consume", loc: testLoc },
+                value: {
+                    kind: "CoreLambda",
+                    param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    body: {
+                        kind: "CoreMatch",
+                        expr: { kind: "CoreVar", name: "x", loc: testLoc },
+                        cases: [
+                            {
+                                pattern: {
+                                    kind: "CoreVariantPattern",
+                                    constructor: "Some",
+                                    args: [{ kind: "CoreVarPattern", name: "v", loc: testLoc }],
+                                    loc: testLoc,
+                                },
+                                body: { kind: "CoreVar", name: "v", loc: testLoc },
+                                loc: testLoc,
+                            },
+                            {
+                                pattern: {
+                                    kind: "CoreVariantPattern",
+                                    constructor: "None",
+                                    args: [],
+                                    loc: testLoc,
+                                },
+                                body: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+            // A recursive single-binding let whose body reads `r` via
+            // `consume(!r)`. The match in `consume` pins `r`'s element
+            // type to `Option<Int>`, and the recursive self-reference
+            // forces this branch (not the non-recursive one) to be
+            // taken in `typeCheckDeclaration`.
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "loop", loc: testLoc },
+                value: {
+                    kind: "CoreLambda",
+                    param: { kind: "CoreVarPattern", name: "_", loc: testLoc },
+                    body: {
+                        kind: "CoreApp",
+                        func: { kind: "CoreVar", name: "consume", loc: testLoc },
+                        args: [
+                            {
+                                kind: "CoreUnaryOp",
+                                op: "Deref",
+                                expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: true,
+                exported: false,
+                loc: testLoc,
+            },
+            // Subsequent read of `r` must observe the narrowed
+            // `Option<Int>` element type. If `finalSubst` from the
+            // recursive branch wasn't applied to env.values, this
+            // declaration would fail (or pick up a stale `Option<t>`).
+            {
+                kind: "CoreLetDecl",
+                pattern: { kind: "CoreVarPattern", name: "extracted", loc: testLoc },
+                value: {
+                    kind: "CoreApp",
+                    func: { kind: "CoreVar", name: "consume", loc: testLoc },
+                    args: [
+                        {
+                            kind: "CoreUnaryOp",
+                            op: "Deref",
+                            expr: { kind: "CoreVar", name: "r", loc: testLoc },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                },
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        const result = typeCheck(module);
+        const extractedType = result.declarationTypes.get("extracted");
+        expect(extractedType?.type).toBe("Const");
+        if (extractedType?.type === "Const") expect(extractedType.name).toBe("Int");
+    });
+
     it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
         // Mirrors the VF4018 check that already existed for non-recursive
         // `let mut x = 0;` — the recursive group form must reject the

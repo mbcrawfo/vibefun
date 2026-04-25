@@ -187,9 +187,22 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 const finalSubst = composeSubst(unifySubst, result.subst);
                 const finalType = applySubst(finalSubst, result.type);
 
+                // Substitution learned in this declaration must also be
+                // baked into earlier `declarationTypes` entries and
+                // every existing binding's scheme — mirrors the
+                // non-recursive `CoreLetDecl` path. Without this, a
+                // top-level `let rec` whose body narrows an earlier
+                // monomorphic type variable (e.g. a prior `Ref<Option<t>>`
+                // pinned to `Ref<Option<Int>>` by use inside the body)
+                // wouldn't carry the narrowing forward to subsequent
+                // declarations, leaving them reading the stale scheme.
+                for (const [boundName, boundType] of declarationTypes) {
+                    declarationTypes.set(boundName, applySubst(finalSubst, boundType));
+                }
+
                 // Create updated environment with new binding
                 const newEnv: TypeEnv = {
-                    values: new Map(env.values),
+                    values: applySubstToValues(finalSubst, env.values),
                     types: env.types,
                 };
 

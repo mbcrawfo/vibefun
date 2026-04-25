@@ -323,10 +323,13 @@ describe("renameTopLevelShadows", () => {
         expect(fBinding.value.name).toBe("x$1");
     });
 
-    it("leaves type/external/import/re-export decls untouched", () => {
+    it("leaves type/external/external-type/import/re-export decls untouched", () => {
         // The non-value declaration kinds — which can't reference
         // top-level value bindings — pass straight through
-        // applyRenamesToDecl unchanged.
+        // applyRenamesToDecl unchanged. Cover every branch of the
+        // switch (`CoreTypeDecl`, `CoreExternalDecl`,
+        // `CoreExternalTypeDecl`, `CoreImportDecl`, `CoreReExportDecl`)
+        // so the pass-through paths are all exercised.
         const module = makeModule([
             {
                 kind: "CoreLetDecl",
@@ -367,20 +370,44 @@ describe("renameTopLevelShadows", () => {
                 loc,
             },
             {
+                kind: "CoreExternalTypeDecl",
+                name: "Buffer",
+                typeExpr: { kind: "CoreTypeConst", name: "Unit", loc },
+                exported: false,
+                loc,
+            },
+            {
                 kind: "CoreImportDecl",
                 from: "./other",
                 items: [],
                 loc,
             },
+            {
+                kind: "CoreReExportDecl",
+                from: "./other",
+                items: [{ name: "x", isType: false }],
+                loc,
+            },
         ]);
 
         const { module: renamed } = renameTopLevelShadows(module);
-        // The first two are the rename-pass's primary subject — assert
-        // they came through unchanged in shape so this test stays focused.
-        expect(renamed.declarations).toHaveLength(5);
+        // The first two are the rename-pass's primary subject; assert
+        // each non-value decl came through unchanged (and in order)
+        // so each `applyRenamesToDecl` branch is observed.
+        expect(renamed.declarations).toHaveLength(7);
         expect(renamed.declarations[2]?.kind).toBe("CoreTypeDecl");
         expect(renamed.declarations[3]?.kind).toBe("CoreExternalDecl");
-        expect(renamed.declarations[4]?.kind).toBe("CoreImportDecl");
+        expect(renamed.declarations[4]?.kind).toBe("CoreExternalTypeDecl");
+        expect(renamed.declarations[5]?.kind).toBe("CoreImportDecl");
+        expect(renamed.declarations[6]?.kind).toBe("CoreReExportDecl");
+        // Verify the re-export's items are forwarded verbatim, not
+        // accidentally mutated by the rename pass.
+        const reExport = renamed.declarations[6];
+        if (reExport?.kind !== "CoreReExportDecl") {
+            throw new Error("Expected CoreReExportDecl");
+        }
+        expect(reExport.items).toEqual([{ name: "x", isType: false }]);
+        expect(reExport.from).toBe("./other");
     });
 
     it("renames a CoreLetRecGroup binding that shadows a prior top-level name", () => {
