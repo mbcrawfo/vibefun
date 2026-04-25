@@ -7,16 +7,60 @@
 
 import type { Module } from "../types/ast.js";
 import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
-import type { Type, TypeEnv } from "../types/environment.js";
+import type { Type, TypeEnv, TypeScheme, ValueBinding } from "../types/environment.js";
+import type { Substitution } from "./unify.js";
 
 import { throwDiagnostic } from "../diagnostics/index.js";
 import { buildEnvironment } from "./environment.js";
-import { convertTypeExpr, createContext, inferExpr } from "./infer/index.js";
+import { convertTypeExpr, createContext, generalize, inferExpr } from "./infer/index.js";
 import { getStdlibModuleSignature, STDLIB_PACKAGE } from "./module-signatures/index.js";
 import { checkPattern } from "./patterns.js";
 import { registerTypeDeclarations } from "./type-declarations.js";
 import { freshTypeVar } from "./types.js";
 import { applySubst, composeSubst, unify } from "./unify.js";
+
+/**
+ * Apply a substitution to a type scheme, leaving the scheme's bound
+ * variables alone. Bound variables are universally quantified; free
+ * type vars in the scheme's body are subject to the substitution.
+ */
+function applySubstToScheme(subst: Substitution, scheme: TypeScheme): TypeScheme {
+    if (scheme.vars.length === 0) {
+        return { vars: [], type: applySubst(subst, scheme.type) };
+    }
+    const filtered = new Map(subst);
+    for (const v of scheme.vars) {
+        filtered.delete(v);
+    }
+    return { vars: scheme.vars, type: applySubst(filtered, scheme.type) };
+}
+
+/**
+ * Apply a substitution to every binding in a value environment so type
+ * constraints learned during one top-level declaration's inference
+ * propagate to subsequent declarations. Without this, e.g. a series
+ * of `x := …` assignments to a non-generalized `Ref<Option<t>>`
+ * binding wouldn't accumulate the `t := …` constraint, and the
+ * value restriction couldn't reject incompatible later assignments.
+ */
+function applySubstToValues(subst: Substitution, values: Map<string, ValueBinding>): Map<string, ValueBinding> {
+    if (subst.size === 0) {
+        return values;
+    }
+    const out = new Map<string, ValueBinding>();
+    for (const [name, binding] of values) {
+        if (binding.kind === "Value") {
+            out.set(name, { ...binding, scheme: applySubstToScheme(subst, binding.scheme) });
+        } else if (binding.kind === "External") {
+            out.set(name, { ...binding, scheme: applySubstToScheme(subst, binding.scheme) });
+        } else {
+            // ExternalOverload schemes are stored as TypeExpr (raw AST), not Type;
+            // they can't carry inference-time substitutions.
+            out.set(name, binding);
+        }
+    }
+    return out;
+}
 
 /**
  * Names that remain ambient for ergonomics (variant constructors) but are
@@ -155,25 +199,44 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
 
                 return newEnv;
             } else {
-                // Handle non-recursive binding
-                const result = inferExpr(ctx, decl.value);
+                // Handle non-recursive binding. Mirror inferLet's flow:
+                // bump the level for inference so generalize can identify
+                // the type vars introduced inside this RHS, then drop
+                // the level back when adding the binding to the env.
+                const newLevel = ctx.level + 1;
+                const valueCtx = { ...ctx, level: newLevel };
+                const result = inferExpr(valueCtx, decl.value);
 
                 // Check the pattern and get variable bindings
-                const patternResult = checkPattern(ctx.env, decl.pattern, result.type, result.subst, ctx.level);
+                const patternResult = checkPattern(ctx.env, decl.pattern, result.type, result.subst, newLevel);
 
-                // Create updated environment with new bindings
+                // Compose the pattern's substitution onto the inference
+                // substitution; both must be applied to existing bindings
+                // so constraints learned in this declaration (e.g.
+                // `x := Some(42)` records `t := Int`) carry forward to
+                // later declarations, blocking polymorphic ref abuse.
+                const finalSubst = composeSubst(patternResult.subst, result.subst);
+
+                // Create updated environment with substitution baked into
+                // every existing binding's scheme.
                 const newEnv: TypeEnv = {
-                    values: new Map(env.values),
+                    values: applySubstToValues(finalSubst, env.values),
                     types: env.types,
                 };
 
-                // Store the inferred types and add to environment
+                // Generalize each pattern-bound name's type. Use the
+                // bumped-level context so generalize captures the vars
+                // that were introduced inside this RHS — value-restricted
+                // expressions (like `ref(...)`) stay monomorphic, while
+                // syntactic values (lambdas, literals, variants) become
+                // polymorphic and instantiate independently at each use.
+                const generalizeCtx = { ...valueCtx, subst: finalSubst };
                 for (const [name, type] of patternResult.bindings) {
                     declarationTypes.set(name, type);
-                    // Add binding to environment for subsequent declarations
+                    const scheme = generalize(generalizeCtx, type, decl.value);
                     newEnv.values.set(name, {
                         kind: "Value",
-                        scheme: { vars: [], type },
+                        scheme,
                         loc: decl.loc,
                     });
                 }
