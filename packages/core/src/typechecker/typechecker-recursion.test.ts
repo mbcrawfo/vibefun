@@ -5,8 +5,27 @@
 
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { createModule, testLoc } from "./typechecker-test-helpers.js";
 import { typeCheck } from "./typechecker.js";
+
+// Match the established VF4018 assertion pattern in sibling test
+// files (e.g. `infer-bindings-errors-and-edges.test.ts`): explicit
+// try/catch with code-string check rather than a regex on the
+// thrown error's message. Stronger because it asserts the
+// diagnostic *type* (`VibefunDiagnostic`) and the exact `code`,
+// rather than only the message containing `VF4018`.
+function expectVF4018(run: () => unknown): void {
+    try {
+        run();
+        throw new Error("Expected VF4018 to be thrown");
+    } catch (err) {
+        expect(err).toBeInstanceOf(VibefunDiagnostic);
+        if (err instanceof VibefunDiagnostic) {
+            expect(err.code).toBe("VF4018");
+        }
+    }
+}
 
 describe("typeCheck - Recursion and Let Expressions", () => {
     it("should type check recursive factorial with pattern matching", () => {
@@ -872,7 +891,7 @@ describe("typeCheck - Recursion and Let Expressions", () => {
             },
         ]);
 
-        expect(() => typeCheck(module)).toThrow(/VF4018/);
+        expectVF4018(() => typeCheck(module));
     });
 
     it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
@@ -895,6 +914,6 @@ describe("typeCheck - Recursion and Let Expressions", () => {
             },
         ]);
 
-        expect(() => typeCheck(module)).toThrow(/VF4018/);
+        expectVF4018(() => typeCheck(module));
     });
 });

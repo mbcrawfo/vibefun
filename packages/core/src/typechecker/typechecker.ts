@@ -455,9 +455,16 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             for (const [name, inferredType] of inferredTypes) {
                 const type = applySubst(currentSubst, inferredType);
                 declarationTypes.set(name, type);
+                // Both `bindingByName` and `inferredTypes` are
+                // populated only from `CoreVarPattern` bindings, so
+                // the `pattern.kind` check that lives in the non-
+                // recursive `CoreLetDecl` path is redundant here —
+                // every `binding` we look up is already a var
+                // pattern. The only generalize-skipping condition
+                // that can fire is `binding.mutable`. (`binding ===
+                // undefined` is kept as a defensive narrowing.)
                 const binding = bindingByName.get(name);
-                const skipGeneralize =
-                    binding === undefined || binding.mutable || binding.pattern.kind !== "CoreVarPattern";
+                const skipGeneralize = binding === undefined || binding.mutable;
                 const scheme: TypeScheme = skipGeneralize
                     ? { vars: [], type }
                     : generalize(generalizeCtx, type, binding.value);
