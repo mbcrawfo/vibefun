@@ -121,9 +121,10 @@ describe("Type Inference - Let-Binding Error Cases", () => {
 
         const result = inferExpr(ctx, outer);
         expect(result.type.type).toBe("App");
-        if (result.type.type === "App" && result.type.constructor.type === "Const") {
-            expect(result.type.constructor.name).toBe("Ref");
-        }
+        if (result.type.type !== "App") throw new Error("Expected Ref<T> application type");
+        expect(result.type.constructor.type).toBe("Const");
+        if (result.type.constructor.type !== "Const") throw new Error("Expected Const head constructor");
+        expect(result.type.constructor.name).toBe("Ref");
     });
 
     it("should destructure a tuple pattern in a let-binding", () => {

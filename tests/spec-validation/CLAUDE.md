@@ -16,6 +16,8 @@ Spec-validation tests are **informative**, not gating:
 
 Therefore, **most actual regression tests belong in `tests/e2e/`**, not here. Use this suite *only* for tests that exist to track spec conformance — "section 7 says X works; does it?" Use `tests/e2e/` for any test you want to gate merges on: soundness regressions, refactor safety nets, anything whose failure should fail `pnpm run verify`.
 
+That said, **changes to user-visible syntax or language semantics still require updating `tests/spec-validation/sections/`** (and rerunning `pnpm run spec:validate` to commit any expected-pass flips) per the root `CLAUDE.md`'s Comprehensive Testing rule. The conformance signal is what makes the suite useful — moving regression tests out doesn't excuse leaving the spec view stale.
+
 Rule of thumb: if you'd be upset that a CI run was green while this test was red, the test belongs in `tests/e2e/`.
 
 ## Architecture

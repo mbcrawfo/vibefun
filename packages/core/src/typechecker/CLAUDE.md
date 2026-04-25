@@ -28,7 +28,7 @@ Always `applySubst(ctx.subst, ty)` before unifying a type you just pulled from t
 
 ## Let-Binding Paths
 
-Three code paths handle `let` / `let rec` bindings post-Phase-C of PR #74:
+Three code paths handle `let` / `let rec` bindings post-Phase-C of PR #73:
 
 1. **Top-level non-recursive** — `CoreLetDecl` branch in `typechecker.ts`.
 2. **Top-level recursive (any binding count)** — `CoreLetRecGroup` branch in

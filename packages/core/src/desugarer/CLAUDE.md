@@ -4,7 +4,7 @@ Transforms Surface AST (parser output) into Core AST (typechecker input) by elim
 
 ## Critical: Callback Injection
 
-Helper files (`buildConsChain.ts`, `desugarPipe.ts`, `desugarComposition.ts`, `desugarListWithConcats.ts`, `curryLambda.ts`, `desugarVariantConstructor.ts`, `desugarRecordTypeField.ts`, `desugarListPattern.ts`, etc.) deliberately receive `desugar`, `desugarPattern`, or `desugarTypeExpr` as **function parameters** instead of importing them. This avoids import cycles.
+Helper files (`buildConsChain.ts`, `desugarPipe.ts`, `desugarComposition.ts`, `desugarListWithConcats.ts`, `curryLambda.ts`, `desugarVariantConstructor.ts`, `desugarRecordTypeField.ts`, `desugarListPattern.ts`, `lowerLetBinding.ts`, etc.) deliberately receive `desugar`, `desugarPattern`, or `desugarTypeExpr` as **function parameters** instead of importing them. This avoids import cycles.
 
 `desugarer.ts` wires the callbacks via local closures (e.g., `buildConsChainLocal`, `desugarListWithConcatsLocal`) and passes them down. When you add a new helper that needs to recurse back into `desugar`, follow the same pattern — **do not add a direct import**, or you'll reintroduce cycles.
 

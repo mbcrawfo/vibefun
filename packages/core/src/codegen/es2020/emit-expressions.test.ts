@@ -602,6 +602,7 @@ describe("Expression Emission", () => {
             );
             const result = emitExpr(expr, ctx);
             expect(result).toContain("let f;");
+            expect(result).toContain("f = (n) => n;");
             expect(result).toContain("return f(5);");
         });
 

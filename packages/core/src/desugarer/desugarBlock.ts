@@ -6,6 +6,8 @@ import type { Expr, Location, Pattern } from "../types/ast.js";
 import type { CoreExpr, CorePattern } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
+import { lowerLetBinding } from "./lowerLetBinding.js";
+
 /**
  * Desugar a block expression into nested let bindings
  *
@@ -66,32 +68,7 @@ export function desugarBlock(
         }
 
         if (expr.kind === "Let") {
-            // `let rec x = … in body` lowers to a single-binding
-            // `CoreLetRecExpr` so all recursive forms share one path.
-            if (expr.recursive) {
-                result = {
-                    kind: "CoreLetRecExpr",
-                    bindings: [
-                        {
-                            pattern: desugarPattern(expr.pattern, gen),
-                            value: desugar(expr.value, gen),
-                            mutable: expr.mutable,
-                            loc: expr.loc,
-                        },
-                    ],
-                    body: result,
-                    loc: expr.loc,
-                };
-            } else {
-                result = {
-                    kind: "CoreLet",
-                    pattern: desugarPattern(expr.pattern, gen),
-                    value: desugar(expr.value, gen),
-                    body: result,
-                    mutable: expr.mutable,
-                    loc: expr.loc,
-                };
-            }
+            result = lowerLetBinding(expr, result, gen, desugar, desugarPattern);
         } else {
             result = {
                 kind: "CoreLet",
