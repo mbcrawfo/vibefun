@@ -675,5 +675,33 @@ describe("compile command", () => {
 
             expect(result.exitCode).toBe(EXIT_COMPILATION_ERROR);
         });
+
+        it("rewrites import paths when an import resolves to a directory's index.vf", () => {
+            // Per spec docs/spec/08-modules.md "Index file convention":
+            // `./lib` resolves to `./lib/index.vf` if `./lib.vf` doesn't
+            // exist. Codegen would otherwise emit `./lib.js` (which
+            // doesn't exist on disk); the post-pass rewrites it to
+            // `./lib/index.js` so the runtime can find it.
+            createTestFile("lib/index.vf", "export let x = 99;");
+            const entryPath = createTestFile("main.vf", 'import { x } from "./lib";\nlet _ = x;');
+
+            const result = compile(entryPath, { quiet: true });
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+
+            const mainJs = readOutputFile("main.js");
+            expect(mainJs).toContain('from "./lib/index.js"');
+            expect(mainJs).not.toContain('from "./lib.js"');
+        });
+
+        it("leaves direct file imports untouched when no rewrite is needed", () => {
+            createTestFile("lib.vf", "export let z = 1;");
+            const entryPath = createTestFile("main.vf", 'import { z } from "./lib";\nlet _ = z;');
+
+            const result = compile(entryPath, { quiet: true });
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+
+            const mainJs = readOutputFile("main.js");
+            expect(mainJs).toContain('from "./lib.js"');
+        });
     });
 });

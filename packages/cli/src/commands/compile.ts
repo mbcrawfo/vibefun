@@ -348,11 +348,14 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
             const surfaceModule = resolution.modules.get(modulePath);
             if (surfaceModule === undefined) continue;
 
+            const outputRelative = moduleOutputRelatives.get(modulePath);
+            if (outputRelative === undefined) {
+                throw new Error(`Internal error: missing output mapping for ${modulePath}`);
+            }
+
             const coreAst = desugarModule(surfaceModule);
             const typedModule = typeCheck(coreAst);
             const { code: rawCode } = generate(typedModule, { filename: modulePath });
-
-            const outputRelative = moduleOutputRelatives.get(modulePath) ?? deriveOutputRelative(entryDir, modulePath);
 
             const code = rewriteRelativeImportPaths(
                 rawCode,
@@ -651,18 +654,6 @@ function formatErrorResult(
     }
 
     return { exitCode: EXIT_COMPILATION_ERROR, stderr: errorMessages };
-}
-
-/**
- * Compute the JS output path for a module path, relative to the entry's
- * directory. Mirrors the same `.vf` → `.js` mapping used by the main
- * compileMultiFile loop and is only called as a fallback when the
- * resolver's compilation order didn't produce an entry for `modulePath`
- * (defensive — should not happen in practice).
- */
-function deriveOutputRelative(entryDir: string, modulePath: string): string {
-    const rel = relative(entryDir, modulePath);
-    return rel.endsWith(".vf") ? rel.slice(0, -".vf".length) + ".js" : rel + ".js";
 }
 
 /**
