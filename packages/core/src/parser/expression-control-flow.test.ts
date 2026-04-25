@@ -183,8 +183,13 @@ describe("Parser - Control Flow", () => {
             expect(expr.kind).toBe("Block");
         });
 
-        it("rejects nested let mut without ref()", () => {
-            expect(() => parseExpression("{ let mut x = 0; x; }")).toThrow("Mutable bindings must use ref() syntax");
+        it("accepts nested let mut with non-ref RHS at parse time (typechecker rejects later)", () => {
+            // The parser-level "must be ref()" check moved to the
+            // typechecker (VF4018) so ref aliasing (`let mut b = a;`)
+            // can succeed. The expression parses; rejection happens
+            // during type inference.
+            const expr = parseExpression("{ let mut x = 0; x; }");
+            expect(expr.kind).toBe("Block");
         });
 
         it("rejects nested let mut with destructuring pattern", () => {

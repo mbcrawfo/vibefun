@@ -242,16 +242,19 @@ describe("Parser - Declarations", () => {
             });
         });
 
-        it("should reject mut bindings without ref()", () => {
-            expect(() => parseDecl("let mut x = 0;")).toThrow("Mutable bindings must use ref() syntax");
-        });
-
-        it("should reject mut bindings with other function calls", () => {
-            expect(() => parseDecl("let mut x = someFunction();")).toThrow("Mutable bindings must use ref() syntax");
-        });
-
-        it("should reject mut bindings with direct constructors", () => {
-            expect(() => parseDecl("let mut x = None;")).toThrow("Mutable bindings must use ref() syntax");
+        it("should accept mut bindings with non-ref() RHS (typechecker rejects them later)", () => {
+            // Per spec, `let mut b = a;` is legal when a : Ref<T> (aliasing).
+            // The parser cannot tell from syntax alone whether the RHS will
+            // produce a Ref<T>, so the "value must be Ref<T>" rule moved to
+            // the typechecker (VF4018). The parser accepts any RHS shape;
+            // see infer-bindings.test.ts for the rejection assertions.
+            const decl = parseDecl("let mut x = 0;");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "VarPattern", name: "x" },
+                mutable: true,
+                value: { kind: "IntLit", value: 0 },
+            });
         });
 
         it("should reject mut bindings with record destructuring", () => {

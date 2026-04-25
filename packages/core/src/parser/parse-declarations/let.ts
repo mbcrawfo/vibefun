@@ -15,13 +15,14 @@ import { parseExpression, parsePattern, parseTypeExpr } from "./shared-state.js"
  * Validate the surface-level shape of a `let [mut] pattern = value` binding.
  *
  * Two complementary constraints (per spec docs/spec/07-mutable-references.md):
- *   - `let x = ref(...)` (no `mut`): rejected — ref values must be marked
- *     with the `mut` keyword so mutation is visible at the declaration site.
+ *   - `let x = ref(...)` (no `mut`): rejected with VF2008 — ref values must
+ *     be marked with the `mut` keyword so mutation is visible at the
+ *     declaration site.
  *   - `let mut <pattern> = <value>`: pattern must be a `VarPattern` (mutable
- *     bindings cannot destructure), and the value must be a `ref(...)` call.
- *     The "value must produce a Ref<T>" check is enforced syntactically here
- *     and refined by the typechecker for cases the parser can't see (e.g.
- *     ref aliasing through a variable).
+ *     bindings cannot destructure). The "value must produce a Ref<T>" check
+ *     is left to the typechecker because aliasing forms like `let mut b = a;`
+ *     (where `a: Ref<T>`) are spec-legal even though their RHS isn't a
+ *     `ref(...)` call.
  *
  * @param parser - The parser instance
  * @param value - The value expression being assigned
@@ -50,12 +51,10 @@ export function validateMutableBinding(parser: ParserBase, value: Expr, pattern:
         throw parser.error("VF2004", pattern.loc);
     }
 
-    if (!isRefCall) {
-        throw parser.error("VF2003", value.loc, {
-            name: pattern.name,
-            hint: literalHint(value),
-        });
-    }
+    // The "value produces a Ref<T>" requirement is enforced by the
+    // typechecker (see infer-bindings.ts), which has the type
+    // information needed to accept ref aliasing through a variable
+    // while still rejecting `let mut x = 5;`.
 }
 
 /**
@@ -74,8 +73,8 @@ function refArgHint(refCall: Expr): string {
 }
 
 /**
- * Best-effort hint string for a value expression — used in error suggestions
- * for both the "missing ref()" and "missing mut" diagnostics.
+ * Best-effort hint string for a value expression — used in the VF2008
+ * "missing mut" diagnostic suggestion.
  */
 function literalHint(value: Expr): string {
     if (value.kind === "IntLit" || value.kind === "FloatLit") {
