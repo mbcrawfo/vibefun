@@ -398,7 +398,13 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                                 currentSubst = composeSubst(refUnifySubst, currentSubst);
                             } catch (err) {
                                 if (err instanceof VibefunDiagnostic) {
-                                    throwDiagnostic("VF4018", binding.loc, {});
+                                    // Match the VF4018 location used by the
+                                    // sibling sites (`decl.value.loc` in
+                                    // both top-level branches above and
+                                    // `expr.value.loc` in `infer-bindings.ts`)
+                                    // so the diagnostic points at the RHS
+                                    // expression rather than the whole binding.
+                                    throwDiagnostic("VF4018", binding.value.loc, {});
                                 }
                                 throw err;
                             }
