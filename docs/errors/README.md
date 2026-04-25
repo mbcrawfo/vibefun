@@ -81,6 +81,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF4015](typechecker.md#vf4015) | NotARef | Error | You tried to dereference or assign to a value that is not a Ref |
 | [VF4016](typechecker.md#vf4016) | RefAssignmentMismatch | Error | You tried to assign a value to a Ref, but the value's type does not match the Ref's inner type |
 | [VF4017](typechecker.md#vf4017) | NotImplemented | Error | This feature has not yet been implemented in the type checker |
+| [VF4018](typechecker.md#vf4018) | MutableBindingRequiresRef | Error | The 'mut' keyword on a let binding declares that the binding holds mutable state |
 | [VF4020](typechecker.md#vf4020) | CannotUnify | Error | Type unification failed because the two types have incompatible structures |
 | [VF4021](typechecker.md#vf4021) | FunctionArityMismatch | Error | Two function types cannot be unified because they have different numbers of parameters |
 | [VF4022](typechecker.md#vf4022) | TypeApplicationArityMismatch | Error | Two type applications cannot be unified because they have different numbers of type arguments |
@@ -150,7 +151,7 @@ Errors during syntax parsing (AST construction)
 
 Errors during desugaring (syntax transformation)
 
-### [Type Checker](typechecker.md) (60 errors, 1 warnings)
+### [Type Checker](typechecker.md) (61 errors, 1 warnings)
 
 Errors during type checking and inference
 
@@ -160,6 +161,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 125
-- **Errors:** 122
+- **Total diagnostic codes:** 126
+- **Errors:** 123
 - **Warnings:** 3

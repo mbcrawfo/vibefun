@@ -56,6 +56,80 @@ describe("Type Inference - Let-Binding Error Cases", () => {
         }
     });
 
+    it("should reject `let mut x = <non-Ref>` with VF4018", () => {
+        // Per docs/spec/07-mutable-references.md: a `let mut` binding must
+        // hold a Ref<T>. The parser permits any RHS shape (so aliasing
+        // forms like `let mut b = a;` parse), but the typechecker rejects
+        // RHS values whose inferred type isn't Ref<T>.
+        const pattern: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 5, loc: testLoc };
+        const body: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern,
+            value: intLit,
+            body,
+            mutable: true,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        try {
+            inferExpr(ctx, expr);
+            throw new Error("Expected VF4018 to be thrown");
+        } catch (err) {
+            expect(err).toBeInstanceOf(VibefunDiagnostic);
+            if (err instanceof VibefunDiagnostic) {
+                expect(err.code).toBe("VF4018");
+            }
+        }
+    });
+
+    it("should accept `let mut b = a;` ref aliasing", () => {
+        // Per docs/spec/07-mutable-references.md "Ref Equality and
+        // Aliasing": `let mut b = a;` (where a : Ref<T>) must be allowed.
+        // The new typechecker enforcement unifies the RHS with Ref<fresh>
+        // and lets the alias case through.
+        const aPattern: CoreVarPattern = { kind: "CoreVarPattern", name: "a", loc: testLoc };
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 0, loc: testLoc };
+        const refVar: CoreVar = { kind: "CoreVar", name: "ref", loc: testLoc };
+        const refCall: CoreApp = { kind: "CoreApp", func: refVar, args: [intLit], loc: testLoc };
+
+        const bPattern: CoreVarPattern = { kind: "CoreVarPattern", name: "b", loc: testLoc };
+        const aRef: CoreVar = { kind: "CoreVar", name: "a", loc: testLoc };
+        const innerBody: CoreVar = { kind: "CoreVar", name: "b", loc: testLoc };
+        const inner: CoreLet = {
+            kind: "CoreLet",
+            pattern: bPattern,
+            value: aRef,
+            body: innerBody,
+            mutable: true,
+            recursive: false,
+            loc: testLoc,
+        };
+        const outer: CoreLet = {
+            kind: "CoreLet",
+            pattern: aPattern,
+            value: refCall,
+            body: inner,
+            mutable: true,
+            recursive: false,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, outer);
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App" && result.type.constructor.type === "Const") {
+            expect(result.type.constructor.name).toBe("Ref");
+        }
+    });
+
     it("should destructure a tuple pattern in a let-binding", () => {
         // let (a, b) = (1, 2) in a
         const tuplePattern: import("../types/core-ast.js").CoreTuplePattern = {

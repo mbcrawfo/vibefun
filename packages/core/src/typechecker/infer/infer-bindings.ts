@@ -9,9 +9,9 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import type { Type, TypeEnv, TypeScheme } from "../../types/environment.js";
 import type { InferenceContext, InferResult } from "./infer-context.js";
 
-import { throwDiagnostic } from "../../diagnostics/index.js";
+import { throwDiagnostic, VibefunDiagnostic } from "../../diagnostics/index.js";
 import { checkPattern } from "../patterns.js";
-import { freeTypeVarsAtLevel, freshTypeVar, isSyntacticValue } from "../types.js";
+import { freeTypeVarsAtLevel, freshTypeVar, isSyntacticValue, refType } from "../types.js";
 import { applySubst, composeSubst, unify } from "../unify.js";
 
 // Import inferExpr - will be set via dependency injection
@@ -93,10 +93,11 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         });
     }
 
-    // Mutable bindings (`let mut x = ref(...)`) are just a surface marker —
-    // the parser already enforces the `ref(...)` shape, and the HM engine
-    // infers the value as `Ref<T>` through the ref builtin. No additional
-    // handling is required here.
+    // Mutable bindings (`let mut x = ...`) require the inferred RHS type
+    // to be `Ref<T>`. The parser admits any RHS shape (including ref
+    // aliasing through a variable: `let mut b = a;`), so the constraint
+    // is enforced here using unification — that way both `ref(0)` and an
+    // existing `Ref<T>` binding pass, while `let mut x = 5;` fails.
 
     // Create new context with increased level for generalization
     const newLevel = ctx.level + 1;
@@ -135,6 +136,30 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         const unifyCtx = { loc: expr.loc, types: ctx.env.types };
         const unifySubst = unify(tempTypeSubst, valueResult.type, unifyCtx);
         valueCtx.subst = composeSubst(unifySubst, valueResult.subst);
+    }
+
+    // Mutable bindings: enforce that the value's inferred type is `Ref<T>`.
+    // Unifies the RHS against `Ref<fresh>` so `let mut x = ref(0)`,
+    // `let mut b = a;` (alias), and any other Ref-typed expression pass,
+    // while `let mut x = 5;` (or any non-Ref RHS) is rejected.
+    if (expr.mutable) {
+        const elemTypeVar = freshTypeVar(newLevel);
+        const expectedRefType = refType(elemTypeVar);
+        const valueType = applySubst(valueCtx.subst, valueResult.type);
+        try {
+            const refUnifySubst = unify(valueType, expectedRefType, {
+                loc: expr.value.loc,
+                types: ctx.env.types,
+            });
+            valueCtx.subst = composeSubst(refUnifySubst, valueCtx.subst);
+        } catch (err) {
+            // Replace the generic unification error with a focused
+            // "mutable binding requires Ref<T>" diagnostic.
+            if (err instanceof VibefunDiagnostic) {
+                throwDiagnostic("VF4018", expr.value.loc, {});
+            }
+            throw err;
+        }
     }
 
     // Build the body environment.

@@ -327,6 +327,27 @@ export const VF4017: DiagnosticDefinition = {
     relatedCodes: [],
 };
 
+export const VF4018: DiagnosticDefinition = {
+    code: "VF4018",
+    title: "MutableBindingRequiresRef",
+    messageTemplate: "Mutable binding ('let mut ...') requires a Ref<T> value",
+    severity: "error",
+    phase: "typechecker",
+    category: "mismatch",
+    hintTemplate: "Wrap the value in ref(...) or assign from an existing Ref binding",
+    explanation:
+        "The 'mut' keyword on a let binding declares that the binding holds mutable state. " +
+        "Per the language spec (07-mutable-references.md), the value must therefore be a " +
+        "Ref<T> — either created freshly with ref(...) or aliased from another Ref-typed " +
+        "binding. Plain values like Int or Bool are not allowed.",
+    example: {
+        bad: "let mut x = 5",
+        good: "let mut x = ref(5)",
+        description: "Wrapped the value in ref() to produce a Ref<Int>",
+    },
+    relatedCodes: ["VF2003", "VF2008"],
+};
+
 export const mismatchCodes: readonly DiagnosticDefinition[] = [
     VF4001,
     VF4002,
@@ -345,4 +366,5 @@ export const mismatchCodes: readonly DiagnosticDefinition[] = [
     VF4015,
     VF4016,
     VF4017,
+    VF4018,
 ];

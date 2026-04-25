@@ -27,6 +27,7 @@ Errors during type checking and inference
 | [VF4015](#vf4015) | NotARef | **Error** |
 | [VF4016](#vf4016) | RefAssignmentMismatch | **Error** |
 | [VF4017](#vf4017) | NotImplemented | **Error** |
+| [VF4018](#vf4018) | MutableBindingRequiresRef | **Error** |
 | [VF4020](#vf4020) | CannotUnify | **Error** |
 | [VF4021](#vf4021) | FunctionArityMismatch | **Error** |
 | [VF4022](#vf4022) | TypeApplicationArityMismatch | **Error** |
@@ -748,6 +749,45 @@ match expr with
 ### Hint
 
 > {hint}
+
+
+---
+
+## VF4018
+
+**MutableBindingRequiresRef** **Error**
+
+### Message
+
+> Mutable binding ('let mut ...') requires a Ref<T> value
+
+### Explanation
+
+The 'mut' keyword on a let binding declares that the binding holds mutable state. Per the language spec (07-mutable-references.md), the value must therefore be a Ref<T> — either created freshly with ref(...) or aliased from another Ref-typed binding. Plain values like Int or Bool are not allowed.
+
+### Example
+
+**Problem:**
+
+```vibefun
+let mut x = 5
+```
+
+**Solution:**
+
+```vibefun
+let mut x = ref(5)
+```
+
+*Wrapped the value in ref() to produce a Ref<Int>*
+
+### Hint
+
+> Wrap the value in ref(...) or assign from an existing Ref binding
+
+### Related
+
+[VF2003](parser.md#vf2003), [VF2008](parser.md#vf2008)
 
 
 ---
