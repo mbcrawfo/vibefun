@@ -1014,14 +1014,28 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expectVF4018(() => typeCheck(module));
     });
 
-    it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
-        // Mirrors the VF4018 check that already existed for non-recursive
-        // `let mut x = 0;` — the recursive group form must reject the
-        // same way, otherwise `let rec f = … and mut x = 0` slips through.
+    it("should reject mutable bindings inside a multi-binding top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
+        // The VF4018 check must fire even when the offending mutable
+        // binding is one of several bindings in a `let rec` group —
+        // otherwise `let rec f = … and mut x = 0;` slips through.
+        // Both `f` (a non-mutable lambda) and `x` (mutable Int literal)
+        // are present so this exercises the multi-binding path that the
+        // single-binding test above can't reach.
         const module = createModule([
             {
                 kind: "CoreLetRecGroup",
                 bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "n", loc: testLoc },
+                            body: { kind: "CoreVar", name: "n", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
                     {
                         pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
                         value: { kind: "CoreIntLit", value: 0, loc: testLoc },
