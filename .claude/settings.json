@@ -1,9 +1,4 @@
 {
-  "permissions": {
-    "deny": [
-      "Read(/archive/**)"
-    ]
-  },
   "hooks": {
     "SessionStart": [
       {
