@@ -5,6 +5,8 @@
  * lexer → parser → desugarer → typechecker → codegen
  */
 
+import type { Module } from "@vibefun/core";
+
 import { realpathSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import {
@@ -328,6 +330,19 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
     const entryDir = dirname(entryRealPath);
     const outputs = new Map<string, string>();
 
+    // Map each source-level relative import path back to the relative JS
+    // output path on disk. The resolver knows that e.g. `./lib` ⇒
+    // `<entryDir>/lib/index.vf`; codegen by itself only knows to append
+    // `.js`, which would produce `./lib.js` and break runtime resolution
+    // when the resolved file is `lib/index.js`. We patch the emitted
+    // import statements per-module after generate() returns.
+    const moduleOutputRelatives = new Map<string, string>();
+    for (const modulePath of resolution.compilationOrder) {
+        const rel = relative(entryDir, modulePath);
+        const out = rel.endsWith(".vf") ? rel.slice(0, -".vf".length) + ".js" : rel + ".js";
+        moduleOutputRelatives.set(modulePath, out);
+    }
+
     try {
         for (const modulePath of resolution.compilationOrder) {
             const surfaceModule = resolution.modules.get(modulePath);
@@ -335,12 +350,17 @@ export function compileMultiFile(entryPath: string, options: CompileOptions = {}
 
             const coreAst = desugarModule(surfaceModule);
             const typedModule = typeCheck(coreAst);
-            const { code } = generate(typedModule, { filename: modulePath });
+            const { code: rawCode } = generate(typedModule, { filename: modulePath });
 
-            const relativePath = relative(entryDir, modulePath);
-            const outputRelative = relativePath.endsWith(".vf")
-                ? relativePath.slice(0, -".vf".length) + ".js"
-                : relativePath + ".js";
+            const outputRelative = moduleOutputRelatives.get(modulePath) ?? deriveOutputRelative(entryDir, modulePath);
+
+            const code = rewriteRelativeImportPaths(
+                rawCode,
+                modulePath,
+                outputRelative,
+                surfaceModule,
+                moduleOutputRelatives,
+            );
             outputs.set(outputRelative, code);
         }
     } catch (error) {
@@ -631,4 +651,101 @@ function formatErrorResult(
     }
 
     return { exitCode: EXIT_COMPILATION_ERROR, stderr: errorMessages };
+}
+
+/**
+ * Compute the JS output path for a module path, relative to the entry's
+ * directory. Mirrors the same `.vf` → `.js` mapping used by the main
+ * compileMultiFile loop and is only called as a fallback when the
+ * resolver's compilation order didn't produce an entry for `modulePath`
+ * (defensive — should not happen in practice).
+ */
+function deriveOutputRelative(entryDir: string, modulePath: string): string {
+    const rel = relative(entryDir, modulePath);
+    return rel.endsWith(".vf") ? rel.slice(0, -".vf".length) + ".js" : rel + ".js";
+}
+
+/**
+ * Rewrite relative `import { … } from "./X.js"` paths inside a module's
+ * generated JS so they point to the actual on-disk output paths.
+ *
+ * The codegen blindly appends `.js` to the surface import path (`./lib`
+ * → `./lib.js`), which breaks runtime resolution when the import was
+ * resolved to a directory's `index.vf` (the disk file is `lib/index.js`,
+ * not `lib.js`). Per spec docs/spec/08-modules.md "File Extension Rules"
+ * + "Index file convention", the source-level form `./lib` legitimately
+ * points to either, and the resolver knows which.
+ *
+ * The fix walks the surface module's import declarations, looks up the
+ * resolved target via the loaded modules' `from` strings, and replaces
+ * the codegen's naive path with the relative path between the importer's
+ * output JS and the target's output JS.
+ */
+function rewriteRelativeImportPaths(
+    code: string,
+    importerPath: string,
+    importerOutputRelative: string,
+    surfaceModule: Module,
+    moduleOutputRelatives: Map<string, string>,
+): string {
+    const importerOutputDir = dirname(importerOutputRelative);
+
+    const replacements = new Map<string, string>();
+    for (const decl of surfaceModule.imports) {
+        if (decl.kind !== "ImportDecl" && decl.kind !== "ReExportDecl") continue;
+        const sourcePath = decl.from;
+        if (!isRelativeImport(sourcePath)) continue;
+
+        const resolved = resolveRelativeImportToOutput(importerPath, sourcePath, moduleOutputRelatives);
+        if (resolved === null) continue;
+
+        const targetRelative = relative(importerOutputDir, resolved);
+        const normalized = targetRelative.startsWith(".") ? targetRelative : "./" + targetRelative;
+        const codegenWritten = sourcePath.endsWith(".js") ? sourcePath : sourcePath + ".js";
+        replacements.set(codegenWritten, normalized);
+    }
+
+    if (replacements.size === 0) return code;
+
+    let out = code;
+    for (const [oldPath, newPath] of replacements) {
+        if (oldPath === newPath) continue;
+        // Match `from "<oldPath>"` literally to avoid corrupting unrelated
+        // string content. Imports always close with `from "..."` in the
+        // generated JS.
+        const escaped = oldPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(`from\\s+"${escaped}"`, "g");
+        out = out.replace(re, `from "${newPath}"`);
+    }
+    return out;
+}
+
+/**
+ * Resolve a relative import path (from the importer's perspective) to the
+ * matching emitted JS path, looking the resolution up in the modules map
+ * by walking parent directories.
+ */
+function resolveRelativeImportToOutput(
+    importerPath: string,
+    sourcePath: string,
+    moduleOutputRelatives: Map<string, string>,
+): string | null {
+    const importerDir = dirname(importerPath);
+
+    // Strip the `.vf` extension if the user wrote one explicitly.
+    const cleaned = sourcePath.endsWith(".vf") ? sourcePath.slice(0, -".vf".length) : sourcePath;
+
+    // Candidate absolute paths the loader may have resolved this import to.
+    const candidates = [`${cleaned}.vf`, `${cleaned}/index.vf`].map((suffix) => resolve(importerDir, suffix));
+
+    for (const candidate of candidates) {
+        const out = moduleOutputRelatives.get(candidate);
+        if (out) return out;
+    }
+
+    return null;
+}
+
+function isRelativeImport(path: string): boolean {
+    return path.startsWith("./") || path.startsWith("../") || path.startsWith("/");
 }
