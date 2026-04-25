@@ -39,11 +39,11 @@ describe("Mutable References - Let Bindings", () => {
         // let mut x = 42 in x
         const expr: Expr = {
             kind: "Let",
+            recursive: false,
             pattern: { kind: "VarPattern", name: "x", loc: testLoc },
             value: { kind: "IntLit", value: 42, loc: testLoc },
             body: { kind: "Var", name: "x", loc: testLoc },
             mutable: true,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -59,11 +59,11 @@ describe("Mutable References - Let Bindings", () => {
         // let x = 42 in x
         const expr: Expr = {
             kind: "Let",
+            recursive: false,
             pattern: { kind: "VarPattern", name: "x", loc: testLoc },
             value: { kind: "IntLit", value: 42, loc: testLoc },
             body: { kind: "Var", name: "x", loc: testLoc },
             mutable: false,
-            recursive: false,
             loc: testLoc,
         };
 
@@ -73,8 +73,10 @@ describe("Mutable References - Let Bindings", () => {
         expect((result as CoreLet).mutable).toBe(false);
     });
 
-    it("should preserve recursive flag in let binding", () => {
+    it("should lower recursive let into a single-binding CoreLetRecExpr", () => {
         // let rec fact = (n) => if n == 0 then 1 else n * fact(n - 1) in fact
+        // Surface `Let { recursive: true }` is desugared to `CoreLetRecExpr`
+        // with one binding so the typechecker sees a single rec path.
         const expr: Expr = {
             kind: "Let",
             pattern: { kind: "VarPattern", name: "fact", loc: testLoc },
@@ -92,8 +94,14 @@ describe("Mutable References - Let Bindings", () => {
 
         const result = desugar(expr);
 
-        expect(result.kind).toBe("CoreLet");
-        expect((result as CoreLet).recursive).toBe(true);
+        expect(result.kind).toBe("CoreLetRecExpr");
+        if (result.kind === "CoreLetRecExpr") {
+            expect(result.bindings).toHaveLength(1);
+            expect(result.bindings[0]?.pattern.kind).toBe("CoreVarPattern");
+            if (result.bindings[0]?.pattern.kind === "CoreVarPattern") {
+                expect(result.bindings[0].pattern.name).toBe("fact");
+            }
+        }
     });
 });
 
@@ -270,6 +278,7 @@ describe("Unsafe Blocks", () => {
                 exprs: [
                     {
                         kind: "Let",
+                        recursive: false,
                         pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                         value: { kind: "IntLit", value: 10, loc: testLoc },
                         body: {
@@ -280,7 +289,6 @@ describe("Unsafe Blocks", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        recursive: false,
                         loc: testLoc,
                     },
                 ],
@@ -527,10 +535,10 @@ describe("Pass-Through - Integration", () => {
             declarations: [
                 {
                     kind: "LetDecl",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 42, loc: testLoc },
                     mutable: true,
-                    recursive: false,
                     exported: false,
                     loc: testLoc,
                 },

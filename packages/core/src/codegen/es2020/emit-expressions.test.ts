@@ -591,17 +591,17 @@ describe("Expression Emission", () => {
             expect(result).toBe("(() => { const [a, b] = pair; return a + b; })()");
         });
 
-        it("should emit recursive let with let keyword", () => {
+        it("should emit recursive let via letRecExpr (forward decl + assignment)", () => {
+            // Post-Phase-C, `let rec f = … in f(5)` desugars to a single-
+            // binding `CoreLetRecExpr`, which emits as
+            // `let f; f = …; return f(5);` inside the IIFE.
             const ctx = createTestContext();
-            // let rec f = (n) => if n == 0 then 1 else n * f(n-1) in f(5)
-            const expr = letExpr(
-                varPat("f"),
-                lambda(varPat("n"), varRef("n")), // simplified body
+            const expr = letRecExpr(
+                [{ pattern: varPat("f"), value: lambda(varPat("n"), varRef("n")) }],
                 app(varRef("f"), intLit(5)),
-                { recursive: true },
             );
             const result = emitExpr(expr, ctx);
-            expect(result).toContain("let f =");
+            expect(result).toContain("let f;");
             expect(result).toContain("return f(5);");
         });
 

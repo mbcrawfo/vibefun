@@ -687,7 +687,6 @@ describe("Syntactic Value Restriction", () => {
                 value,
                 body,
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
             expect(isSyntacticValue(expr)).toBe(false);

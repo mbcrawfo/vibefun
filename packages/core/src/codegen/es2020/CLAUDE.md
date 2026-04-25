@@ -30,6 +30,15 @@ Declarations.setEmitPattern(Patterns.emitPattern);
 
 Every emit function receives `EmitContext` as a parameter for state tracking. Follow the same pattern when adding a new emitter: error-throwing stub setter in the file, wiring in `generator.ts`.
 
+## Recursive lets always emit through the rec-group emitters
+
+`CoreLet` and `CoreLetDecl` are non-recursive only — `let rec x = …` (single
+or grouped, top-level or expression) lowers to `CoreLetRecGroup` /
+`CoreLetRecExpr` at the desugarer. So `emit-declarations.ts:emitLetDecl` and
+`emit-expressions/control.ts:emitLet` no longer have a `recursive` branch;
+the forward-declaration form (`let f; f = …;`) lives entirely in
+`emitLetRecGroup` / `emitLetRecExpr`.
+
 ## Testing
 
 - Unit tests live next to each emitter (`*.test.ts`).

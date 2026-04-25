@@ -808,7 +808,6 @@ describe("Type Inference - Match Expressions", () => {
             pattern: { kind: "CoreVarPattern", name: "result", loc: testLoc },
             value: matchExpr,
             body: { kind: "CoreVar", name: "result", loc: testLoc },
-            recursive: false,
             mutable: false,
             loc: testLoc,
         };

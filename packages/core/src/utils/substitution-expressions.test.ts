@@ -644,7 +644,6 @@ describe("Substitution Utilities - expressions", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -868,11 +867,9 @@ describe("Substitution Utilities - expressions", () => {
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

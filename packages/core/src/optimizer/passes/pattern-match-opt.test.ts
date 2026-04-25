@@ -506,7 +506,6 @@ describe("PatternMatchOptimizationPass", () => {
                 },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

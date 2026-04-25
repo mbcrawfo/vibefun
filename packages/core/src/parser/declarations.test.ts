@@ -36,7 +36,6 @@ describe("Parser - Declarations", () => {
                 pattern: { kind: "VarPattern", name: "x" },
                 value: { kind: "IntLit", value: 42 },
                 mutable: false,
-                recursive: false,
                 exported: false,
             });
         });
@@ -142,7 +141,6 @@ describe("Parser - Declarations", () => {
                     args: [{ kind: "IntLit", value: 0 }],
                 },
                 mutable: true,
-                recursive: false,
             });
         });
 
@@ -1025,7 +1023,6 @@ describe("Parser - Declarations", () => {
                 kind: "LetDecl",
                 pattern: { kind: "WildcardPattern" },
                 mutable: false,
-                recursive: false,
                 exported: false,
                 value: {
                     kind: "BinOp",

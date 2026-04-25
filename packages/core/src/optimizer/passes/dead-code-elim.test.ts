@@ -22,7 +22,6 @@ describe("DeadCodeEliminationPass", () => {
                 value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -40,7 +39,6 @@ describe("DeadCodeEliminationPass", () => {
                 value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                 body: { kind: "CoreVar", name: "x", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -58,7 +56,6 @@ describe("DeadCodeEliminationPass", () => {
                 value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: true, // Mutable
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -69,19 +66,25 @@ describe("DeadCodeEliminationPass", () => {
         });
 
         it("should not remove recursive bindings", () => {
-            // let rec f = ... in body
+            // let rec f = ... in body — desugars to CoreLetRecExpr.
+            // Dead-code-elim deliberately doesn't match `CoreLetRecExpr`,
+            // so a recursive binding cannot be eliminated.
             const expr: CoreExpr = {
-                kind: "CoreLet",
-                pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
-                value: {
-                    kind: "CoreLambda",
-                    param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
-                    body: { kind: "CoreVar", name: "x", loc: testLoc },
-                    loc: testLoc,
-                },
+                kind: "CoreLetRecExpr",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                        value: {
+                            kind: "CoreLambda",
+                            param: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                            body: { kind: "CoreVar", name: "x", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
+                ],
                 body: { kind: "CoreVar", name: "result", loc: testLoc },
-                mutable: false,
-                recursive: true, // Recursive
                 loc: testLoc,
             };
 
@@ -103,7 +106,6 @@ describe("DeadCodeEliminationPass", () => {
                 },
                 body: { kind: "CoreVar", name: "y", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -128,7 +130,6 @@ describe("DeadCodeEliminationPass", () => {
                 value: { kind: "CoreVar", name: "record", loc: testLoc },
                 body: { kind: "CoreVar", name: "z", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 
@@ -516,7 +517,6 @@ describe("DeadCodeEliminationPass", () => {
                     value: { kind: "CoreIntLit", value: 5, loc: testLoc },
                     body: { kind: "CoreVar", name: "y", loc: testLoc },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
                 loc: testLoc,

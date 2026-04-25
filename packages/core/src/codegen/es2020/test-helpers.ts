@@ -212,13 +212,14 @@ export function variant(ctorName: string, args: CoreExpr[]): CoreExpr {
 }
 
 /**
- * Create a let expression node
+ * Create a let expression node. Recursive forms must use `letRecExpr`
+ * (CoreLet is always non-recursive post-Phase-C).
  */
 export function letExpr(
     pattern: CorePattern,
     value: CoreExpr,
     body: CoreExpr,
-    options?: { mutable?: boolean; recursive?: boolean },
+    options?: { mutable?: boolean },
 ): CoreExpr {
     return {
         kind: "CoreLet",
@@ -226,7 +227,6 @@ export function letExpr(
         value,
         body,
         mutable: options?.mutable ?? false,
-        recursive: options?.recursive ?? false,
         loc: testLoc(),
     };
 }
@@ -386,19 +386,19 @@ export function tupleType(elements: Type[]): Type {
 // =============================================================================
 
 /**
- * Create a let declaration node
+ * Create a let declaration node. Recursive forms must use `letRecGroup`
+ * (CoreLetDecl is always non-recursive post-Phase-C).
  */
 export function letDecl(
     pattern: CorePattern,
     value: CoreExpr,
-    options?: { mutable?: boolean; recursive?: boolean; exported?: boolean },
+    options?: { mutable?: boolean; exported?: boolean },
 ): CoreDeclaration {
     return {
         kind: "CoreLetDecl",
         pattern,
         value,
         mutable: options?.mutable ?? false,
-        recursive: options?.recursive ?? false,
         exported: options?.exported ?? false,
         loc: testLoc(),
     };

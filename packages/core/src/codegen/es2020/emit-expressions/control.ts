@@ -21,7 +21,6 @@ export function emitLet(
         value: CoreExpr;
         body: CoreExpr;
         mutable: boolean;
-        recursive: boolean;
     },
     ctx: EmitContext,
 ): string {
@@ -38,7 +37,10 @@ export function emitLet(
     const valueCode = emitExpr(expr.value, withPrecedence(ctx, 0));
     const bodyCode = emitExpr(expr.body, withPrecedence(ctx, 0));
 
-    const keyword = expr.recursive || expr.mutable ? "let" : "const";
+    // `CoreLet` is always non-recursive post-Phase-C; `let rec x = … in
+    // body` lowers to a single-binding `CoreLetRecExpr` and emits via
+    // `emitLetRecExpr` instead.
+    const keyword = expr.mutable ? "let" : "const";
 
     return `(() => { ${keyword} ${patternCode} = ${valueCode}; return ${bodyCode}; })()`;
 }

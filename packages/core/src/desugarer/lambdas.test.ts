@@ -471,6 +471,7 @@ describe("Lambda Currying - Complex Bodies", () => {
             ],
             body: {
                 kind: "Let",
+                recursive: false,
                 pattern: { kind: "VarPattern", name: "sum", loc: testLoc },
                 value: {
                     kind: "BinOp",
@@ -481,7 +482,6 @@ describe("Lambda Currying - Complex Bodies", () => {
                 },
                 body: { kind: "Var", name: "sum", loc: testLoc },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             },
             loc: testLoc,

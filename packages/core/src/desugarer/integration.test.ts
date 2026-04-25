@@ -40,6 +40,7 @@ describe("Integration - Blocks + Lambdas", () => {
             exprs: [
                 {
                     kind: "Let",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "add", loc: testLoc },
                     value: {
                         kind: "Lambda",
@@ -68,7 +69,6 @@ describe("Integration - Blocks + Lambdas", () => {
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     loc: testLoc,
                 },
             ],
@@ -279,6 +279,7 @@ describe("Integration - Unsafe + Blocks + If", () => {
                 exprs: [
                     {
                         kind: "Let",
+                        recursive: false,
                         pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                         value: {
                             kind: "App",
@@ -300,7 +301,6 @@ describe("Integration - Unsafe + Blocks + If", () => {
                             loc: testLoc,
                         },
                         mutable: false,
-                        recursive: false,
                         loc: testLoc,
                     },
                 ],
@@ -388,13 +388,15 @@ describe("Integration - Complete Programs", () => {
 
         const result = desugar(expr);
 
-        // Top level is let
-        expect(result.kind).toBe("CoreLet");
+        // Top level is a recursive let (single-binding CoreLetRecExpr post-Phase-C)
+        expect(result.kind).toBe("CoreLetRecExpr");
+        if (result.kind !== "CoreLetRecExpr") return;
+        const binding = result.bindings[0];
+        if (!binding) throw new Error("expected a binding");
         // Value is lambda
-        const letExpr = result as CoreLet;
-        expect(letExpr.value.kind).toBe("CoreLambda");
+        expect(binding.value.kind).toBe("CoreLambda");
         // Body has match
-        const lambdaValue = letExpr.value as CoreLambda;
+        const lambdaValue = binding.value as CoreLambda;
         expect(lambdaValue.body.kind).toBe("CoreMatch");
         // List patterns are Cons/Nil
         const match = lambdaValue.body as CoreMatch;
@@ -522,6 +524,7 @@ describe("Integration - Module with All Features", () => {
                 // Let declaration with all features
                 {
                     kind: "LetDecl",
+                    recursive: false,
                     pattern: { kind: "VarPattern", name: "process", loc: testLoc },
                     value: {
                         kind: "Lambda",
@@ -534,6 +537,7 @@ describe("Integration - Module with All Features", () => {
                             exprs: [
                                 {
                                     kind: "Let",
+                                    recursive: false,
                                     pattern: { kind: "VarPattern", name: "sum", loc: testLoc },
                                     value: {
                                         kind: "BinOp",
@@ -556,7 +560,6 @@ describe("Integration - Module with All Features", () => {
                                         loc: testLoc,
                                     },
                                     mutable: false,
-                                    recursive: false,
                                     loc: testLoc,
                                 },
                             ],
@@ -565,7 +568,6 @@ describe("Integration - Module with All Features", () => {
                         loc: testLoc,
                     },
                     mutable: false,
-                    recursive: false,
                     exported: true,
                     loc: testLoc,
                 },

@@ -109,7 +109,6 @@ describe("AST Transform Utilities", () => {
                     loc: testLoc,
                 },
                 mutable: false,
-                recursive: false,
                 loc: testLoc,
             };
 

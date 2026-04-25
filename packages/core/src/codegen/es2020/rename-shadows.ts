@@ -67,16 +67,14 @@ export function renameTopLevelShadows(module: CoreModule): {
                 // outer scope, so its references to `sourceName` already
                 // resolved against `renames` in the pre-pass above and
                 // correctly point at the prior shadow. For a recursive
-                // `let rec`, the body's `sourceName` references are
-                // self-references — the masked pre-pass left them as
-                // literal `sourceName`, so substitute the new alias in
-                // here.
+                // `CoreLetDecl` is always non-recursive post-Phase-C —
+                // recursive single bindings now flow through
+                // `CoreLetRecGroup`, which is handled below. So the
+                // value stays as-is here; no self-reference rewriting
+                // is needed.
                 const renamedDecl: CoreDeclaration = {
                     ...transformed,
                     pattern: { ...transformed.pattern, name: renamedName },
-                    value: transformed.recursive
-                        ? substituteMultiple(transformed.value, new Map([[sourceName, renamedVarExpr]]))
-                        : transformed.value,
                 };
 
                 renames.set(sourceName, renamedVarExpr);
@@ -166,9 +164,9 @@ function renamesForDecl(decl: CoreDeclaration, renames: Map<string, CoreExpr>): 
     if (decl.kind === "CoreLetRecGroup") {
         return withoutKeys(renames, boundVarNamesInRecGroup(decl));
     }
-    if (decl.kind === "CoreLetDecl" && decl.recursive && decl.pattern.kind === "CoreVarPattern") {
-        return withoutKeys(renames, new Set([decl.pattern.name]));
-    }
+    // `CoreLetDecl` is always non-recursive post-Phase-C — recursive
+    // single bindings desugar to single-element `CoreLetRecGroup`, which
+    // is masked by the branch above.
     return renames;
 }
 
