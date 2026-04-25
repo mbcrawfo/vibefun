@@ -23,7 +23,7 @@ import { importExportCodes } from "./import-export.js";
 import { patternCodes } from "./pattern.js";
 import { typeCodes } from "./type.js";
 
-export { VF2000, VF2001, VF2002, VF2003, VF2004, VF2005, VF2006, VF2007 } from "./declaration.js";
+export { VF2000, VF2001, VF2002, VF2003, VF2004, VF2005, VF2006, VF2007, VF2008 } from "./declaration.js";
 export {
     VF2100,
     VF2101,

@@ -18,6 +18,7 @@ Errors during syntax parsing (AST construction)
 | [VF2005](#vf2005) | AndRequiresLetRec | **Error** |
 | [VF2006](#vf2006) | ExpectedConstructorInVariant | **Error** |
 | [VF2007](#vf2007) | ExpectedSemicolonInExternalBlock | **Error** |
+| [VF2008](#vf2008) | RefBindingRequiresMut | **Error** |
 | [VF2100](#vf2100) | ExpectedExpression | **Error** |
 | [VF2101](#vf2101) | UnexpectedToken | **Error** |
 | [VF2102](#vf2102) | ExpectedClosingParen | **Error** |
@@ -352,6 +353,45 @@ external {
 ### Hint
 
 > External declarations in a block must end with semicolons
+
+
+---
+
+## VF2008
+
+**RefBindingRequiresMut** **Error**
+
+### Message
+
+> Bindings that hold a Ref must use the 'mut' keyword
+
+### Explanation
+
+A `ref(...)` value creates a mutable cell. The 'mut' keyword on the binding marks it as observable mutable state — omitting it would silently allow ref values to flow through immutable bindings, defeating the visual marker that makes mutation explicit at the declaration site.
+
+### Example
+
+**Problem:**
+
+```vibefun
+let counter = ref(0)
+```
+
+**Solution:**
+
+```vibefun
+let mut counter = ref(0)
+```
+
+*Added the 'mut' keyword for the ref binding*
+
+### Hint
+
+> Use: let mut {name} = ref({hint})
+
+### Related
+
+[VF2003](parser.md#vf2003), [VF2004](parser.md#vf2004)
 
 
 ---

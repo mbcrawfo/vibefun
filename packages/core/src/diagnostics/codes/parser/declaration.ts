@@ -161,6 +161,27 @@ export const VF2007: DiagnosticDefinition = {
     },
 };
 
+export const VF2008: DiagnosticDefinition = {
+    code: "VF2008",
+    title: "RefBindingRequiresMut",
+    messageTemplate: "Bindings that hold a Ref must use the 'mut' keyword",
+    severity: "error",
+    phase: "parser",
+    category: "declaration",
+    hintTemplate: "Use: let mut {name} = ref({hint})",
+    explanation:
+        "A `ref(...)` value creates a mutable cell. The 'mut' keyword on the binding " +
+        "marks it as observable mutable state — omitting it would silently allow ref " +
+        "values to flow through immutable bindings, defeating the visual marker that " +
+        "makes mutation explicit at the declaration site.",
+    example: {
+        bad: "let counter = ref(0)",
+        good: "let mut counter = ref(0)",
+        description: "Added the 'mut' keyword for the ref binding",
+    },
+    relatedCodes: ["VF2003", "VF2004"],
+};
+
 export const declarationCodes: readonly DiagnosticDefinition[] = [
     VF2000,
     VF2001,
@@ -170,4 +191,5 @@ export const declarationCodes: readonly DiagnosticDefinition[] = [
     VF2005,
     VF2006,
     VF2007,
+    VF2008,
 ];
