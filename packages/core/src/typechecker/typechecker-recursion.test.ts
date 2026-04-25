@@ -1070,4 +1070,38 @@ describe("typeCheck - Recursion and Let Expressions", () => {
 
         expectVF4018(() => typeCheck(module));
     });
+
+    it("should accept a mutable CoreLetRecGroup binding whose RHS is ref(...)", () => {
+        // Symmetry check for the VF4018 rejection cases above. If
+        // `enforceMutableRefBinding` were accidentally wired to reject
+        // *all* mutable rec-group bindings, those tests would still
+        // pass — but `let rec mut x = ref(0);` must compile, since
+        // that is the supported shape for mutable refs in a rec-group.
+        const module = createModule([
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                        value: {
+                            kind: "CoreApp",
+                            func: { kind: "CoreVar", name: "ref", loc: testLoc },
+                            args: [{ kind: "CoreIntLit", value: 0, loc: testLoc }],
+                            loc: testLoc,
+                        },
+                        mutable: true,
+                        loc: testLoc,
+                    },
+                ],
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        const result = typeCheck(module);
+        const xType = result.declarationTypes.get("x");
+        expectAppHead(xType, "Ref", "x");
+        expect(xType.args).toHaveLength(1);
+        expect(xType.args[0]).toEqual({ type: "Const", name: "Int" });
+    });
 });
