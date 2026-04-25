@@ -32,6 +32,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 | [VF2005](parser.md#vf2005) | AndRequiresLetRec | Error | The 'and' keyword is used to define mutually recursive functions that reference each other |
 | [VF2006](parser.md#vf2006) | ExpectedConstructorInVariant | Error | Variant types must be defined using constructor names (PascalCase identifiers) |
 | [VF2007](parser.md#vf2007) | ExpectedSemicolonInExternalBlock | Error | When declaring multiple external bindings in a block, each declaration must be terminated with a semicolon |
+| [VF2008](parser.md#vf2008) | RefBindingRequiresMut | Error | A `ref( |
 | [VF2100](parser.md#vf2100) | ExpectedExpression | Error | The parser expected to find an expression at this position |
 | [VF2101](parser.md#vf2101) | UnexpectedToken | Error | The parser encountered a token that doesn't make sense in this context |
 | [VF2102](parser.md#vf2102) | ExpectedClosingParen | Error | A closing parenthesis is missing |
@@ -141,7 +142,7 @@ This reference documents all diagnostic codes (errors and warnings) that the Vib
 
 Errors during lexical analysis (tokenization)
 
-### [Parser](parser.md) (37 errors)
+### [Parser](parser.md) (38 errors)
 
 Errors during syntax parsing (AST construction)
 
@@ -159,6 +160,6 @@ Errors during module resolution and import/export handling
 
 ## Statistics
 
-- **Total diagnostic codes:** 124
-- **Errors:** 121
+- **Total diagnostic codes:** 125
+- **Errors:** 122
 - **Warnings:** 3

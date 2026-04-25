@@ -272,6 +272,26 @@ describe("Parser - Declarations", () => {
             );
         });
 
+        it("should reject ref() bindings missing the mut keyword", () => {
+            // Per spec docs/spec/07-mutable-references.md "Mut Keyword
+            // Requirement": ref values without 'mut' must be a compile error.
+            expect(() => parseDecl("let counter = ref(0);")).toThrow(
+                "Bindings that hold a Ref must use the 'mut' keyword",
+            );
+        });
+
+        it("should still accept immutable bindings to non-ref values", () => {
+            // Sanity check that the new VF2008 path doesn't fire on
+            // ordinary immutable bindings.
+            const decl = parseDecl("let x = 42;");
+            expect(decl).toMatchObject({
+                kind: "LetDecl",
+                pattern: { kind: "VarPattern", name: "x" },
+                mutable: false,
+                value: { kind: "IntLit", value: 42 },
+            });
+        });
+
         it("should accept ref() with type annotations", () => {
             const decl = parseDecl("let mut x: Ref<Int> = ref(0);");
             expect(decl).toMatchObject({

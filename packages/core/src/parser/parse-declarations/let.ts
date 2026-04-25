@@ -12,17 +12,37 @@ import { throwDiagnostic } from "../../diagnostics/index.js";
 import { parseExpression, parsePattern, parseTypeExpr } from "./shared-state.js";
 
 /**
- * Validate that a mutable binding uses ref() syntax and VarPattern
+ * Validate the surface-level shape of a `let [mut] pattern = value` binding.
+ *
+ * Two complementary constraints (per spec docs/spec/07-mutable-references.md):
+ *   - `let x = ref(...)` (no `mut`): rejected — ref values must be marked
+ *     with the `mut` keyword so mutation is visible at the declaration site.
+ *   - `let mut <pattern> = <value>`: pattern must be a `VarPattern` (mutable
+ *     bindings cannot destructure), and the value must be a `ref(...)` call.
+ *     The "value must produce a Ref<T>" check is enforced syntactically here
+ *     and refined by the typechecker for cases the parser can't see (e.g.
+ *     ref aliasing through a variable).
  *
  * @param parser - The parser instance
  * @param value - The value expression being assigned
  * @param pattern - The pattern being bound
  * @param mutable - Whether this is a mutable binding
- * @throws {VibefunDiagnostic} If mutable binding doesn't use ref() syntax or uses non-VarPattern
+ * @throws {VibefunDiagnostic} If validation fails
  */
 export function validateMutableBinding(parser: ParserBase, value: Expr, pattern: Pattern, mutable: boolean): void {
+    const isRefCall = value.kind === "App" && value.func.kind === "Var" && value.func.name === "ref";
+
     if (!mutable) {
-        return; // Non-mutable bindings don't need validation
+        // Immutable bindings to ref(...) are a compile error: the spec
+        // requires `mut` whenever a binding holds a Ref so mutation is
+        // explicit at the declaration site.
+        if (isRefCall && pattern.kind === "VarPattern") {
+            throw parser.error("VF2008", value.loc, {
+                name: pattern.name,
+                hint: refArgHint(value),
+            });
+        }
+        return;
     }
 
     // Mutable bindings must use VarPattern (not destructuring)
@@ -30,27 +50,42 @@ export function validateMutableBinding(parser: ParserBase, value: Expr, pattern:
         throw parser.error("VF2004", pattern.loc);
     }
 
-    // Check if value is a ref() call
-    const isRefCall = value.kind === "App" && value.func.kind === "Var" && value.func.name === "ref";
-
     if (!isRefCall) {
-        const patternName = pattern.name;
-
-        // Create a simple hint for the suggestion
-        let valueHint = "value";
-        if (value.kind === "IntLit" || value.kind === "FloatLit") {
-            valueHint = String(value.value);
-        } else if (value.kind === "StringLit") {
-            valueHint = `"${value.value}"`;
-        } else if (value.kind === "BoolLit") {
-            valueHint = String(value.value);
-        }
-
         throw parser.error("VF2003", value.loc, {
-            name: patternName,
-            hint: valueHint,
+            name: pattern.name,
+            hint: literalHint(value),
         });
     }
+}
+
+/**
+ * Build a hint string from the argument of a `ref(...)` call, falling back
+ * to a generic placeholder if the argument isn't a simple literal.
+ */
+function refArgHint(refCall: Expr): string {
+    if (refCall.kind !== "App" || refCall.args.length === 0) {
+        return "value";
+    }
+    const arg = refCall.args[0];
+    if (arg === undefined) {
+        return "value";
+    }
+    return literalHint(arg);
+}
+
+/**
+ * Best-effort hint string for a value expression — used in error suggestions
+ * for both the "missing ref()" and "missing mut" diagnostics.
+ */
+function literalHint(value: Expr): string {
+    if (value.kind === "IntLit" || value.kind === "FloatLit") {
+        return String(value.value);
+    } else if (value.kind === "StringLit") {
+        return `"${value.value}"`;
+    } else if (value.kind === "BoolLit") {
+        return String(value.value);
+    }
+    return "value";
 }
 
 /**

@@ -13,7 +13,7 @@ import { compileAndGetExport } from "./execution-test-helpers.js";
 describe("prefix ! disambiguation", () => {
     it("dereferences a Ref<Int> at runtime", () => {
         const result = compileAndGetExport(
-            `let r = ref(7);
+            `let mut r = ref(7);
             let result = !r;`,
             "result",
         );
@@ -31,7 +31,7 @@ describe("prefix ! disambiguation", () => {
 
     it("dereferences a Ref<String>", () => {
         const result = compileAndGetExport(
-            `let r = ref("hi");
+            `let mut r = ref("hi");
             let result = !r;`,
             "result",
         );
@@ -40,8 +40,8 @@ describe("prefix ! disambiguation", () => {
 
     it("supports double prefix ! on nested Ref<Ref<Int>>", () => {
         const result = compileAndGetExport(
-            `let inner = ref(9);
-            let outer = ref(inner);
+            `let mut inner = ref(9);
+            let mut outer = ref(inner);
             let result = !(!outer);`,
             "result",
         );
@@ -54,7 +54,7 @@ describe("prefix ! disambiguation", () => {
         // still let prefix `!` be Deref.
         const result = compileAndGetExport(
             `type Cell<T> = Ref<T>;
-            let c: Cell<Int> = ref(5);
+            let mut c: Cell<Int> = ref(5);
             let result = !c;`,
             "result",
         );
