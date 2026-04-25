@@ -216,4 +216,40 @@ describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)
 
         expect(() => inferExpr(ctx, expr)).not.toThrow();
     });
+
+    it("should reject mutable bindings in let rec expr whose RHS is not Ref<T>", () => {
+        // The Ref<T> requirement (VF4018) extends to recursive mutable
+        // bindings too. Without this, `let rec mut x = 0 and …` would
+        // slip through even though the equivalent non-recursive form
+        // errors via inferLet.
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const intLit: CoreIntLit = { kind: "CoreIntLit", value: 42, loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                    value: intLit,
+                    mutable: true,
+                    loc: testLoc,
+                },
+            ],
+            body: xVar,
+            loc: testLoc,
+        };
+
+        try {
+            inferExpr(ctx, expr);
+            throw new Error("Expected VF4018 to be thrown");
+        } catch (err) {
+            expect(err).toBeInstanceOf(VibefunDiagnostic);
+            if (err instanceof VibefunDiagnostic) {
+                expect(err.code).toBe("VF4018");
+            }
+        }
+    });
 });

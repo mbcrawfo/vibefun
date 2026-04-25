@@ -483,4 +483,27 @@ describe("typeCheck - Recursion and Let Expressions", () => {
         expect(result.env.values.has("Cons")).toBe(true);
         expect(result.env.values.has("Nil")).toBe(true);
     });
+
+    it("should reject mutable bindings inside a top-level CoreLetRecGroup whose RHS isn't Ref<T>", () => {
+        // Mirrors the VF4018 check that already existed for non-recursive
+        // `let mut x = 0;` — the recursive group form must reject the
+        // same way, otherwise `let rec f = … and mut x = 0` slips through.
+        const module = createModule([
+            {
+                kind: "CoreLetRecGroup",
+                bindings: [
+                    {
+                        pattern: { kind: "CoreVarPattern", name: "x", loc: testLoc },
+                        value: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                        mutable: true,
+                        loc: testLoc,
+                    },
+                ],
+                exported: false,
+                loc: testLoc,
+            },
+        ]);
+
+        expect(() => typeCheck(module)).toThrow(/VF4018/);
+    });
 });

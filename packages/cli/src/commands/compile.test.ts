@@ -693,6 +693,25 @@ describe("compile command", () => {
             expect(mainJs).not.toContain('from "./lib.js"');
         });
 
+        it("triggers multi-file mode for re-export-only entry modules", () => {
+            // Regression: `hasUserModuleImports` previously only matched
+            // `import` statements, so an entry that only re-exported
+            // (`export { x } from "./lib";`) skipped multi-file mode and
+            // the sibling .vf wasn't compiled / written.
+            createTestFile("lib.vf", "export let x = 11;");
+            const entryPath = createTestFile("main.vf", 'export { x } from "./lib";');
+
+            const result = compile(entryPath, { quiet: true });
+            expect(result.exitCode).toBe(EXIT_SUCCESS);
+
+            // Both modules must have been emitted.
+            expect(() => readOutputFile("main.js")).not.toThrow();
+            expect(() => readOutputFile("lib.js")).not.toThrow();
+
+            const mainJs = readOutputFile("main.js");
+            expect(mainJs).toContain('from "./lib.js"');
+        });
+
         it("leaves direct file imports untouched when no rewrite is needed", () => {
             createTestFile("lib.vf", "export let z = 1;");
             const entryPath = createTestFile("main.vf", 'import { z } from "./lib";\nlet _ = z;');
