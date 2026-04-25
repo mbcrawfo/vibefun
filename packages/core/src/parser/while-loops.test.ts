@@ -188,4 +188,45 @@ describe("While Loop Expressions", () => {
             expect(expr.kind).toBeTruthy();
         });
     });
+
+    describe("While at Top Level", () => {
+        it("should accept while as a top-level expression statement", () => {
+            // Per spec: 08-modules.md "Top-Level Expression Evaluation" +
+            // 04-expressions/control-flow.md — while is an expression
+            // returning Unit, so it's a valid top-level statement.
+            const lexer = new Lexer("while false { step(); };", "test.vf");
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens, "test.vf");
+            const module = parser.parse();
+            const decl = module.declarations[0];
+            expect(decl?.kind).toBe("LetDecl");
+            if (!decl || decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("While");
+        });
+
+        it("should accept if as a top-level expression statement", () => {
+            const lexer = new Lexer("if shouldRun then step();", "test.vf");
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens, "test.vf");
+            const module = parser.parse();
+            const decl = module.declarations[0];
+            expect(decl?.kind).toBe("LetDecl");
+            if (!decl || decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("If");
+        });
+
+        it("should accept match as a top-level expression statement", () => {
+            const lexer = new Lexer("match x { | Some(v) => () | None => () };", "test.vf");
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens, "test.vf");
+            const module = parser.parse();
+            const decl = module.declarations[0];
+            expect(decl?.kind).toBe("LetDecl");
+            if (!decl || decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("Match");
+        });
+    });
 });

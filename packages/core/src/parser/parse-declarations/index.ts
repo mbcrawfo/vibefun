@@ -55,18 +55,7 @@ export function parseDeclaration(parser: ParserBase): Declaration {
             throw parser.error("VF2000", parser.peek().loc);
         }
 
-        const exprStart = parser.peek().loc;
-        const value = parseExpression(parser);
-
-        return {
-            kind: "LetDecl",
-            pattern: { kind: "WildcardPattern", loc: exprStart },
-            value,
-            mutable: false,
-            recursive: false,
-            exported: false,
-            loc: value.loc,
-        };
+        return wrapExpressionStatement(parser);
     }
 
     const keyword = parser.peek().value as string;
@@ -80,7 +69,39 @@ export function parseDeclaration(parser: ParserBase): Declaration {
             return parseExternalDeclOrBlock(parser, exported);
         case "import":
             return parseImportDecl(parser);
+        case "while":
+        case "if":
+        case "match":
+        case "unsafe":
+            // Expression-introducing keywords are valid as top-level
+            // expression statements (per spec: 08-modules.md "Top-Level
+            // Expression Evaluation" + 04-expressions/control-flow.md).
+            // Wrap the parsed expression in a wildcard-let, just like
+            // the non-keyword expression path above.
+            if (exported) {
+                throw parser.error("VF2000", parser.peek().loc);
+            }
+            return wrapExpressionStatement(parser);
         default:
             throw parser.error("VF2001", parser.peek().loc, { keyword });
     }
+}
+
+/**
+ * Parse a top-level expression and synthesize a `let _ = expr;` wrapper.
+ * Shared between the non-keyword and expression-keyword dispatch paths.
+ */
+function wrapExpressionStatement(parser: ParserBase): Declaration {
+    const exprStart = parser.peek().loc;
+    const value = parseExpression(parser);
+
+    return {
+        kind: "LetDecl",
+        pattern: { kind: "WildcardPattern", loc: exprStart },
+        value,
+        mutable: false,
+        recursive: false,
+        exported: false,
+        loc: value.loc,
+    };
 }

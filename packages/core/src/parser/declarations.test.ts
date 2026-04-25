@@ -1018,13 +1018,22 @@ describe("Parser - Declarations", () => {
             expect(() => parseDecl("export 42;")).toThrow(/VF2000|Expected declaration keyword/);
         });
 
-        it("still errors when the first token is a keyword not handled by the declaration switch", () => {
-            // `while` is a keyword but only legal inside an expression
-            // (and now indirectly at top level via the expression-statement
-            // fallthrough — but the fallthrough is *skipped* when the token
-            // is classified as a KEYWORD, so this routes into the switch's
-            // default branch and throws VF2001.
-            expect(() => parseDecl("while true { 1; };")).toThrow(/VF2001|Unknown keyword/);
+        it("accepts while at the top level as an expression statement", () => {
+            // Per spec: 08-modules.md "Top-Level Expression Evaluation" +
+            // 04-expressions/control-flow.md — while is an expression
+            // returning Unit, so it parses as a wildcard-let wrapper.
+            const decl = parseDecl("while true { 1; };");
+            expect(decl.kind).toBe("LetDecl");
+            if (decl.kind !== "LetDecl") return;
+            expect(decl.pattern.kind).toBe("WildcardPattern");
+            expect(decl.value.kind).toBe("While");
+        });
+
+        it("still errors when the first token is an unknown keyword", () => {
+            // Pick any keyword that isn't a declaration keyword and isn't
+            // an expression-introducing keyword either; the switch's
+            // default branch must still throw VF2001.
+            expect(() => parseDecl("then true;")).toThrow(/VF2001|Unknown keyword/);
         });
     });
 });
