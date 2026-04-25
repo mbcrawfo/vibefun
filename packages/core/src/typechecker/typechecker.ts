@@ -219,7 +219,38 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 // so constraints learned in this declaration (e.g.
                 // `x := Some(42)` records `t := Int`) carry forward to
                 // later declarations, blocking polymorphic ref abuse.
-                const finalSubst = composeSubst(patternResult.subst, result.subst);
+                let finalSubst = composeSubst(patternResult.subst, result.subst);
+
+                // Top-level `let mut x = …` must hold a `Ref<T>`, mirroring
+                // inferLet's VF4018 check at expression level. Without this,
+                // `let mut x = 0;` typechecks at module scope even though
+                // the equivalent expression-form is rejected.
+                if (decl.mutable) {
+                    const elemTypeVar = freshTypeVar(newLevel);
+                    const expectedRefType = appType(constType("Ref"), [elemTypeVar]);
+                    const valueType = applySubst(finalSubst, result.type);
+                    try {
+                        const refUnifySubst = unify(valueType, expectedRefType, {
+                            loc: decl.value.loc,
+                            types: env.types,
+                        });
+                        finalSubst = composeSubst(refUnifySubst, finalSubst);
+                    } catch (err) {
+                        if (err instanceof VibefunDiagnostic) {
+                            throwDiagnostic("VF4018", decl.value.loc, {});
+                        }
+                        throw err;
+                    }
+                }
+
+                // Substitution learned in this declaration must also be
+                // baked into earlier `declarationTypes` entries —
+                // otherwise `--emit typed-ast` can show a stale type for
+                // an earlier binding even though `env.values` already
+                // tracks the narrowed shape.
+                for (const [name, type] of declarationTypes) {
+                    declarationTypes.set(name, applySubst(finalSubst, type));
+                }
 
                 // Create updated environment with substitution baked into
                 // every existing binding's scheme.

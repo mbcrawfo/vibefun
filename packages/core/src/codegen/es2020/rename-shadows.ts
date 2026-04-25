@@ -51,7 +51,7 @@ export function renameTopLevelShadows(module: CoreModule): {
             const sourceName = transformed.pattern.name;
 
             if (seen.has(sourceName)) {
-                const renamedName = nextRenamedName(sourceName, counters);
+                const renamedName = nextRenamedName(sourceName, counters, seen);
 
                 const renamedDecl: CoreDeclaration = {
                     ...transformed,
@@ -95,7 +95,7 @@ export function renameTopLevelShadows(module: CoreModule): {
                     return binding;
                 }
 
-                const renamedName = nextRenamedName(sourceName, counters);
+                const renamedName = nextRenamedName(sourceName, counters, seen);
                 groupRenames.set(sourceName, {
                     kind: "CoreVar",
                     name: renamedName,
@@ -138,12 +138,24 @@ export function renameTopLevelShadows(module: CoreModule): {
 }
 
 /**
- * Generate a fresh `<name>$<N>` and bump the counter for the next collision.
+ * Generate a fresh `<name>$<N>` that doesn't collide with any name
+ * already in `seen`. The counter alone isn't enough — user code might
+ * legitimately bind a name like `x$1` directly, and `let x = 1; let
+ * x$1 = 2; let x = 3;` would otherwise rename the third `x` to `x$1`
+ * and reintroduce the duplicate-binding `SyntaxError` this pass exists
+ * to prevent. Both the counter and the `seen` set are updated so the
+ * chosen alias is also off-limits for future shadow renames.
  */
-function nextRenamedName(sourceName: string, counters: Map<string, number>): string {
-    const next = (counters.get(sourceName) ?? 0) + 1;
+function nextRenamedName(sourceName: string, counters: Map<string, number>, seen: Set<string>): string {
+    let next = counters.get(sourceName) ?? 0;
+    let candidate: string;
+    do {
+        next += 1;
+        candidate = `${sourceName}$${next}`;
+    } while (seen.has(candidate));
     counters.set(sourceName, next);
-    return `${sourceName}$${next}`;
+    seen.add(candidate);
+    return candidate;
 }
 
 /**
