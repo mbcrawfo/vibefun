@@ -4,8 +4,10 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb, identifierArb } from "../types/test-arbitraries/index.js";
 import { substitute, substituteMultiple } from "./substitution.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -886,6 +888,48 @@ describe("Substitution Utilities - expressions", () => {
             if (result2.kind === "CoreLet" && result2.body.kind === "CoreLet") {
                 expect(result2.body.value).toEqual({ kind: "CoreIntLit", value: 2, loc: testLoc });
             }
+        });
+    });
+
+    describe("substitution totality (crash oracle)", () => {
+        // The fixed tests above cover specific expression kinds. The
+        // properties below act as a crash oracle: substituting any name with
+        // any expression in any expression must complete without throwing
+        // and yield a CoreExpr-shaped value. If a new expression kind is
+        // added without updating the substitution switch, this property will
+        // surface it via a TypeScript exhaustiveness error first, then via
+        // a runtime fallthrough at test time.
+
+        it("property: substitute does not throw on any tier-A CoreExpr", () => {
+            fc.assert(
+                fc.property(
+                    coreExprArb({ depth: 3 }),
+                    identifierArb,
+                    coreExprArb({ depth: 1 }),
+                    (e, name, replacement) => {
+                        const result = substitute(e, name, replacement);
+                        return typeof result === "object" && result !== null && typeof result.kind === "string";
+                    },
+                ),
+            );
+        });
+
+        it("property: substituteMultiple preserves shape (kind survives)", () => {
+            // Substituting at the leaf level (CoreVar nodes only) preserves
+            // the top-level kind unless the root itself is a CoreVar that
+            // the substitution targets. We exclude CoreVar at the root via
+            // .filter to keep this property crisp.
+            fc.assert(
+                fc.property(
+                    coreExprArb({ depth: 3 }).filter((e) => e.kind !== "CoreVar"),
+                    identifierArb,
+                    coreExprArb({ depth: 1 }),
+                    (e, name, replacement) => {
+                        const result = substituteMultiple(e, new Map([[name, replacement]]));
+                        return result.kind === e.kind;
+                    },
+                ),
+            );
         });
     });
 });
