@@ -1,0 +1,53 @@
+path,disposition,justification
+packages/core/src/desugarer/blocks.test.ts,property-tests,block desugaring determinism/structure preservation over coreExprArb
+packages/core/src/desugarer/buildConsChain.test.ts,property-tests,buildConsChain produces right-associated Cons chains over element arrays
+packages/core/src/desugarer/composition.test.ts,property-tests,function composition determinism/idempotence/left-associativity
+packages/core/src/desugarer/conditionals.test.ts,property-tests,if-then-else desugaring determinism/match structure preservation
+packages/core/src/desugarer/curryLambda.test.ts,property-tests,lambda currying determinism/correct arity reduction/parameter structure
+packages/core/src/desugarer/desugarBinOp.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/desugarBlock.test.ts,property-tests,block desugaring helper determinism/let nesting structure
+packages/core/src/desugarer/desugarComposition.test.ts,property-tests,composition helper determinism/lambda wrapper generation
+packages/core/src/desugarer/desugarer-integration.test.ts,property-tests,multi-transformation integration/module-level desugaring determinism
+packages/core/src/desugarer/desugarer-primitives.test.ts,property-tests,primitive forms (literals/vars/ops) determinism/no CoreUnsafe leakage
+packages/core/src/desugarer/desugarer-structural.test.ts,property-tests,structural forms (match/records) determinism/pattern preservation
+packages/core/src/desugarer/desugarListLiteral.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/desugarListPattern.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/desugarListWithConcats.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/desugarPipe.test.ts,property-tests,pipe desugaring determinism/function application structure
+packages/core/src/desugarer/desugarRecordTypeField.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/desugarTypeDefinition.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/desugarTypeExpr.test.ts,property-tests,type expression desugaring determinism/structure preservation
+packages/core/src/desugarer/desugarVariantConstructor.test.ts,fixed-only,minimal smoke test
+packages/core/src/desugarer/FreshVarGen.test.ts,property-tests,fresh variable generation uniqueness/no collisions with counter
+packages/core/src/desugarer/integration.test.ts,property-tests,multi-stage integration (blocks+lambdas/pipes+composition) determinism
+packages/core/src/desugarer/lambdas.test.ts,property-tests,lambda desugaring/currying determinism/arity preservation
+packages/core/src/desugarer/list-spread.test.ts,property-tests,list spread desugaring determinism/concat structure over varied spreads
+packages/core/src/desugarer/lists.test.ts,property-tests,list literal desugaring determinism/Cons/Nil chain structure
+packages/core/src/desugarer/lowerLetBinding.test.ts,property-tests,let binding lowering determinism/recursive/mutable flag preservation
+packages/core/src/desugarer/or-patterns-basic.test.ts,property-tests,or-pattern expansion determinism/case flattening
+packages/core/src/desugarer/or-patterns-patterns.test.ts,property-tests,or-pattern structure determinism/nested pattern handling
+packages/core/src/desugarer/or-patterns-validation.test.ts,property-tests,or-pattern validation determinism/exhaustiveness checks
+packages/core/src/desugarer/pass-through.test.ts,property-tests,pass-through forms (unsafe/external/type-annot) determinism/structure preservation
+packages/core/src/desugarer/patterns.test.ts,property-tests,pattern desugaring (list/destructuring) determinism/structure preservation
+packages/core/src/desugarer/pipes.test.ts,property-tests,pipe operator desugaring determinism/left-associativity of application
+packages/core/src/desugarer/records.test.ts,property-tests,record desugaring determinism/update structure preservation
+packages/core/src/desugarer/type-annotated-patterns.test.ts,property-tests,type annotation stripping determinism/inner pattern preservation
+packages/core/src/desugarer/while-loops.test.ts,property-tests,while loop desugaring to recursive let/match determinism
+packages/core/src/utils/expr-equality-equals.test.ts,property-tests,exprEquals reflexivity/symmetry/transitivity over coreExprArb
+packages/core/src/utils/expr-equality-equivalent.test.ts,property-tests,exprEquivalent placeholder/future alpha-equivalence preparation
+packages/core/src/utils/substitution-core.test.ts,property-tests,substitution identity/composition/free-var capture over coreExprArb
+packages/core/src/utils/substitution-expressions.test.ts,property-tests,substitution per-expression-kind totality/no exceptions
+packages/core/src/utils/ast-analysis.test.ts,property-tests,freeVars/boundVars disjointness/union property/recursive analysis totality
+packages/core/src/utils/ast-transform-fold-expr.test.ts,property-tests,foldExpr totality/correctness on all Tier-A expressions
+packages/core/src/utils/ast-transform-transform-children.test.ts,property-tests,transformChildren identity/structure preservation
+packages/core/src/utils/ast-transform-transform-expr.test.ts,property-tests,transformExpr identity (id transform = id)/bottom-up order
+packages/core/src/utils/ast-transform-visit-expr.test.ts,property-tests,visitExpr totality/effects safety over all Tier-A expressions
+packages/core/src/module-resolver/cycle-detector.test.ts,property-tests,Tarjan SCC determinism/DAG yields no cycles/single cycle detection
+packages/core/src/module-resolver/module-graph.test.ts,property-tests,module graph invariants (edge endpoints exist/bidirectional consistency)
+packages/core/src/module-resolver/module-graph-builder.test.ts,property-tests,graph builder determinism/node/edge consistency
+packages/core/src/module-resolver/resolver.test.ts,property-tests,resolution determinism/compilation-order invariants
+packages/core/src/module-resolver/warning-generator.test.ts,property-tests,warning generation determinism/cycle format stability
+packages/core/src/module-loader/module-loader.test.ts,fixed-only,I/O-bound file discovery/parsing
+packages/core/src/module-loader/package-resolver.test.ts,fixed-only,I/O-bound node_modules search
+packages/core/src/module-loader/path-mapping.test.ts,property-tests,path mapping application idempotence/wildcard substitution totality
+packages/core/src/module-loader/path-resolver.test.ts,property-tests,path resolution idempotence/symlink handling determinism
