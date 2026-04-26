@@ -2,8 +2,16 @@
  * Expression parsing tests - Binary operators
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import {
+    astEquals,
+    binaryOpArb,
+    exprArb,
+    nonNegativeIntArb,
+    prettyPrintExpr,
+} from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Binary Operators", () => {
@@ -478,6 +486,36 @@ describe("Parser - Binary Operators", () => {
                     right: { kind: "IntLit", value: 3 },
                 });
             });
+        });
+    });
+
+    describe("properties", () => {
+        it("property: explicit-paren BinOp re-parses with the same operator and operands", () => {
+            // Generate `(L op R)` for any binary op and integer literals;
+            // explicit parens guarantee precedence cannot rearrange the shape.
+            fc.assert(
+                fc.property(binaryOpArb, nonNegativeIntArb, nonNegativeIntArb, (op, l, r) => {
+                    const ast = {
+                        kind: "BinOp" as const,
+                        op,
+                        left: { kind: "IntLit" as const, value: l, loc: { file: "x", line: 1, column: 1, offset: 0 } },
+                        right: { kind: "IntLit" as const, value: r, loc: { file: "x", line: 1, column: 1, offset: 0 } },
+                        loc: { file: "x", line: 1, column: 1, offset: 0 },
+                    };
+                    expect(astEquals(parseExpression(prettyPrintExpr(ast)), ast)).toBe(true);
+                }),
+            );
+        });
+
+        it("property: parse(prettyPrintExpr(e)) is alpha-equivalent to e for arbitrary expressions", () => {
+            // Round-trip on the full expression generator catches operator-shape
+            // bugs across the entire expression grammar — precedence, associativity,
+            // and BinOp/UnaryOp recursion.
+            fc.assert(
+                fc.property(exprArb({ depth: 3 }), (e) => {
+                    expect(astEquals(parseExpression(prettyPrintExpr(e)), e)).toBe(true);
+                }),
+            );
         });
     });
 });
