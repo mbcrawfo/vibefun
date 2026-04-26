@@ -4,8 +4,10 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb } from "../types/test-arbitraries/index.js";
 import { exprEquals } from "./expr-equality.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -421,6 +423,56 @@ describe("Expression Equality Utilities", () => {
             };
 
             expect(exprEquals(e1, e2)).toBe(true);
+        });
+    });
+
+    describe("exprEquals algebraic properties", () => {
+        // Reflexivity, symmetry, and transitivity are the three axioms an
+        // equivalence relation must satisfy. exprEquals advertises itself as
+        // structural equality, so all three must hold over arbitrary CoreExpr.
+
+        it("property: reflexivity — exprEquals(e, e) is true", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return exprEquals(e, e);
+                }),
+            );
+        });
+
+        it("property: symmetry — exprEquals(a, b) === exprEquals(b, a)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), coreExprArb({ depth: 3 }), (a, b) => {
+                    return exprEquals(a, b) === exprEquals(b, a);
+                }),
+            );
+        });
+
+        it("property: transitivity — three identical clones are pairwise equal", () => {
+            // True transitivity (a==b ∧ b==c ⇒ a==c) is hard to produce
+            // counterexamples for from independent generators because the odds
+            // of two independently sampled exprs being equal are vanishingly
+            // small. We instead test the structural-equality refinement:
+            // generating one expression and structurally cloning it twice
+            // gives three values that must all compare equal pairwise.
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const a = e;
+                    const b = JSON.parse(JSON.stringify(e)) as CoreExpr;
+                    const c = JSON.parse(JSON.stringify(e)) as CoreExpr;
+                    return exprEquals(a, b) && exprEquals(b, c) && exprEquals(a, c);
+                }),
+            );
+        });
+
+        it("property: structural equality survives JSON round-trip", () => {
+            // Equality compares values, not references. A round-tripped clone
+            // must compare equal to the original.
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const clone = JSON.parse(JSON.stringify(e)) as CoreExpr;
+                    return exprEquals(e, clone);
+                }),
+            );
         });
     });
 });
