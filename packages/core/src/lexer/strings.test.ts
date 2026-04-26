@@ -4,9 +4,11 @@
  * Phase 6: Strings
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic } from "../diagnostics/index.js";
+import { renderStringLiteral, stringContentArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Single-Line Strings", () => {
@@ -562,5 +564,36 @@ describe("Lexer - String Edge Cases", () => {
         expect(tokens[1]?.type).toBe("STRING_LITERAL");
         expect(tokens[1]?.value).toBe("");
         expect(tokens[2]?.type).toBe("IDENTIFIER");
+    });
+});
+
+describe("Lexer - String literal properties", () => {
+    it("property: any NFC string round-trips through JSON.stringify + lex (codepoints, escapes, astral)", () => {
+        fc.assert(
+            fc.property(stringContentArb, (s) => {
+                const source = renderStringLiteral(s);
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                const t = tokens[0];
+                if (t?.type !== "STRING_LITERAL") return false;
+                return t.value === s;
+            }),
+        );
+    });
+
+    it("property: a string literal between two identifiers preserves all three kinds and the value", () => {
+        fc.assert(
+            fc.property(stringContentArb, (s) => {
+                const source = `a ${renderStringLiteral(s)} b`;
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                if (tokens.length !== 4) return false;
+                const kinds = tokens.slice(0, 3).map((t) => t.type);
+                const value = tokens[1]?.type === "STRING_LITERAL" ? tokens[1].value : null;
+                return (
+                    JSON.stringify(kinds) === JSON.stringify(["IDENTIFIER", "STRING_LITERAL", "IDENTIFIER"]) &&
+                    value === s
+                );
+            }),
+        );
     });
 });
