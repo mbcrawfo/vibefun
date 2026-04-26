@@ -87,3 +87,24 @@ export type {
     ModuleGraphSpec,
     SubstitutionArbOptions,
 } from "./core-ast-arb.js";
+
+export {
+    alphaEquivalent,
+    constraintArb,
+    equalityConstraintArb,
+    freeVarsOfType,
+    groundTypeArb,
+    instanceConstraintArb,
+    MAX_VAR_ID,
+    PRIMITIVE_TYPE_NAMES,
+    typeArb,
+    typeEnvArb,
+    typeSchemeArb,
+    typeSubstitutionArb,
+} from "./type-arb.js";
+export type {
+    TypeArbOptions,
+    TypeEnvArbOptions,
+    TypeSchemeArbOptions,
+    TypeSubstitutionArbOptions,
+} from "./type-arb.js";

@@ -1,0 +1,202 @@
+/**
+ * Sanity tests for the `type-arb` arbitraries.
+ *
+ * These confirm the generators produce values matching the intended shape
+ * invariants (Type discriminants stay within the supported set; type-variable
+ * IDs stay within the configured range; substitutions are valid maps;
+ * type-scheme bound vars are a subset of the body's free vars). The goal is
+ * to catch regressions in the generators themselves before they silently
+ * weaken the property tests that depend on them.
+ */
+
+import * as fc from "fast-check";
+import { describe, expect, it } from "vitest";
+
+import {
+    alphaEquivalent,
+    constraintArb,
+    freeVarsOfType,
+    groundTypeArb,
+    MAX_VAR_ID,
+    PRIMITIVE_TYPE_NAMES,
+    typeArb,
+    typeEnvArb,
+    typeSchemeArb,
+    typeSubstitutionArb,
+} from "./index.js";
+
+const SUPPORTED_TYPE_KINDS = new Set(["Var", "Const", "Fun", "App", "Tuple", "Record", "Ref"]);
+
+describe("typeArb", () => {
+    it("property: every generated type has a supported discriminant", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                walkTypes(t, (sub) => {
+                    expect(SUPPORTED_TYPE_KINDS.has(sub.type)).toBe(true);
+                });
+            }),
+        );
+    });
+
+    it("property: type variable IDs stay within configured range", () => {
+        fc.assert(
+            fc.property(typeArb({ maxVarId: 3 }), (t) => {
+                for (const id of freeVarsOfType(t)) {
+                    expect(id).toBeGreaterThanOrEqual(0);
+                    expect(id).toBeLessThanOrEqual(3);
+                }
+            }),
+        );
+    });
+
+    it("property: groundOnly produces no type variables", () => {
+        fc.assert(
+            fc.property(groundTypeArb, (t) => {
+                expect(freeVarsOfType(t).size).toBe(0);
+            }),
+        );
+    });
+
+    it("property: primitives are drawn from the documented pool", () => {
+        const primitives = new Set<string>(PRIMITIVE_TYPE_NAMES);
+        fc.assert(
+            fc.property(typeArb({ depth: 1 }), (t) => {
+                if (t.type === "Const") {
+                    expect(primitives.has(t.name)).toBe(true);
+                }
+            }),
+        );
+    });
+});
+
+describe("typeSchemeArb", () => {
+    it("property: bound vars are a subset of the body's free vars", () => {
+        fc.assert(
+            fc.property(typeSchemeArb(), (scheme) => {
+                const free = freeVarsOfType(scheme.type);
+                for (const v of scheme.vars) {
+                    expect(free.has(v)).toBe(true);
+                }
+            }),
+        );
+    });
+
+    it("property: maxBoundVars is respected", () => {
+        fc.assert(
+            fc.property(typeSchemeArb({ maxBoundVars: 2 }), (scheme) => {
+                expect(scheme.vars.length).toBeLessThanOrEqual(2);
+            }),
+        );
+    });
+});
+
+describe("typeSubstitutionArb", () => {
+    it("property: keys lie within MAX_VAR_ID", () => {
+        fc.assert(
+            fc.property(typeSubstitutionArb(), (subst) => {
+                for (const id of subst.keys()) {
+                    expect(id).toBeGreaterThanOrEqual(0);
+                    expect(id).toBeLessThanOrEqual(MAX_VAR_ID);
+                }
+            }),
+        );
+    });
+
+    it("property: ground-range substitution values contain no type variables", () => {
+        fc.assert(
+            fc.property(typeSubstitutionArb({ groundRange: true }), (subst) => {
+                for (const value of subst.values()) {
+                    expect(freeVarsOfType(value).size).toBe(0);
+                }
+            }),
+        );
+    });
+});
+
+describe("typeEnvArb", () => {
+    it("property: generated environments contain only Value bindings", () => {
+        fc.assert(
+            fc.property(typeEnvArb(), (env) => {
+                expect(env.types.size).toBe(0);
+                for (const binding of env.values.values()) {
+                    expect(binding.kind).toBe("Value");
+                }
+            }),
+        );
+    });
+});
+
+describe("constraintArb", () => {
+    it("property: every constraint is Equality or Instance", () => {
+        fc.assert(
+            fc.property(constraintArb, (c) => {
+                expect(c.kind === "Equality" || c.kind === "Instance").toBe(true);
+            }),
+        );
+    });
+});
+
+describe("alphaEquivalent", () => {
+    it("identifies a type as α-equivalent to itself", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                expect(alphaEquivalent(t, t)).toBe(true);
+            }),
+        );
+    });
+
+    it("differentiates types with mismatched constructor names", () => {
+        expect(alphaEquivalent({ type: "Const", name: "Int" }, { type: "Const", name: "String" })).toBe(false);
+    });
+
+    it("respects the bijective renaming requirement", () => {
+        // 'a -> 'a is α-equivalent to 'b -> 'b but not to 'b -> 'c.
+        expect(
+            alphaEquivalent(
+                { type: "Fun", params: [{ type: "Var", id: 0, level: 0 }], return: { type: "Var", id: 0, level: 0 } },
+                { type: "Fun", params: [{ type: "Var", id: 1, level: 0 }], return: { type: "Var", id: 1, level: 0 } },
+            ),
+        ).toBe(true);
+        expect(
+            alphaEquivalent(
+                { type: "Fun", params: [{ type: "Var", id: 0, level: 0 }], return: { type: "Var", id: 0, level: 0 } },
+                { type: "Fun", params: [{ type: "Var", id: 1, level: 0 }], return: { type: "Var", id: 2, level: 0 } },
+            ),
+        ).toBe(false);
+    });
+});
+
+function walkTypes(t: import("../environment.js").Type, visit: (sub: import("../environment.js").Type) => void): void {
+    visit(t);
+    switch (t.type) {
+        case "Var":
+        case "Const":
+        case "Never":
+        case "StringLit":
+        case "Module":
+            return;
+        case "Fun":
+            t.params.forEach((p) => walkTypes(p, visit));
+            walkTypes(t.return, visit);
+            return;
+        case "App":
+            walkTypes(t.constructor, visit);
+            t.args.forEach((a) => walkTypes(a, visit));
+            return;
+        case "Record":
+            t.fields.forEach((f) => walkTypes(f, visit));
+            return;
+        case "Variant":
+            t.constructors.forEach((cs) => cs.forEach((p) => walkTypes(p, visit)));
+            return;
+        case "Union":
+            t.types.forEach((u) => walkTypes(u, visit));
+            return;
+        case "Tuple":
+            t.elements.forEach((e) => walkTypes(e, visit));
+            return;
+        case "Ref":
+            walkTypes(t.inner, visit);
+            return;
+    }
+}
