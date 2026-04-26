@@ -7,9 +7,16 @@
 
 import type { Expr, Pattern, TypeExpr } from "../types/ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import {
+    astEquals,
+    lowerIdentifierArb,
+    nonNegativeIntArb,
+    upperIdentifierArb,
+} from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 function parseExpr(source: string): Expr {
@@ -426,5 +433,62 @@ describe("Trailing Commas - Combined with Other Features", () => {
             if (expr.kind !== "Record") return;
             expect(expr.fields).toHaveLength(1);
         });
+    });
+});
+
+describe("Trailing Commas - Properties", () => {
+    const intsAtLeast1 = fc.array(nonNegativeIntArb, { minLength: 1, maxLength: 4 });
+    const intsAtLeast2 = fc.array(nonNegativeIntArb, { minLength: 2, maxLength: 4 });
+
+    it("property: trailing-comma equivalence on list literals", () => {
+        fc.assert(
+            fc.property(intsAtLeast1, (xs) => {
+                const body = xs.join(", ");
+                expect(astEquals(parseExpr(`[${body},]`), parseExpr(`[${body}]`))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: trailing-comma equivalence on tuple expressions", () => {
+        fc.assert(
+            fc.property(intsAtLeast2, (xs) => {
+                const body = xs.join(", ");
+                expect(astEquals(parseExpr(`(${body},)`), parseExpr(`(${body})`))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: trailing-comma equivalence on record literals", () => {
+        const fields = fc.uniqueArray(fc.tuple(lowerIdentifierArb, nonNegativeIntArb), {
+            minLength: 1,
+            maxLength: 3,
+            selector: ([n]) => n,
+        });
+        fc.assert(
+            fc.property(fields, (entries) => {
+                const body = entries.map(([n, v]) => `${n}: ${v}`).join(", ");
+                expect(astEquals(parseExpr(`{ ${body}, }`), parseExpr(`{ ${body} }`))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: trailing-comma equivalence on tuple type expressions", () => {
+        const tupleNames = fc.array(upperIdentifierArb, { minLength: 2, maxLength: 4 });
+        fc.assert(
+            fc.property(tupleNames, (names) => {
+                const body = names.join(", ");
+                expect(astEquals(parseType(`(${body},)`), parseType(`(${body})`))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: trailing-comma equivalence on tuple patterns", () => {
+        const tuplePatNames = fc.array(lowerIdentifierArb, { minLength: 2, maxLength: 4 });
+        fc.assert(
+            fc.property(tuplePatNames, (names) => {
+                const body = names.join(", ");
+                expect(astEquals(parsePattern(`(${body},)`), parsePattern(`(${body})`))).toBe(true);
+            }),
+        );
     });
 });
