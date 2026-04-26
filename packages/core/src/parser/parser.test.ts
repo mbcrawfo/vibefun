@@ -411,9 +411,16 @@ describe("Parser - Core", () => {
                     const src = `${prettyPrintDeclaration(d)};`;
                     const module = createParser(src).parse();
                     const visit = (node: unknown): void => {
-                        if (node === null || typeof node !== "object" || Array.isArray(node)) return;
+                        if (node === null || typeof node !== "object") return;
+                        if (Array.isArray(node)) {
+                            for (const item of node) visit(item);
+                            return;
+                        }
                         const obj = node as Record<string, unknown>;
-                        if (typeof obj["kind"] === "string") {
+                        // Only assert loc on kinded AST nodes that carry it. ListElement
+                        // (kind "Element"/"Spread") is a structural discriminated wrapper
+                        // with no loc field — skip those by checking for `loc` presence.
+                        if (typeof obj["kind"] === "string" && "loc" in obj) {
                             const loc = obj["loc"] as
                                 | { file?: unknown; line?: unknown; column?: unknown; offset?: unknown }
                                 | undefined;

@@ -1101,12 +1101,14 @@ describe("Parser - Declarations", () => {
     });
 
     describe("properties", () => {
-        it("property: parse(prettyPrintDeclaration(d)) yields a single declaration of the same kind", () => {
+        it("property: parse(prettyPrintDeclaration(d)) round-trips to a structurally equal declaration", () => {
             fc.assert(
                 fc.property(declArb({ depth: 2 }), (d) => {
                     const module = parseModule(`${prettyPrintDeclaration(d)};`);
                     expect(module.declarations).toHaveLength(1);
-                    expect(module.declarations[0]?.kind).toBe(d.kind);
+                    const reparsed = module.declarations[0];
+                    expect(reparsed).toBeDefined();
+                    expect(astEquals(reparsed, d)).toBe(true);
                 }),
             );
         });

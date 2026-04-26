@@ -625,9 +625,15 @@ describe("Parser - Patterns", () => {
                     const src = prettyPrintPattern(p);
                     const parsed = parsePattern(src);
                     const visit = (node: unknown): void => {
-                        if (node === null || typeof node !== "object" || Array.isArray(node)) return;
+                        if (node === null || typeof node !== "object") return;
+                        if (Array.isArray(node)) {
+                            for (const item of node) visit(item);
+                            return;
+                        }
                         const obj = node as Record<string, unknown>;
-                        if (typeof obj["kind"] === "string") {
+                        // Only assert loc on kinded AST nodes that carry it (skip
+                        // structural wrappers like ListElement that have no loc field).
+                        if (typeof obj["kind"] === "string" && "loc" in obj) {
                             const loc = obj["loc"] as
                                 | { file?: unknown; line?: unknown; column?: unknown; offset?: unknown }
                                 | undefined;

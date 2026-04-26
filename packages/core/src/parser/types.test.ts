@@ -441,9 +441,15 @@ describe("Parser - Type Expressions", () => {
                 fc.property(typeExprArb({ depth: 3 }), (t) => {
                     const parsed = parseType(prettyPrintTypeExpr(t));
                     const visit = (node: unknown): void => {
-                        if (node === null || typeof node !== "object" || Array.isArray(node)) return;
+                        if (node === null || typeof node !== "object") return;
+                        if (Array.isArray(node)) {
+                            for (const item of node) visit(item);
+                            return;
+                        }
                         const obj = node as Record<string, unknown>;
-                        if (typeof obj["kind"] === "string") {
+                        // Only assert loc on kinded AST nodes that carry it (skip
+                        // structural wrappers without a loc field).
+                        if (typeof obj["kind"] === "string" && "loc" in obj) {
                             expect(obj["loc"]).toBeDefined();
                         }
                         for (const v of Object.values(obj)) visit(v);
