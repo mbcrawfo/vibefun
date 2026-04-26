@@ -1,0 +1,18 @@
+PR 6 baseline runtime — captured at PR start.
+
+Command: pnpm run test (after pnpm run build)
+
+Wall-clock total (time pnpm run test): ~5.05s
+Vitest reported "Duration": 4.57s (transform 11.07s, setup 3.02s, import 25.70s, tests 9.99s, environment 10ms)
+Test files: 225 passed
+Tests: 4759 passed
+
+Runtime budget for PR 6: ≤ 10% over baseline. Use this as the floor for the
+post-implementation runtime check. Cap numRuns aggressively (10–25) for
+execution-tests files because each property run can spawn JS execution.
+
+Coverage floor (from pr6-baseline-coverage.json):
+  lines:      91.84%
+  statements: 90.89%
+  functions:  91.81%
+  branches:   84.78%
