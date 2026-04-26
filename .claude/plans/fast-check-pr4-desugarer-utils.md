@@ -120,9 +120,10 @@ Re-export from the test-arbitraries barrel.
 - **`exprEquals` reflexivity:** `exprEquals(e, e) === true` for any CoreExpr.
 - **`exprEquals` symmetry:** `exprEquals(a, b) === exprEquals(b, a)`.
 - **`exprEquals` transitivity:** `exprEquals(a, b) && exprEquals(b, c) ⇒ exprEquals(a, c)`.
-- **α-equivalence respected:** `exprEquals` returns true for two ASTs that
-  differ only in bound-variable names, when using `equivalent` (the
-  α-aware variant).
+- **α-equivalence respected:** `exprEquivalent(a, b) === true` for two ASTs
+  that differ only in bound-variable names. (Use `exprEquivalent` here, not
+  `exprEquals`; the latter is structural and treats bound names as
+  significant.)
 - **Substitution identity:** `subst({})(e) === e` (empty substitution is
   identity).
 - **Substitution composition associativity:** `subst(σ ∘ τ) === subst(σ) ∘ subst(τ)`.
@@ -161,6 +162,15 @@ Per `fast-check-master.md`. Coverage drift watch: the desugarer is large and
 property-test coverage may overlap heavily with existing fixed-test coverage,
 producing little net change. That's fine — the value is in catching bugs the
 fixed tests miss, not in raw coverage gains.
+
+## Post-implementation coverage check
+
+```bash
+pnpm run test:coverage
+# compare coverage/coverage-summary.json against
+# .claude/plans/triage/pr4-baseline-coverage.json and confirm
+# lines, statements, functions, and branches are all >= baseline
+```
 
 ## Risks specific to this PR
 

@@ -5,6 +5,9 @@ name: Property Fuzz (weekly)
 # Failures are surfaced as workflow errors; if they uncover a bug, pin the seed
 # and convert it to a regression test.
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: "0 7 * * 1" # Mondays 07:00 UTC

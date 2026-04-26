@@ -38,7 +38,10 @@ const THRESHOLD = 0.01; // Tolerance for floating point precision
 const baseCoveragePath = process.env["BASE_COVERAGE_PATH"] ?? "base-coverage";
 
 /**
- * Type guard to validate coverage summary structure
+ * Type guard to validate coverage summary structure across every metric
+ * the script reads. Without this, a malformed summary that happens to
+ * carry `total.lines.pct` but is missing one of the other metrics would
+ * pass the guard and then crash inside checkMetric.
  */
 function isCoverageSummary(value: unknown): value is CoverageSummary {
     if (typeof value !== "object" || value === null) {
@@ -49,11 +52,14 @@ function isCoverageSummary(value: unknown): value is CoverageSummary {
         return false;
     }
     const total = obj["total"] as Record<string, unknown>;
-    if (typeof total["lines"] !== "object" || total["lines"] === null) {
-        return false;
-    }
-    const lines = total["lines"] as Record<string, unknown>;
-    return typeof lines["pct"] === "number";
+    return METRICS.every((metric) => {
+        const metricValue = total[metric];
+        if (typeof metricValue !== "object" || metricValue === null) {
+            return false;
+        }
+        const metricObj = metricValue as Record<string, unknown>;
+        return typeof metricObj["pct"] === "number" && Number.isFinite(metricObj["pct"]);
+    });
 }
 
 function readCoverageSummary(filepath: string): CoverageSummary | null {

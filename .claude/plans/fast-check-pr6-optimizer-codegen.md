@@ -164,6 +164,15 @@ Per `fast-check-master.md`, plus:
   ≤ 10%; if it exceeds, lower `numRuns` for the most expensive files until it
   fits.
 
+## Post-implementation coverage check
+
+```bash
+pnpm run test:coverage
+# compare coverage/coverage-summary.json against
+# .claude/plans/triage/pr6-baseline-coverage.json and confirm
+# lines, statements, functions, and branches are all >= baseline
+```
+
 ## Risks specific to this PR
 
 - **Execution-test runtime explosion.** Each property run can spawn Node.
