@@ -590,6 +590,7 @@ describe("Lexer - Identifier properties", () => {
             fc.property(keywordArb, (kw) => {
                 const tokens = new Lexer(kw, "prop.vf").tokenize();
                 expect(tokens).toHaveLength(2);
+                expect(tokens[1]?.type).toBe("EOF");
                 const t = tokens[0];
                 if (t?.type !== "KEYWORD") return false;
                 return t.value === kw && t.keyword === kw;
