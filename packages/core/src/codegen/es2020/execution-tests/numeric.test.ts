@@ -4,6 +4,7 @@
  * Tests IEEE 754 semantics, integer division, and modulo operations.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { compileAndGetExport } from "./execution-test-helpers.js";
@@ -83,5 +84,46 @@ describe("division by zero", () => {
     it("should NOT panic on float 0/0 (IEEE 754 produces NaN)", () => {
         const result = compileAndGetExport(`let result = 0.0 / 0.0;`, "result");
         expect(Number.isNaN(result as number)).toBe(true);
+    });
+});
+
+describe("Properties", () => {
+    // These properties spawn JS via vm.runInContext on every run. Cap
+    // numRuns at 25 to keep the suite under the 10% runtime budget.
+
+    const safeIntArb = fc.integer({ min: -10000, max: 10000 });
+
+    it("property: integer addition matches JS reference", () => {
+        fc.assert(
+            fc.property(safeIntArb, safeIntArb, (l, r) => {
+                const result = compileAndGetExport(`let result = ${l} + ${r};`, "result");
+                return result === l + r;
+            }),
+            { numRuns: 25 },
+        );
+    });
+
+    it("property: integer multiplication matches JS reference", () => {
+        fc.assert(
+            fc.property(safeIntArb, safeIntArb, (l, r) => {
+                const result = compileAndGetExport(`let result = ${l} * ${r};`, "result");
+                return result === l * r;
+            }),
+            { numRuns: 25 },
+        );
+    });
+
+    it("property: integer modulo matches JS reference (excluding zero divisor)", () => {
+        fc.assert(
+            fc.property(
+                safeIntArb,
+                safeIntArb.filter((n) => n !== 0),
+                (l, r) => {
+                    const result = compileAndGetExport(`let result = ${l} % ${r};`, "result");
+                    return result === l % r;
+                },
+            ),
+            { numRuns: 25 },
+        );
     });
 });
