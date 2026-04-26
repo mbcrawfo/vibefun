@@ -6,9 +6,11 @@
 
 import type { Expr, Pattern } from "../types/ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { astEquals, nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 function parseExpr(source: string): Expr {
@@ -327,6 +329,41 @@ describe("Tuple Patterns", () => {
             if (pattern.kind !== "TuplePattern") return;
             expect(pattern.elements[0]?.kind).toBe("ListPattern");
             expect(pattern.elements[1]?.kind).toBe("VarPattern");
+        });
+    });
+
+    describe("properties", () => {
+        const tupleArityArb = fc.array(nonNegativeIntArb, { minLength: 2, maxLength: 5 });
+
+        it("property: parsed tuple arity matches source for >= 2 elements", () => {
+            fc.assert(
+                fc.property(tupleArityArb, (xs) => {
+                    const expr = parseExpr(`let x = (${xs.join(", ")});`);
+                    expect(expr.kind).toBe("Tuple");
+                    if (expr.kind === "Tuple") {
+                        expect(expr.elements).toHaveLength(xs.length);
+                    }
+                }),
+            );
+        });
+
+        it("property: trailing-comma equivalence on tuples", () => {
+            fc.assert(
+                fc.property(tupleArityArb, (xs) => {
+                    const body = xs.join(", ");
+                    expect(astEquals(parseExpr(`let x = (${body},);`), parseExpr(`let x = (${body});`))).toBe(true);
+                }),
+            );
+        });
+
+        it("property: single-element parens collapse to the inner expression (not a Tuple)", () => {
+            // Vibefun spec: `(x)` is grouping, not a 1-tuple. Tuple requires 2+ elements.
+            fc.assert(
+                fc.property(nonNegativeIntArb, (n) => {
+                    const expr = parseExpr(`let x = (${n});`);
+                    expect(expr.kind).toBe("IntLit");
+                }),
+            );
         });
     });
 });
