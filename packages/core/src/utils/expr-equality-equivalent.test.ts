@@ -4,8 +4,10 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb } from "../types/test-arbitraries/index.js";
 import { exprEquals, exprEquivalent } from "./expr-equality.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -868,6 +870,41 @@ describe("Expression Equality Utilities", () => {
             };
 
             expect(exprEquals(e1, e2)).toBe(false);
+        });
+    });
+
+    describe("exprEquivalent placeholder behaviour", () => {
+        // exprEquivalent is documented as a placeholder that delegates to
+        // exprEquals today; the intent is to grow into α-equivalence and
+        // semantic equivalence later. These properties enforce the placeholder
+        // contract: (1) it must agree with exprEquals on every input, (2) it
+        // must inherit the equivalence-relation properties (reflexivity,
+        // symmetry) so callers can rely on it. When the implementation grows
+        // beyond pure delegation, the agreement property will need to relax to
+        // a directional implication (`exprEquals ⇒ exprEquivalent`).
+
+        it("property: agrees with exprEquals on arbitrary inputs", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), coreExprArb({ depth: 3 }), (a, b) => {
+                    return exprEquivalent(a, b) === exprEquals(a, b);
+                }),
+            );
+        });
+
+        it("property: reflexivity — exprEquivalent(e, e) is true", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return exprEquivalent(e, e);
+                }),
+            );
+        });
+
+        it("property: symmetry — exprEquivalent(a, b) === exprEquivalent(b, a)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), coreExprArb({ depth: 3 }), (a, b) => {
+                    return exprEquivalent(a, b) === exprEquivalent(b, a);
+                }),
+            );
         });
     });
 });
