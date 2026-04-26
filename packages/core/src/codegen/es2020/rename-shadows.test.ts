@@ -8,8 +8,10 @@
 
 import type { CoreModule } from "../../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreModuleArb } from "../../types/test-arbitraries/index.js";
 import { renameTopLevelShadows } from "./rename-shadows.js";
 
 const loc = { file: "test.vf", line: 1, column: 1, offset: 0 };
@@ -679,5 +681,52 @@ describe("renameTopLevelShadows", () => {
         // Must not collide with the user-bound `x$1` from decl 2.
         expect(third.pattern.name).not.toBe("x$1");
         expect(third.pattern.name).toBe("x$2");
+    });
+
+    describe("Properties", () => {
+        it("property: after renameTopLevelShadows, top-level VarPattern bindings have unique JS names", () => {
+            fc.assert(
+                fc.property(coreModuleArb({ depth: 2, maxBreadth: 3 }), (module) => {
+                    const { module: renamed } = renameTopLevelShadows(module);
+                    const names = new Set<string>();
+                    for (const decl of renamed.declarations) {
+                        if (decl.kind === "CoreLetDecl" && decl.pattern.kind === "CoreVarPattern") {
+                            if (names.has(decl.pattern.name)) return false;
+                            names.add(decl.pattern.name);
+                        }
+                    }
+                    return true;
+                }),
+            );
+        });
+
+        it("property: renameTopLevelShadows is idempotent on its own output", () => {
+            fc.assert(
+                fc.property(coreModuleArb({ depth: 2, maxBreadth: 3 }), (module) => {
+                    const once = renameTopLevelShadows(module).module;
+                    const twice = renameTopLevelShadows(once).module;
+                    // Compare top-level pattern names — the second pass should
+                    // not introduce any further renaming because the first pass
+                    // already made them unique.
+                    const namesOf = (m: CoreModule): string[] =>
+                        m.declarations
+                            .filter((d) => d.kind === "CoreLetDecl" && d.pattern.kind === "CoreVarPattern")
+                            .map((d) =>
+                                d.kind === "CoreLetDecl" && d.pattern.kind === "CoreVarPattern" ? d.pattern.name : "",
+                            );
+                    return JSON.stringify(namesOf(once)) === JSON.stringify(namesOf(twice));
+                }),
+            );
+        });
+
+        it("property: renameTopLevelShadows is deterministic", () => {
+            fc.assert(
+                fc.property(coreModuleArb({ depth: 2, maxBreadth: 3 }), (module) => {
+                    const a = renameTopLevelShadows(module).module;
+                    const b = renameTopLevelShadows(module).module;
+                    return JSON.stringify(a) === JSON.stringify(b);
+                }),
+            );
+        });
     });
 });
