@@ -4,9 +4,12 @@
 
 import type { CoreExpr } from "../../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { OptimizationLevel } from "../../types/optimizer.js";
+import { coreExprWithUnsafeArb, optimizableExprArb } from "../../types/test-arbitraries/index.js";
+import { exprEquals } from "../../utils/expr-equality.js";
 import { InlineExpansionPass } from "./inline.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -942,6 +945,33 @@ describe("InlineExpansionPass", () => {
                 loc: testLoc,
             };
             expect(pass.canApply(expr)).toBe(false);
+        });
+    });
+
+    describe("Properties", () => {
+        it("property: inline.transform is deterministic on closed Core expressions", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    return exprEquals(pass.transform(expr), pass.transform(expr));
+                }),
+            );
+        });
+
+        it("property: inline.transform never throws on closed Core expressions", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    expect(() => pass.transform(expr)).not.toThrow();
+                }),
+            );
+        });
+
+        it("property: inline preserves CoreUnsafe nodes", () => {
+            fc.assert(
+                fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
+                    if (expr.kind !== "CoreUnsafe") return true;
+                    return exprEquals(pass.transform(expr), expr);
+                }),
+            );
         });
     });
 });
