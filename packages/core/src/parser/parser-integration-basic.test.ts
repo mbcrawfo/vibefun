@@ -4,8 +4,10 @@
 
 import type { Declaration } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { astEquals, moduleArb, prettyPrintModule } from "../types/test-arbitraries/index.js";
 import { parseModule } from "./parser-test-helpers.js";
 
 // Type aliases for casting
@@ -402,6 +404,16 @@ describe("Parser - Integration - Basic Features", () => {
             expect(module.declarations[3]!.kind).toBe("LetDecl");
             expect(module.declarations[4]).toBeDefined();
             expect(module.declarations[4]!.kind).toBe("LetDecl");
+        });
+    });
+
+    describe("properties", () => {
+        it("property: parse(prettyPrintModule(m)) is alpha-equivalent to m for multi-declaration modules", () => {
+            fc.assert(
+                fc.property(moduleArb({ depth: 2, maxBreadth: 3 }), (m) => {
+                    expect(astEquals(parseModule(prettyPrintModule(m)), m)).toBe(true);
+                }),
+            );
         });
     });
 });
