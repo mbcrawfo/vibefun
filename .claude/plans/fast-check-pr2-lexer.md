@@ -50,6 +50,7 @@ Spawn an Explore subagent with this prompt:
 >   structural invariants would add value. Name the properties.
 > - `fixed-only` — file tests specific regressions, exact error messages, or
 >   structural cases that don't generalize. Justify briefly.
+> - `snapshot-skip` — snapshot-style files excluded from this PR scope.
 > - `defer-bug-backlog` — file already has a known fixed-input regression test
 >   for a real bug; property version belongs in a follow-up.
 >
@@ -127,6 +128,15 @@ Per-PR verification in `fast-check-master.md`. Specifically for PR 2: the four
 coverage metrics must be ≥ the values in
 `.claude/plans/triage/pr2-baseline-coverage.json` after every commit and at
 PR close.
+
+## Post-implementation coverage check
+
+```bash
+pnpm run test:coverage
+# compare coverage/coverage-summary.json against
+# .claude/plans/triage/pr2-baseline-coverage.json and confirm
+# lines, statements, functions, and branches are all >= baseline
+```
 
 ## Risks specific to this PR
 

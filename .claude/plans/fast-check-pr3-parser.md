@@ -131,6 +131,15 @@ Per `fast-check-master.md`. Specific runtime concern: parser property tests
 recurse through generated ASTs; cap `depth` aggressively in arbitraries (4 is
 usually enough to catch precedence bugs without exploding generation time).
 
+## Post-implementation coverage check
+
+```bash
+pnpm run test:coverage
+# compare coverage/coverage-summary.json against
+# .claude/plans/triage/pr3-baseline-coverage.json and confirm
+# lines, statements, functions, and branches are all >= baseline
+```
+
 ## Risks specific to this PR
 
 - **AST arbitrary depth bombs.** Without size caps, `fc.letrec` explodes.

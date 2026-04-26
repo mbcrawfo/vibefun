@@ -122,6 +122,10 @@ After per-file commits land:
 2. **Final verify:**
     - `pnpm run verify`
     - `pnpm run spec:validate`
+    - `pnpm run test:coverage` and confirm
+      `coverage/coverage-summary.json` is ≥
+      `.claude/plans/triage/pr7-baseline-coverage.json` for lines,
+      statements, functions, and branches.
     - Re-run the unseeded weekly job (`property-fuzz.yml`) manually with
       `numRuns: 5000` to surface long-tail bugs before declaring done. Any
       failures get triaged into the backlog.

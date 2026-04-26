@@ -39,10 +39,15 @@ describe("Math", () => {
         it("property: sqrt(n*n) === abs(n) when n*n stays representable", () => {
             // Restrict to |n| <= 1e150 so n*n does not overflow to Infinity
             // (sqrt(MAX_VALUE) ~= 1.34e154; staying well below avoids precision loss).
+            // Use relative-error tolerance: toBeCloseTo's absolute tolerance is
+            // scale-blind and impossibly tight at large magnitudes.
             const safeForSquaring = fc.double({ noNaN: true, noDefaultInfinity: true, min: -1e150, max: 1e150 });
             fc.assert(
                 fc.property(safeForSquaring, (n) => {
-                    expect(M.sqrt(n * n)).toBeCloseTo(M.abs(n), 8);
+                    const expected = M.abs(n);
+                    const actual = M.sqrt(n * n);
+                    const relErr = Math.abs(actual - expected) / Math.max(1, expected);
+                    expect(relErr).toBeLessThanOrEqual(1e-12);
                 }),
             );
         });

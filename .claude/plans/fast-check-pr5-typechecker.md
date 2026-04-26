@@ -151,6 +151,15 @@ This PR's halt-on-failure rule is non-negotiable:
 Per `fast-check-master.md`. Specifically: any Tier 3 finding **stops** the PR.
 Do not pile additional skipped properties on top of a pending soundness bug.
 
+## Post-implementation coverage check
+
+```bash
+pnpm run test:coverage
+# compare coverage/coverage-summary.json against
+# .claude/plans/triage/pr5-baseline-coverage.json and confirm
+# lines, statements, functions, and branches are all >= baseline
+```
+
 ## Risks specific to this PR
 
 - **Type-arbitrary depth and breadth must be tuned carefully.** Too shallow
