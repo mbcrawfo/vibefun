@@ -4,8 +4,11 @@
 
 import type { CoreExpr } from "../../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprWithUnsafeArb, optimizableExprArb } from "../../types/test-arbitraries/index.js";
+import { exprEquals } from "../../utils/expr-equality.js";
 import { ConstantFoldingPass } from "./constant-folding.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -701,6 +704,84 @@ describe("ConstantFoldingPass", () => {
             const result = pass.transform(expr);
 
             expect(result).toEqual(expr); // Unchanged
+        });
+    });
+
+    describe("Properties", () => {
+        it("property: constant folding is idempotent — fold(fold(e)) equals fold(e)", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const once = pass.transform(expr);
+                    const twice = pass.transform(once);
+                    return exprEquals(once, twice);
+                }),
+            );
+        });
+
+        it("property: constant folding is deterministic", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    return exprEquals(pass.transform(expr), pass.transform(expr));
+                }),
+            );
+        });
+
+        it("property: x + 0 folds to x for any int x", () => {
+            fc.assert(
+                fc.property(fc.integer({ min: -1000, max: 1000 }), (x) => {
+                    const expr: CoreExpr = {
+                        kind: "CoreBinOp",
+                        op: "Add",
+                        left: { kind: "CoreIntLit", value: x, loc: testLoc },
+                        right: { kind: "CoreIntLit", value: 0, loc: testLoc },
+                        loc: testLoc,
+                    };
+                    const folded = pass.transform(expr);
+                    return folded.kind === "CoreIntLit" && folded.value === x;
+                }),
+            );
+        });
+
+        it("property: x * 1 folds to x for any int x", () => {
+            fc.assert(
+                fc.property(fc.integer({ min: -1000, max: 1000 }), (x) => {
+                    const expr: CoreExpr = {
+                        kind: "CoreBinOp",
+                        op: "Multiply",
+                        left: { kind: "CoreIntLit", value: x, loc: testLoc },
+                        right: { kind: "CoreIntLit", value: 1, loc: testLoc },
+                        loc: testLoc,
+                    };
+                    const folded = pass.transform(expr);
+                    return folded.kind === "CoreIntLit" && folded.value === x;
+                }),
+            );
+        });
+
+        it("property: integer arithmetic folds to a literal whose value matches JS reference", () => {
+            const safeIntArb = fc.integer({ min: -10000, max: 10000 });
+            fc.assert(
+                fc.property(safeIntArb, safeIntArb, (l, r) => {
+                    const expr: CoreExpr = {
+                        kind: "CoreBinOp",
+                        op: "Add",
+                        left: { kind: "CoreIntLit", value: l, loc: testLoc },
+                        right: { kind: "CoreIntLit", value: r, loc: testLoc },
+                        loc: testLoc,
+                    };
+                    const folded = pass.transform(expr);
+                    return folded.kind === "CoreIntLit" && folded.value === l + r;
+                }),
+            );
+        });
+
+        it("property: transform leaves CoreUnsafe nodes untouched", () => {
+            fc.assert(
+                fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
+                    if (expr.kind !== "CoreUnsafe") return true;
+                    return exprEquals(pass.transform(expr), expr);
+                }),
+            );
         });
     });
 });
