@@ -19,12 +19,13 @@ import type {
 } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
-import { freshTypeVar, primitiveTypes, resetTypeVarCounter, typeToString } from "./types.js";
+import { freshTypeVar, primitiveTypes, resetTypeVarCounter, typeEquals, typeToString } from "./types.js";
 import { applySubst } from "./unify.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
@@ -500,5 +501,67 @@ describe("Type Inference - Tuples", () => {
         const result = inferExpr(createContext(createTestEnv()), expr);
 
         expect(result.type).toEqual(primitiveTypes.Int);
+    });
+});
+
+describe("Literal Inference Properties", () => {
+    it("property: any IntLit infers to Int", () => {
+        fc.assert(
+            fc.property(fc.integer({ min: -1_000_000, max: 1_000_000 }), (value) => {
+                const expr: CoreIntLit = { kind: "CoreIntLit", value, loc: testLoc };
+                const result = inferExpr(createContext(createTestEnv()), expr);
+                expect(typeEquals(result.type, primitiveTypes.Int)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: any FloatLit infers to Float", () => {
+        fc.assert(
+            fc.property(fc.double({ noNaN: true, noDefaultInfinity: true }), (value) => {
+                const expr: CoreFloatLit = { kind: "CoreFloatLit", value, loc: testLoc };
+                const result = inferExpr(createContext(createTestEnv()), expr);
+                expect(typeEquals(result.type, primitiveTypes.Float)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: any StringLit infers to String", () => {
+        fc.assert(
+            fc.property(fc.string({ maxLength: 64 }), (value) => {
+                const expr: CoreStringLit = { kind: "CoreStringLit", value, loc: testLoc };
+                const result = inferExpr(createContext(createTestEnv()), expr);
+                expect(typeEquals(result.type, primitiveTypes.String)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: any BoolLit infers to Bool", () => {
+        fc.assert(
+            fc.property(fc.boolean(), (value) => {
+                const expr: CoreBoolLit = { kind: "CoreBoolLit", value, loc: testLoc };
+                const result = inferExpr(createContext(createTestEnv()), expr);
+                expect(typeEquals(result.type, primitiveTypes.Bool)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: UnitLit always infers to Unit", () => {
+        // Unit has no payload, but the property still pins the contract: the
+        // inferred type kind is always exactly the Unit primitive, regardless
+        // of the substitution accumulated up to this point.
+        const expr: CoreUnitLit = { kind: "CoreUnitLit", loc: testLoc };
+        const result = inferExpr(createContext(createTestEnv()), expr);
+        expect(typeEquals(result.type, primitiveTypes.Unit)).toBe(true);
+    });
+
+    it("property: literal inference is deterministic — same input yields same type", () => {
+        fc.assert(
+            fc.property(fc.integer({ min: -1_000_000, max: 1_000_000 }), (value) => {
+                const expr: CoreIntLit = { kind: "CoreIntLit", value, loc: testLoc };
+                const a = inferExpr(createContext(createTestEnv()), expr);
+                const b = inferExpr(createContext(createTestEnv()), expr);
+                expect(typeEquals(a.type, b.type)).toBe(true);
+            }),
+        );
     });
 });
