@@ -13,8 +13,10 @@
 
 import type { Location } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { moduleGraphArb } from "../types/test-arbitraries/index.js";
 import { CircularDependencyDetector, detectCycles, formatCyclePath, formatCyclePathShort } from "./cycle-detector.js";
 import { ModuleGraph } from "./module-graph.js";
 
@@ -617,5 +619,114 @@ describe("performance", () => {
         // All modules form one large SCC
         expect(result.cycles.length).toBeGreaterThanOrEqual(1);
         expect(elapsed).toBeLessThan(1000);
+    });
+});
+
+// =============================================================================
+// Property-Based Tests
+// =============================================================================
+
+describe("CircularDependencyDetector — property-based", () => {
+    function buildGraphFromSpec(spec: {
+        nodes: string[];
+        edges: Array<{ from: string; to: string; isTypeOnly: boolean }>;
+    }): ModuleGraph {
+        const graph = new ModuleGraph();
+        for (const node of spec.nodes) {
+            graph.addModule(node);
+        }
+        for (const edge of spec.edges) {
+            graph.addDependency(edge.from, edge.to, edge.isTypeOnly, makeLoc(edge.from));
+        }
+        return graph;
+    }
+
+    it("property: detectCycles is total — does not throw on any generated graph", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 8, density: 0.3 }), (spec) => {
+                const graph = buildGraphFromSpec(spec);
+                const result = detectCycles(graph);
+                return Array.isArray(result.cycles) && Array.isArray(result.selfImports);
+            }),
+        );
+    });
+
+    it("property: a generated DAG has no non-self cycles", () => {
+        // The acyclic mode of moduleGraphArb only emits forward edges
+        // (i < j) and never self-loops, so the resulting graph is provably
+        // a DAG. detectCycles must report no cycles for it.
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 8, density: 0.4, acyclic: true }), (spec) => {
+                const graph = buildGraphFromSpec(spec);
+                const result = detectCycles(graph);
+                return result.cycles.length === 0 && result.selfImports.length === 0;
+            }),
+        );
+    });
+
+    it("property: detectCycles is deterministic — output cycle paths are stable across runs", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 8, density: 0.4 }), (spec) => {
+                const a = detectCycles(buildGraphFromSpec(spec));
+                const b = detectCycles(buildGraphFromSpec(spec));
+                if (a.cycles.length !== b.cycles.length) return false;
+                if (a.selfImports.length !== b.selfImports.length) return false;
+                // Compare cycle paths element-wise; the detector sorts output
+                // alphabetically so equal inputs must produce equal outputs.
+                return a.cycles.every((c, i) => {
+                    const other = b.cycles[i];
+                    if (!other || c.path.length !== other.path.length) return false;
+                    return c.path.every((p, k) => p === other.path[k]);
+                });
+            }),
+        );
+    });
+
+    it("property: every cycle path uses only nodes that exist in the graph", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 8, density: 0.4 }), (spec) => {
+                const graph = buildGraphFromSpec(spec);
+                const nodeSet = new Set(graph.getModules());
+                const result = detectCycles(graph);
+                return result.cycles.every((c) => c.path.every((p) => nodeSet.has(p)));
+            }),
+        );
+    });
+
+    it("property: self-imports appear only when a self-edge exists", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraphFromSpec(spec);
+                const result = detectCycles(graph);
+                return result.selfImports.every((si) =>
+                    spec.edges.some((e) => e.from === si.modulePath && e.to === si.modulePath),
+                );
+            }),
+        );
+    });
+
+    it("property: CircularDependencyDetector class agrees with detectCycles function", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraphFromSpec(spec);
+                const a = new CircularDependencyDetector().detectCycles(graph);
+                const b = detectCycles(graph);
+                return a.cycles.length === b.cycles.length && a.selfImports.length === b.selfImports.length;
+            }),
+        );
+    });
+
+    it("property: formatCyclePath / formatCyclePathShort never throw on detector output", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraphFromSpec(spec);
+                const result = detectCycles(graph);
+                for (const c of result.cycles) {
+                    formatCyclePath(c);
+                    formatCyclePathShort(c);
+                }
+                return true;
+            }),
+        );
     });
 });
