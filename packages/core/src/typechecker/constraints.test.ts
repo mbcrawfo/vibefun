@@ -5,9 +5,11 @@
 import type { Location } from "../types/ast.js";
 import type { Type, TypeScheme } from "../types/environment.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
+import { equalityConstraintArb, typeArb, typeSubstitutionArb } from "../types/test-arbitraries/index.js";
 import { applySubstToConstraint, equalityConstraint, instanceConstraint, solveConstraints } from "./constraints.js";
 import {
     appType,
@@ -17,9 +19,10 @@ import {
     primitiveTypes,
     recordType,
     resetTypeVarCounter,
+    typeEquals,
     variantType,
 } from "./types.js";
-import { applySubst, singleSubst } from "./unify.js";
+import { applySubst, emptySubst, singleSubst } from "./unify.js";
 
 // Test location for constraints
 const testLoc: Location = { file: "test.vf", line: 1, column: 1, offset: 0 };
@@ -518,3 +521,94 @@ describe("constraint edge cases", () => {
         expect(applySubst(subst, t2)).toEqual(primitiveTypes.Bool);
     });
 });
+
+describe("Constraint Solver Algebraic Properties", () => {
+    it("property: empty constraint set yields the empty substitution", () => {
+        const subst = solveConstraints([]);
+        expect(subst.size).toBe(0);
+    });
+
+    it("property: solveConstraints is deterministic — same input yields same output", () => {
+        fc.assert(
+            fc.property(fc.array(equalityConstraintArb, { maxLength: 4 }), (constraints) => {
+                const a = trySolve(constraints);
+                const b = trySolve(constraints);
+                expect(a.ok).toBe(b.ok);
+                if (a.ok && b.ok) {
+                    expect(a.subst.size).toBe(b.subst.size);
+                    for (const [id, type] of a.subst) {
+                        expect(typeEquals(type, b.subst.get(id) as Type)).toBe(true);
+                    }
+                }
+            }),
+        );
+    });
+
+    it("property: consistency — applying the solved subst makes every equality constraint hold", () => {
+        // For any equality constraint set the solver accepts, applying the
+        // returned substitution to both sides of every constraint must yield
+        // structurally-equal types. This is the constraint-solver analog of
+        // unification soundness.
+        fc.assert(
+            fc.property(fc.array(equalityConstraintArb, { maxLength: 3 }), (constraints) => {
+                const r = trySolve(constraints);
+                if (!r.ok) {
+                    return;
+                }
+                for (const c of constraints) {
+                    const left = applySubst(r.subst, c.t1);
+                    const right = applySubst(r.subst, c.t2);
+                    expect(typeEquals(left, right)).toBe(true);
+                }
+            }),
+        );
+    });
+
+    it("property: applySubstToConstraint with empty subst is the identity (modulo structural equality)", () => {
+        fc.assert(
+            fc.property(equalityConstraintArb, (c) => {
+                const result = applySubstToConstraint(emptySubst(), c);
+                expect(result.kind).toBe("Equality");
+                if (result.kind === "Equality") {
+                    expect(typeEquals(result.t1, c.t1)).toBe(true);
+                    expect(typeEquals(result.t2, c.t2)).toBe(true);
+                }
+            }),
+        );
+    });
+
+    it("property: applySubstToConstraint is consistent with applySubst on both sides", () => {
+        fc.assert(
+            fc.property(typeSubstitutionArb(), equalityConstraintArb, (subst, c) => {
+                const result = applySubstToConstraint(subst, c);
+                expect(result.kind).toBe("Equality");
+                if (result.kind === "Equality") {
+                    expect(typeEquals(result.t1, applySubst(subst, c.t1))).toBe(true);
+                    expect(typeEquals(result.t2, applySubst(subst, c.t2))).toBe(true);
+                }
+            }),
+        );
+    });
+
+    it("property: a single equality constraint of t with itself solves with σ that leaves t unchanged", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                const subst = solveConstraints([equalityConstraint(t, t, testLoc)]);
+                expect(typeEquals(applySubst(subst, t), t)).toBe(true);
+            }),
+        );
+    });
+});
+
+function trySolve(
+    constraints: ReturnType<typeof equalityConstraint>[],
+): { ok: true; subst: ReturnType<typeof solveConstraints> } | { ok: false } {
+    try {
+        return { ok: true, subst: solveConstraints(constraints) };
+    } catch (e) {
+        if (e instanceof VibefunDiagnostic) {
+            return { ok: false };
+        }
+        throw e;
+    }
+}
