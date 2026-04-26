@@ -5,8 +5,10 @@
  * and multi-feature combinations.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { renderToken, renderTokenStream, tokenStreamArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Integration Tests - Advanced Patterns", () => {
@@ -510,5 +512,31 @@ let result = processNumbers(numbers)`;
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
+    });
+});
+
+describe("Lexer - Integration properties", () => {
+    it("property: lexing a rendered token stream never throws and ends with EOF", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                const lexed = new Lexer(source, "prop.vf").tokenize();
+                expect(lexed.length).toBeGreaterThanOrEqual(1);
+                expect(lexed[lexed.length - 1]?.type).toBe("EOF");
+            }),
+        );
+    });
+
+    it("property: rendered stream + extra spaces between tokens preserves the kind sequence", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, fc.integer({ min: 1, max: 5 }), (tokens, gap) => {
+                const sep = " ".repeat(gap);
+                const source = tokens.length === 0 ? "" : tokens.map((t) => renderToken(t)).join(sep);
+                const lexed = new Lexer(source, "prop.vf").tokenize();
+                const lexedKinds = lexed.slice(0, -1).map((t) => t.type);
+                const expectedKinds = tokens.map((t) => t.type);
+                return JSON.stringify(lexedKinds) === JSON.stringify(expectedKinds);
+            }),
+        );
     });
 });
