@@ -4,8 +4,11 @@
 
 import type { CoreExpr } from "../../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { optimizableExprArb } from "../../types/test-arbitraries/index.js";
+import { exprEquals } from "../../utils/expr-equality.js";
 import { CommonSubexpressionEliminationPass } from "./cse.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -91,6 +94,29 @@ describe("CommonSubexpressionEliminationPass", () => {
             const expr: CoreExpr = { kind: "CoreVar", name: "x", loc: testLoc };
             const result = pass.transform(expr);
             expect(result).toEqual(expr);
+        });
+    });
+
+    describe("Properties", () => {
+        // CSE is currently a no-op placeholder. The interesting properties are
+        // identity (transform(e) is structurally equal to e) and the no-throw
+        // crash oracle. When CSE is implemented for real, these properties
+        // become trivially weaker than what should hold of the implementation.
+
+        it("property: cse.transform is the identity (current placeholder behavior)", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    return exprEquals(pass.transform(expr), expr);
+                }),
+            );
+        });
+
+        it("property: cse.transform never throws on closed Core expressions", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    expect(() => pass.transform(expr)).not.toThrow();
+                }),
+            );
         });
     });
 });
