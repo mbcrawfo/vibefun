@@ -8,7 +8,7 @@ import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic } from "../diagnostics/index.js";
-import { identifierArb, KEYWORD_LIST, keywordArb, RESERVED_KEYWORD_LIST } from "../types/test-arbitraries/index.js";
+import { identifierArb, keywordArb, RESERVED_KEYWORD_LIST } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Identifiers", () => {
@@ -609,7 +609,10 @@ describe("Lexer - Identifier properties", () => {
     it("property: identifier and keyword sets are disjoint at lex time", () => {
         fc.assert(
             fc.property(identifierArb, (name) => {
-                return !KEYWORD_LIST.includes(name as (typeof KEYWORD_LIST)[number]);
+                const tokens = new Lexer(name, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                const t = tokens[0];
+                return t?.type === "IDENTIFIER" && t.value === name && tokens[1]?.type === "EOF";
             }),
         );
     });
