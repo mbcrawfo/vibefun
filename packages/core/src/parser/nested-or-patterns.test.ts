@@ -10,9 +10,11 @@
 
 import type { Expr, Pattern } from "../types/ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { lowerIdentifierArb } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to parse a pattern from source code
@@ -714,6 +716,39 @@ describe("Parser - Nested Or-Patterns", () => {
             expect(pattern.loc).toBeDefined();
             expect(pattern.loc.file).toBe("test.vf");
             expect(pattern.loc.line).toBeGreaterThan(0);
+        });
+    });
+
+    describe("properties", () => {
+        const orVariants = fc.uniqueArray(lowerIdentifierArb, { minLength: 2, maxLength: 4 });
+
+        it("property: an or-pattern with N alternatives parses to OrPattern with N branches", () => {
+            fc.assert(
+                fc.property(orVariants, (names) => {
+                    const body = names.join(" | ");
+                    const pattern = parsePattern(`(${body})`);
+                    expect(pattern.kind).toBe("OrPattern");
+                    if (pattern.kind !== "OrPattern") return;
+                    expect(pattern.patterns).toHaveLength(names.length);
+                }),
+            );
+        });
+
+        it("property: or-pattern alternatives in match arms preserve alternative count", () => {
+            fc.assert(
+                fc.property(orVariants, (names) => {
+                    const body = names.join(" | ");
+                    const expr = parseExpr(`match x { | ${body} => 1 | _ => 0 }`);
+                    expect(expr.kind).toBe("Match");
+                    if (expr.kind !== "Match") return;
+                    const arm0 = expr.cases[0];
+                    if (!arm0) throw new Error("expected at least one match arm");
+                    expect(arm0.pattern.kind).toBe("OrPattern");
+                    if (arm0.pattern.kind === "OrPattern") {
+                        expect(arm0.pattern.patterns).toHaveLength(names.length);
+                    }
+                }),
+            );
         });
     });
 });
