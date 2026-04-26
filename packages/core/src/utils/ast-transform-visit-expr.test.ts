@@ -4,8 +4,10 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb } from "../types/test-arbitraries/index.js";
 import { visitExpr } from "./ast-transform.js";
 
 describe("AST Transform Utilities", () => {
@@ -347,6 +349,61 @@ describe("AST Transform Utilities", () => {
             expect(visited).toContain("CoreLet");
             expect(visited).toContain("CoreIntLit");
             expect(visited).toContain("CoreVar");
+        });
+    });
+
+    describe("visitExpr algebraic properties", () => {
+        // visitExpr is the workhorse traversal that astSize/complexity/
+        // countVarUses are built on. Its load-bearing invariant is "always
+        // visits the root", plus "doesn't throw on any tier-A input".
+
+        it("property: visitor is invoked at least once (root visited)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    let count = 0;
+                    visitExpr(e, () => {
+                        count += 1;
+                    });
+                    return count >= 1;
+                }),
+            );
+        });
+
+        it("property: first node visited is the root", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const visited: string[] = [];
+                    visitExpr(e, (node) => {
+                        visited.push(node.kind);
+                    });
+                    return visited[0] === e.kind;
+                }),
+            );
+        });
+
+        it("property: total — does not throw on any tier-A CoreExpr", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    visitExpr(e, () => undefined);
+                    return true;
+                }),
+            );
+        });
+
+        it("property: visit count is deterministic", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    let a = 0;
+                    let b = 0;
+                    visitExpr(e, () => {
+                        a += 1;
+                    });
+                    visitExpr(e, () => {
+                        b += 1;
+                    });
+                    return a === b;
+                }),
+            );
         });
     });
 });
