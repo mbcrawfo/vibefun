@@ -4,9 +4,11 @@
 
 import type { Declaration, Module } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { astEquals, declArb, prettyPrintDeclaration } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to parse a module from source code
@@ -1095,6 +1097,28 @@ describe("Parser - Declarations", () => {
             // an expression-introducing keyword either; the switch's
             // default branch must still throw VF2001.
             expect(() => parseDecl("then true;")).toThrow(/VF2001|Unknown keyword/);
+        });
+    });
+
+    describe("properties", () => {
+        it("property: parse(prettyPrintDeclaration(d)) yields a single declaration of the same kind", () => {
+            fc.assert(
+                fc.property(declArb({ depth: 2 }), (d) => {
+                    const module = parseModule(`${prettyPrintDeclaration(d)};`);
+                    expect(module.declarations).toHaveLength(1);
+                    expect(module.declarations[0]?.kind).toBe(d.kind);
+                }),
+            );
+        });
+
+        it("property: blank lines between declarations do not change the parsed module", () => {
+            fc.assert(
+                fc.property(declArb({ depth: 2 }), declArb({ depth: 2 }), (d1, d2) => {
+                    const compact = `${prettyPrintDeclaration(d1)};\n${prettyPrintDeclaration(d2)};`;
+                    const spaced = `${prettyPrintDeclaration(d1)};\n\n\n${prettyPrintDeclaration(d2)};`;
+                    expect(astEquals(parseModule(compact), parseModule(spaced))).toBe(true);
+                }),
+            );
         });
     });
 });
