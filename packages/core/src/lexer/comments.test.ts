@@ -4,9 +4,11 @@
  * Phase 4: Comments & Whitespace
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
+import { renderTokenStream, tokenStreamArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Whitespace", () => {
@@ -407,5 +409,48 @@ describe("Lexer - Comments with Code Integration", () => {
 
         expect(tokens[0]?.loc.column).toBe(1); // let at column 1
         expect(tokens[1]?.loc.column).toBe(19); // x at column 19 (after comment)
+    });
+});
+
+describe("Lexer - Comment-stripping properties", () => {
+    // Comment text that won't terminate a line comment (no \n) or block comment (no */).
+    const lineCommentTextArb = fc.string({ maxLength: 32 }).filter((s) => !s.includes("\n") && !s.includes("\r"));
+    const blockCommentTextArb = fc.string({ maxLength: 32 }).filter((s) => !s.includes("*/") && !s.includes("/*"));
+
+    it("property: a line comment between two tokens does not change the kind sequence", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, lineCommentTextArb, (tokens, comment) => {
+                if (tokens.length < 2) return true;
+                const baseSrc = renderTokenStream(tokens);
+                // Insert the line comment after the first token's source by replacing
+                // the first separator space with `\n// COMMENT\n`. We inject between
+                // the first two tokens.
+                const parts = tokens.map((t) => (t.type === "STRING_LITERAL" ? JSON.stringify(t.value) : t.value));
+                const withComment = parts[0] + ` // ${comment}\n ` + parts.slice(1).join(" ");
+                const baseKinds = new Lexer(baseSrc, "prop.vf")
+                    .tokenize()
+                    .map((t) => t.type)
+                    .filter((k) => k !== "NEWLINE");
+                const withCommentKinds = new Lexer(withComment, "prop.vf")
+                    .tokenize()
+                    .map((t) => t.type)
+                    .filter((k) => k !== "NEWLINE");
+                return JSON.stringify(baseKinds) === JSON.stringify(withCommentKinds);
+            }),
+        );
+    });
+
+    it("property: a block comment between two tokens does not change the kind sequence", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, blockCommentTextArb, (tokens, comment) => {
+                if (tokens.length < 2) return true;
+                const baseSrc = renderTokenStream(tokens);
+                const parts = tokens.map((t) => (t.type === "STRING_LITERAL" ? JSON.stringify(t.value) : t.value));
+                const withComment = parts[0] + ` /* ${comment} */ ` + parts.slice(1).join(" ");
+                const baseKinds = new Lexer(baseSrc, "prop.vf").tokenize().map((t) => t.type);
+                const withCommentKinds = new Lexer(withComment, "prop.vf").tokenize().map((t) => t.type);
+                return JSON.stringify(baseKinds) === JSON.stringify(withCommentKinds);
+            }),
+        );
     });
 });
