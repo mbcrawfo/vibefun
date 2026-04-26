@@ -41,8 +41,12 @@ export const upperIdentifierArb: fc.Arbitrary<string> = fc.stringMatching(/^[A-Z
  * Safe string-literal *content* (no quotes, no backslashes, no control
  * characters). Use as the inner value of a `StringLit` AST node, or wrap in
  * double quotes for source rendering.
+ *
+ * Character ranges use explicit hex codepoints so the intent is unambiguous:
+ * `\x20-\x21` covers space+`!`, skipping `"` (0x22); `\x23-\x5B` covers `#`
+ * through `[`, skipping `\` (0x5C); `\x5D-\x7E` covers `]` through `~`.
  */
-export const safeStringContentArb: fc.Arbitrary<string> = fc.stringMatching(/^[ -!#-[\]-~]{0,16}$/);
+export const safeStringContentArb: fc.Arbitrary<string> = fc.stringMatching(/^[\x20-\x21\x23-\x5B\x5D-\x7E]{0,16}$/);
 
 /**
  * Render a string value as a vibefun string literal. Escapes the four

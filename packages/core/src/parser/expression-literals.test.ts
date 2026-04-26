@@ -9,6 +9,7 @@ import { VibefunDiagnostic } from "../diagnostics/index.js";
 import {
     astEquals,
     lowerIdentifierArb,
+    nonNegativeFloatArb,
     nonNegativeIntArb,
     prettyPrintExpr,
     safeStringContentArb,
@@ -301,27 +302,17 @@ describe("Parser - Expression Literals", () => {
             );
         });
 
-        it("property: parse(prettyPrintExpr(literalAst)) round-trips for literal nodes", () => {
+        it("property: parse(prettyPrintExpr(literalAst)) round-trips for every literal node kind", () => {
+            const loc = { file: "x", line: 1, column: 1, offset: 0 };
             const literalArb = fc.oneof(
-                nonNegativeIntArb.map((value) => ({
-                    kind: "IntLit" as const,
-                    value,
-                    loc: { file: "x", line: 1, column: 1, offset: 0 },
-                })),
-                fc.boolean().map((value) => ({
-                    kind: "BoolLit" as const,
-                    value,
-                    loc: { file: "x", line: 1, column: 1, offset: 0 },
-                })),
-                safeStringContentArb.map((value) => ({
-                    kind: "StringLit" as const,
-                    value,
-                    loc: { file: "x", line: 1, column: 1, offset: 0 },
-                })),
-                fc.constant({
-                    kind: "UnitLit" as const,
-                    loc: { file: "x", line: 1, column: 1, offset: 0 },
-                }),
+                nonNegativeIntArb.map((value) => ({ kind: "IntLit" as const, value, loc })),
+                // Filter out integers so the rendered source uses a decimal point and parses as FloatLit.
+                nonNegativeFloatArb
+                    .filter((n) => !Number.isInteger(n))
+                    .map((value) => ({ kind: "FloatLit" as const, value, loc })),
+                fc.boolean().map((value) => ({ kind: "BoolLit" as const, value, loc })),
+                safeStringContentArb.map((value) => ({ kind: "StringLit" as const, value, loc })),
+                fc.constant({ kind: "UnitLit" as const, loc }),
             );
             fc.assert(
                 fc.property(literalArb, (lit) => {

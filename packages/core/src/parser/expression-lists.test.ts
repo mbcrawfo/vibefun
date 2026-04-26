@@ -310,18 +310,23 @@ describe("Parser - Lists", () => {
             );
         });
 
-        it("property: parsed list elements have IntLit values matching the source", () => {
+        it("property: parsed non-empty list elements have IntLit values matching the source", () => {
+            // Filter to non-empty lists so the inner forEach actually executes;
+            // an empty list passes the property vacuously and would mask a real bug.
             fc.assert(
-                fc.property(intListArb, (xs) => {
-                    const expr = parseExpression(`[${xs.join(", ")}]`);
-                    if (expr.kind !== "List") throw new Error("expected List");
-                    expr.elements.forEach((el, i) => {
-                        if (el.kind !== "Element" || el.expr.kind !== "IntLit") {
-                            throw new Error("expected IntLit element");
-                        }
-                        expect(el.expr.value).toBe(xs[i]);
-                    });
-                }),
+                fc.property(
+                    intListArb.filter((xs) => xs.length > 0),
+                    (xs) => {
+                        const expr = parseExpression(`[${xs.join(", ")}]`);
+                        if (expr.kind !== "List") throw new Error("expected List");
+                        expr.elements.forEach((el, i) => {
+                            if (el.kind !== "Element" || el.expr.kind !== "IntLit") {
+                                throw new Error("expected IntLit element");
+                            }
+                            expect(el.expr.value).toBe(xs[i]);
+                        });
+                    },
+                ),
             );
         });
     });
