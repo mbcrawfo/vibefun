@@ -2,8 +2,10 @@
  * Expression parsing tests - Lists
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { astEquals, nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Lists", () => {
@@ -278,6 +280,49 @@ describe("Parser - Lists", () => {
                     },
                 ],
             });
+        });
+    });
+
+    describe("properties", () => {
+        const intListArb = fc.array(nonNegativeIntArb, { maxLength: 5 });
+
+        it("property: trailing-comma equivalence on lists — `[1, 2, 3]` parses identically to `[1, 2, 3,]`", () => {
+            fc.assert(
+                fc.property(
+                    intListArb.filter((xs) => xs.length > 0),
+                    (xs) => {
+                        const body = xs.join(", ");
+                        expect(astEquals(parseExpression(`[${body},]`), parseExpression(`[${body}]`))).toBe(true);
+                    },
+                ),
+            );
+        });
+
+        it("property: parsed list arity matches source", () => {
+            fc.assert(
+                fc.property(intListArb, (xs) => {
+                    const expr = parseExpression(`[${xs.join(", ")}]`);
+                    expect(expr.kind).toBe("List");
+                    if (expr.kind === "List") {
+                        expect(expr.elements).toHaveLength(xs.length);
+                    }
+                }),
+            );
+        });
+
+        it("property: parsed list elements have IntLit values matching the source", () => {
+            fc.assert(
+                fc.property(intListArb, (xs) => {
+                    const expr = parseExpression(`[${xs.join(", ")}]`);
+                    if (expr.kind !== "List") throw new Error("expected List");
+                    expr.elements.forEach((el, i) => {
+                        if (el.kind !== "Element" || el.expr.kind !== "IntLit") {
+                            throw new Error("expected IntLit element");
+                        }
+                        expect(el.expr.value).toBe(xs[i]);
+                    });
+                }),
+            );
         });
     });
 });
