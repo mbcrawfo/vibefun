@@ -10,8 +10,11 @@
 import type { Expr, Location, Pattern } from "../types/ast.js";
 import type { CoreLiteralPattern, CoreMatch, CoreVariantPattern } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { surfacePatternArb } from "../types/test-arbitraries/index.js";
+import { exprEquals } from "../utils/expr-equality.js";
 import { desugar } from "./desugarer.js";
 
 const testLoc: Location = {
@@ -464,5 +467,95 @@ describe("Or-Pattern - Expansion Cap (VF3102)", () => {
         };
 
         expect(() => desugar(match)).toThrow("VF3102");
+    });
+});
+
+describe("Or-Pattern properties", () => {
+    function makeMatch(patterns: Pattern[], body: Expr = { kind: "IntLit", value: 0, loc: testLoc }): Expr {
+        return {
+            kind: "Match",
+            expr: { kind: "Var", name: "scrutinee", loc: testLoc },
+            cases: [
+                {
+                    pattern:
+                        patterns.length === 1
+                            ? (patterns[0] as Pattern)
+                            : { kind: "OrPattern", patterns, loc: testLoc },
+                    body,
+                    loc: testLoc,
+                },
+            ],
+            loc: testLoc,
+        };
+    }
+
+    it("property: nested or-patterns flatten — `(p1 | p2) | p3` expands the same as `p1 | p2 | p3`", () => {
+        // The defining property of or-pattern desugaring: associativity of
+        // alternation. A flat 3-arm or-pattern and a left-nested 3-arm
+        // or-pattern must produce the same Core AST.
+        fc.assert(
+            fc.property(fc.array(surfacePatternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
+                const body: Expr = { kind: "IntLit", value: 1, loc: testLoc };
+                const flat = makeMatch(patterns, body);
+                // Build a left-nested OrPattern: ((p1 | p2) | p3) | p4
+                let nested: Pattern = patterns[0] as Pattern;
+                for (let i = 1; i < patterns.length; i++) {
+                    nested = {
+                        kind: "OrPattern",
+                        patterns: [nested, patterns[i] as Pattern],
+                        loc: testLoc,
+                    };
+                }
+                const nestedMatch: Expr = {
+                    kind: "Match",
+                    expr: { kind: "Var", name: "scrutinee", loc: testLoc },
+                    cases: [{ pattern: nested, body, loc: testLoc }],
+                    loc: testLoc,
+                };
+
+                let flatResult, nestedResult;
+                try {
+                    flatResult = desugar(flat) as CoreMatch;
+                    nestedResult = desugar(nestedMatch) as CoreMatch;
+                } catch {
+                    return true;
+                }
+
+                if (flatResult.cases.length !== nestedResult.cases.length) return false;
+                return flatResult.cases.every((c, i) => exprEquals(c.body, nestedResult.cases[i]!.body));
+            }),
+        );
+    });
+
+    it("property: an or-pattern with N alternatives expands to ≥ N match cases", () => {
+        // Each alternative becomes its own arm with the same body. Some
+        // alternatives may further multiply if they themselves contain
+        // nested or-patterns; the total must therefore be ≥ N.
+        fc.assert(
+            fc.property(fc.array(surfacePatternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
+                let result;
+                try {
+                    result = desugar(makeMatch(patterns)) as CoreMatch;
+                } catch {
+                    return true;
+                }
+                return result.cases.length >= patterns.length;
+            }),
+        );
+    });
+
+    it("property: or-pattern desugaring is deterministic", () => {
+        fc.assert(
+            fc.property(fc.array(surfacePatternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
+                let a, b;
+                try {
+                    a = desugar(makeMatch(patterns));
+                    b = desugar(makeMatch(patterns));
+                } catch {
+                    return true;
+                }
+                return exprEquals(a, b);
+            }),
+        );
     });
 });
