@@ -17,6 +17,7 @@ import {
     coreModuleArb,
     corePatternArb,
     coreTypeExprArb,
+    coreUnaryOpArb,
     moduleGraphArb,
     substitutionArb,
 } from "./index.js";
@@ -99,6 +100,10 @@ describe("core-ast-arb", () => {
         it("binary ops are non-empty strings", () => {
             fc.assert(fc.property(coreBinaryOpArb, (op) => typeof op === "string" && op.length > 0));
         });
+
+        it("unary ops are non-empty strings", () => {
+            fc.assert(fc.property(coreUnaryOpArb, (op) => typeof op === "string" && op.length > 0));
+        });
     });
 
     describe("substitutionArb", () => {
@@ -143,10 +148,10 @@ describe("core-ast-arb", () => {
         });
     });
 
-    it("synthetic location has the expected shape", () => {
-        // Sanity: the constant location used by Tier-A/B generators must be
-        // a real Location so any code that touches `loc.line` / `loc.file`
-        // works without further checks.
+    it("generated expressions carry well-formed Location objects", () => {
+        // Verify the generators emit complete Location objects (file, line,
+        // column, offset) so downstream code that touches `loc.line` / `loc.file`
+        // never trips on a missing field.
         fc.assert(
             fc.property(coreExprArb({ depth: 0 }), (expr) => {
                 const loc = expr.loc;

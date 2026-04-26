@@ -9,6 +9,7 @@ import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { coreExprArb, identifierArb, substitutionArb } from "../types/test-arbitraries/index.js";
+import { freeVars } from "./ast-analysis.js";
 import { exprEquals } from "./expr-equality.js";
 import { freshen, substitute, substituteMultiple } from "./substitution.js";
 
@@ -318,13 +319,14 @@ describe("Substitution Utilities", () => {
         });
 
         it("property: substituting an unused name leaves the expression structurally equal", () => {
-            // If `name` does not appear in `e`, substituting it cannot change
-            // the structural identity of `e`. We pick an obviously-unused
-            // name by prefixing with a dollar sign which generators cannot
-            // produce (their identifier regex starts with a-z).
+            // Derive the unused name from the expression's own free vars via
+            // `freshen`, instead of hard-coding a name like `$unused_var_name`
+            // and assuming the identifier generator can never produce it.
+            // That decoupling keeps the property correct if the identifier
+            // rules ever change.
             fc.assert(
                 fc.property(coreExprArb({ depth: 3 }), coreExprArb({ depth: 1 }), (e, replacement) => {
-                    const unused = "$unused_var_name";
+                    const unused = freshen("x", freeVars(e));
                     const result = substitute(e, unused, replacement);
                     return exprEquals(e, result);
                 }),

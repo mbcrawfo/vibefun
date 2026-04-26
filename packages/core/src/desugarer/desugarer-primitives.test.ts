@@ -437,122 +437,119 @@ describe("Desugarer - Unsafe Blocks", () => {
         expect(result.kind).toBe("CoreUnsafe");
         expect((result as CoreUnsafe).expr.kind).toBe("CoreLet");
     });
+});
 
-    describe("desugarer properties", () => {
-        // Three load-bearing properties for the desugarer:
-        //   1. Determinism — desugar(e) === desugar(e) structurally. Without
-        //      this, every later compiler stage that depends on a stable Core
-        //      AST representation could observe shape drift across runs.
-        //   2. No CoreUnsafe leakage — if the surface input contains no
-        //      unsafe block, the output must not synthesize one. (Inverse
-        //      direction is not asserted: surface-level `Unsafe` legitimately
-        //      becomes `CoreUnsafe`.)
-        //   3. Crash oracle — desugar must not throw on any well-formed
-        //      surface AST. The arbitrary produces only parseable shapes.
-        // Catch-throw: if desugar throws, the property records the failure
-        // shape so the shrinker can find a minimal counterexample.
+describe("Desugarer - Properties", () => {
+    // Three load-bearing properties for the desugarer:
+    //   1. Determinism — desugar(e) === desugar(e) structurally. Without
+    //      this, every later compiler stage that depends on a stable Core
+    //      AST representation could observe shape drift across runs.
+    //   2. No CoreUnsafe leakage — if the surface input contains no
+    //      unsafe block, the output must not synthesize one. (Inverse
+    //      direction is not asserted: surface-level `Unsafe` legitimately
+    //      becomes `CoreUnsafe`.)
+    //   3. Crash oracle — desugar must not throw on any well-formed
+    //      surface AST. The arbitrary produces only parseable shapes.
+    // Catch-throw: if desugar throws, the property records the failure
+    // shape so the shrinker can find a minimal counterexample.
 
-        function safeDesugar(
-            expr: Expr,
-        ): { ok: true; value: ReturnType<typeof desugar> } | { ok: false; error: unknown } {
-            try {
-                return { ok: true, value: desugar(expr, new FreshVarGen()) };
-            } catch (err) {
-                return { ok: false, error: err };
-            }
+    function safeDesugar(expr: Expr): { ok: true; value: ReturnType<typeof desugar> } | { ok: false; error: unknown } {
+        try {
+            return { ok: true, value: desugar(expr, new FreshVarGen()) };
+        } catch (err) {
+            return { ok: false, error: err };
         }
+    }
 
-        function containsSurfaceUnsafe(expr: Expr): boolean {
-            // Walks the surface AST looking for an explicit Unsafe node.
-            // Surface AST has no centralized visitor; this hand-walk covers
-            // the compound shapes the surface arbitrary produces.
-            switch (expr.kind) {
-                case "Unsafe":
-                case "TryCatch":
-                    return true;
-                case "Let":
-                    return containsSurfaceUnsafe(expr.value) || containsSurfaceUnsafe(expr.body);
-                case "Lambda":
-                    return containsSurfaceUnsafe(expr.body);
-                case "App":
-                    return containsSurfaceUnsafe(expr.func) || expr.args.some(containsSurfaceUnsafe);
-                case "If":
-                    return (
-                        containsSurfaceUnsafe(expr.condition) ||
-                        containsSurfaceUnsafe(expr.then) ||
-                        containsSurfaceUnsafe(expr.else_)
-                    );
-                case "Match":
-                    return (
-                        containsSurfaceUnsafe(expr.expr) ||
-                        expr.cases.some(
-                            (c) =>
-                                containsSurfaceUnsafe(c.body) ||
-                                (c.guard !== undefined && containsSurfaceUnsafe(c.guard)),
-                        )
-                    );
-                case "Block":
-                    return expr.exprs.some(containsSurfaceUnsafe);
-                case "List":
-                    return expr.elements.some((e) => containsSurfaceUnsafe(e.expr));
-                case "Record":
-                    return expr.fields.some((f) =>
+    function containsSurfaceUnsafe(expr: Expr): boolean {
+        // Walks the surface AST looking for an explicit Unsafe node.
+        // Surface AST has no centralized visitor; this hand-walk covers
+        // the compound shapes the surface arbitrary produces.
+        switch (expr.kind) {
+            case "Unsafe":
+            case "TryCatch":
+                return true;
+            case "Let":
+                return containsSurfaceUnsafe(expr.value) || containsSurfaceUnsafe(expr.body);
+            case "Lambda":
+                return containsSurfaceUnsafe(expr.body);
+            case "App":
+                return containsSurfaceUnsafe(expr.func) || expr.args.some(containsSurfaceUnsafe);
+            case "If":
+                return (
+                    containsSurfaceUnsafe(expr.condition) ||
+                    containsSurfaceUnsafe(expr.then) ||
+                    containsSurfaceUnsafe(expr.else_)
+                );
+            case "Match":
+                return (
+                    containsSurfaceUnsafe(expr.expr) ||
+                    expr.cases.some(
+                        (c) =>
+                            containsSurfaceUnsafe(c.body) || (c.guard !== undefined && containsSurfaceUnsafe(c.guard)),
+                    )
+                );
+            case "Block":
+                return expr.exprs.some(containsSurfaceUnsafe);
+            case "List":
+                return expr.elements.some((e) => containsSurfaceUnsafe(e.expr));
+            case "Record":
+                return expr.fields.some((f) =>
+                    f.kind === "Field" ? containsSurfaceUnsafe(f.value) : containsSurfaceUnsafe(f.expr),
+                );
+            case "RecordAccess":
+                return containsSurfaceUnsafe(expr.record);
+            case "RecordUpdate":
+                return (
+                    containsSurfaceUnsafe(expr.record) ||
+                    expr.updates.some((f) =>
                         f.kind === "Field" ? containsSurfaceUnsafe(f.value) : containsSurfaceUnsafe(f.expr),
-                    );
-                case "RecordAccess":
-                    return containsSurfaceUnsafe(expr.record);
-                case "RecordUpdate":
-                    return (
-                        containsSurfaceUnsafe(expr.record) ||
-                        expr.updates.some((f) =>
-                            f.kind === "Field" ? containsSurfaceUnsafe(f.value) : containsSurfaceUnsafe(f.expr),
-                        )
-                    );
-                case "BinOp":
-                    return containsSurfaceUnsafe(expr.left) || containsSurfaceUnsafe(expr.right);
-                case "UnaryOp":
-                    return containsSurfaceUnsafe(expr.expr);
-                case "Pipe":
-                    return containsSurfaceUnsafe(expr.expr) || containsSurfaceUnsafe(expr.func);
-                case "Tuple":
-                    return expr.elements.some(containsSurfaceUnsafe);
-                case "TypeAnnotation":
-                    return containsSurfaceUnsafe(expr.expr);
-                case "While":
-                    return containsSurfaceUnsafe(expr.condition) || containsSurfaceUnsafe(expr.body);
-                default:
-                    return false;
-            }
+                    )
+                );
+            case "BinOp":
+                return containsSurfaceUnsafe(expr.left) || containsSurfaceUnsafe(expr.right);
+            case "UnaryOp":
+                return containsSurfaceUnsafe(expr.expr);
+            case "Pipe":
+                return containsSurfaceUnsafe(expr.expr) || containsSurfaceUnsafe(expr.func);
+            case "Tuple":
+                return expr.elements.some(containsSurfaceUnsafe);
+            case "TypeAnnotation":
+                return containsSurfaceUnsafe(expr.expr);
+            case "While":
+                return containsSurfaceUnsafe(expr.condition) || containsSurfaceUnsafe(expr.body);
+            default:
+                return false;
         }
+    }
 
-        it("property: desugar is deterministic — same input ⇒ structurally equal output", () => {
-            fc.assert(
-                fc.property(exprArb({ depth: 3 }), (expr) => {
-                    const a = safeDesugar(expr);
-                    const b = safeDesugar(expr);
-                    if (!a.ok && !b.ok) return true;
-                    if (a.ok !== b.ok) return false;
-                    return a.ok && b.ok && exprEquals(a.value, b.value);
-                }),
-            );
-        });
+    it("property: desugar is deterministic — same input ⇒ structurally equal output", () => {
+        fc.assert(
+            fc.property(exprArb({ depth: 3 }), (expr) => {
+                const a = safeDesugar(expr);
+                const b = safeDesugar(expr);
+                if (!a.ok && !b.ok) return true;
+                if (a.ok !== b.ok) return false;
+                return a.ok && b.ok && exprEquals(a.value, b.value);
+            }),
+        );
+    });
 
-        it("property: no CoreUnsafe leakage — input without Unsafe yields output without CoreUnsafe", () => {
-            fc.assert(
-                fc.property(
-                    exprArb({ depth: 3 }).filter((e) => !containsSurfaceUnsafe(e)),
-                    (expr) => {
-                        const result = safeDesugar(expr);
-                        // Inputs that fail to desugar (e.g. invalid block shapes the
-                        // surface arbitrary can still produce) are discarded rather
-                        // than counted as passes — they say nothing about leakage.
-                        // fc.pre is typed as `asserts expectTruthy`, narrowing
-                        // result to the `ok: true` branch on the next line.
-                        fc.pre(result.ok);
-                        return !containsUnsafe(result.value);
-                    },
-                ),
-            );
-        });
+    it("property: no CoreUnsafe leakage — input without Unsafe yields output without CoreUnsafe", () => {
+        fc.assert(
+            fc.property(
+                exprArb({ depth: 3 }).filter((e) => !containsSurfaceUnsafe(e)),
+                (expr) => {
+                    const result = safeDesugar(expr);
+                    // Inputs that fail to desugar (e.g. invalid block shapes the
+                    // surface arbitrary can still produce) are discarded rather
+                    // than counted as passes — they say nothing about leakage.
+                    // fc.pre is typed as `asserts expectTruthy`, narrowing
+                    // result to the `ok: true` branch on the next line.
+                    fc.pre(result.ok);
+                    return !containsUnsafe(result.value);
+                },
+            ),
+        );
     });
 });
