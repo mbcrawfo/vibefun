@@ -13,7 +13,7 @@ import type { CoreLiteralPattern, CoreMatch, CoreVariantPattern } from "../types
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { surfacePatternArb } from "../types/test-arbitraries/index.js";
+import { patternArb } from "../types/test-arbitraries/index.js";
 import { exprEquals } from "../utils/expr-equality.js";
 import { desugar } from "./desugarer.js";
 
@@ -494,7 +494,7 @@ describe("Or-Pattern properties", () => {
         // alternation. A flat 3-arm or-pattern and a left-nested 3-arm
         // or-pattern must produce the same Core AST.
         fc.assert(
-            fc.property(fc.array(surfacePatternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
+            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 const body: Expr = { kind: "IntLit", value: 1, loc: testLoc };
                 const flat = makeMatch(patterns, body);
                 // Build a left-nested OrPattern: ((p1 | p2) | p3) | p4
@@ -532,7 +532,7 @@ describe("Or-Pattern properties", () => {
         // alternatives may further multiply if they themselves contain
         // nested or-patterns; the total must therefore be ≥ N.
         fc.assert(
-            fc.property(fc.array(surfacePatternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
+            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
                 let result;
                 try {
                     result = desugar(makeMatch(patterns)) as CoreMatch;
@@ -546,7 +546,7 @@ describe("Or-Pattern properties", () => {
 
     it("property: or-pattern desugaring is deterministic", () => {
         fc.assert(
-            fc.property(fc.array(surfacePatternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
+            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
                 let a, b;
                 try {
                     a = desugar(makeMatch(patterns));
