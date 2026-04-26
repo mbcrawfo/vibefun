@@ -4,8 +4,10 @@
 
 import type { Location } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { moduleGraphArb } from "../types/test-arbitraries/index.js";
 import { ModuleGraph } from "./module-graph.js";
 
 // Helper to create test locations
@@ -504,5 +506,118 @@ describe("ModuleGraph", () => {
 
             expect(graph.getEdge("/a.vf", "/b.vf")).toBeUndefined();
         });
+    });
+});
+
+// =============================================================================
+// Property-Based Tests
+// =============================================================================
+
+describe("ModuleGraph — property-based", () => {
+    function buildGraph(spec: {
+        nodes: string[];
+        edges: Array<{ from: string; to: string; isTypeOnly: boolean }>;
+    }): ModuleGraph {
+        const graph = new ModuleGraph();
+        for (const node of spec.nodes) {
+            graph.addModule(node);
+        }
+        for (const edge of spec.edges) {
+            graph.addDependency(edge.from, edge.to, edge.isTypeOnly, {
+                file: edge.from,
+                line: 1,
+                column: 1,
+                offset: 0,
+            });
+        }
+        return graph;
+    }
+
+    it("property: every edge endpoint is registered as a node", () => {
+        // addDependency calls addModule for both endpoints, so every edge's
+        // `from` and `to` must show up in getModules().
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 8, density: 0.3 }), (spec) => {
+                const graph = buildGraph(spec);
+                const nodes = new Set(graph.getModules());
+                return spec.edges.every((e) => nodes.has(e.from) && nodes.has(e.to));
+            }),
+        );
+    });
+
+    it("property: getDependencies(from) and getDependencyEdges(from).map(to) agree", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraph(spec);
+                return graph.getModules().every((from) => {
+                    const deps = graph.getDependencies(from).slice().sort();
+                    const edgeTos = graph
+                        .getDependencyEdges(from)
+                        .map((e) => e.to)
+                        .slice()
+                        .sort();
+                    return deps.length === edgeTos.length && deps.every((d, i) => d === edgeTos[i]);
+                });
+            }),
+        );
+    });
+
+    it("property: getReverseDependencies is the transpose of getDependencies", () => {
+        // For every edge from A to B, A must appear in getReverseDependencies(B).
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraph(spec);
+                return graph.getModules().every((from) => {
+                    return graph.getDependencies(from).every((to) => {
+                        return graph.getReverseDependencies(to).includes(from);
+                    });
+                });
+            }),
+        );
+    });
+
+    it("property: clone() yields a graph with the same nodes and edges", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraph(spec);
+                const cloned = graph.clone();
+                if (cloned.getModuleCount() !== graph.getModuleCount()) return false;
+                return graph.getModules().every((m) => {
+                    const orig = graph.getDependencies(m).slice().sort();
+                    const copy = cloned.getDependencies(m).slice().sort();
+                    return orig.length === copy.length && orig.every((d, i) => d === copy[i]);
+                });
+            }),
+        );
+    });
+
+    it("property: hasCycle agrees with getTopologicalOrder().hasCycles", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraph(spec);
+                return graph.hasCycle() === graph.getTopologicalOrder().hasCycles;
+            }),
+        );
+    });
+
+    it("property: a generated DAG has no cycles", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4, acyclic: true }), (spec) => {
+                const graph = buildGraph(spec);
+                return !graph.hasCycle() && !graph.getTopologicalOrder().hasCycles;
+            }),
+        );
+    });
+
+    it("property: getTopologicalOrder().order contains every module exactly once", () => {
+        fc.assert(
+            fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
+                const graph = buildGraph(spec);
+                const order = graph.getTopologicalOrder().order;
+                if (order.length !== graph.getModuleCount()) return false;
+                const seen = new Set(order);
+                return seen.size === order.length;
+            }),
+        );
     });
 });
