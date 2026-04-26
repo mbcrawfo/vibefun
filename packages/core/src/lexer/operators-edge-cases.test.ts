@@ -5,8 +5,10 @@
  * and complex operator combinations.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { multiCharOperatorArb, operatorOrPunctuationArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Operator Edge Cases", () => {
@@ -357,5 +359,27 @@ describe("Lexer - Operator Edge Cases", () => {
                 "EOF",
             ]);
         });
+    });
+});
+
+describe("Lexer - Operator edge-case properties", () => {
+    it("property: any single operator/punctuation token round-trips", () => {
+        fc.assert(
+            fc.property(operatorOrPunctuationArb, (desc) => {
+                const tokens = new Lexer(desc.value, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+            }),
+        );
+    });
+
+    it("property: longest-match — a multi-char operator never lexes as its prefix tokens", () => {
+        fc.assert(
+            fc.property(multiCharOperatorArb, (desc) => {
+                const tokens = new Lexer(desc.value, "prop.vf").tokenize();
+                if (tokens.length !== 2) return false;
+                return tokens[0]?.type === desc.type;
+            }),
+        );
     });
 });
