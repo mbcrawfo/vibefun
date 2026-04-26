@@ -7,8 +7,10 @@
  * - (- x) - operator section (space between - and x)
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { identifierArb, intLiteralArb, singleCharOperatorArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Whitespace Tracking", () => {
@@ -363,5 +365,50 @@ describe("Lexer - Whitespace Tracking", () => {
             expect(tokens[1]?.hasLeadingWhitespace).toBe(true); // '::'
             expect(tokens[2]?.hasLeadingWhitespace).toBe(true); // 'xs'
         });
+    });
+});
+
+describe("Lexer - Whitespace tracking properties", () => {
+    it("property: hasLeadingWhitespace is true when ≥1 space precedes the token", () => {
+        fc.assert(
+            fc.property(identifierArb, fc.integer({ min: 1, max: 6 }), (name, gap) => {
+                const source = " ".repeat(gap) + name;
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                return tokens[0]?.hasLeadingWhitespace === true;
+            }),
+        );
+    });
+
+    it("property: hasLeadingWhitespace is undefined for the first token when no whitespace precedes it", () => {
+        fc.assert(
+            fc.property(identifierArb, (name) => {
+                const tokens = new Lexer(name, "prop.vf").tokenize();
+                return tokens[0]?.hasLeadingWhitespace === undefined;
+            }),
+        );
+    });
+
+    it("property: an operator between two identifiers has hasLeadingWhitespace iff a space precedes it", () => {
+        fc.assert(
+            fc.property(identifierArb, identifierArb, singleCharOperatorArb, fc.boolean(), (a, b, op, withSpace) => {
+                const sep = withSpace ? " " : "";
+                const source = `${a}${sep}${op.value}${sep}${b}`;
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                if (tokens.length !== 4) return false;
+                if (withSpace) return tokens[1]?.hasLeadingWhitespace === true;
+                return tokens[1]?.hasLeadingWhitespace === undefined;
+            }),
+        );
+    });
+
+    it("property: integer literals follow the same hasLeadingWhitespace rule", () => {
+        fc.assert(
+            fc.property(intLiteralArb, fc.boolean(), (n, leading) => {
+                const source = leading ? `  ${n}` : `${n}`;
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                if (leading) return tokens[0]?.hasLeadingWhitespace === true;
+                return tokens[0]?.hasLeadingWhitespace === undefined;
+            }),
+        );
     });
 });
