@@ -734,8 +734,17 @@ describe("ModuleGraphBuilder — property-based", () => {
         };
         fc.assert(
             fc.property(moduleSetArb, ({ modules, pathMap }) => {
-                const a = buildModuleGraph(modules, pathMap);
-                const b = buildModuleGraph(modules, pathMap);
+                // Each run gets independently cloned inputs so a build that
+                // mutates `modules` or `pathMap` in place can no longer pass
+                // by sharing the mutated state across runs.
+                const cloneModule = (m: Module): Module => JSON.parse(JSON.stringify(m)) as Module;
+                const cloneModules = (): Map<string, Module> =>
+                    new Map(Array.from(modules.entries(), ([file, mod]) => [file, cloneModule(mod)]));
+                const clonePathMap = (): Map<string, Map<string, string>> =>
+                    new Map(Array.from(pathMap.entries(), ([file, m]) => [file, new Map(m)]));
+
+                const a = buildModuleGraph(cloneModules(), clonePathMap());
+                const b = buildModuleGraph(cloneModules(), clonePathMap());
                 if (a.graph.getModuleCount() !== b.graph.getModuleCount()) return false;
                 const aErr = a.errors.map(errorSig).slice().sort();
                 const bErr = b.errors.map(errorSig).slice().sort();

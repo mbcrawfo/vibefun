@@ -486,6 +486,11 @@ describe("Or-Pattern properties", () => {
         throw error;
     }
 
+    /** Deep clone via JSON round-trip; isolates each desugar call from input mutation. */
+    function clone<T>(value: T): T {
+        return JSON.parse(JSON.stringify(value)) as T;
+    }
+
     function makeMatch(patterns: Pattern[], body: Expr = { kind: "IntLit", value: 0, loc: testLoc }): Expr {
         return {
             kind: "Match",
@@ -511,13 +516,16 @@ describe("Or-Pattern properties", () => {
         fc.assert(
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 const body: Expr = { kind: "IntLit", value: 1, loc: testLoc };
-                const flat = makeMatch(patterns, body);
-                // Build a left-nested OrPattern: ((p1 | p2) | p3) | p4
-                let nested: Pattern = patterns[0] as Pattern;
-                for (let i = 1; i < patterns.length; i++) {
+                // Each desugar call gets an independently cloned pattern
+                // graph so a mutating implementation cannot mask divergence
+                // by sharing nodes between the two ASTs.
+                const flat = makeMatch(clone(patterns), body);
+                const nestedPatterns = clone(patterns);
+                let nested: Pattern = nestedPatterns[0] as Pattern;
+                for (let i = 1; i < nestedPatterns.length; i++) {
                     nested = {
                         kind: "OrPattern",
-                        patterns: [nested, patterns[i] as Pattern],
+                        patterns: [nested, nestedPatterns[i] as Pattern],
                         loc: testLoc,
                     };
                 }
@@ -569,13 +577,18 @@ describe("Or-Pattern properties", () => {
             // in an `OrPattern` (single-element arrays bypass the wrapping),
             // so the property exercises or-pattern expansion every iteration.
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
+                // Independent clones for each run so the comparison is
+                // sensitive to in-place input mutation, and the original
+                // `patterns` is asserted unchanged afterward.
+                const original = clone(patterns);
                 let a: CoreExpr, b: CoreExpr;
                 try {
-                    a = desugar(makeMatch(patterns));
-                    b = desugar(makeMatch(patterns));
+                    a = desugar(makeMatch(clone(patterns)));
+                    b = desugar(makeMatch(clone(patterns)));
                 } catch (error) {
                     discardOnlyExpectedInvalidInput(error);
                 }
+                expect(patterns).toEqual(original);
                 return exprEquals(a, b);
             }),
         );
