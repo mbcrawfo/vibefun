@@ -5,8 +5,10 @@
  * arithmetic operators, and comparison operators.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { punctuationArb, singleCharOperatorArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Single-Character Punctuation", () => {
@@ -377,5 +379,27 @@ describe("Lexer - Single-Character Punctuation", () => {
             expect(tokens[1]?.loc.line).toBe(1); // NEWLINE on line 1
             expect(tokens[2]?.loc.line).toBe(2); // RPAREN on line 2
         });
+    });
+});
+
+describe("Lexer - Punctuation properties", () => {
+    it("property: every punctuation char round-trips with kind and value", () => {
+        fc.assert(
+            fc.property(punctuationArb, (desc) => {
+                const tokens = new Lexer(desc.value, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+            }),
+        );
+    });
+
+    it("property: every single-char operator round-trips with kind and value", () => {
+        fc.assert(
+            fc.property(singleCharOperatorArb, (desc) => {
+                const tokens = new Lexer(desc.value, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+            }),
+        );
     });
 });
