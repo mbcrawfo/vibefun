@@ -5,8 +5,11 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb, identifierArb, substitutionArb } from "../types/test-arbitraries/index.js";
+import { exprEquals } from "./expr-equality.js";
 import { freshen, substitute, substituteMultiple } from "./substitution.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -293,6 +296,79 @@ describe("Substitution Utilities", () => {
             expect(fresh).not.toBe("x_1");
             expect(fresh).not.toBe("x_2");
             expect(fresh).toContain("x");
+        });
+    });
+
+    describe("substitution algebraic properties", () => {
+        // The substitution module exposes a small algebra: empty substitution
+        // is identity, applying a substitution is deterministic, freshen
+        // always picks a name outside the avoid set. We test those three
+        // because they're the load-bearing invariants the optimizer relies on.
+
+        it("property: substituteMultiple with empty map is identity", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const result = substituteMultiple(e, new Map());
+                    return result === e;
+                }),
+            );
+        });
+
+        it("property: substituting an unused name leaves the expression structurally equal", () => {
+            // If `name` does not appear in `e`, substituting it cannot change
+            // the structural identity of `e`. We pick an obviously-unused
+            // name by prefixing with a dollar sign which generators cannot
+            // produce (their identifier regex starts with a-z).
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), coreExprArb({ depth: 1 }), (e, replacement) => {
+                    const unused = "$unused_var_name";
+                    const result = substitute(e, unused, replacement);
+                    return exprEquals(e, result);
+                }),
+            );
+        });
+
+        it("property: substitute determinism — same inputs ⇒ same output", () => {
+            fc.assert(
+                fc.property(
+                    coreExprArb({ depth: 3 }),
+                    identifierArb,
+                    coreExprArb({ depth: 1 }),
+                    (e, name, replacement) => {
+                        const a = substitute(e, name, replacement);
+                        const b = substitute(e, name, replacement);
+                        return exprEquals(a, b);
+                    },
+                ),
+            );
+        });
+
+        it("property: substituteMultiple determinism over generated substitutions", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), substitutionArb({ maxSize: 3, depth: 1 }), (e, sub) => {
+                    const a = substituteMultiple(e, sub);
+                    const b = substituteMultiple(e, sub);
+                    return exprEquals(a, b);
+                }),
+            );
+        });
+
+        it("property: freshen never returns a name in the avoid set", () => {
+            fc.assert(
+                fc.property(identifierArb, fc.uniqueArray(identifierArb, { maxLength: 8 }), (base, avoidArray) => {
+                    const avoid = new Set(avoidArray);
+                    const fresh = freshen(base, avoid);
+                    return !avoid.has(fresh);
+                }),
+            );
+        });
+
+        it("property: freshen returns the base name when it's already free", () => {
+            fc.assert(
+                fc.property(identifierArb, (base) => {
+                    return freshen(base, new Set()) === base;
+                }),
+            );
         });
     });
 });
