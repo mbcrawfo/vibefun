@@ -214,6 +214,16 @@ describe("token arbitraries", () => {
             );
         });
 
+        it("ignores hasLeadingWhitespace differences", () => {
+            fc.assert(
+                fc.property(tokenArb, (t) => {
+                    const withWs = { ...t, hasLeadingWhitespace: true } as typeof t;
+                    const withoutWs = { ...t, hasLeadingWhitespace: false } as typeof t;
+                    return tokensEquivalent(withWs, withoutWs) && tokensEquivalent(withoutWs, withWs);
+                }),
+            );
+        });
+
         it("returns false on type mismatch", () => {
             fc.assert(
                 fc.property(intLiteralArb, identifierArb, (n, name) => {
