@@ -4,12 +4,17 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb, optimizableExprArb } from "../types/test-arbitraries/index.js";
 import { OptimizationLevel } from "../types/optimizer.js";
+import { exprEquals } from "../utils/expr-equality.js";
 import { Optimizer } from "./optimizer.js";
 import { BetaReductionPass } from "./passes/beta-reduction.js";
 import { ConstantFoldingPass } from "./passes/constant-folding.js";
+import { DeadCodeEliminationPass } from "./passes/dead-code-elim.js";
+import { EtaReductionPass } from "./passes/eta-reduction.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
 
@@ -327,6 +332,53 @@ describe("Optimizer", () => {
             const result = optimizer.optimize(expr);
 
             expect(result.expr).toEqual(expr); // No passes to apply
+        });
+    });
+
+    describe("Properties", () => {
+        // Property tests run against generated Core expressions. Each property
+        // builds a fresh `Optimizer` so state from one run cannot leak into
+        // another.
+
+        const buildO2 = (): Optimizer => {
+            const optimizer = new Optimizer({ level: OptimizationLevel.O2, maxIterations: 10 });
+            optimizer.addPass(new ConstantFoldingPass());
+            optimizer.addPass(new BetaReductionPass());
+            optimizer.addPass(new DeadCodeEliminationPass());
+            optimizer.addPass(new EtaReductionPass());
+            return optimizer;
+        };
+
+        it("property: O0 is identity on any Core expression", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (expr) => {
+                    const optimizer = new Optimizer({ level: OptimizationLevel.O0, maxIterations: 10 });
+                    optimizer.addPass(new ConstantFoldingPass());
+                    optimizer.addPass(new BetaReductionPass());
+                    const result = optimizer.optimize(expr);
+                    return exprEquals(result.expr, expr);
+                }),
+            );
+        });
+
+        it("property: optimize is deterministic — same input yields exprEquals output", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const a = buildO2().optimize(expr).expr;
+                    const b = buildO2().optimize(expr).expr;
+                    return exprEquals(a, b);
+                }),
+            );
+        });
+
+        it("property: O2 reaches a fixed point (optimize twice equals once)", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const once = buildO2().optimize(expr).expr;
+                    const twice = buildO2().optimize(once).expr;
+                    return exprEquals(once, twice);
+                }),
+            );
         });
     });
 });
