@@ -2,8 +2,10 @@
  * Expression parsing tests - Functions and lambdas
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { lowerIdentifierArb, nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Functions and Lambdas", () => {
@@ -436,6 +438,34 @@ describe("Parser - Functions and Lambdas", () => {
                 },
                 typeExpr: { kind: "TypeConst", name: "Int" },
             });
+        });
+    });
+
+    describe("properties", () => {
+        const intArgs = fc.array(nonNegativeIntArb, { maxLength: 5 });
+
+        it("property: function call arity matches the source argument count", () => {
+            fc.assert(
+                fc.property(lowerIdentifierArb, intArgs, (fname, args) => {
+                    const expr = parseExpression(`${fname}(${args.join(", ")})`);
+                    expect(expr.kind).toBe("App");
+                    if (expr.kind !== "App") return;
+                    expect(expr.args).toHaveLength(args.length);
+                }),
+            );
+        });
+
+        it("property: chained calls f(a)(b) parse left-associatively as App(App(f, [a]), [b])", () => {
+            fc.assert(
+                fc.property(lowerIdentifierArb, nonNegativeIntArb, nonNegativeIntArb, (fname, a, b) => {
+                    const expr = parseExpression(`${fname}(${a})(${b})`);
+                    expect(expr.kind).toBe("App");
+                    if (expr.kind !== "App") return;
+                    // Outer: App { func: App { func: Var(f), args: [a] }, args: [b] }
+                    expect(expr.func.kind).toBe("App");
+                    expect(expr.args).toHaveLength(1);
+                }),
+            );
         });
     });
 });
