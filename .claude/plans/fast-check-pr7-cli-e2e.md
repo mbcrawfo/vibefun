@@ -48,13 +48,14 @@ time pnpm run test:e2e  # e2e baseline — critical
 Spawn an Explore subagent:
 
 > Read every `*.test.ts` under `packages/cli/{src,tests}/` and `tests/e2e/`.
-> Classify as `property-tests`, `fixed-only`, or `defer-bug-backlog`.
-> Bias **toward `fixed-only`**: most CLI/e2e tests are
-> argv-or-fixture-based regressions where property-based testing adds little.
-> Identify the small set with real algebraic properties (`formatError`
-> totality, generated-program execution).
+> Classify as `property-tests`, `fixed-only`, `snapshot-skip`, or
+> `defer-bug-backlog`. Bias **toward `fixed-only`**: most CLI/e2e tests
+> are argv-or-fixture-based regressions where property-based testing adds
+> little. Identify the small set with real algebraic properties
+> (`formatError` totality, generated-program execution).
 >
-> Output `.claude/plans/triage/pr7-cli-e2e.csv`.
+> Output `.claude/plans/triage/pr7-cli-e2e.csv` with columns
+> `path,disposition,justification`.
 
 ## Critical files
 
@@ -121,8 +122,7 @@ After per-file commits land:
 
 2. **Final verify (cross-layer gates required before merge):**
     - `pnpm run verify` — build + check + lint + test + test:e2e + format:check.
-    - `pnpm run spec:validate` — spec-suite must remain at 378/378 (or
-      current count).
+    - `pnpm run spec:validate` — spec-suite pass count must not decrease.
     - `pnpm run test:coverage` and confirm
       `coverage/coverage-summary.json` is ≥
       `.claude/plans/triage/pr7-baseline-coverage.json` for lines,

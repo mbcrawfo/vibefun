@@ -133,7 +133,7 @@ PR close.
 
 ```bash
 pnpm run verify        # build + check + lint + test + test:e2e + format:check
-pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+pnpm run spec:validate # spec-suite pass count must not decrease
 ```
 
 If lexer changes affect language semantics (token shapes, escape sequences,
