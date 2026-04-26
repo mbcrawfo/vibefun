@@ -4,9 +4,11 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { OptimizationLevel } from "../types/optimizer.js";
+import { coreExprArb, corePatternArb } from "../types/test-arbitraries/index.js";
 import {
     astSize,
     complexity,
@@ -545,6 +547,125 @@ describe("AST Analysis Utilities", () => {
             };
 
             expect(countVarUses("x", expr)).toBe(1);
+        });
+    });
+
+    describe("ast-analysis algebraic properties", () => {
+        // The analysis functions are read-only walkers. We assert the
+        // load-bearing invariants:
+        //   - freeVars/patternBoundVars/astSize/complexity must terminate
+        //     and return values of the documented type for any tier-A input
+        //     (crash oracle).
+        //   - astSize must be >= 1 (every CoreExpr is at least one node).
+        //   - patternBoundVars over a wildcard pattern is empty; over a
+        //     literal pattern is empty (these are documented in the source).
+
+        it("property: freeVars returns a Set on any tier-A CoreExpr", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const fv = freeVars(e);
+                    return fv instanceof Set;
+                }),
+            );
+        });
+
+        it("property: freeVars is deterministic", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const a = Array.from(freeVars(e)).sort();
+                    const b = Array.from(freeVars(e)).sort();
+                    return a.length === b.length && a.every((v, i) => v === b[i]);
+                }),
+            );
+        });
+
+        it("property: astSize is >= 1 for any CoreExpr", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return astSize(e) >= 1;
+                }),
+            );
+        });
+
+        it("property: complexity is >= 1 for any CoreExpr (every node weighs at least 1)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return complexity(e) >= 1;
+                }),
+            );
+        });
+
+        it("property: countVarUses returns 0 for an unused name", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    // Names beginning with `$` are never produced by the
+                    // identifier generator, so no variable use can match.
+                    return countVarUses("$nonexistent_name", e) === 0;
+                }),
+            );
+        });
+
+        it("property: countVarUses(name, expr) <= astSize(expr)", () => {
+            // A var use is one CoreVar node; the AST cannot have more uses
+            // than total nodes.
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return countVarUses("x", e) <= astSize(e);
+                }),
+            );
+        });
+
+        it("property: patternBoundVars is total over corePatternArb", () => {
+            fc.assert(
+                fc.property(corePatternArb({ depth: 2 }), (p) => {
+                    const v = patternBoundVars(p);
+                    return v instanceof Set;
+                }),
+            );
+        });
+
+        it("property: containsUnsafe / containsRef return booleans (no throws)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return typeof containsUnsafe(e) === "boolean" && typeof containsRef(e) === "boolean";
+                }),
+            );
+        });
+
+        it("property: isRefOperation is total", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return typeof isRefOperation(e) === "boolean";
+                }),
+            );
+        });
+
+        it("property: isMutuallyRecursive is total and only true for CoreLetRecExpr with >1 binding", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const result = isMutuallyRecursive(e);
+                    if (!result) return true;
+                    return e.kind === "CoreLetRecExpr" && e.bindings.length > 1;
+                }),
+            );
+        });
+
+        it("property: isRecursive does not throw on arbitrary inputs", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return typeof isRecursive("x", e) === "boolean";
+                }),
+            );
+        });
+
+        it("property: shouldInline does not throw at any optimization level", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 2 }), fc.nat({ max: 10 }), (e, useCount) => {
+                    return [OptimizationLevel.O0, OptimizationLevel.O1, OptimizationLevel.O2].every(
+                        (lvl) => typeof shouldInline(e, useCount, lvl) === "boolean",
+                    );
+                }),
+            );
         });
     });
 });
