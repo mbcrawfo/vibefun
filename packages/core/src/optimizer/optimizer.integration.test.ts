@@ -6,8 +6,11 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprWithUnsafeArb, optimizableExprArb } from "../types/test-arbitraries/index.js";
+import { exprEquals } from "../utils/expr-equality.js";
 import { Optimizer } from "./optimizer.js";
 import { BetaReductionPass } from "./passes/beta-reduction.js";
 import { ConstantFoldingPass } from "./passes/constant-folding.js";
@@ -363,4 +366,122 @@ describe("Optimizer Integration Tests", () => {
             expect(result.metrics.iterations).toBeLessThanOrEqual(3);
         });
     });
+
+    describe("Properties", () => {
+        const buildO2 = (): Optimizer => {
+            const optimizer = new Optimizer({ level: 2, maxIterations: 10 });
+            optimizer.addPass(new ConstantFoldingPass());
+            optimizer.addPass(new BetaReductionPass());
+            optimizer.addPass(new DeadCodeEliminationPass());
+            optimizer.addPass(new EtaReductionPass());
+            optimizer.addPass(new InlineExpansionPass());
+            optimizer.addPass(new PatternMatchOptimizationPass());
+            return optimizer;
+        };
+
+        it("property: O2 fixed point — optimize twice equals once on closed Core terms", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const once = buildO2().optimize(expr).expr;
+                    const twice = buildO2().optimize(once).expr;
+                    return exprEquals(once, twice);
+                }),
+            );
+        });
+
+        it("property: optimization does not throw on any closed Core expression (crash oracle)", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    expect(() => buildO2().optimize(expr)).not.toThrow();
+                }),
+            );
+        });
+
+        it("property: CoreUnsafe subtrees are preserved verbatim through O2", () => {
+            fc.assert(
+                fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
+                    const optimized = buildO2().optimize(expr).expr;
+                    return collectUnsafe(expr).every((u) =>
+                        collectUnsafe(optimized).some((v) => exprEquals(u, v)),
+                    );
+                }),
+            );
+        });
+    });
 });
+
+/** Collect every `CoreUnsafe` subtree in `expr` (preserving structural identity). */
+function collectUnsafe(expr: CoreExpr): CoreExpr[] {
+    const out: CoreExpr[] = [];
+    const visit = (e: CoreExpr): void => {
+        if (e.kind === "CoreUnsafe") {
+            out.push(e);
+            return; // never recurse into the inner of an unsafe block
+        }
+        switch (e.kind) {
+            case "CoreLet":
+                visit(e.value);
+                visit(e.body);
+                break;
+            case "CoreLetRecExpr":
+                e.bindings.forEach((b) => visit(b.value));
+                visit(e.body);
+                break;
+            case "CoreLambda":
+                visit(e.body);
+                break;
+            case "CoreApp":
+                visit(e.func);
+                e.args.forEach(visit);
+                break;
+            case "CoreMatch":
+                visit(e.expr);
+                e.cases.forEach((c) => {
+                    if (c.guard) visit(c.guard);
+                    visit(c.body);
+                });
+                break;
+            case "CoreBinOp":
+                visit(e.left);
+                visit(e.right);
+                break;
+            case "CoreUnaryOp":
+                visit(e.expr);
+                break;
+            case "CoreVariant":
+                e.args.forEach(visit);
+                break;
+            case "CoreTuple":
+                e.elements.forEach(visit);
+                break;
+            case "CoreRecord":
+                e.fields.forEach((f) => {
+                    if (f.kind === "Field") visit(f.value);
+                    else visit(f.expr);
+                });
+                break;
+            case "CoreRecordAccess":
+                visit(e.record);
+                break;
+            case "CoreRecordUpdate":
+                visit(e.record);
+                e.updates.forEach((u) => {
+                    if (u.kind === "Field") visit(u.value);
+                    else visit(u.expr);
+                });
+                break;
+            case "CoreTypeAnnotation":
+                visit(e.expr);
+                break;
+            case "CoreTryCatch":
+                visit(e.tryBody);
+                visit(e.catchBody);
+                break;
+            // literals and Var have no children
+            default:
+                break;
+        }
+    };
+    visit(expr);
+    return out;
+}
