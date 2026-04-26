@@ -4,8 +4,11 @@
  * Phase 3: Simple Tokens - Identifier and keyword recognition
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
+import { identifierArb, KEYWORD_LIST, keywordArb, RESERVED_KEYWORD_LIST } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Identifiers", () => {
@@ -567,5 +570,52 @@ describe("Lexer - Identifier Edge Cases", () => {
             line: 1,
             column: 3, // After two spaces
         });
+    });
+});
+
+describe("Lexer - Identifier properties", () => {
+    it("property: any generated identifier round-trips as IDENTIFIER", () => {
+        fc.assert(
+            fc.property(identifierArb, (name) => {
+                const tokens = new Lexer(name, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                expect(tokens[1]?.type).toBe("EOF");
+                return tokens[0]?.type === "IDENTIFIER" && tokens[0].value === name;
+            }),
+        );
+    });
+
+    it("property: every keyword lexes as KEYWORD with matching keyword tag", () => {
+        fc.assert(
+            fc.property(keywordArb, (kw) => {
+                const tokens = new Lexer(kw, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                const t = tokens[0];
+                if (t?.type !== "KEYWORD") return false;
+                return t.value === kw && t.keyword === kw;
+            }),
+        );
+    });
+
+    it("property: every reserved keyword is rejected with VF1500", () => {
+        fc.assert(
+            fc.property(fc.constantFrom(...RESERVED_KEYWORD_LIST), (rk) => {
+                let caught: unknown;
+                try {
+                    new Lexer(rk, "prop.vf").tokenize();
+                } catch (err) {
+                    caught = err;
+                }
+                return caught instanceof VibefunDiagnostic && caught.code === "VF1500";
+            }),
+        );
+    });
+
+    it("property: identifier and keyword sets are disjoint at lex time", () => {
+        fc.assert(
+            fc.property(identifierArb, (name) => {
+                return !KEYWORD_LIST.includes(name as (typeof KEYWORD_LIST)[number]);
+            }),
+        );
     });
 });
