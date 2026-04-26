@@ -4,9 +4,12 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb } from "../types/test-arbitraries/index.js";
 import { transformExpr } from "./ast-transform.js";
+import { exprEquals } from "./expr-equality.js";
 
 describe("AST Transform Utilities", () => {
     describe("transformExpr", () => {
@@ -632,6 +635,48 @@ describe("AST Transform Utilities", () => {
 
             const result = transformExpr(expr, (e) => e);
             expect(result).toEqual(expr);
+        });
+    });
+
+    describe("transformExpr algebraic properties", () => {
+        // The identity-transform property is the most load-bearing invariant
+        // for transformExpr: any code that wants to "rewrite some nodes and
+        // leave others alone" relies on `(e) => e` being literally a no-op.
+
+        it("property: identity transform is identity (structural equality)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const result = transformExpr(e, (x) => x);
+                    return exprEquals(e, result);
+                }),
+            );
+        });
+
+        it("property: identity transform preserves the top-level kind", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return transformExpr(e, (x) => x).kind === e.kind;
+                }),
+            );
+        });
+
+        it("property: transformExpr does not throw on any tier-A CoreExpr", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    transformExpr(e, (x) => x);
+                    return true;
+                }),
+            );
+        });
+
+        it("property: transformExpr is deterministic", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const a = transformExpr(e, (x) => x);
+                    const b = transformExpr(e, (x) => x);
+                    return exprEquals(a, b);
+                }),
+            );
         });
     });
 });
