@@ -224,13 +224,14 @@ describe("token arbitraries", () => {
             );
         });
 
-        it("returns false when KEYWORD value or keyword tag differ", () => {
+        it("returns false when KEYWORD value or keyword tag differ (independent paths)", () => {
             fc.assert(
                 fc.property(keywordArb, keywordArb, (a, b) => {
                     if (a === b) return true;
-                    const ka = { type: "KEYWORD", value: a, keyword: a, loc } as const;
-                    const kb = { type: "KEYWORD", value: b, keyword: b, loc } as const;
-                    return !tokensEquivalent(ka, kb);
+                    const base = { type: "KEYWORD", value: a, keyword: a, loc } as const;
+                    const valueMismatch = { type: "KEYWORD", value: b, keyword: a, loc } as const;
+                    const tagMismatch = { type: "KEYWORD", value: a, keyword: b, loc } as const;
+                    return !tokensEquivalent(base, valueMismatch) && !tokensEquivalent(base, tagMismatch);
                 }),
             );
         });
