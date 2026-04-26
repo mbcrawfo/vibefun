@@ -33,7 +33,16 @@ export {
 } from "./token-arb.js";
 export type { OperatorDescriptor, OperatorOrPunctuationTokenType } from "./token-arb.js";
 
-export { binaryOpArb, declArb, exprArb, letDeclArb, moduleArb, patternArb, typeExprArb, unaryOpArb } from "./ast-arb.js";
+export {
+    binaryOpArb,
+    declArb,
+    exprArb,
+    letDeclArb,
+    moduleArb,
+    patternArb,
+    typeExprArb,
+    unaryOpArb,
+} from "./ast-arb.js";
 export type { AstArbOptions } from "./ast-arb.js";
 
 export { astEquals } from "./ast-equality.js";
@@ -78,5 +87,3 @@ export type {
     ModuleGraphSpec,
     SubstitutionArbOptions,
 } from "./core-ast-arb.js";
-export { surfaceBinaryOpArb, surfaceExprArb, surfacePatternArb, surfaceUnaryOpArb } from "./surface-ast-arb.js";
-export type { SurfaceExprArbOptions, SurfacePatternArbOptions } from "./surface-ast-arb.js";

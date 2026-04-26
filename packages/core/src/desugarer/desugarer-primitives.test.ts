@@ -20,7 +20,7 @@ import type {
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { surfaceExprArb } from "../types/test-arbitraries/index.js";
+import { exprArb } from "../types/test-arbitraries/index.js";
 import { containsUnsafe } from "../utils/ast-analysis.js";
 import { exprEquals } from "../utils/expr-equality.js";
 import { desugar } from "./desugarer.js";
@@ -527,7 +527,7 @@ describe("Desugarer - Unsafe Blocks", () => {
 
         it("property: desugar is deterministic — same input ⇒ structurally equal output", () => {
             fc.assert(
-                fc.property(surfaceExprArb({ depth: 3 }), (expr) => {
+                fc.property(exprArb({ depth: 3 }), (expr) => {
                     const a = safeDesugar(expr);
                     const b = safeDesugar(expr);
                     if (!a.ok && !b.ok) return true;
@@ -540,7 +540,7 @@ describe("Desugarer - Unsafe Blocks", () => {
         it("property: no CoreUnsafe leakage — input without Unsafe yields output without CoreUnsafe", () => {
             fc.assert(
                 fc.property(
-                    surfaceExprArb({ depth: 3 }).filter((e) => !containsSurfaceUnsafe(e)),
+                    exprArb({ depth: 3 }).filter((e) => !containsSurfaceUnsafe(e)),
                     (expr) => {
                         const result = safeDesugar(expr);
                         if (!result.ok) return true;
