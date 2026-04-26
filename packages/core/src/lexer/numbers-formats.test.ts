@@ -11,9 +11,11 @@
  * - Error cases for invalid number formats
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic } from "../diagnostics/index.js";
+import { intLiteralArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Decimal Integers", () => {
@@ -743,5 +745,52 @@ describe("Lexer - Number Separators (Underscores)", () => {
             expect(tokens).toHaveLength(5); // foo, (, 1000000, ), EOF
             expect(tokens[2]!).toMatchObject({ type: "INT_LITERAL", value: 1000000 });
         });
+    });
+});
+
+describe("Lexer - Number formats properties", () => {
+    it("property: hex round-trip — toString(16) lexes back to same value", () => {
+        fc.assert(
+            fc.property(intLiteralArb, (n) => {
+                // parseInt does not preserve values above 2^53; intLiteralArb is bounded
+                // to MAX_SAFE_INTEGER so the round-trip is exact for hex too.
+                const source = `0x${n.toString(16)}`;
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                const t = tokens[0];
+                if (t?.type !== "INT_LITERAL") return false;
+                return t.value === n;
+            }),
+        );
+    });
+
+    it("property: binary round-trip — toString(2) lexes back to same value", () => {
+        fc.assert(
+            fc.property(intLiteralArb, (n) => {
+                const source = `0b${n.toString(2)}`;
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                const t = tokens[0];
+                if (t?.type !== "INT_LITERAL") return false;
+                return t.value === n;
+            }),
+        );
+    });
+
+    it("property: underscore separators inside the digit run do not change the value", () => {
+        // Insert an underscore at every other position into the decimal form.
+        fc.assert(
+            fc.property(intLiteralArb, (n) => {
+                const digits = String(n);
+                if (digits.length < 2) return true;
+                let withUnderscores = "";
+                for (let i = 0; i < digits.length; i++) {
+                    withUnderscores += digits[i];
+                    if (i < digits.length - 1 && i % 2 === 0) withUnderscores += "_";
+                }
+                const tokens = new Lexer(withUnderscores, "prop.vf").tokenize();
+                const t = tokens[0];
+                if (t?.type !== "INT_LITERAL") return false;
+                return t.value === n;
+            }),
+        );
     });
 });
