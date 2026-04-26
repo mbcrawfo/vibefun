@@ -4,8 +4,11 @@
 
 import type { CoreExpr } from "../../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprWithUnsafeArb, optimizableExprArb } from "../../types/test-arbitraries/index.js";
+import { exprEquals } from "../../utils/expr-equality.js";
 import { PatternMatchOptimizationPass } from "./pattern-match-opt.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -687,6 +690,43 @@ describe("PatternMatchOptimizationPass", () => {
                 expect(result.cases[0]?.pattern.kind).toBe("CoreTuplePattern");
                 expect(result.cases[1]?.pattern.kind).toBe("CoreWildcardPattern");
             }
+        });
+    });
+
+    describe("Properties", () => {
+        it("property: pattern-match-opt is idempotent", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const once = pass.transform(expr);
+                    const twice = pass.transform(once);
+                    return exprEquals(once, twice);
+                }),
+            );
+        });
+
+        it("property: pattern-match-opt is deterministic", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    return exprEquals(pass.transform(expr), pass.transform(expr));
+                }),
+            );
+        });
+
+        it("property: pattern-match-opt never throws on closed Core expressions", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    expect(() => pass.transform(expr)).not.toThrow();
+                }),
+            );
+        });
+
+        it("property: pattern-match-opt preserves CoreUnsafe nodes", () => {
+            fc.assert(
+                fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
+                    if (expr.kind !== "CoreUnsafe") return true;
+                    return exprEquals(pass.transform(expr), expr);
+                }),
+            );
         });
     });
 });
