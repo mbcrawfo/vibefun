@@ -4,6 +4,7 @@
  * Tests basic pattern matching with literals, wildcards, and variable bindings.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { compileAndGetExport } from "./execution-test-helpers.js";
@@ -42,5 +43,47 @@ describe("pattern matching - basic", () => {
             "result",
         );
         expect(result).toBe(42);
+    });
+});
+
+describe("Properties", () => {
+    // Each property run spawns the full pipeline + vm execution. Cap
+    // numRuns at 10 — pattern execution programs are expensive.
+
+    const safeIntArb = fc.integer({ min: -1000, max: 1000 });
+
+    it("property: variable pattern binds the scrutinee value (cap numRuns 10 — spawns JS)", () => {
+        // match x { | n => n } returns x. The reference matcher is identity.
+        fc.assert(
+            fc.property(safeIntArb, (x) => {
+                const result = compileAndGetExport(
+                    `let id = (a) => match a { | n => n };
+                     let result = id(${x});`,
+                    "result",
+                );
+                return result === x;
+            }),
+            { numRuns: 10 },
+        );
+    });
+
+    it("property: literal-pattern dispatch matches the reference matcher (cap numRuns 10 — spawns JS)", () => {
+        // match x { 0 => "zero" | _ => "other" } — reference matcher classifies
+        // 0 to "zero" and any other int to "other".
+        fc.assert(
+            fc.property(safeIntArb, (x) => {
+                const expected = x === 0 ? "zero" : "other";
+                const result = compileAndGetExport(
+                    `let classify = (a) => match a {
+                         | 0 => "zero"
+                         | _ => "other"
+                     };
+                     let result = classify(${x});`,
+                    "result",
+                );
+                return result === expected;
+            }),
+            { numRuns: 10 },
+        );
     });
 });
