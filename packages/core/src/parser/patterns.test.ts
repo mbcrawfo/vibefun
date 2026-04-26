@@ -624,6 +624,11 @@ describe("Parser - Patterns", () => {
                 fc.property(patternArb({ depth: 3 }), (p) => {
                     const src = prettyPrintPattern(p);
                     const parsed = parsePattern(src);
+                    // Pattern subtrees don't reach ListElement, but list the
+                    // exemption explicitly for parity with the parser.test.ts
+                    // location property — this way a regression that drops `loc`
+                    // from any real Pattern kind fails loudly.
+                    const NO_LOC_KINDS = new Set(["Element", "Spread"]);
                     const visit = (node: unknown): void => {
                         if (node === null || typeof node !== "object") return;
                         if (Array.isArray(node)) {
@@ -631,9 +636,8 @@ describe("Parser - Patterns", () => {
                             return;
                         }
                         const obj = node as Record<string, unknown>;
-                        // Only assert loc on kinded AST nodes that carry it (skip
-                        // structural wrappers like ListElement that have no loc field).
-                        if (typeof obj["kind"] === "string" && "loc" in obj) {
+                        const kind = obj["kind"];
+                        if (typeof kind === "string" && !NO_LOC_KINDS.has(kind)) {
                             const loc = obj["loc"] as
                                 | { file?: unknown; line?: unknown; column?: unknown; offset?: unknown }
                                 | undefined;
