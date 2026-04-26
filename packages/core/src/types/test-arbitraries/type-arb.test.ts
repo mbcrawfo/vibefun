@@ -25,7 +25,7 @@ import {
     typeSubstitutionArb,
 } from "./index.js";
 
-const SUPPORTED_TYPE_KINDS = new Set(["Var", "Const", "Fun", "App", "Tuple", "Record", "Ref"]);
+const SUPPORTED_TYPE_KINDS = new Set(["Var", "Const", "Fun", "App", "Tuple", "Record"]);
 
 describe("typeArb", () => {
     it("property: every generated type has a supported discriminant", () => {
