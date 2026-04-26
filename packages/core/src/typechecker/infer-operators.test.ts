@@ -12,12 +12,13 @@ import type {
 } from "../types/core-ast.js";
 import type { TypeEnv } from "../types/environment.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
-import { freshTypeVar, primitiveTypes, resetTypeVarCounter } from "./types.js";
+import { freshTypeVar, primitiveTypes, resetTypeVarCounter, typeEquals } from "./types.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
@@ -564,5 +565,137 @@ describe("Type Inference - Unary Operators", () => {
             expect(result.type).toEqual(primitiveTypes.Bool);
             expect(expr.op).toBe("LogicalNot");
         });
+    });
+});
+
+describe("Operator Inference Properties", () => {
+    const arithmeticOps = ["Add", "Subtract", "Multiply", "IntDivide", "Modulo"] as const;
+    const comparisonOps = ["LessThan", "LessEqual", "GreaterThan", "GreaterEqual"] as const;
+    const equalityOps = ["Equal", "NotEqual"] as const;
+    const logicalOps = ["LogicalAnd", "LogicalOr"] as const;
+
+    function intLit(value: number) {
+        return { kind: "CoreIntLit" as const, value, loc: testLoc };
+    }
+    function boolLit(value: boolean) {
+        return { kind: "CoreBoolLit" as const, value, loc: testLoc };
+    }
+
+    it("property: every Int+Int arithmetic op infers to Int", () => {
+        fc.assert(
+            fc.property(
+                fc.constantFrom(...arithmeticOps),
+                fc.integer({ min: -1000, max: 1000 }),
+                fc.integer({ min: -1000, max: 1000 }),
+                (op, a, b) => {
+                    const expr: CoreBinOp = {
+                        kind: "CoreBinOp",
+                        op,
+                        left: intLit(a),
+                        right: intLit(b),
+                        loc: testLoc,
+                    };
+                    const result = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(result.type, primitiveTypes.Int)).toBe(true);
+                },
+            ),
+        );
+    });
+
+    it("property: every Int<Int comparison op infers to Bool", () => {
+        fc.assert(
+            fc.property(
+                fc.constantFrom(...comparisonOps),
+                fc.integer({ min: -1000, max: 1000 }),
+                fc.integer({ min: -1000, max: 1000 }),
+                (op, a, b) => {
+                    const expr: CoreBinOp = {
+                        kind: "CoreBinOp",
+                        op,
+                        left: intLit(a),
+                        right: intLit(b),
+                        loc: testLoc,
+                    };
+                    const result = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(result.type, primitiveTypes.Bool)).toBe(true);
+                },
+            ),
+        );
+    });
+
+    it("property: equality / disequality on matching primitives always infers to Bool", () => {
+        fc.assert(
+            fc.property(
+                fc.constantFrom(...equalityOps),
+                fc.integer({ min: -1000, max: 1000 }),
+                fc.integer({ min: -1000, max: 1000 }),
+                (op, a, b) => {
+                    const expr: CoreBinOp = {
+                        kind: "CoreBinOp",
+                        op,
+                        left: intLit(a),
+                        right: intLit(b),
+                        loc: testLoc,
+                    };
+                    const result = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(result.type, primitiveTypes.Bool)).toBe(true);
+                },
+            ),
+        );
+    });
+
+    it("property: every Bool && / || Bool infers to Bool", () => {
+        fc.assert(
+            fc.property(fc.constantFrom(...logicalOps), fc.boolean(), fc.boolean(), (op, a, b) => {
+                const expr: CoreBinOp = {
+                    kind: "CoreBinOp",
+                    op,
+                    left: boolLit(a),
+                    right: boolLit(b),
+                    loc: testLoc,
+                };
+                const result = inferExpr(createContext(createTestEnv()), expr);
+                expect(typeEquals(result.type, primitiveTypes.Bool)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: arithmetic op inference is deterministic", () => {
+        fc.assert(
+            fc.property(
+                fc.constantFrom(...arithmeticOps),
+                fc.integer({ min: -1000, max: 1000 }),
+                fc.integer({ min: -1000, max: 1000 }),
+                (op, a, b) => {
+                    const expr: CoreBinOp = {
+                        kind: "CoreBinOp",
+                        op,
+                        left: intLit(a),
+                        right: intLit(b),
+                        loc: testLoc,
+                    };
+                    const r1 = inferExpr(createContext(createTestEnv()), expr);
+                    const r2 = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(r1.type, r2.type)).toBe(true);
+                },
+            ),
+        );
+    });
+
+    it("property: unary Negate on an IntLit infers to Int; LogicalNot on a BoolLit infers to Bool", () => {
+        fc.assert(
+            fc.property(fc.integer({ min: -1000, max: 1000 }), (n) => {
+                const negate: CoreUnaryOp = { kind: "CoreUnaryOp", op: "Negate", expr: intLit(n), loc: testLoc };
+                const result = inferExpr(createContext(createTestEnv()), negate);
+                expect(typeEquals(result.type, primitiveTypes.Int)).toBe(true);
+            }),
+        );
+        fc.assert(
+            fc.property(fc.boolean(), (b) => {
+                const not: CoreUnaryOp = { kind: "CoreUnaryOp", op: "LogicalNot", expr: boolLit(b), loc: testLoc };
+                const result = inferExpr(createContext(createTestEnv()), not);
+                expect(typeEquals(result.type, primitiveTypes.Bool)).toBe(true);
+            }),
+        );
     });
 });
