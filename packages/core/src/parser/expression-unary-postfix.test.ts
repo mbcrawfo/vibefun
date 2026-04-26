@@ -2,8 +2,10 @@
  * Expression parsing tests - Unary and postfix operators
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { lowerIdentifierArb, nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Unary and Postfix Operators", () => {
@@ -309,6 +311,50 @@ describe("Parser - Unary and Postfix Operators", () => {
                 then: { kind: "Var", name: "y" },
                 else_: { kind: "Var", name: "z" },
             });
+        });
+    });
+
+    describe("properties", () => {
+        it("property: prefix `!x` parses to UnaryOp LogicalNot wrapping the inner var", () => {
+            fc.assert(
+                fc.property(lowerIdentifierArb, (name) => {
+                    const expr = parseExpression(`!${name}`);
+                    expect(expr).toMatchObject({
+                        kind: "UnaryOp",
+                        op: "LogicalNot",
+                        expr: { kind: "Var", name },
+                    });
+                }),
+            );
+        });
+
+        it("property: prefix `-N` parses to UnaryOp Negate wrapping IntLit(N)", () => {
+            // Bare `-N` at the start of an expression is unary negation, not a
+            // negative literal — the AST shape always has a Negate wrapping a
+            // non-negative IntLit.
+            fc.assert(
+                fc.property(nonNegativeIntArb, (n) => {
+                    const expr = parseExpression(`-${n}`);
+                    expect(expr).toMatchObject({
+                        kind: "UnaryOp",
+                        op: "Negate",
+                        expr: { kind: "IntLit", value: n },
+                    });
+                }),
+            );
+        });
+
+        it("property: postfix `x!` parses to UnaryOp Deref of x", () => {
+            fc.assert(
+                fc.property(lowerIdentifierArb, (name) => {
+                    const expr = parseExpression(`${name}!`);
+                    expect(expr).toMatchObject({
+                        kind: "UnaryOp",
+                        op: "Deref",
+                        expr: { kind: "Var", name },
+                    });
+                }),
+            );
         });
     });
 });
