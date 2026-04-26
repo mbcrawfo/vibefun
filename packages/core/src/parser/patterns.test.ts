@@ -4,9 +4,11 @@
 
 import type { Pattern } from "../types/ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { astEquals, patternArb, prettyPrintPattern } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to parse a pattern from source code
@@ -585,6 +587,61 @@ describe("Parser - Patterns", () => {
                     ],
                 });
             }
+        });
+    });
+
+    describe("properties", () => {
+        it("property: parse(prettyPrintPattern(p)) is alpha-equivalent to p", () => {
+            fc.assert(
+                fc.property(patternArb({ depth: 3 }), (p) => {
+                    const reparsed = parsePattern(prettyPrintPattern(p));
+                    expect(astEquals(reparsed, p)).toBe(true);
+                }),
+            );
+        });
+
+        it("property: every VarPattern in a parsed pattern carries a non-empty name", () => {
+            fc.assert(
+                fc.property(patternArb({ depth: 3 }), (p) => {
+                    const src = prettyPrintPattern(p);
+                    const parsed = parsePattern(src);
+                    const visit = (node: unknown): void => {
+                        if (node === null || typeof node !== "object") return;
+                        const obj = node as { kind?: string; name?: unknown };
+                        if (obj.kind === "VarPattern") {
+                            expect(typeof obj.name).toBe("string");
+                            expect((obj.name as string).length).toBeGreaterThan(0);
+                        }
+                        for (const v of Object.values(node as Record<string, unknown>)) visit(v);
+                    };
+                    visit(parsed);
+                }),
+            );
+        });
+
+        it("property: every node in a parsed pattern carries a Location", () => {
+            fc.assert(
+                fc.property(patternArb({ depth: 3 }), (p) => {
+                    const src = prettyPrintPattern(p);
+                    const parsed = parsePattern(src);
+                    const visit = (node: unknown): void => {
+                        if (node === null || typeof node !== "object" || Array.isArray(node)) return;
+                        const obj = node as Record<string, unknown>;
+                        if (typeof obj["kind"] === "string") {
+                            const loc = obj["loc"] as
+                                | { file?: unknown; line?: unknown; column?: unknown; offset?: unknown }
+                                | undefined;
+                            expect(loc).toBeDefined();
+                            expect(typeof loc?.file).toBe("string");
+                            expect(typeof loc?.line).toBe("number");
+                            expect(typeof loc?.column).toBe("number");
+                            expect(typeof loc?.offset).toBe("number");
+                        }
+                        for (const v of Object.values(obj)) visit(v);
+                    };
+                    visit(parsed);
+                }),
+            );
         });
     });
 });
