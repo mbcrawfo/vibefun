@@ -35,8 +35,22 @@ where they add real value — without dropping coverage.
 - **PR 4 (Desugarer + utils + module-resolver):** see
   `fast-check-pr4-desugarer-utils.md`.
 - **PR 5 (Typechecker):** see `fast-check-pr5-typechecker.md`.
-- **PR 6 (Optimizer + codegen + execution-tests):** see
-  `fast-check-pr6-optimizer-codegen.md`.
+- **PR 6 (Optimizer + codegen + execution-tests):** complete (this PR). Core
+  AST arbitraries (`coreExprArb`, `optimizableExprArb`, `coreExprWithUnsafeArb`,
+  `coreModuleArb`) added under `packages/core/src/types/test-arbitraries/`.
+  Property tests added to all 9 optimizer files (idempotence, determinism,
+  CoreUnsafe preservation, O0 identity, O2 fixed point, algebraic identities
+  for constant folding), 4 of 8 codegen files (the other 4 are exact-match
+  fixed-only — generator totality, escape-identifier, rename-shadows
+  uniqueness, operator precedence table invariants), 8 of 11 execution-tests
+  files (numeric/float/operator semantic preservation, ref/deref round-trip,
+  closure semantics, pattern dispatch — all numRuns-capped at 10–25 because
+  each run spawns vm.runInContext), and 3 of 5 diagnostics files (registry
+  totality, factory placeholder interpolation, warning-collector ordering).
+  Coverage net-positive on all four metrics over baseline (lines 91.84% →
+  92.33%, statements 90.89% → 91.44%, functions 91.81% → 92.16%, branches
+  84.78% → 85.73%); spec-validate stays at 378/378; runtime stays within
+  the +10% budget (~5.05s baseline → ~4.84s final).
 - **PR 7 (CLI + e2e + cleanup):** see `fast-check-pr7-cli-e2e.md`.
 
 Each subsequent PR builds on the previous because arbitraries layer on each
