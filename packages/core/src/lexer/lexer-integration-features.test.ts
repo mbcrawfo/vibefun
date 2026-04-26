@@ -5,8 +5,10 @@
  * real-world examples, external blocks, and mutable references.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { renderToken, tokenStreamArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Integration Tests - Language Features", () => {
@@ -397,5 +399,33 @@ let value = get()`;
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
+    });
+});
+
+describe("Lexer - Integration features properties", () => {
+    it("property: kind sequence is invariant under amount of inter-token whitespace (spaces only)", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, fc.integer({ min: 1, max: 4 }), (tokens, gap) => {
+                if (tokens.length === 0) return true;
+                const oneSpace = tokens.map(renderToken).join(" ");
+                const manySpaces = tokens.map(renderToken).join(" ".repeat(gap));
+                const a = new Lexer(oneSpace, "prop.vf").tokenize().map((t) => t.type);
+                const b = new Lexer(manySpaces, "prop.vf").tokenize().map((t) => t.type);
+                return JSON.stringify(a) === JSON.stringify(b);
+            }),
+        );
+    });
+
+    it("property: kind sequence is invariant when tabs are used as inter-token whitespace", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                if (tokens.length === 0) return true;
+                const space = tokens.map(renderToken).join(" ");
+                const tab = tokens.map(renderToken).join("\t");
+                const a = new Lexer(space, "prop.vf").tokenize().map((t) => t.type);
+                const b = new Lexer(tab, "prop.vf").tokenize().map((t) => t.type);
+                return JSON.stringify(a) === JSON.stringify(b);
+            }),
+        );
     });
 });
