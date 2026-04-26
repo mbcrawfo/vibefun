@@ -131,6 +131,19 @@ Per `fast-check-master.md`. Specific runtime concern: parser property tests
 recurse through generated ASTs; cap `depth` aggressively in arbitraries (4 is
 usually enough to catch precedence bugs without exploding generation time).
 
+### Cross-layer validation gates (required before merge)
+
+```bash
+pnpm run verify        # build + check + lint + test + test:e2e + format:check
+pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+```
+
+If parser changes affect language semantics (any new admitted form,
+precedence change, or syntax extension), update
+`.claude/VIBEFUN_AI_CODING_GUIDE.md` and add the relevant case to
+`tests/e2e/let-binding-matrix.test.ts` per the project's "AI coding guide
+sync" and "let-binding matrix sync" rules in CLAUDE.md.
+
 ## Post-implementation coverage check
 
 ```bash

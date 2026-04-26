@@ -151,6 +151,18 @@ This PR's halt-on-failure rule is non-negotiable:
 Per `fast-check-master.md`. Specifically: any Tier 3 finding **stops** the PR.
 Do not pile additional skipped properties on top of a pending soundness bug.
 
+### Cross-layer validation gates (required before merge)
+
+```bash
+pnpm run verify        # build + check + lint + test + test:e2e + format:check
+pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+```
+
+If typechecker changes affect inferred types or type-system behaviour for
+user code, update `.claude/VIBEFUN_AI_CODING_GUIDE.md` and add coverage to
+`tests/e2e/let-binding-matrix.test.ts` per the project's sync rules in
+CLAUDE.md.
+
 ## Post-implementation coverage check
 
 ```bash

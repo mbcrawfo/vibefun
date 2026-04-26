@@ -91,8 +91,12 @@ co-located in `core-ast-arb.ts`):
   `(coreModule, expectedStdout)` so semantic-preservation tests can check
   optimizer output against the unoptimized output.
 
-For execution-test files, override the global `numRuns` per file via comments
-when needed, but keep the global default at 100 unchanged.
+For this PR, the global `numRuns` default stays at 100 (set in
+`vitest.setup.ts`); execution-heavy property tests **must** opt down via
+explicit `fc.assert(prop, { numRuns: 25 })` or `{ numRuns: 10 }` and document
+the cap in a comment next to the property. Treat 25–50 as the typical budget
+for a property that spawns Node; 10 for full pipeline runs. Cheap properties
+(no Node spawn) keep the default.
 
 ## Property targets
 
@@ -163,6 +167,17 @@ Per `fast-check-master.md`, plus:
   and compare to the runtime baseline saved at PR start. The increase must be
   ≤ 10%; if it exceeds, lower `numRuns` for the most expensive files until it
   fits.
+
+### Cross-layer validation gates (required before merge)
+
+```bash
+pnpm run verify        # build + check + lint + test + test:e2e + format:check
+pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+```
+
+If optimizer/codegen changes affect observable program behaviour or emitted
+JS shape, update `.claude/VIBEFUN_AI_CODING_GUIDE.md` and the
+let-binding-matrix tests per the project's sync rules in CLAUDE.md.
 
 ## Post-implementation coverage check
 

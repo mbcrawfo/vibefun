@@ -119,13 +119,17 @@ After per-file commits land:
     - Move closed entries from the backlog to commit history (delete the
       rows; commit history is the durable record).
 
-2. **Final verify:**
-    - `pnpm run verify`
-    - `pnpm run spec:validate`
+2. **Final verify (cross-layer gates required before merge):**
+    - `pnpm run verify` — build + check + lint + test + test:e2e + format:check.
+    - `pnpm run spec:validate` — spec-suite must remain at 378/378 (or
+      current count).
     - `pnpm run test:coverage` and confirm
       `coverage/coverage-summary.json` is ≥
       `.claude/plans/triage/pr7-baseline-coverage.json` for lines,
       statements, functions, and branches.
+    - If CLI/e2e changes affect language semantics or user-observable
+      output, update `.claude/VIBEFUN_AI_CODING_GUIDE.md` and the
+      let-binding-matrix tests per the project's sync rules in CLAUDE.md.
     - Re-run the unseeded weekly job (`property-fuzz.yml`) manually with
       `numRuns: 5000` to surface long-tail bugs before declaring done. Any
       failures get triaged into the backlog.
