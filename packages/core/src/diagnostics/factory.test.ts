@@ -5,6 +5,7 @@
 import type { Location } from "../types/ast.js";
 import type { DiagnosticDefinition } from "./diagnostic.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "./diagnostic.js";
@@ -251,5 +252,72 @@ describe("createDiagnosticFromDefinition", () => {
         });
 
         expect(diagnostic.hint).toBeUndefined();
+    });
+});
+
+describe("Properties", () => {
+    const safeParamArb = fc.stringMatching(/^[a-zA-Z0-9 _]{0,20}$/);
+
+    it("property: interpolate substitutes every named placeholder", () => {
+        // For any safe value, interpolate("{x}", { x: value }) yields the value.
+        fc.assert(
+            fc.property(safeParamArb, (value) => {
+                return interpolate("{x}", { x: value }) === value;
+            }),
+        );
+    });
+
+    it("property: interpolate leaves missing placeholders unchanged", () => {
+        // For any name not in params, the placeholder remains in the output.
+        fc.assert(
+            fc.property(fc.stringMatching(/^[a-z]{1,8}$/), (name) => {
+                const out = interpolate(`{${name}}`, {});
+                return out === `{${name}}`;
+            }),
+        );
+    });
+
+    it("property: createDiagnosticFromDefinition does not throw on safe params", () => {
+        const def = testDefinition();
+        fc.assert(
+            fc.property(safeParamArb, safeParamArb, (a, b) => {
+                expect(() => createDiagnosticFromDefinition(def, testLoc(), { param1: a, param2: b })).not.toThrow();
+            }),
+        );
+    });
+
+    it("property: created diagnostic preserves the location it was given", () => {
+        const def = testDefinition();
+        fc.assert(
+            fc.property(fc.integer({ min: 1, max: 1000 }), fc.integer({ min: 1, max: 1000 }), (line, column) => {
+                const diag = createDiagnosticFromDefinition(def, testLoc(line, column));
+                return diag.location.line === line && diag.location.column === column;
+            }),
+        );
+    });
+
+    it("property: throwDiagnostic always throws a VibefunDiagnostic for registered codes", () => {
+        registry.clear();
+        registry.register(testDefinition());
+        fc.assert(
+            fc.property(safeParamArb, (param1) => {
+                let caught: unknown;
+                try {
+                    throwDiagnostic("VF9999", testLoc(), { param1, param2: "" });
+                } catch (e) {
+                    caught = e;
+                }
+                return caught instanceof VibefunDiagnostic;
+            }),
+        );
+    });
+
+    it("property: createDiagnostic throws for an unregistered code", () => {
+        registry.clear();
+        fc.assert(
+            fc.property(fc.stringMatching(/^VF[0-9]{4}$/), (code) => {
+                expect(() => createDiagnostic(code, testLoc())).toThrow();
+            }),
+        );
     });
 });
