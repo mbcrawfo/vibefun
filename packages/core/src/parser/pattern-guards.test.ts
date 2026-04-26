@@ -10,9 +10,11 @@
 
 import type { Expr } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { lowerIdentifierArb, nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to create a parser and parse an expression
@@ -555,6 +557,35 @@ describe("Pattern Guards (when clauses)", () => {
                 expect(ast.cases[1]?.guard).toBeDefined();
                 expect(ast.cases[2]?.guard).toBeUndefined();
             }
+        });
+    });
+
+    describe("properties", () => {
+        it("property: a guarded match arm carries a defined `guard`; an unguarded arm has guard === undefined", () => {
+            fc.assert(
+                fc.property(lowerIdentifierArb, nonNegativeIntArb, (binder, n) => {
+                    const guarded = parseExpression(`match x { | ${binder} when ${binder} > ${n} => 1 | _ => 0 }`);
+                    expect(guarded.kind).toBe("Match");
+                    if (guarded.kind !== "Match") return;
+                    expect(guarded.cases[0]?.guard).toBeDefined();
+                    expect(guarded.cases[1]?.guard).toBeUndefined();
+                }),
+            );
+        });
+
+        it("property: every match arm preserves its (pattern, guard?, body) triple", () => {
+            fc.assert(
+                fc.property(nonNegativeIntArb, nonNegativeIntArb, (n, m) => {
+                    const expr = parseExpression(`match x { | y when y > ${n} => ${m} }`);
+                    expect(expr.kind).toBe("Match");
+                    if (expr.kind !== "Match") return;
+                    const arm = expr.cases[0];
+                    expect(arm).toBeDefined();
+                    expect(arm?.pattern.kind).toBe("VarPattern");
+                    expect(arm?.guard).toBeDefined();
+                    expect(arm?.body.kind).toBe("IntLit");
+                }),
+            );
         });
     });
 });
