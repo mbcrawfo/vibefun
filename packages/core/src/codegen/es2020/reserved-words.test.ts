@@ -1,3 +1,4 @@
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { escapeIdentifier, isReservedWord, RESERVED_WORDS } from "./reserved-words.js";
@@ -134,6 +135,41 @@ describe("Reserved Words", () => {
             // Words that already end with $ are not reserved, so they pass through
             expect(escapeIdentifier("class$")).toBe("class$");
             expect(escapeIdentifier("foo$")).toBe("foo$");
+        });
+    });
+
+    describe("Properties", () => {
+        const reservedWordArb = fc.constantFrom(...Array.from(RESERVED_WORDS));
+
+        it("property: escapeIdentifier on a reserved word never returns a reserved word", () => {
+            fc.assert(
+                fc.property(reservedWordArb, (word) => {
+                    const escaped = escapeIdentifier(word);
+                    return !isReservedWord(escaped);
+                }),
+            );
+        });
+
+        it("property: escapeIdentifier is idempotent on already-safe identifiers", () => {
+            // Identifiers that aren't reserved pass through unchanged, so a
+            // second pass also leaves them unchanged.
+            const safeIdentArb = fc.stringMatching(/^[a-z][a-zA-Z0-9]{0,8}$/).filter((s) => !isReservedWord(s));
+            fc.assert(
+                fc.property(safeIdentArb, (name) => {
+                    const once = escapeIdentifier(name);
+                    const twice = escapeIdentifier(once);
+                    return once === twice && once === name;
+                }),
+            );
+        });
+
+        it("property: escapeIdentifier is deterministic", () => {
+            const anyIdent = fc.oneof(reservedWordArb, fc.stringMatching(/^[a-z][a-zA-Z0-9]{0,8}$/));
+            fc.assert(
+                fc.property(anyIdent, (name) => {
+                    return escapeIdentifier(name) === escapeIdentifier(name);
+                }),
+            );
         });
     });
 });
