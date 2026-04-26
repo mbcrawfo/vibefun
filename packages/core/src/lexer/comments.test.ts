@@ -8,7 +8,7 @@ import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
-import { renderTokenStream, tokenStreamArb } from "../types/test-arbitraries/index.js";
+import { renderToken, renderTokenStream, tokenStreamArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Whitespace", () => {
@@ -425,7 +425,7 @@ describe("Lexer - Comment-stripping properties", () => {
                 // Insert the line comment after the first token's source by replacing
                 // the first separator space with `\n// COMMENT\n`. We inject between
                 // the first two tokens.
-                const parts = tokens.map((t) => (t.type === "STRING_LITERAL" ? JSON.stringify(t.value) : t.value));
+                const parts = tokens.map((t) => renderToken(t));
                 const withComment = parts[0] + ` // ${comment}\n ` + parts.slice(1).join(" ");
                 const baseKinds = new Lexer(baseSrc, "prop.vf")
                     .tokenize()
@@ -445,7 +445,7 @@ describe("Lexer - Comment-stripping properties", () => {
             fc.property(tokenStreamArb, blockCommentTextArb, (tokens, comment) => {
                 if (tokens.length < 2) return true;
                 const baseSrc = renderTokenStream(tokens);
-                const parts = tokens.map((t) => (t.type === "STRING_LITERAL" ? JSON.stringify(t.value) : t.value));
+                const parts = tokens.map((t) => renderToken(t));
                 const withComment = parts[0] + ` /* ${comment} */ ` + parts.slice(1).join(" ");
                 const baseKinds = new Lexer(baseSrc, "prop.vf").tokenize().map((t) => t.type);
                 const withCommentKinds = new Lexer(withComment, "prop.vf").tokenize().map((t) => t.type);

@@ -7,7 +7,7 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { VibefunDiagnostic } from "../diagnostics/index.js";
+import { expectDiagnostic } from "../diagnostics/index.js";
 import { identifierArb, KEYWORD_LIST, keywordArb, RESERVED_KEYWORD_LIST } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
@@ -600,13 +600,8 @@ describe("Lexer - Identifier properties", () => {
     it("property: every reserved keyword is rejected with VF1500", () => {
         fc.assert(
             fc.property(fc.constantFrom(...RESERVED_KEYWORD_LIST), (rk) => {
-                let caught: unknown;
-                try {
-                    new Lexer(rk, "prop.vf").tokenize();
-                } catch (err) {
-                    caught = err;
-                }
-                return caught instanceof VibefunDiagnostic && caught.code === "VF1500";
+                expectDiagnostic(() => new Lexer(rk, "prop.vf").tokenize(), "VF1500");
+                return true;
             }),
         );
     });
