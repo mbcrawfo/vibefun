@@ -4,9 +4,17 @@
  * Phase 2: Core Lexer - Character navigation and location tracking
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
+import {
+    renderToken,
+    renderTokenStream,
+    tokenArb,
+    tokensEquivalent,
+    tokenStreamArb,
+} from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Core Functionality", () => {
@@ -802,5 +810,53 @@ describe("Lexer - Error Recovery and Handling", () => {
                 expect(diagnostic.location?.line).toBe(2);
             }
         });
+    });
+});
+
+describe("Lexer - properties", () => {
+    it("property: round-trip lex(render(token)) preserves kind and value", () => {
+        fc.assert(
+            fc.property(tokenArb, (token) => {
+                const source = renderToken(token);
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                expect(tokens[1]?.type).toBe("EOF");
+                const lexed = tokens[0];
+                if (lexed === undefined) return false;
+                return tokensEquivalent(lexed, token);
+            }),
+        );
+    });
+
+    it("property: lex(renderStream(tokens)) yields the same kind sequence + EOF", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                const lexed = new Lexer(source, "prop.vf").tokenize();
+                expect(lexed[lexed.length - 1]?.type).toBe("EOF");
+                const lexedKinds = lexed.slice(0, -1).map((t) => t.type);
+                const expectedKinds = tokens.map((t) => t.type);
+                return JSON.stringify(lexedKinds) === JSON.stringify(expectedKinds);
+            }),
+        );
+    });
+
+    it("property: tokenize never throws on a rendered well-formed token stream", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                expect(() => new Lexer(source, "prop.vf").tokenize()).not.toThrow();
+            }),
+        );
+    });
+
+    it("property: every emitted token (except EOF on empty source) carries the correct file in its location", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                const lexed = new Lexer(source, "prop.vf").tokenize();
+                return lexed.every((t) => t.loc.file === "prop.vf");
+            }),
+        );
     });
 });
