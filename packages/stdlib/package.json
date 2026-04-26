@@ -14,6 +14,7 @@
     "files": [
         "dist/**/*.js",
         "!dist/**/*.test.js",
+        "!dist/**/test-arbitraries/**",
         "dist/**/*.js.map",
         "!dist/**/*.test.js.map",
         "dist/**/*.d.ts",
@@ -41,5 +42,8 @@
     "license": "MIT",
     "engines": {
         "node": ">=24.13.0"
+    },
+    "devDependencies": {
+        "fast-check": "4.7.0"
     }
 }

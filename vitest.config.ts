@@ -4,6 +4,7 @@ export default defineConfig({
     test: {
         globals: true,
         environment: "node",
+        setupFiles: ["./vitest.setup.ts"],
         include: [
             "packages/*/src/**/*.test.ts",
             "packages/*/src/**/*.spec.ts",
@@ -20,7 +21,13 @@ export default defineConfig({
                 "scripts/**",
                 "tests/spec-validation/**",
                 "**/vitest.config.ts",
+                "**/vitest.setup.ts",
                 "**/coverage/**",
+                // Test-only infrastructure (parallel to *.test.ts exclusion).
+                // Existing test-helpers.ts files are exercised by their own
+                // tests and stay measured; only new arbitrary modules are
+                // excluded.
+                "**/test-arbitraries/**",
                 // Type-only files with no executable code
                 "**/types/ast.ts",
                 "**/types/core-ast.ts",

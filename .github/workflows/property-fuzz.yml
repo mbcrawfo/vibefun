@@ -1,0 +1,49 @@
+name: Property Fuzz (weekly)
+
+# Runs the test suite with fast-check in unseeded mode and a much larger numRuns
+# budget to find long-tail bugs that the deterministic per-PR run can't.
+# Failures are surfaced as workflow errors; if they uncover a bug, pin the seed
+# and convert it to a regression test.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      num_runs:
+        description: "fast-check numRuns override"
+        required: false
+        default: "1000"
+      seed:
+        description: "fast-check seed override (pass an integer to reproduce a failure, or 'random')"
+        required: false
+        default: "random"
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Run tests with fast-check fuzz
+        env:
+          FC_NUM_RUNS: ${{ github.event.inputs.num_runs || '1000' }}
+          FC_SEED: ${{ github.event.inputs.seed || 'random' }}
+        run: pnpm run test

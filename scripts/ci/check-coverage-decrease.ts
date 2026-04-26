@@ -11,6 +11,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+type CoverageMetric = "lines" | "statements" | "functions" | "branches";
+
+const METRICS: readonly CoverageMetric[] = ["lines", "statements", "functions", "branches"];
+
 interface CoverageSummary {
     total: {
         lines: { pct: number };
@@ -20,7 +24,8 @@ interface CoverageSummary {
     };
 }
 
-interface CoverageResult {
+interface MetricResult {
+    metric: CoverageMetric;
     status: "improved" | "maintained" | "decreased" | "skipped" | "new";
     baseCoverage?: number;
     currentCoverage?: number;
@@ -69,86 +74,92 @@ function readCoverageSummary(filepath: string): CoverageSummary | null {
     }
 }
 
-function checkCoverage(): CoverageResult {
-    const currentPath = path.join("coverage", "coverage-summary.json");
-    const basePath = path.join(baseCoveragePath, "coverage-summary.json");
-
-    const current = readCoverageSummary(currentPath);
-    const base = readCoverageSummary(basePath);
-
+function checkMetric(
+    metric: CoverageMetric,
+    current: CoverageSummary | null,
+    base: CoverageSummary | null,
+): MetricResult {
     if (!current) {
-        return {
-            status: "skipped",
-            reason: "No coverage data found",
-        };
+        return { metric, status: "skipped", reason: "No coverage data found" };
     }
 
-    const currentCoverage = current.total.lines.pct;
+    const currentCoverage = current.total[metric].pct;
 
     if (!base) {
         return {
+            metric,
             status: "new",
             currentCoverage,
             reason: "No base coverage to compare (first coverage run)",
         };
     }
 
-    const baseCoverage = base.total.lines.pct;
+    const baseCoverage = base.total[metric].pct;
     const change = currentCoverage - baseCoverage;
 
     if (currentCoverage < baseCoverage - THRESHOLD) {
-        return {
-            status: "decreased",
-            baseCoverage,
-            currentCoverage,
-            change,
-        };
+        return { metric, status: "decreased", baseCoverage, currentCoverage, change };
     } else if (Math.abs(change) <= THRESHOLD) {
-        return {
-            status: "maintained",
-            baseCoverage,
-            currentCoverage,
-            change,
-        };
+        return { metric, status: "maintained", baseCoverage, currentCoverage, change };
     } else {
-        return {
-            status: "improved",
-            baseCoverage,
-            currentCoverage,
-            change,
-        };
+        return { metric, status: "improved", baseCoverage, currentCoverage, change };
     }
 }
 
+function checkCoverage(): MetricResult[] {
+    const currentPath = path.join("coverage", "coverage-summary.json");
+    const basePath = path.join(baseCoveragePath, "coverage-summary.json");
+
+    const current = readCoverageSummary(currentPath);
+    const base = readCoverageSummary(basePath);
+
+    return METRICS.map((metric) => checkMetric(metric, current, base));
+}
+
 function main(): void {
-    console.log("Checking combined coverage...\n");
+    console.log("Checking combined coverage across lines, statements, functions, branches...\n");
 
-    const result = checkCoverage();
+    const results = checkCoverage();
+    let decreased = false;
 
-    switch (result.status) {
-        case "skipped":
-            console.log(`   Skipped - ${result.reason}`);
-            console.log("\nCoverage check skipped.");
-            return;
-        case "new":
-            console.log(`   New coverage at ${result.currentCoverage}%`);
-            break;
-        case "maintained":
-            console.log(`   Coverage maintained at ~${result.currentCoverage}%`);
-            break;
-        case "improved":
-            console.log(
-                `   Coverage improved by ${result.change?.toFixed(2)}% ` +
-                    `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
-            );
-            break;
-        case "decreased":
-            console.log(
-                `   Coverage decreased by ${Math.abs(result.change ?? 0).toFixed(2)}% ` +
-                    `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
-            );
-            console.log("\nCoverage check failed. Please add tests to maintain or improve coverage.");
-            process.exit(1);
+    for (const result of results) {
+        const label = result.metric.padEnd(11);
+        switch (result.status) {
+            case "skipped":
+                console.log(`  ${label} skipped - ${result.reason}`);
+                break;
+            case "new":
+                console.log(`  ${label} new coverage at ${result.currentCoverage}%`);
+                break;
+            case "maintained":
+                console.log(`  ${label} maintained at ~${result.currentCoverage}%`);
+                break;
+            case "improved":
+                console.log(
+                    `  ${label} improved by ${result.change?.toFixed(2)}% ` +
+                        `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
+                );
+                break;
+            case "decreased":
+                console.log(
+                    `  ${label} decreased by ${Math.abs(result.change ?? 0).toFixed(2)}% ` +
+                        `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
+                );
+                decreased = true;
+                break;
+        }
+    }
+
+    if (decreased) {
+        console.log(
+            "\nCoverage check failed. One or more metrics decreased. Please add tests to maintain or improve coverage.",
+        );
+        process.exit(1);
+    }
+
+    if (results.every((r) => r.status === "skipped")) {
+        console.log("\nCoverage check skipped.");
+        return;
     }
 
     console.log("\nCoverage check passed.");
