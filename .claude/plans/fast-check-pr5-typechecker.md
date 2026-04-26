@@ -44,8 +44,9 @@ Spawn an Explore subagent:
 
 > Read every `*.test.ts` under `packages/core/src/typechecker/` and
 > `packages/core/src/types/environment.test.ts`. Classify as `property-tests`,
-> `fixed-only`, or `defer-bug-backlog`. For `property-tests`, name the
-> properties. Output `.claude/plans/triage/pr5-typechecker.csv`.
+> `fixed-only`, `snapshot-skip`, or `defer-bug-backlog`. For `property-tests`,
+> name the properties. Output `.claude/plans/triage/pr5-typechecker.csv` with
+> columns `path,disposition,justification`.
 >
 > Bias **strongly** toward `property-tests` for unification, substitution,
 > generalization, and instantiation — these are textbook algebraic
@@ -155,7 +156,7 @@ Do not pile additional skipped properties on top of a pending soundness bug.
 
 ```bash
 pnpm run verify        # build + check + lint + test + test:e2e + format:check
-pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+pnpm run spec:validate # spec-suite pass count must not decrease
 ```
 
 If typechecker changes affect inferred types or type-system behaviour for

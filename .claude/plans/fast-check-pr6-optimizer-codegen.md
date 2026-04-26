@@ -65,7 +65,7 @@ budget.
 Spawn an Explore subagent:
 
 > Read every `*.test.ts` under
-> `packages/core/{optimizer,codegen/es2020,diagnostics}/`. Skip
+> `packages/core/src/{optimizer,codegen/es2020,diagnostics}/`. Skip
 > `codegen/es2020/snapshot-tests/`. Classify as `property-tests`,
 > `fixed-only`, `snapshot-skip`, or `defer-bug-backlog`. For
 > `property-tests`, name the properties (semantic preservation,
@@ -73,7 +73,8 @@ Spawn an Explore subagent:
 > execution-tests file the expected runtime cost: each property run will
 > spawn Node.
 >
-> Output `.claude/plans/triage/pr6-optimizer-codegen.csv`.
+> Output `.claude/plans/triage/pr6-optimizer-codegen.csv` with columns
+> `path,disposition,justification`.
 
 ## Critical files
 
@@ -172,7 +173,7 @@ Per `fast-check-master.md`, plus:
 
 ```bash
 pnpm run verify        # build + check + lint + test + test:e2e + format:check
-pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+pnpm run spec:validate # spec-suite pass count must not decrease
 ```
 
 If optimizer/codegen changes affect observable program behaviour or emitted

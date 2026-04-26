@@ -66,10 +66,12 @@ cp coverage/coverage-summary.json .claude/plans/triage/pr4-baseline-coverage.jso
 Spawn an Explore subagent:
 
 > Read every `*.test.ts` under `packages/core/src/{desugarer,utils,module-resolver,module-loader}/`.
-> Classify as `property-tests`, `fixed-only`, or `defer-bug-backlog`.
-> For `property-tests`, name properties (idempotence, determinism,
-> reflexivity, symmetry, transitivity, structural invariant). Output
-> `.claude/plans/triage/pr4-desugarer-utils.csv`.
+> Classify as `property-tests`, `fixed-only`, `snapshot-skip`, or
+> `defer-bug-backlog`. For `property-tests`, name properties
+> (idempotence, determinism, reflexivity, symmetry, transitivity,
+> structural invariant). Output
+> `.claude/plans/triage/pr4-desugarer-utils.csv` with columns
+> `path,disposition,justification`.
 
 ## Critical files
 
@@ -167,7 +169,7 @@ fixed tests miss, not in raw coverage gains.
 
 ```bash
 pnpm run verify        # build + check + lint + test + test:e2e + format:check
-pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+pnpm run spec:validate # spec-suite pass count must not decrease
 ```
 
 If desugarer changes alter the surface→Core mapping for any user-observable

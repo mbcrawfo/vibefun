@@ -56,7 +56,8 @@ Spawn an Explore subagent:
 > `snapshot-tests/`). For each, classify as `property-tests`, `fixed-only`,
 > `snapshot-skip`, or `defer-bug-backlog`. For `property-tests`, name the
 > specific properties (round-trip, determinism, structural invariant, etc.).
-> Output `.claude/plans/triage/pr3-parser.csv`.
+> Output `.claude/plans/triage/pr3-parser.csv` with columns
+> `path,disposition,justification`.
 
 Note: many parser tests are testing precedence, associativity, and shape
 invariants — these are **excellent** property targets. Don't be conservative
@@ -135,7 +136,7 @@ usually enough to catch precedence bugs without exploding generation time).
 
 ```bash
 pnpm run verify        # build + check + lint + test + test:e2e + format:check
-pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+pnpm run spec:validate # spec-suite pass count must not decrease
 ```
 
 If parser changes affect language semantics (any new admitted form,

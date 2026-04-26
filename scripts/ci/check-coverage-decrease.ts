@@ -37,6 +37,12 @@ const THRESHOLD = 0.01; // Tolerance for floating point precision
 
 const baseCoveragePath = process.env["BASE_COVERAGE_PATH"] ?? "base-coverage";
 
+// Set ALLOW_MISSING_BASE_COVERAGE=true only on the very first coverage run
+// (before any base artifact exists). Otherwise a transient artifact-download
+// failure in CI would silently disable the regression gate, because the
+// download step is `continue-on-error: true` in the workflow.
+const allowMissingBaseCoverage = process.env["ALLOW_MISSING_BASE_COVERAGE"] === "true";
+
 /**
  * Type guard to validate coverage summary structure across every metric
  * the script reads. Without this, a malformed summary that happens to
@@ -95,11 +101,19 @@ function checkMetric(
     const currentCoverage = current.total[metric].pct;
 
     if (!base) {
+        if (allowMissingBaseCoverage) {
+            return {
+                metric,
+                status: "new",
+                currentCoverage,
+                reason: "No base coverage to compare (explicit bootstrap run)",
+            };
+        }
         return {
             metric,
-            status: "new",
+            status: "decreased",
             currentCoverage,
-            reason: "No base coverage to compare (first coverage run)",
+            reason: "No base coverage data found (set ALLOW_MISSING_BASE_COVERAGE=true to bootstrap)",
         };
     }
 
