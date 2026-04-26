@@ -4,9 +4,11 @@
 
 import type { ExternalOverload, Type, TypeBinding, TypeScheme, ValueBinding } from "./environment.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { addType, addValue, emptyEnv, isExternal, isOverloaded, lookupType, lookupValue } from "./environment.js";
+import { typeSchemeArb } from "./test-arbitraries/index.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
 
@@ -797,3 +799,176 @@ describe("Type Environment", () => {
         });
     });
 });
+
+describe("TypeEnv Algebraic Properties", () => {
+    const envLoc = { file: "<prop>", line: 1, column: 1, offset: 0 };
+
+    const valueBindingArb: fc.Arbitrary<ValueBinding> = typeSchemeArb().map((scheme) => ({
+        kind: "Value" as const,
+        scheme,
+        loc: envLoc,
+    }));
+
+    const externalBindingArb: fc.Arbitrary<ValueBinding> = fc
+        .tuple(typeSchemeArb(), fc.string({ minLength: 1, maxLength: 8 }))
+        .map(([scheme, jsName]) => ({
+            kind: "External" as const,
+            scheme,
+            jsName,
+            loc: envLoc,
+        }));
+
+    const externalOverloadBindingArb: fc.Arbitrary<ValueBinding> = fc
+        .string({ minLength: 1, maxLength: 8 })
+        .map((jsName) => ({
+            kind: "ExternalOverload" as const,
+            overloads: [] as ExternalOverload[],
+            jsName,
+            loc: envLoc,
+        }));
+
+    const valueBindingNameArb = fc.string({ minLength: 1, maxLength: 6 });
+
+    it("property: emptyEnv produces independent maps — mutating one env never bleeds into another", () => {
+        fc.assert(
+            fc.property(valueBindingNameArb, valueBindingArb, (name, binding) => {
+                const env1 = emptyEnv();
+                const env2 = emptyEnv();
+                addValue(env1, name, binding);
+                expect(env1.values.size).toBe(1);
+                expect(env2.values.size).toBe(0);
+            }),
+        );
+    });
+
+    it("property: addValue then lookupValue round-trips the binding", () => {
+        fc.assert(
+            fc.property(valueBindingNameArb, valueBindingArb, (name, binding) => {
+                const env = emptyEnv();
+                addValue(env, name, binding);
+                expect(lookupValue(env, name)).toEqual(binding);
+            }),
+        );
+    });
+
+    it("property: lookupValue returns undefined for names that were never bound", () => {
+        fc.assert(
+            fc.property(valueBindingNameArb, valueBindingNameArb, valueBindingArb, (boundName, otherName, binding) => {
+                fc.pre(boundName !== otherName);
+                const env = emptyEnv();
+                addValue(env, boundName, binding);
+                expect(lookupValue(env, otherName)).toBeUndefined();
+            }),
+        );
+    });
+
+    it("property: addValue overwrites the previous binding for the same name", () => {
+        fc.assert(
+            fc.property(valueBindingNameArb, valueBindingArb, valueBindingArb, (name, b1, b2) => {
+                const env = emptyEnv();
+                addValue(env, name, b1);
+                addValue(env, name, b2);
+                expect(lookupValue(env, name)).toEqual(b2);
+            }),
+        );
+    });
+
+    it("property: values and types maps are independent — adding to one never appears in the other", () => {
+        const typeBindingArb: fc.Arbitrary<TypeBinding> = fc.constant({
+            kind: "Alias" as const,
+            params: [],
+            definition: { type: "Const", name: "Int" } as Type,
+            loc: envLoc,
+        });
+        fc.assert(
+            fc.property(valueBindingNameArb, valueBindingArb, typeBindingArb, (name, vBinding, tBinding) => {
+                const env = emptyEnv();
+                addValue(env, name, vBinding);
+                addType(env, name, tBinding);
+                expect(lookupValue(env, name)).toEqual(vBinding);
+                expect(lookupType(env, name)).toEqual(tBinding);
+            }),
+        );
+    });
+
+    it("property: isOverloaded is true exactly for ExternalOverload bindings", () => {
+        fc.assert(
+            fc.property(
+                fc.oneof(valueBindingArb, externalBindingArb, externalOverloadBindingArb),
+                (binding: ValueBinding) => {
+                    expect(isOverloaded(binding)).toBe(binding.kind === "ExternalOverload");
+                },
+            ),
+        );
+    });
+
+    it("property: isExternal is true for both External and ExternalOverload bindings", () => {
+        fc.assert(
+            fc.property(
+                fc.oneof(valueBindingArb, externalBindingArb, externalOverloadBindingArb),
+                (binding: ValueBinding) => {
+                    expect(isExternal(binding)).toBe(
+                        binding.kind === "External" || binding.kind === "ExternalOverload",
+                    );
+                },
+            ),
+        );
+    });
+
+    it("property: TypeScheme bound vars are a subset of the body's free vars (generator invariant)", () => {
+        // Sanity check the typeSchemeArb invariant locally so a regression in
+        // the generator doesn't silently weaken downstream typechecker tests
+        // that rely on it.
+        fc.assert(
+            fc.property(typeSchemeArb(), (scheme: TypeScheme) => {
+                const free = collectFreeVars(scheme.type);
+                for (const v of scheme.vars) {
+                    expect(free.has(v)).toBe(true);
+                }
+            }),
+        );
+    });
+});
+
+function collectFreeVars(t: Type): Set<number> {
+    const out = new Set<number>();
+    const stack: Type[] = [t];
+    while (stack.length > 0) {
+        const cur = stack.pop();
+        if (!cur) {
+            continue;
+        }
+        switch (cur.type) {
+            case "Var":
+                out.add(cur.id);
+                break;
+            case "Fun":
+                stack.push(...cur.params, cur.return);
+                break;
+            case "App":
+                stack.push(cur.constructor, ...cur.args);
+                break;
+            case "Tuple":
+                stack.push(...cur.elements);
+                break;
+            case "Record":
+                cur.fields.forEach((v) => stack.push(v));
+                break;
+            case "Variant":
+                cur.constructors.forEach((vs) => stack.push(...vs));
+                break;
+            case "Union":
+                stack.push(...cur.types);
+                break;
+            case "Ref":
+                stack.push(cur.inner);
+                break;
+            case "Const":
+            case "Never":
+            case "StringLit":
+            case "Module":
+                break;
+        }
+    }
+    return out;
+}
