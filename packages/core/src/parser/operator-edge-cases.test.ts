@@ -5,9 +5,11 @@
  * NOTE: Only tests features that are currently implemented
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { astEquals, exprArb, prettyPrintExpr } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to create a parser and parse an expression
@@ -173,6 +175,19 @@ describe("Parser - Operator Edge Cases", () => {
                     expect(field0.value.kind).toBe("Record");
                 }
             }
+        });
+    });
+
+    describe("properties", () => {
+        it("property: operator precedence is preserved when an arbitrary expression round-trips through prettyPrint+parse", () => {
+            // The pretty-printer always parenthesizes BinOp/UnaryOp/App/Lambda;
+            // re-parsing must return a structurally identical AST. If precedence
+            // climbing ever silently rewrote shape, this would catch it.
+            fc.assert(
+                fc.property(exprArb({ depth: 3 }), (e) => {
+                    expect(astEquals(parseExpression(prettyPrintExpr(e)), e)).toBe(true);
+                }),
+            );
         });
     });
 });
