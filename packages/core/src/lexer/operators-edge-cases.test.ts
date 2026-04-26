@@ -368,7 +368,7 @@ describe("Lexer - Operator edge-case properties", () => {
             fc.property(operatorOrPunctuationArb, (desc) => {
                 const tokens = new Lexer(desc.value, "prop.vf").tokenize();
                 expect(tokens).toHaveLength(2);
-                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value && tokens[1]?.type === "EOF";
             }),
         );
     });
@@ -378,7 +378,7 @@ describe("Lexer - Operator edge-case properties", () => {
             fc.property(multiCharOperatorArb, (desc) => {
                 const tokens = new Lexer(desc.value, "prop.vf").tokenize();
                 if (tokens.length !== 2) return false;
-                return tokens[0]?.type === desc.type;
+                return tokens[0]?.type === desc.type && tokens[1]?.type === "EOF";
             }),
         );
     });

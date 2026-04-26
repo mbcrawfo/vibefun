@@ -97,9 +97,51 @@ export function renderStringLiteral(value: string): string {
     return JSON.stringify(value);
 }
 
+/**
+ * Token kinds that operator/punctuation descriptors can identify. Narrower than
+ * `Token["type"]` so the descriptor table cannot accidentally include `EOF`,
+ * `NEWLINE`, literals, or identifiers.
+ */
+export type OperatorOrPunctuationTokenType =
+    | "OP_PLUS"
+    | "OP_MINUS"
+    | "OP_STAR"
+    | "OP_SLASH"
+    | "OP_PERCENT"
+    | "OP_EQ"
+    | "OP_NEQ"
+    | "OP_LT"
+    | "OP_GT"
+    | "OP_LTE"
+    | "OP_GTE"
+    | "OP_AND"
+    | "OP_OR"
+    | "OP_BANG"
+    | "OP_AMPERSAND"
+    | "OP_PIPE_GT"
+    | "OP_GT_GT"
+    | "OP_LT_LT"
+    | "OP_EQUALS"
+    | "OP_ASSIGN"
+    | "OP_CONS"
+    | "LPAREN"
+    | "RPAREN"
+    | "LBRACE"
+    | "RBRACE"
+    | "LBRACKET"
+    | "RBRACKET"
+    | "COMMA"
+    | "DOT"
+    | "SPREAD"
+    | "COLON"
+    | "SEMICOLON"
+    | "ARROW"
+    | "FAT_ARROW"
+    | "PIPE";
+
 /** Descriptor used to assemble operator/punctuation arbitraries. */
 export interface OperatorDescriptor {
-    readonly type: Token["type"];
+    readonly type: OperatorOrPunctuationTokenType;
     readonly value: string;
 }
 
