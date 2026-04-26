@@ -41,7 +41,8 @@ const IDENTIFIER_CONT_CHARS = `${IDENTIFIER_START_CHARS}0123456789`;
  * (not a keyword, reserved keyword, or boolean literal).
  *
  * Restricted to ASCII so the round-trip is independent of Unicode normalization;
- * `unicodeIdentifierArb` covers multi-byte cases separately.
+ * Unicode identifier coverage lives in the lexer's
+ * `unicode-normalization.test.ts` directly via `stringContentArb`.
  */
 export const identifierArb: fc.Arbitrary<string> = fc
     .tuple(

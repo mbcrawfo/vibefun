@@ -22,7 +22,6 @@ import {
     stringContentArb,
     tokenArb,
     tokensEquivalent,
-    tokenStreamArb,
 } from "./index.js";
 
 describe("token arbitraries", () => {
@@ -164,18 +163,15 @@ describe("token arbitraries", () => {
     });
 
     describe("renderTokenStream", () => {
-        it("inserts a single space between every pair of tokens", () => {
+        it("inserts exactly one separator space between adjacent space-free tokens", () => {
+            const spaceFreeTokenArb = tokenArb.filter((t) => !renderToken(t).includes(" "));
             fc.assert(
-                fc.property(tokenStreamArb, (tokens) => {
+                fc.property(fc.array(spaceFreeTokenArb, { maxLength: 8 }), (tokens) => {
                     if (tokens.length === 0) return renderTokenStream(tokens) === "";
                     const expectedSpaces = tokens.length - 1;
                     const rendered = renderTokenStream(tokens);
-                    // Count spaces that aren't part of token contents (string literals
-                    // can contain quoted spaces; identifiers/keywords/operators cannot).
-                    // A simple invariant: the rendered string has at least
-                    // `expectedSpaces` spaces.
                     const spaceCount = (rendered.match(/ /g) ?? []).length;
-                    return spaceCount >= expectedSpaces;
+                    return spaceCount === expectedSpaces && !rendered.includes("  ");
                 }),
             );
         });
