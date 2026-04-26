@@ -2,9 +2,11 @@
  * Expression parsing tests - Control flow
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
+import { nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Control Flow", () => {
@@ -723,6 +725,31 @@ describe("Parser - Control Flow", () => {
                     ],
                 });
             });
+        });
+    });
+
+    describe("properties", () => {
+        it("property: `if A then B else C` parses to If with operands matching A, B, C", () => {
+            fc.assert(
+                fc.property(nonNegativeIntArb, nonNegativeIntArb, nonNegativeIntArb, (a, b, c) => {
+                    const expr = parseExpression(`if ${a} == 0 then ${b} else ${c}`);
+                    expect(expr.kind).toBe("If");
+                    if (expr.kind !== "If") return;
+                    expect(expr.then).toMatchObject({ kind: "IntLit", value: b });
+                    expect(expr.else_).toMatchObject({ kind: "IntLit", value: c });
+                }),
+            );
+        });
+
+        it("property: `if A then B` (no else) parses to If with else_ = UnitLit", () => {
+            fc.assert(
+                fc.property(nonNegativeIntArb, nonNegativeIntArb, (a, b) => {
+                    const expr = parseExpression(`if ${a} == 0 then ${b}`);
+                    expect(expr.kind).toBe("If");
+                    if (expr.kind !== "If") return;
+                    expect(expr.else_.kind).toBe("UnitLit");
+                }),
+            );
         });
     });
 });
