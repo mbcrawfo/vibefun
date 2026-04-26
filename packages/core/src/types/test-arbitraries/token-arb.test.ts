@@ -119,8 +119,19 @@ describe("token arbitraries", () => {
     });
 
     describe("tokenArb", () => {
-        it("only produces tokens whose discriminator is a known TokenType", () => {
-            fc.assert(fc.property(tokenArb, (t) => typeof t.type === "string" && t.type.length > 0));
+        it("only produces tokens whose discriminator is one of the generated token kinds", () => {
+            const expectedTypes = new Set<string>([
+                "INT_LITERAL",
+                "FLOAT_LITERAL",
+                "STRING_LITERAL",
+                "BOOL_LITERAL",
+                "IDENTIFIER",
+                "KEYWORD",
+                ...MULTI_CHAR_OPERATORS.map((d) => d.type),
+                ...SINGLE_CHAR_OPERATORS.map((d) => d.type),
+                ...PUNCTUATION_DESCRIPTORS.map((d) => d.type),
+            ]);
+            fc.assert(fc.property(tokenArb, (t) => expectedTypes.has(t.type)));
         });
 
         it("KEYWORD tokens carry a keyword tag matching their value", () => {
@@ -134,14 +145,12 @@ describe("token arbitraries", () => {
     });
 
     describe("renderToken", () => {
+        const loc = { file: "<arb>", line: 1, column: 1, offset: 0 };
+
         it("BOOL_LITERAL renders to 'true' or 'false'", () => {
             fc.assert(
                 fc.property(boolLiteralArb, (b) => {
-                    const rendered = renderToken({
-                        type: "BOOL_LITERAL",
-                        value: b,
-                        loc: { file: "<arb>", line: 1, column: 1, offset: 0 },
-                    });
+                    const rendered = renderToken({ type: "BOOL_LITERAL", value: b, loc });
                     return rendered === (b ? "true" : "false");
                 }),
             );
@@ -149,15 +158,27 @@ describe("token arbitraries", () => {
 
         it("INT_LITERAL renders to a string of digits only", () => {
             fc.assert(
-                fc.property(intLiteralArb, (n) =>
-                    /^[0-9]+$/.test(
-                        renderToken({
-                            type: "INT_LITERAL",
-                            value: n,
-                            loc: { file: "<arb>", line: 1, column: 1, offset: 0 },
-                        }),
-                    ),
-                ),
+                fc.property(intLiteralArb, (n) => /^[0-9]+$/.test(renderToken({ type: "INT_LITERAL", value: n, loc }))),
+            );
+        });
+
+        it("STRING_LITERAL renders to JSON text that round-trips its content", () => {
+            fc.assert(
+                fc.property(stringContentArb, (s) => {
+                    const rendered = renderToken({ type: "STRING_LITERAL", value: s, loc });
+                    return JSON.parse(rendered) === s;
+                }),
+            );
+        });
+
+        it("KEYWORD/EOF/NEWLINE branches render deterministically", () => {
+            fc.assert(
+                fc.property(keywordArb, (kw) => {
+                    const keywordOk = renderToken({ type: "KEYWORD", value: kw, keyword: kw, loc }) === kw;
+                    const eofOk = renderToken({ type: "EOF", value: "", loc }) === "";
+                    const newlineOk = renderToken({ type: "NEWLINE", value: "\n", loc }) === "\n";
+                    return keywordOk && eofOk && newlineOk;
+                }),
             );
         });
     });
@@ -178,6 +199,8 @@ describe("token arbitraries", () => {
     });
 
     describe("tokensEquivalent", () => {
+        const loc = { file: "<arb>", line: 1, column: 1, offset: 0 };
+
         it("is reflexive on generated tokens", () => {
             fc.assert(fc.property(tokenArb, (t) => tokensEquivalent(t, t)));
         });
@@ -187,6 +210,38 @@ describe("token arbitraries", () => {
                 fc.property(tokenArb, (t) => {
                     const moved = { ...t, loc: { file: "other", line: 99, column: 99, offset: 99 } } as typeof t;
                     return tokensEquivalent(t, moved);
+                }),
+            );
+        });
+
+        it("returns false on type mismatch", () => {
+            fc.assert(
+                fc.property(intLiteralArb, identifierArb, (n, name) => {
+                    const a = { type: "INT_LITERAL", value: n, loc } as const;
+                    const b = { type: "IDENTIFIER", value: name, loc } as const;
+                    return !tokensEquivalent(a, b) && !tokensEquivalent(b, a);
+                }),
+            );
+        });
+
+        it("returns false when KEYWORD value or keyword tag differ", () => {
+            fc.assert(
+                fc.property(keywordArb, keywordArb, (a, b) => {
+                    if (a === b) return true;
+                    const ka = { type: "KEYWORD", value: a, keyword: a, loc } as const;
+                    const kb = { type: "KEYWORD", value: b, keyword: b, loc } as const;
+                    return !tokensEquivalent(ka, kb);
+                }),
+            );
+        });
+
+        it("returns false when value differs for same-kind tokens", () => {
+            fc.assert(
+                fc.property(intLiteralArb, intLiteralArb, (a, b) => {
+                    if (a === b) return true;
+                    const ta = { type: "INT_LITERAL", value: a, loc } as const;
+                    const tb = { type: "INT_LITERAL", value: b, loc } as const;
+                    return !tokensEquivalent(ta, tb);
                 }),
             );
         });
