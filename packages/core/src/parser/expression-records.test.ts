@@ -2,9 +2,11 @@
  * Expression parsing tests - Records
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
+import { astEquals, lowerIdentifierArb, nonNegativeIntArb } from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Records", () => {
@@ -678,6 +680,46 @@ describe("Parser - Records", () => {
                     },
                 ],
             });
+        });
+    });
+
+    describe("properties", () => {
+        const fieldEntries = fc.uniqueArray(fc.tuple(lowerIdentifierArb, nonNegativeIntArb), {
+            minLength: 1,
+            maxLength: 3,
+            selector: ([n]) => n,
+        });
+
+        it("property: trailing-comma equivalence on records — `{ x: 1, y: 2 }` parses identically to `{ x: 1, y: 2, }`", () => {
+            fc.assert(
+                fc.property(fieldEntries, (entries) => {
+                    const body = entries.map(([name, v]) => `${name}: ${v}`).join(", ");
+                    const noTrailing = `{ ${body} }`;
+                    const withTrailing = `{ ${body}, }`;
+                    expect(astEquals(parseExpression(withTrailing), parseExpression(noTrailing))).toBe(true);
+                }),
+            );
+        });
+
+        it("property: parsed Record has the same field names and arity as the source", () => {
+            fc.assert(
+                fc.property(fieldEntries, (entries) => {
+                    const body = entries.map(([name, v]) => `${name}: ${v}`).join(", ");
+                    const expr = parseExpression(`{ ${body} }`);
+                    expect(expr.kind).toBe("Record");
+                    if (expr.kind === "Record") {
+                        expect(expr.fields).toHaveLength(entries.length);
+                        for (let i = 0; i < entries.length; i++) {
+                            const f = expr.fields[i];
+                            const expected = entries[i];
+                            if (f === undefined || expected === undefined || f.kind !== "Field") {
+                                throw new Error("expected named-field record");
+                            }
+                            expect(f.name).toBe(expected[0]);
+                        }
+                    }
+                }),
+            );
         });
     });
 });
