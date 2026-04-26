@@ -16,9 +16,11 @@
 
 import type { Module } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/lexer.js";
+import { upperIdentifierArb } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to parse source code
@@ -418,6 +420,46 @@ describe("Tuple Types", () => {
                 // Should be TypeConst "Unit", not TupleType
                 expect(decl.definition.typeExpr.kind).toBe("TypeConst");
             }
+        });
+    });
+
+    describe("properties", () => {
+        const tupleTypeNames = fc.array(upperIdentifierArb, { minLength: 2, maxLength: 5 });
+
+        it("property: a tuple type with N type-const elements has arity N", () => {
+            fc.assert(
+                fc.property(tupleTypeNames, (names) => {
+                    const source = `type T = (${names.join(", ")});`;
+                    const module = parseSource(source);
+                    const decl = module.declarations[0];
+                    expect(decl?.kind).toBe("TypeDecl");
+                    if (decl?.kind !== "TypeDecl" || decl.definition.kind !== "AliasType") {
+                        throw new Error("expected TypeDecl with AliasType definition");
+                    }
+                    const t = decl.definition.typeExpr;
+                    expect(t.kind).toBe("TupleType");
+                    if (t.kind !== "TupleType") return;
+                    expect(t.elements).toHaveLength(names.length);
+                    for (let i = 0; i < names.length; i++) {
+                        const e = t.elements[i];
+                        expect(e?.kind).toBe("TypeConst");
+                        if (e?.kind === "TypeConst") expect(e.name).toBe(names[i]);
+                    }
+                }),
+            );
+        });
+
+        it("property: single-element parens collapse to the inner type, not a 1-tuple", () => {
+            fc.assert(
+                fc.property(upperIdentifierArb, (name) => {
+                    const module = parseSource(`type T = (${name});`);
+                    const decl = module.declarations[0];
+                    if (decl?.kind !== "TypeDecl" || decl.definition.kind !== "AliasType") {
+                        throw new Error("expected TypeDecl with AliasType definition");
+                    }
+                    expect(decl.definition.typeExpr.kind).toBe("TypeConst");
+                }),
+            );
         });
     });
 });
