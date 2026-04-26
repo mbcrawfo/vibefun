@@ -163,6 +163,18 @@ property-test coverage may overlap heavily with existing fixed-test coverage,
 producing little net change. That's fine — the value is in catching bugs the
 fixed tests miss, not in raw coverage gains.
 
+### Cross-layer validation gates (required before merge)
+
+```bash
+pnpm run verify        # build + check + lint + test + test:e2e + format:check
+pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+```
+
+If desugarer changes alter the surface→Core mapping for any user-observable
+form, update `.claude/VIBEFUN_AI_CODING_GUIDE.md` and re-check
+`tests/e2e/let-binding-matrix.test.ts` per the project's sync rules in
+CLAUDE.md.
+
 ## Post-implementation coverage check
 
 ```bash

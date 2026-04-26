@@ -129,6 +129,18 @@ coverage metrics must be ≥ the values in
 `.claude/plans/triage/pr2-baseline-coverage.json` after every commit and at
 PR close.
 
+### Cross-layer validation gates (required before merge)
+
+```bash
+pnpm run verify        # build + check + lint + test + test:e2e + format:check
+pnpm run spec:validate # spec-suite must remain at 378/378 (or current count)
+```
+
+If lexer changes affect language semantics (token shapes, escape sequences,
+keyword set), update `.claude/VIBEFUN_AI_CODING_GUIDE.md` and the
+let-binding matrix tests per the project's "AI coding guide sync" and
+"let-binding matrix sync" rules in CLAUDE.md.
+
 ## Post-implementation coverage check
 
 ```bash

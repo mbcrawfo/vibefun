@@ -86,7 +86,10 @@ function checkMetric(
     base: CoverageSummary | null,
 ): MetricResult {
     if (!current) {
-        return { metric, status: "skipped", reason: "No coverage data found" };
+        // Fail closed: missing current coverage usually means coverage
+        // generation or reporting broke in this run, and silently passing
+        // would let regressions land undetected.
+        return { metric, status: "decreased", reason: "No current coverage data found" };
     }
 
     const currentCoverage = current.total[metric].pct;
@@ -147,10 +150,14 @@ function main(): void {
                 );
                 break;
             case "decreased":
-                console.log(
-                    `  ${label} decreased by ${Math.abs(result.change ?? 0).toFixed(2)}% ` +
-                        `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
-                );
+                if (result.baseCoverage === undefined || result.currentCoverage === undefined) {
+                    console.log(`  ${label} decreased - ${result.reason ?? "coverage data missing"}`);
+                } else {
+                    console.log(
+                        `  ${label} decreased by ${Math.abs(result.change ?? 0).toFixed(2)}% ` +
+                            `(${result.baseCoverage}% -> ${result.currentCoverage}%)`,
+                    );
+                }
                 decreased = true;
                 break;
         }
