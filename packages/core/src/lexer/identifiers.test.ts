@@ -607,14 +607,9 @@ describe("Lexer - Identifier properties", () => {
         );
     });
 
-    it("property: identifier and keyword sets are disjoint at lex time", () => {
-        fc.assert(
-            fc.property(identifierArb, (name) => {
-                const tokens = new Lexer(name, "prop.vf").tokenize();
-                expect(tokens).toHaveLength(2);
-                const t = tokens[0];
-                return t?.type === "IDENTIFIER" && t.value === name && tokens[1]?.type === "EOF";
-            }),
-        );
-    });
+    // Identifier/keyword disjointness at lex time is covered by:
+    // - "any generated identifier round-trips as IDENTIFIER" — proves no generated
+    //   identifier ever lexes as KEYWORD or BOOL_LITERAL.
+    // - "every keyword lexes as KEYWORD with matching keyword tag" — proves
+    //   keywords lex as KEYWORD, not IDENTIFIER.
 });
