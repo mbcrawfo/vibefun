@@ -88,6 +88,8 @@ export type {
     SubstitutionArbOptions,
 } from "./core-ast-arb.js";
 
+export { coreExprWithUnsafeArb, optimizableExprArb } from "./optimizable-expr-arb.js";
+
 export {
     alphaEquivalent,
     constraintArb,
