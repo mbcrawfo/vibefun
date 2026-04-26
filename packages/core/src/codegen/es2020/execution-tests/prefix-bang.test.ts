@@ -6,6 +6,7 @@
  * through codegen to the expected runtime behavior.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { compileAndGetExport } from "./execution-test-helpers.js";
@@ -59,5 +60,24 @@ describe("prefix ! disambiguation", () => {
             "result",
         );
         expect(result).toBe(5);
+    });
+});
+
+describe("Properties", () => {
+    // Round-trip: !(ref x) === x for any int x. Cap numRuns at 10 — every
+    // run spawns a full compile + vm execution.
+    it("property: !(ref x) deref equals x for any int (cap numRuns 10 — spawns JS)", () => {
+        const safeIntArb = fc.integer({ min: -1000, max: 1000 });
+        fc.assert(
+            fc.property(safeIntArb, (x) => {
+                const result = compileAndGetExport(
+                    `let mut r = ref(${x});
+                     let result = !r;`,
+                    "result",
+                );
+                return result === x;
+            }),
+            { numRuns: 10 },
+        );
     });
 });
