@@ -388,16 +388,28 @@ describe("Lexer - Whitespace tracking properties", () => {
         );
     });
 
-    it("property: an operator between two identifiers has hasLeadingWhitespace iff a space precedes it", () => {
+    it("property: operator and following identifier each carry hasLeadingWhitespace iff a space precedes them", () => {
         fc.assert(
-            fc.property(identifierArb, identifierArb, singleCharOperatorArb, fc.boolean(), (a, b, op, withSpace) => {
-                const sep = withSpace ? " " : "";
-                const source = `${a}${sep}${op.value}${sep}${b}`;
-                const tokens = new Lexer(source, "prop.vf").tokenize();
-                if (tokens.length !== 4) return false;
-                if (withSpace) return tokens[1]?.hasLeadingWhitespace === true;
-                return tokens[1]?.hasLeadingWhitespace === undefined;
-            }),
+            fc.property(
+                identifierArb,
+                identifierArb,
+                singleCharOperatorArb,
+                fc.boolean(),
+                fc.boolean(),
+                (a, b, op, leftSpace, rightSpace) => {
+                    const left = leftSpace ? " " : "";
+                    const right = rightSpace ? " " : "";
+                    const source = `${a}${left}${op.value}${right}${b}`;
+                    const tokens = new Lexer(source, "prop.vf").tokenize();
+                    if (tokens.length !== 4) return false;
+                    const opWs = tokens[1]?.hasLeadingWhitespace;
+                    const rhsWs = tokens[2]?.hasLeadingWhitespace;
+                    return (
+                        (leftSpace ? opWs === true : opWs === undefined) &&
+                        (rightSpace ? rhsWs === true : rhsWs === undefined)
+                    );
+                },
+            ),
         );
     });
 

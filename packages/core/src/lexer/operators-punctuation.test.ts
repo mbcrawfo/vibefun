@@ -388,7 +388,7 @@ describe("Lexer - Punctuation properties", () => {
             fc.property(punctuationArb, (desc) => {
                 const tokens = new Lexer(desc.value, "prop.vf").tokenize();
                 expect(tokens).toHaveLength(2);
-                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value && tokens[1]?.type === "EOF";
             }),
         );
     });
@@ -398,7 +398,7 @@ describe("Lexer - Punctuation properties", () => {
             fc.property(singleCharOperatorArb, (desc) => {
                 const tokens = new Lexer(desc.value, "prop.vf").tokenize();
                 expect(tokens).toHaveLength(2);
-                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value && tokens[1]?.type === "EOF";
             }),
         );
     });

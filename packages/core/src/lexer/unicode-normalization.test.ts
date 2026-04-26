@@ -265,7 +265,9 @@ describe("Lexer - Unicode normalization properties", () => {
                 const nfd = s.normalize("NFD");
                 const a = new Lexer(JSON.stringify(nfc), "prop.vf").tokenize();
                 const b = new Lexer(JSON.stringify(nfd), "prop.vf").tokenize();
+                if (a.length !== 2 || b.length !== 2) return false;
                 if (a[0]?.type !== "STRING_LITERAL" || b[0]?.type !== "STRING_LITERAL") return false;
+                if (a[1]?.type !== "EOF" || b[1]?.type !== "EOF") return false;
                 return a[0].value === b[0].value && a[0].value === nfc;
             }),
         );
@@ -275,9 +277,10 @@ describe("Lexer - Unicode normalization properties", () => {
         fc.assert(
             fc.property(stringContentArb, (s) => {
                 const tokens = new Lexer(JSON.stringify(s), "prop.vf").tokenize();
+                if (tokens.length !== 2) return false;
                 const t = tokens[0];
                 if (t?.type !== "STRING_LITERAL") return false;
-                return t.value === t.value.normalize("NFC");
+                return tokens[1]?.type === "EOF" && t.value === t.value.normalize("NFC");
             }),
         );
     });
