@@ -4,6 +4,7 @@
 
 import type { Declaration, ImportItem, Location, Module, Pattern } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { buildModuleGraph, ModuleGraphBuilder } from "./module-graph-builder.js";
@@ -625,5 +626,82 @@ describe("ModuleGraphBuilder", () => {
 
             expect(result.graph.hasModule("/main.vf")).toBe(true);
         });
+    });
+});
+
+// =============================================================================
+// Property-Based Tests
+// =============================================================================
+
+describe("ModuleGraphBuilder — property-based", () => {
+    /**
+     * Build a Module value from a list of imports. Each import becomes an
+     * ImportDecl with a single placeholder item, exercising the
+     * ImportDecl path through the builder.
+     */
+    function makeModule(file: string, importPaths: string[]): Module {
+        const loc = testLoc(file);
+        const decls: Declaration[] = importPaths.map((p) =>
+            createImportDecl(p, [createImportItem("placeholder")], loc),
+        );
+        return createModule(file, decls, []);
+    }
+
+    /**
+     * A small generator producing a (modules, pathMap) pair where each
+     * generated module imports zero or more of the others. The path map
+     * resolves every import to the canonical module path it refers to.
+     */
+    const moduleSetArb = fc.integer({ min: 1, max: 5 }).chain((n) => {
+        const files = Array.from({ length: n }, (_, i) => `/m${i}.vf`);
+        return fc
+            .array(fc.array(fc.integer({ min: 0, max: n - 1 }), { maxLength: n }), {
+                minLength: n,
+                maxLength: n,
+            })
+            .map((importIndices) => {
+                const modules = new Map<string, Module>();
+                const pathMap = new Map<string, Map<string, string>>();
+                for (let i = 0; i < n; i++) {
+                    const indices = (importIndices[i] ?? []).filter((j) => j !== i);
+                    const importPaths = indices.map((j) => `./m${j}`);
+                    const file = files[i] as string;
+                    modules.set(file, makeModule(file, importPaths));
+                    const m = new Map<string, string>();
+                    for (const j of indices) {
+                        m.set(`./m${j}`, files[j] as string);
+                    }
+                    pathMap.set(file, m);
+                }
+                return { modules, pathMap };
+            });
+    });
+
+    it("property: build is total — does not throw on a generated module set", () => {
+        fc.assert(
+            fc.property(moduleSetArb, ({ modules, pathMap }) => {
+                const result = buildModuleGraph(modules, pathMap);
+                return result !== undefined && result.graph !== undefined && Array.isArray(result.errors);
+            }),
+        );
+    });
+
+    it("property: every input module appears as a node in the resulting graph", () => {
+        fc.assert(
+            fc.property(moduleSetArb, ({ modules, pathMap }) => {
+                const result = buildModuleGraph(modules, pathMap);
+                return Array.from(modules.keys()).every((file) => result.graph.hasModule(file));
+            }),
+        );
+    });
+
+    it("property: build is deterministic — same inputs ⇒ same module count", () => {
+        fc.assert(
+            fc.property(moduleSetArb, ({ modules, pathMap }) => {
+                const a = buildModuleGraph(modules, pathMap);
+                const b = buildModuleGraph(modules, pathMap);
+                return a.graph.getModuleCount() === b.graph.getModuleCount() && a.errors.length === b.errors.length;
+            }),
+        );
     });
 });
