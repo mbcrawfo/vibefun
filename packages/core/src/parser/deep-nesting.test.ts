@@ -9,9 +9,11 @@
 
 import type { Expr, RecordField } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { astEquals, exprArb, prettyPrintExpr } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to create a parser and parse an expression
@@ -296,6 +298,29 @@ describe("Parser - Deep Nesting Edge Cases", () => {
             }
 
             expect(depth).toBe(20);
+        });
+    });
+
+    describe("properties", () => {
+        it("property: parser does not throw on any deeply-nested well-formed expression", () => {
+            // Crash oracle: depth-4 generator stresses recursive parsing paths.
+            // The property only asserts the parser produces *some* AST without
+            // throwing — generated source is well-formed so any throw is a bug.
+            fc.assert(
+                fc.property(exprArb({ depth: 4 }), (e) => {
+                    const src = prettyPrintExpr(e);
+                    expect(() => parseExpression(src)).not.toThrow();
+                }),
+            );
+        });
+
+        it("property: deeply-nested parses are deterministic", () => {
+            fc.assert(
+                fc.property(exprArb({ depth: 4 }), (e) => {
+                    const src = prettyPrintExpr(e);
+                    expect(astEquals(parseExpression(src), parseExpression(src))).toBe(true);
+                }),
+            );
         });
     });
 });
