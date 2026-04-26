@@ -318,14 +318,17 @@ describe("Substitution Utilities", () => {
             );
         });
 
-        it("property: substituting an unused name leaves the expression structurally equal", () => {
-            // Derive the unused name from the expression's own free vars via
-            // `freshen`, instead of hard-coding a name like `$unused_var_name`
-            // and assuming the identifier generator can never produce it.
-            // That decoupling keeps the property correct if the identifier
-            // rules ever change.
+        it("property: substituting an unused name (with a closed replacement) leaves the expression structurally equal", () => {
+            // Two precautions keep this property tight:
+            //   1. `unused` is derived from the expression's own free vars via
+            //      `freshen`, instead of hard-coding `$unused_var_name`.
+            //   2. The replacement is constrained to be closed (no free vars).
+            //      Without this, capture-avoidance can alpha-rename binders
+            //      in `e` even when `unused` itself isn't bound there, which
+            //      would make `exprEquals(e, result)` fail spuriously.
             fc.assert(
                 fc.property(coreExprArb({ depth: 3 }), coreExprArb({ depth: 1 }), (e, replacement) => {
+                    fc.pre(freeVars(replacement).size === 0);
                     const unused = freshen("x", freeVars(e));
                     const result = substitute(e, unused, replacement);
                     return exprEquals(e, result);
