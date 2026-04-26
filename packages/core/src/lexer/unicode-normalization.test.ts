@@ -2,8 +2,10 @@
  * Tests for Unicode NFC normalization in the lexer
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { stringContentArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Unicode NFC Normalization for Identifiers", () => {
@@ -252,5 +254,31 @@ describe("Lexer - Unicode Normalization Edge Cases", () => {
             type: "IDENTIFIER",
             value: "ά",
         });
+    });
+});
+
+describe("Lexer - Unicode normalization properties", () => {
+    it("property: NFC and NFD forms of the same string lex to the same STRING_LITERAL value", () => {
+        fc.assert(
+            fc.property(stringContentArb, (s) => {
+                const nfc = s.normalize("NFC");
+                const nfd = s.normalize("NFD");
+                const a = new Lexer(JSON.stringify(nfc), "prop.vf").tokenize();
+                const b = new Lexer(JSON.stringify(nfd), "prop.vf").tokenize();
+                if (a[0]?.type !== "STRING_LITERAL" || b[0]?.type !== "STRING_LITERAL") return false;
+                return a[0].value === b[0].value && a[0].value === nfc;
+            }),
+        );
+    });
+
+    it("property: lexed STRING_LITERAL values are always in NFC form", () => {
+        fc.assert(
+            fc.property(stringContentArb, (s) => {
+                const tokens = new Lexer(JSON.stringify(s), "prop.vf").tokenize();
+                const t = tokens[0];
+                if (t?.type !== "STRING_LITERAL") return false;
+                return t.value === t.value.normalize("NFC");
+            }),
+        );
     });
 });
