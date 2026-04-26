@@ -4,9 +4,11 @@
 
 import type { TypeExpr } from "../types/index.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { astEquals, prettyPrintTypeExpr, typeExprArb } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to parse a type expression from source code
@@ -422,6 +424,33 @@ describe("Parser - Type Expressions", () => {
                     { kind: "StringLiteralType", value: "pending" },
                 ],
             });
+        });
+    });
+
+    describe("properties", () => {
+        it("property: parse(prettyPrintTypeExpr(t)) is alpha-equivalent to t", () => {
+            fc.assert(
+                fc.property(typeExprArb({ depth: 3 }), (t) => {
+                    expect(astEquals(parseType(prettyPrintTypeExpr(t)), t)).toBe(true);
+                }),
+            );
+        });
+
+        it("property: every node in a parsed type expression carries a Location", () => {
+            fc.assert(
+                fc.property(typeExprArb({ depth: 3 }), (t) => {
+                    const parsed = parseType(prettyPrintTypeExpr(t));
+                    const visit = (node: unknown): void => {
+                        if (node === null || typeof node !== "object" || Array.isArray(node)) return;
+                        const obj = node as Record<string, unknown>;
+                        if (typeof obj["kind"] === "string") {
+                            expect(obj["loc"]).toBeDefined();
+                        }
+                        for (const v of Object.values(obj)) visit(v);
+                    };
+                    visit(parsed);
+                }),
+            );
         });
     });
 });
