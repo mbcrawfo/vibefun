@@ -4,6 +4,7 @@
  * Tests curried function application, lambda expressions, and recursive functions.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { compileAndGetExport, compileAndRunSucceeds } from "./execution-test-helpers.js";
@@ -204,5 +205,50 @@ describe("if expressions", () => {
             "result",
         );
         expect(result).toBe(10);
+    });
+});
+
+describe("Properties", () => {
+    // Each property run spawns the full pipeline + vm execution. Cap
+    // numRuns at 10 — full-pipeline lambda programs are the heaviest.
+
+    const safeIntArb = fc.integer({ min: -1000, max: 1000 });
+
+    it("property: identity lambda is identity at runtime (cap numRuns 10 — spawns JS)", () => {
+        fc.assert(
+            fc.property(safeIntArb, (x) => {
+                const result = compileAndGetExport(
+                    `let id = (n) => n;
+                     let result = id(${x});`,
+                    "result",
+                );
+                return result === x;
+            }),
+            { numRuns: 10 },
+        );
+    });
+
+    it("property: a closure capturing n returns x + n (cap numRuns 10 — spawns JS)", () => {
+        fc.assert(
+            fc.property(safeIntArb, safeIntArb, (n, x) => {
+                const result = compileAndGetExport(
+                    `let makeAdder = (a) => (b) => a + b;
+                     let f = makeAdder(${n});
+                     let result = f(${x});`,
+                    "result",
+                );
+                return result === n + x;
+            }),
+            { numRuns: 10 },
+        );
+    });
+
+    it("property: simple lambda program compiles and runs without throwing (cap numRuns 10)", () => {
+        fc.assert(
+            fc.property(safeIntArb, (x) => {
+                return compileAndRunSucceeds(`let f = (a) => a + 1; let _r = f(${x});`);
+            }),
+            { numRuns: 10 },
+        );
     });
 });
