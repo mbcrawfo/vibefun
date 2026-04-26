@@ -539,7 +539,10 @@ describe("Or-Pattern properties", () => {
         // alternatives may further multiply if they themselves contain
         // nested or-patterns; the total must therefore be ≥ N.
         fc.assert(
-            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
+            // minLength: 2 ensures `makeMatch` actually wraps the patterns
+            // in an `OrPattern` (single-element arrays bypass the wrapping),
+            // so the property exercises or-pattern expansion every iteration.
+            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 let result: CoreMatch;
                 try {
                     result = desugar(makeMatch(patterns)) as CoreMatch;
@@ -556,7 +559,10 @@ describe("Or-Pattern properties", () => {
 
     it("property: or-pattern desugaring is deterministic", () => {
         fc.assert(
-            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
+            // minLength: 2 ensures `makeMatch` actually wraps the patterns
+            // in an `OrPattern` (single-element arrays bypass the wrapping),
+            // so the property exercises or-pattern expansion every iteration.
+            fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 let a: CoreExpr, b: CoreExpr;
                 try {
                     a = desugar(makeMatch(patterns));

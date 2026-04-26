@@ -699,16 +699,25 @@ describe("ModuleGraphBuilder — property-based", () => {
     it("property: getDependencies(file) equals the resolved targets in pathMap", () => {
         // Edge resolution is the load-bearing part of the builder. Asserting
         // module count alone lets a build that drops or rewires dependencies
-        // pass; comparing the resolved targets per file catches that.
+        // pass; comparing the resolved targets per file catches that. The
+        // generator emits unique value imports with all targets resolved, so
+        // a clean run must produce no errors and no type-only edges — a
+        // regression that spuriously raises VF5002/VF5003 or flips edge
+        // metadata would now fail this property.
         fc.assert(
             fc.property(moduleSetArb, ({ modules, pathMap }) => {
                 const result = buildModuleGraph(modules, pathMap);
+                if (result.errors.length !== 0) return false;
                 return Array.from(modules.keys()).every((file) => {
                     const expected = Array.from(pathMap.get(file)?.values() ?? [])
                         .slice()
                         .sort();
                     const actual = result.graph.getDependencies(file).slice().sort();
-                    return expected.length === actual.length && expected.every((dep, i) => dep === actual[i]);
+                    return (
+                        expected.length === actual.length &&
+                        expected.every((dep, i) => dep === actual[i]) &&
+                        actual.every((dep) => result.graph.isTypeOnlyEdge(file, dep) === false)
+                    );
                 });
             }),
         );
