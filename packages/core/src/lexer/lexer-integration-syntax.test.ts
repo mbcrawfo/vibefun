@@ -5,8 +5,10 @@
  * pattern matching, pipes, comments, strings, and operators.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { renderTokenStream, tokensEquivalent, tokenStreamArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Integration Tests - Basic Syntax", () => {
@@ -316,5 +318,22 @@ with "quotes"
                 "EOF",
             ]);
         });
+    });
+});
+
+describe("Lexer - Integration syntax properties", () => {
+    it("property: token-stream round-trip preserves kind and value for every element", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                const lexed = new Lexer(source, "prop.vf").tokenize().slice(0, -1);
+                if (lexed.length !== tokens.length) return false;
+                return tokens.every((t, i) => {
+                    const got = lexed[i];
+                    if (got === undefined) return false;
+                    return tokensEquivalent(got, t);
+                });
+            }),
+        );
     });
 });
