@@ -543,7 +543,12 @@ describe("Desugarer - Unsafe Blocks", () => {
                     exprArb({ depth: 3 }).filter((e) => !containsSurfaceUnsafe(e)),
                     (expr) => {
                         const result = safeDesugar(expr);
-                        if (!result.ok) return true;
+                        // Inputs that fail to desugar (e.g. invalid block shapes the
+                        // surface arbitrary can still produce) are discarded rather
+                        // than counted as passes — they say nothing about leakage.
+                        // fc.pre is typed as `asserts expectTruthy`, narrowing
+                        // result to the `ok: true` branch on the next line.
+                        fc.pre(result.ok);
                         return !containsUnsafe(result.value);
                     },
                 ),
