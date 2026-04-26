@@ -2,9 +2,11 @@
  * Tests for reserved keyword validation in the lexer
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
+import { reservedKeywordArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Reserved Keywords", () => {
@@ -107,5 +109,43 @@ let x = 42`;
 
     it("should throw all 8 reserved keywords count", () => {
         expect(reservedKeywords).toHaveLength(8);
+    });
+});
+
+describe("Lexer - Reserved Keywords properties", () => {
+    it("property: any reserved keyword raised as VF1500 diagnostic", () => {
+        fc.assert(
+            fc.property(reservedKeywordArb, (rk) => {
+                let caught: unknown;
+                try {
+                    new Lexer(rk, "prop.vf").tokenize();
+                } catch (err) {
+                    caught = err;
+                }
+                return caught instanceof VibefunDiagnostic && caught.code === "VF1500";
+            }),
+        );
+    });
+
+    it("property: a reserved keyword embedded after `let ` still raises VF1500", () => {
+        fc.assert(
+            fc.property(reservedKeywordArb, (rk) => {
+                let caught: unknown;
+                try {
+                    new Lexer(`let ${rk} = 42`, "prop.vf").tokenize();
+                } catch (err) {
+                    caught = err;
+                }
+                return caught instanceof VibefunDiagnostic && caught.code === "VF1500";
+            }),
+        );
+    });
+
+    it("property: reserved keyword inside a string literal does NOT raise", () => {
+        fc.assert(
+            fc.property(reservedKeywordArb, (rk) => {
+                expect(() => new Lexer(`"${rk}"`, "prop.vf").tokenize()).not.toThrow();
+            }),
+        );
     });
 });
