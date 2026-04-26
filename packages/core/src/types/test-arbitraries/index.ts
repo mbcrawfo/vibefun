@@ -23,4 +23,4 @@ export {
     tokensEquivalent,
     tokenStreamArb,
 } from "./token-arb.js";
-export type { OperatorDescriptor } from "./token-arb.js";
+export type { OperatorDescriptor, OperatorOrPunctuationTokenType } from "./token-arb.js";

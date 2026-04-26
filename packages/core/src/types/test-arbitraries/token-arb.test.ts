@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 
 import { isBoolLiteral, isKeyword, isReservedKeyword } from "../token.js";
 import {
@@ -12,6 +12,7 @@ import {
     MULTI_CHAR_OPERATORS,
     multiCharOperatorArb,
     operatorOrPunctuationArb,
+    PUNCTUATION_DESCRIPTORS,
     punctuationArb,
     renderToken,
     renderTokenStream,
@@ -108,14 +109,13 @@ describe("token arbitraries", () => {
             fc.assert(fc.property(punctuationArb, (desc) => desc.value.length === 1));
         });
 
-        it("operatorOrPunctuationArb covers every static descriptor exactly once", () => {
-            const expected = new Set([
-                ...MULTI_CHAR_OPERATORS.map((d) => d.type),
-                ...SINGLE_CHAR_OPERATORS.map((d) => d.type),
-            ]);
-            // Smoke check: arbitrary produces at least one descriptor
-            fc.assert(fc.property(operatorOrPunctuationArb, (desc) => typeof desc.type === "string"));
-            expect(expected.size).toBeGreaterThan(0);
+        it("operatorOrPunctuationArb only emits known operator/punctuation descriptors", () => {
+            const expected = new Set(
+                [...MULTI_CHAR_OPERATORS, ...SINGLE_CHAR_OPERATORS, ...PUNCTUATION_DESCRIPTORS].map(
+                    (d) => `${d.type}:${d.value}`,
+                ),
+            );
+            fc.assert(fc.property(operatorOrPunctuationArb, (desc) => expected.has(`${desc.type}:${desc.value}`)));
         });
     });
 
