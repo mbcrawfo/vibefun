@@ -2,10 +2,12 @@
  * Core parser tests - token consumption and utilities
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
+import { astEquals, declArb, prettyPrintDeclaration } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 // Helper to create a parser from source code
@@ -388,6 +390,44 @@ describe("Parser - Core", () => {
             expect(module.loc).toBeDefined();
             expect(module.loc.file).toBe("test.vf");
             expect(module.loc.line).toBe(1);
+        });
+    });
+
+    describe("properties", () => {
+        it("property: parse(src) is deterministic — two independent parsers produce structurally equal modules", () => {
+            fc.assert(
+                fc.property(declArb({ depth: 2 }), (d) => {
+                    const src = `${prettyPrintDeclaration(d)};`;
+                    const a = createParser(src).parse();
+                    const b = createParser(src).parse();
+                    expect(astEquals(a, b)).toBe(true);
+                }),
+            );
+        });
+
+        it("property: every node in a parsed module carries a Location with file/line/column/offset", () => {
+            fc.assert(
+                fc.property(declArb({ depth: 2 }), (d) => {
+                    const src = `${prettyPrintDeclaration(d)};`;
+                    const module = createParser(src).parse();
+                    const visit = (node: unknown): void => {
+                        if (node === null || typeof node !== "object" || Array.isArray(node)) return;
+                        const obj = node as Record<string, unknown>;
+                        if (typeof obj["kind"] === "string") {
+                            const loc = obj["loc"] as
+                                | { file?: unknown; line?: unknown; column?: unknown; offset?: unknown }
+                                | undefined;
+                            expect(loc).toBeDefined();
+                            expect(typeof loc?.file).toBe("string");
+                            expect(typeof loc?.line).toBe("number");
+                            expect(typeof loc?.column).toBe("number");
+                            expect(typeof loc?.offset).toBe("number");
+                        }
+                        for (const v of Object.values(obj)) visit(v);
+                    };
+                    visit(module);
+                }),
+            );
         });
     });
 });
