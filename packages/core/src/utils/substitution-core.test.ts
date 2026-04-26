@@ -392,10 +392,14 @@ describe("Substitution Utilities", () => {
             );
         });
 
-        it("property: freshen returns the base name when it's already free", () => {
+        it("property: freshen returns the base name whenever base is not in the avoid set", () => {
+            // Cover both empty and non-empty avoid sets (so long as `base`
+            // is not among them). The original property only exercised the
+            // empty-set branch and missed the more common case.
             fc.assert(
-                fc.property(identifierArb, (base) => {
-                    return freshen(base, new Set()) === base;
+                fc.property(identifierArb, fc.uniqueArray(identifierArb, { maxLength: 8 }), (base, avoidArray) => {
+                    fc.pre(!avoidArray.includes(base));
+                    return freshen(base, new Set(avoidArray)) === base;
                 }),
             );
         });

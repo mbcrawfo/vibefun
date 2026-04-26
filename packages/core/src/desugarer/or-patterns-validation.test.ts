@@ -517,9 +517,10 @@ describe("Or-Pattern properties", () => {
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 const body: Expr = { kind: "IntLit", value: 1, loc: testLoc };
                 // Each desugar call gets an independently cloned pattern
-                // graph so a mutating implementation cannot mask divergence
-                // by sharing nodes between the two ASTs.
-                const flat = makeMatch(clone(patterns), body);
+                // graph AND its own body node so a mutating implementation
+                // cannot mask divergence by sharing nodes between the two
+                // ASTs.
+                const flat = makeMatch(clone(patterns), clone(body));
                 const nestedPatterns = clone(patterns);
                 let nested: Pattern = nestedPatterns[0] as Pattern;
                 for (let i = 1; i < nestedPatterns.length; i++) {
@@ -532,7 +533,7 @@ describe("Or-Pattern properties", () => {
                 const nestedMatch: Expr = {
                     kind: "Match",
                     expr: { kind: "Var", name: "scrutinee", loc: testLoc },
-                    cases: [{ pattern: nested, body, loc: testLoc }],
+                    cases: [{ pattern: nested, body: clone(body), loc: testLoc }],
                     loc: testLoc,
                 };
 
@@ -578,17 +579,24 @@ describe("Or-Pattern properties", () => {
             // so the property exercises or-pattern expansion every iteration.
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 // Independent clones for each run so the comparison is
-                // sensitive to in-place input mutation, and the original
-                // `patterns` is asserted unchanged afterward.
+                // sensitive to in-place input mutation. We also send a
+                // `probe` clone *directly* through `desugar` (bypassing the
+                // surrounding clone wrappers) and verify it remains
+                // unchanged — that's the assertion that actually catches a
+                // mutating desugar implementation.
                 const original = clone(patterns);
+                const probe = clone(patterns);
+                const probeBefore = clone(probe);
                 let a: CoreExpr, b: CoreExpr;
                 try {
                     a = desugar(makeMatch(clone(patterns)));
                     b = desugar(makeMatch(clone(patterns)));
+                    desugar(makeMatch(probe));
                 } catch (error) {
                     discardOnlyExpectedInvalidInput(error);
                 }
                 expect(patterns).toEqual(original);
+                expect(probe).toEqual(probeBefore);
                 return exprEquals(a, b);
             }),
         );
