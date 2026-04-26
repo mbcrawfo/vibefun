@@ -4,8 +4,10 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb } from "../types/test-arbitraries/index.js";
 import { foldExpr } from "./ast-transform.js";
 
 describe("AST Transform Utilities", () => {
@@ -162,6 +164,46 @@ describe("AST Transform Utilities", () => {
             );
 
             expect(max).toBe(50);
+        });
+    });
+
+    describe("foldExpr algebraic properties", () => {
+        // foldExpr is implemented on top of visitExpr, so any totality
+        // property here is also a property of visitExpr.
+
+        it("property: foldExpr is total — does not throw on any tier-A CoreExpr", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    foldExpr(e, (_, count) => count + 1, 0);
+                    return true;
+                }),
+            );
+        });
+
+        it("property: counting yields ≥ 1 (root is always visited)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return foldExpr(e, (_, count) => count + 1, 0) >= 1;
+                }),
+            );
+        });
+
+        it("property: foldExpr with identity folder returns the initial value", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), fc.integer(), (e, init) => {
+                    return foldExpr(e, (_, acc) => acc, init) === init;
+                }),
+            );
+        });
+
+        it("property: foldExpr is deterministic across calls", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const a = foldExpr(e, (_, count) => count + 1, 0);
+                    const b = foldExpr(e, (_, count) => count + 1, 0);
+                    return a === b;
+                }),
+            );
         });
     });
 });
