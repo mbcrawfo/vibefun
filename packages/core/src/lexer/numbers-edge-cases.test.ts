@@ -2,8 +2,10 @@
  * Tests for number literals in context and edge cases in the Lexer
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { floatLiteralArb, intLiteralArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Numbers in Context", () => {
@@ -124,5 +126,41 @@ describe("Lexer - Edge Cases", () => {
         tokens.slice(0, 4).forEach((token) => {
             expect(token.value).toBe(0);
         });
+    });
+});
+
+describe("Lexer - Number properties", () => {
+    it("property: any safe non-negative integer round-trips through INT_LITERAL", () => {
+        fc.assert(
+            fc.property(intLiteralArb, (n) => {
+                const tokens = new Lexer(String(n), "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                const t = tokens[0];
+                if (t?.type !== "INT_LITERAL") return false;
+                return t.value === n;
+            }),
+        );
+    });
+
+    it("property: any generated float round-trips through FLOAT_LITERAL", () => {
+        fc.assert(
+            fc.property(floatLiteralArb, (x) => {
+                const tokens = new Lexer(String(x), "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                const t = tokens[0];
+                if (t?.type !== "FLOAT_LITERAL") return false;
+                return t.value === x;
+            }),
+        );
+    });
+
+    it("property: leading minus then number lexes as OP_MINUS + numeric literal", () => {
+        fc.assert(
+            fc.property(intLiteralArb, (n) => {
+                const tokens = new Lexer(`-${n}`, "prop.vf").tokenize();
+                expect(tokens.length).toBeGreaterThanOrEqual(3);
+                return tokens[0]?.type === "OP_MINUS" && tokens[1]?.type === "INT_LITERAL" && tokens[1].value === n;
+            }),
+        );
     });
 });
