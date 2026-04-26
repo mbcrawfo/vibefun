@@ -5,12 +5,15 @@
 import type { Type } from "../types/environment.js";
 import type { UnifyContext } from "./unify.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
+import { groundTypeArb, typeArb, typeSubstitutionArb } from "../types/test-arbitraries/index.js";
 import {
     appType,
     constType,
+    freeTypeVars,
     freshTypeVar,
     funType,
     isAppType,
@@ -19,6 +22,7 @@ import {
     recordType,
     refType,
     resetTypeVarCounter,
+    typeEquals,
     unionType,
     variantType,
 } from "./types.js";
@@ -921,4 +925,164 @@ describe("String Literal Singleton Unification", () => {
     it("occursIn returns false for StringLit", () => {
         expect(occursIn(0, stringLit("pending"))).toBe(false);
     });
+});
+
+describe("Substitution Algebraic Properties", () => {
+    it("property: applying empty substitution is the identity", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                expect(typeEquals(applySubst(emptySubst(), t), t)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: apply-compose distributivity (apply(s2 ∘ s1, t) = apply(s2, apply(s1, t)))", () => {
+        // composeSubst(s1, s2) is documented as "apply s1 first, then s2",
+        // which is s2 ∘ s1 in the standard composition direction.
+        fc.assert(
+            fc.property(typeSubstitutionArb(), typeSubstitutionArb(), typeArb(), (s1, s2, t) => {
+                const left = applySubst(composeSubst(s1, s2), t);
+                const right = applySubst(s2, applySubst(s1, t));
+                expect(typeEquals(left, right)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: composition with empty on the right preserves the left substitution", () => {
+        fc.assert(
+            fc.property(typeSubstitutionArb(), typeArb(), (s, t) => {
+                const composed = composeSubst(s, emptySubst());
+                expect(typeEquals(applySubst(composed, t), applySubst(s, t))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: composition with empty on the left preserves the right substitution", () => {
+        fc.assert(
+            fc.property(typeSubstitutionArb(), typeArb(), (s, t) => {
+                const composed = composeSubst(emptySubst(), s);
+                expect(typeEquals(applySubst(composed, t), applySubst(s, t))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: occursIn returns false for ground types", () => {
+        fc.assert(
+            fc.property(groundTypeArb, fc.integer({ min: 0, max: 16 }), (t, id) => {
+                expect(occursIn(id, t)).toBe(false);
+            }),
+        );
+    });
+
+    it("property: occursIn returns true for every free variable in a type", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                for (const id of freeTypeVars(t)) {
+                    expect(occursIn(id, t)).toBe(true);
+                }
+            }),
+        );
+    });
+});
+
+describe("Unification Algebraic Properties", () => {
+    const propCtx: UnifyContext = { loc: { file: "prop.vf", line: 1, column: 1, offset: 0 } };
+
+    it("property: reflexivity — unify(t, t) succeeds and σ leaves t unchanged", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                const subst = unify(t, t, propCtx);
+                expect(typeEquals(applySubst(subst, t), t)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: soundness — when unify(a, b) succeeds with σ, applySubst(σ, a) === applySubst(σ, b)", () => {
+        // Generated types may not unify; on failure the property is vacuously
+        // satisfied. The point is to catch the case where unify returns a
+        // substitution that does NOT actually equate the inputs.
+        fc.assert(
+            fc.property(typeArb(), typeArb(), (a, b) => {
+                let subst;
+                try {
+                    subst = unify(a, b, propCtx);
+                } catch (e) {
+                    if (e instanceof VibefunDiagnostic) {
+                        return;
+                    }
+                    throw e;
+                }
+                const aPrime = applySubst(subst, a);
+                const bPrime = applySubst(subst, b);
+                expect(typeEquals(aPrime, bPrime)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: symmetry — unify(a, b) succeeds iff unify(b, a) succeeds", () => {
+        fc.assert(
+            fc.property(typeArb(), typeArb(), (a, b) => {
+                const ab = tryUnify(a, b);
+                const ba = tryUnify(b, a);
+                expect(ab.ok).toBe(ba.ok);
+            }),
+        );
+    });
+
+    it("property: symmetry — when both directions succeed, both substitutions equate the inputs", () => {
+        fc.assert(
+            fc.property(typeArb(), typeArb(), (a, b) => {
+                const ab = tryUnify(a, b);
+                const ba = tryUnify(b, a);
+                if (!ab.ok || !ba.ok) {
+                    return;
+                }
+                expect(typeEquals(applySubst(ab.subst, a), applySubst(ab.subst, b))).toBe(true);
+                expect(typeEquals(applySubst(ba.subst, a), applySubst(ba.subst, b))).toBe(true);
+            }),
+        );
+    });
+
+    it("property: idempotence — applying σ to applySubst(σ, t) equals applySubst(σ, t)", () => {
+        // Robinson unification's mgu is idempotent on the unified types: if
+        // σ = unify(a, b), then σ(σ(a)) = σ(a). Catches bugs where unify
+        // returns a substitution still containing pending rewrites.
+        fc.assert(
+            fc.property(typeArb(), typeArb(), (a, b) => {
+                const r = tryUnify(a, b);
+                if (!r.ok) {
+                    return;
+                }
+                const once = applySubst(r.subst, a);
+                const twice = applySubst(r.subst, once);
+                expect(typeEquals(twice, once)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: failure on incompatible primitives — unify(Int, String) always throws", () => {
+        const otherPrims: Type[] = [
+            primitiveTypes.Float,
+            primitiveTypes.String,
+            primitiveTypes.Bool,
+            primitiveTypes.Unit,
+        ];
+        fc.assert(
+            fc.property(fc.constantFrom(...otherPrims), (other) => {
+                expect(() => unify(primitiveTypes.Int, other, propCtx)).toThrow(VibefunDiagnostic);
+                expect(() => unify(other, primitiveTypes.Int, propCtx)).toThrow(VibefunDiagnostic);
+            }),
+        );
+    });
+
+    function tryUnify(a: Type, b: Type): { ok: true; subst: ReturnType<typeof unify> } | { ok: false } {
+        try {
+            return { ok: true, subst: unify(a, b, propCtx) };
+        } catch (e) {
+            if (e instanceof VibefunDiagnostic) {
+                return { ok: false };
+            }
+            throw e;
+        }
+    }
 });

@@ -34,8 +34,15 @@ export const MAX_VAR_ID = 7;
 /** Primitive type names recognized by the typechecker. */
 export const PRIMITIVE_TYPE_NAMES = ["Int", "Float", "String", "Bool", "Unit"] as const;
 
-/** Type-application constructors restricted to a small, known set. */
-const APP_CONSTRUCTOR_NAMES = ["List", "Option", "Result", "Box", "Map"] as const;
+/**
+ * Type-application constructors restricted to a small, known set.
+ * Includes `Ref` — references in the typechecker are represented as
+ * `App<Const("Ref"), [inner]>` (see `refType()` in `typechecker/types.ts`),
+ * not as the bare `Ref` discriminant on the `Type` union. The bare discriminant
+ * exists for completeness but `unify` does not handle it directly, so
+ * generators must use the `App` form.
+ */
+const APP_CONSTRUCTOR_NAMES = ["List", "Option", "Result", "Box", "Map", "Ref"] as const;
 
 /** Record field name pool. Small so different records collide. */
 const FIELD_NAME_POOL = ["x", "y", "z", "name", "value", "left", "right"] as const;
@@ -117,10 +124,6 @@ export function typeArb(options: TypeArbOptions = {}): fc.Arbitrary<Type> {
             {
                 weight: 1,
                 arbitrary: recordTypeArb(sub).map((fields): Type => ({ type: "Record", fields })),
-            },
-            {
-                weight: 1,
-                arbitrary: sub.map((inner): Type => ({ type: "Ref", inner })),
             },
         );
     }
