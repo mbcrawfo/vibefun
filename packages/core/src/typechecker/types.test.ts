@@ -29,8 +29,10 @@ import type {
 } from "../types/core-ast.js";
 import type { Type } from "../types/environment.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { alphaEquivalent, freeVarsOfType, typeArb, typeSchemeArb } from "../types/test-arbitraries/index.js";
 import {
     appType,
     constType,
@@ -747,5 +749,86 @@ describe("Syntactic Value Restriction", () => {
             const expr: CoreLambda = { kind: "CoreLambda", param, body, loc: testLoc };
             expect(isSyntacticValue(expr)).toBe(true);
         });
+    });
+});
+
+describe("Type Algebraic Properties", () => {
+    it("property: typeEquals is reflexive", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                expect(typeEquals(t, t)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: freeTypeVars matches the test-arb's freeVarsOfType helper", () => {
+        // The two implementations live in different modules (production
+        // typechecker vs test-arbitraries package). Drift between them
+        // would silently weaken downstream generalization properties.
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                const a = Array.from(freeTypeVars(t)).sort((x, y) => x - y);
+                const b = Array.from(freeVarsOfType(t)).sort((x, y) => x - y);
+                expect(a).toEqual(b);
+            }),
+        );
+    });
+
+    it("property: a type is α-equivalent to itself", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                expect(alphaEquivalent(t, t)).toBe(true);
+            }),
+        );
+    });
+
+    it("property: typeToString is a total function (never throws)", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                expect(typeof typeToString(t)).toBe("string");
+            }),
+        );
+    });
+
+    it("property: typeToString is deterministic — same input yields same output", () => {
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                expect(typeToString(t)).toBe(typeToString(t));
+            }),
+        );
+    });
+
+    it("property: schemeToString is a total function", () => {
+        fc.assert(
+            fc.property(typeSchemeArb(), (scheme) => {
+                expect(typeof schemeToString(scheme)).toBe("string");
+            }),
+        );
+    });
+
+    it("property: freeInScheme excludes every quantified variable", () => {
+        // A scheme `forall α₁..αₙ. T` has free variables `freeVars(T) \ {α₁..αₙ}`.
+        // Quantified variables must never leak into the free set.
+        fc.assert(
+            fc.property(typeSchemeArb(), (scheme) => {
+                const free = freeInScheme(scheme);
+                for (const v of scheme.vars) {
+                    expect(free.has(v)).toBe(false);
+                }
+            }),
+        );
+    });
+
+    it("property: freeTypeVarsAtLevel(t, ∞) ⊇ freeTypeVars(t)", () => {
+        // With an effectively unbounded level cap, every free var qualifies.
+        fc.assert(
+            fc.property(typeArb(), (t) => {
+                const all = freeTypeVars(t);
+                const atMax = freeTypeVarsAtLevel(t, Number.MAX_SAFE_INTEGER);
+                for (const id of all) {
+                    expect(atMax.has(id)).toBe(true);
+                }
+            }),
+        );
     });
 });
