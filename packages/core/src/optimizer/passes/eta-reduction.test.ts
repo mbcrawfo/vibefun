@@ -4,8 +4,11 @@
 
 import type { CoreExpr } from "../../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprWithUnsafeArb, optimizableExprArb } from "../../types/test-arbitraries/index.js";
+import { exprEquals } from "../../utils/expr-equality.js";
 import { EtaReductionPass } from "./eta-reduction.js";
 
 const testLoc = { file: "test", line: 1, column: 1, offset: 0 };
@@ -666,6 +669,43 @@ describe("EtaReductionPass", () => {
                 expect(result.elements[0]).toEqual({ kind: "CoreVar", name: "f", loc: testLoc });
                 expect(result.elements[1]).toEqual({ kind: "CoreVar", name: "g", loc: testLoc });
             }
+        });
+    });
+
+    describe("Properties", () => {
+        it("property: eta-reduction is idempotent", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const once = pass.transform(expr);
+                    const twice = pass.transform(once);
+                    return exprEquals(once, twice);
+                }),
+            );
+        });
+
+        it("property: eta-reduction is deterministic", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    return exprEquals(pass.transform(expr), pass.transform(expr));
+                }),
+            );
+        });
+
+        it("property: eta-reduction never throws on closed Core expressions", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    expect(() => pass.transform(expr)).not.toThrow();
+                }),
+            );
+        });
+
+        it("property: eta-reduction preserves CoreUnsafe nodes", () => {
+            fc.assert(
+                fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
+                    if (expr.kind !== "CoreUnsafe") return true;
+                    return exprEquals(pass.transform(expr), expr);
+                }),
+            );
         });
     });
 });
