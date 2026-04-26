@@ -5,8 +5,10 @@
  * multiple language features.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { renderTokenStream, tokenStreamArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Integration Tests - Large Realistic Programs", () => {
@@ -246,5 +248,26 @@ export { List, length, map, filter, foldLeft, foldRight, reverse, append, flatte
 
             expect(tokens[tokens.length - 1]?.type).toBe("EOF");
         });
+    });
+});
+
+describe("Lexer - Integration realistic properties", () => {
+    it("property: rendered token stream tokenizes without throwing on any well-formed input", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                expect(() => new Lexer(source, "prop.vf").tokenize()).not.toThrow();
+            }),
+        );
+    });
+
+    it("property: lexer always terminates with EOF as the final token", () => {
+        fc.assert(
+            fc.property(tokenStreamArb, (tokens) => {
+                const source = renderTokenStream(tokens);
+                const lexed = new Lexer(source, "prop.vf").tokenize();
+                return lexed[lexed.length - 1]?.type === "EOF";
+            }),
+        );
     });
 });
