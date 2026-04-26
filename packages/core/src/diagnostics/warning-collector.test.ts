@@ -5,6 +5,7 @@
 import type { Location } from "../types/ast.js";
 import type { Diagnostic, DiagnosticDefinition } from "./diagnostic.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "./diagnostic.js";
@@ -181,6 +182,68 @@ describe("WarningCollector", () => {
 
             // Source should be included in formatted output
             expect(formatted[0]).toContain("let x = 42");
+        });
+    });
+
+    describe("Properties", () => {
+        const messageArb = fc.stringMatching(/^[a-zA-Z0-9 ._]{0,32}$/);
+
+        it("property: getWarnings preserves insertion order", () => {
+            fc.assert(
+                fc.property(fc.array(messageArb, { minLength: 0, maxLength: 8 }), (msgs) => {
+                    const collector = new WarningCollector();
+                    msgs.forEach((m) => collector.add(createWarning("VF4900", m)));
+                    const got = collector.getWarnings();
+                    // Use diagnostic.message (original) — `w.message` is Error's
+                    // formatted full message including code/location prefix.
+                    return got.length === msgs.length && got.every((w, i) => w.diagnostic.message === msgs[i]);
+                }),
+            );
+        });
+
+        it("property: count equals the number of warnings added", () => {
+            fc.assert(
+                fc.property(fc.array(messageArb, { minLength: 0, maxLength: 8 }), (msgs) => {
+                    const collector = new WarningCollector();
+                    msgs.forEach((m) => collector.add(createWarning("VF4900", m)));
+                    return collector.count === msgs.length;
+                }),
+            );
+        });
+
+        it("property: hasWarnings is true iff at least one warning has been added", () => {
+            fc.assert(
+                fc.property(fc.array(messageArb, { minLength: 0, maxLength: 8 }), (msgs) => {
+                    const collector = new WarningCollector();
+                    msgs.forEach((m) => collector.add(createWarning("VF4900", m)));
+                    return collector.hasWarnings() === msgs.length > 0;
+                }),
+            );
+        });
+
+        it("property: clear resets count to zero", () => {
+            fc.assert(
+                fc.property(fc.array(messageArb, { minLength: 1, maxLength: 8 }), (msgs) => {
+                    const collector = new WarningCollector();
+                    msgs.forEach((m) => collector.add(createWarning("VF4900", m)));
+                    collector.clear();
+                    return collector.count === 0 && !collector.hasWarnings();
+                }),
+            );
+        });
+
+        it("property: add throws if the diagnostic is not a warning", () => {
+            fc.assert(
+                fc.property(messageArb, (msg) => {
+                    const collector = new WarningCollector();
+                    const errDiagnostic: Diagnostic = {
+                        definition: errorDefinition(),
+                        message: msg,
+                        location: testLoc(),
+                    };
+                    expect(() => collector.add(new VibefunDiagnostic(errDiagnostic))).toThrow();
+                }),
+            );
         });
     });
 });
