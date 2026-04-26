@@ -6,9 +6,11 @@ import type { TypedModule } from "../../typechecker/typechecker.js";
 import type { CoreDeclaration, CoreImportDecl, CoreModule } from "../../types/core-ast.js";
 import type { Type } from "../../types/environment.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { emptyEnv } from "../../types/environment.js";
+import { coreModuleArb } from "../../types/test-arbitraries/index.js";
 import { generate } from "./generator.js";
 import {
     binOp,
@@ -376,6 +378,34 @@ describe("ES2020 Generator", () => {
             expect(importIndex).toBeLessThan(helperIndex);
             expect(helperIndex).toBeLessThan(declIndex);
             expect(declIndex).toBeLessThan(exportIndex);
+        });
+    });
+
+    describe("Properties", () => {
+        // The headline property: generate is a total function on closed Core
+        // modules. We feed it directly via `createTypedModule` (the same
+        // helper existing fixed tests use), so the typechecker is bypassed —
+        // codegen consumes only the Core module and never inspects type
+        // information beyond what is in `declarationTypes`.
+
+        it("property: generate does not throw on a generated CoreModule (totality)", () => {
+            fc.assert(
+                fc.property(coreModuleArb({ depth: 2, maxBreadth: 2 }), (module) => {
+                    const typedModule = createTypedModule(module.declarations as CoreDeclaration[]);
+                    expect(() => generate(typedModule, { filename: "prop.vf" })).not.toThrow();
+                }),
+            );
+        });
+
+        it("property: generate is deterministic — same input yields same output", () => {
+            fc.assert(
+                fc.property(coreModuleArb({ depth: 2, maxBreadth: 2 }), (module) => {
+                    const typedModule = createTypedModule(module.declarations as CoreDeclaration[]);
+                    const a = generate(typedModule, { filename: "prop.vf" }).code;
+                    const b = generate(typedModule, { filename: "prop.vf" }).code;
+                    return a === b;
+                }),
+            );
         });
     });
 });
