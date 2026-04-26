@@ -4,9 +4,12 @@
 
 import type { CoreExpr } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { coreExprArb } from "../types/test-arbitraries/index.js";
 import { transformChildren } from "./ast-transform.js";
+import { exprEquals } from "./expr-equality.js";
 
 describe("AST Transform Utilities", () => {
     describe("transformChildren", () => {
@@ -323,6 +326,39 @@ describe("AST Transform Utilities", () => {
             if (result.kind === "CoreRecordAccess" && result.record.kind === "CoreVar") {
                 expect(result.record.name).toBe("newRec");
             }
+        });
+    });
+
+    describe("transformChildren algebraic properties", () => {
+        // transformChildren applies a transformer to children but leaves the
+        // parent untouched. With the identity transformer this should equal
+        // the input structurally (modulo object identity, which we don't
+        // assert).
+
+        it("property: identity child-transform is identity", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    const result = transformChildren(e, (x) => x);
+                    return exprEquals(e, result);
+                }),
+            );
+        });
+
+        it("property: kind is preserved (parent is untouched)", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    return transformChildren(e, (x) => x).kind === e.kind;
+                }),
+            );
+        });
+
+        it("property: total — does not throw on any tier-A CoreExpr", () => {
+            fc.assert(
+                fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    transformChildren(e, (x) => x);
+                    return true;
+                }),
+            );
         });
     });
 });
