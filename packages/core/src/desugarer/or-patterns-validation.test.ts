@@ -13,6 +13,7 @@ import type { CoreExpr, CoreLiteralPattern, CoreMatch, CoreVariantPattern } from
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { patternArb } from "../types/test-arbitraries/index.js";
 import { exprEquals } from "../utils/expr-equality.js";
 import { desugar } from "./desugarer.js";
@@ -471,6 +472,20 @@ describe("Or-Pattern - Expansion Cap (VF3102)", () => {
 });
 
 describe("Or-Pattern properties", () => {
+    /**
+     * Discard generated inputs that surface known or-pattern validator
+     * diagnostics (`VF3102` — too-large expansion, `VF4403` — variable
+     * binding inside an alternative). Re-throw anything else so a real
+     * regression in `desugar` surfaces as a property failure instead of
+     * being silently absorbed by `fc.pre(false)`.
+     */
+    function discardOnlyExpectedInvalidInput(error: unknown): never {
+        if (error instanceof VibefunDiagnostic && (error.code === "VF3102" || error.code === "VF4403")) {
+            fc.pre(false);
+        }
+        throw error;
+    }
+
     function makeMatch(patterns: Pattern[], body: Expr = { kind: "IntLit", value: 0, loc: testLoc }): Expr {
         return {
             kind: "Match",
@@ -517,14 +532,8 @@ describe("Or-Pattern properties", () => {
                 try {
                     flatResult = desugar(flat);
                     nestedResult = desugar(nestedMatch);
-                } catch {
-                    // The validator can reject some pattern combinations
-                    // (e.g. or-patterns binding different variables); discard
-                    // such inputs rather than count them as passes.
-                    // fc.pre(false) is typed `asserts false`, so the catch
-                    // arm exits via an internal throw — discarding the
-                    // generated input rather than counting it as a pass.
-                    fc.pre(false);
+                } catch (error) {
+                    discardOnlyExpectedInvalidInput(error);
                 }
 
                 // Full structural equality, not just case-body equality:
@@ -546,11 +555,8 @@ describe("Or-Pattern properties", () => {
                 let result: CoreMatch;
                 try {
                     result = desugar(makeMatch(patterns)) as CoreMatch;
-                } catch {
-                    // fc.pre(false) is typed `asserts false`, so the catch
-                    // arm exits via an internal throw — discarding the
-                    // generated input rather than counting it as a pass.
-                    fc.pre(false);
+                } catch (error) {
+                    discardOnlyExpectedInvalidInput(error);
                 }
                 return result.cases.length >= patterns.length;
             }),
@@ -567,11 +573,8 @@ describe("Or-Pattern properties", () => {
                 try {
                     a = desugar(makeMatch(patterns));
                     b = desugar(makeMatch(patterns));
-                } catch {
-                    // fc.pre(false) is typed `asserts false`, so the catch
-                    // arm exits via an internal throw — discarding the
-                    // generated input rather than counting it as a pass.
-                    fc.pre(false);
+                } catch (error) {
+                    discardOnlyExpectedInvalidInput(error);
                 }
                 return exprEquals(a, b);
             }),

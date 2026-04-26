@@ -32,10 +32,12 @@ describe("core-ast-arb", () => {
             );
         });
 
-        it("every node carries a Location", () => {
+        it("top-level generated expression carries a Location", () => {
             fc.assert(
                 fc.property(coreExprArb({ depth: 3 }), (expr) => {
-                    // Smoke: top-level loc must exist.
+                    // Smoke: top-level loc must exist. Nested-node coverage
+                    // is enforced via the generators reusing one synthetic
+                    // location constant rather than asserted here.
                     return expr.loc !== undefined && typeof expr.loc.file === "string";
                 }),
             );

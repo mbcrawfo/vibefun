@@ -333,27 +333,48 @@ describe("Substitution Utilities", () => {
             );
         });
 
-        it("property: substitute determinism — same inputs ⇒ same output", () => {
+        it("property: substitute determinism — same inputs ⇒ same output (and inputs unchanged)", () => {
+            // Both runs use independent deep clones of the inputs and we
+            // assert the originals are unchanged. A mutating implementation
+            // would either diverge between runs or fail the unchanged-input
+            // checks instead of slipping through a same-reference comparison.
+            const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
             fc.assert(
                 fc.property(
                     coreExprArb({ depth: 3 }),
                     identifierArb,
                     coreExprArb({ depth: 1 }),
                     (e, name, replacement) => {
+                        const eSnapshot = clone(e);
+                        const replacementSnapshot = clone(replacement);
                         const a = substitute(e, name, replacement);
-                        const b = substitute(e, name, replacement);
-                        return exprEquals(a, b);
+                        const b = substitute(clone(eSnapshot), name, clone(replacementSnapshot));
+                        return (
+                            exprEquals(a, b) && exprEquals(e, eSnapshot) && exprEquals(replacement, replacementSnapshot)
+                        );
                     },
                 ),
             );
         });
 
-        it("property: substituteMultiple determinism over generated substitutions", () => {
+        it("property: substituteMultiple determinism over generated substitutions (and inputs unchanged)", () => {
+            const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+            const cloneSubst = (s: Map<string, CoreExpr>): Map<string, CoreExpr> =>
+                new Map(Array.from(s.entries(), ([k, v]) => [k, clone(v)]));
             fc.assert(
                 fc.property(coreExprArb({ depth: 3 }), substitutionArb({ maxSize: 3, depth: 1 }), (e, sub) => {
+                    const eSnapshot = clone(e);
+                    const subSnapshot = cloneSubst(sub);
                     const a = substituteMultiple(e, sub);
-                    const b = substituteMultiple(e, sub);
-                    return exprEquals(a, b);
+                    const b = substituteMultiple(clone(eSnapshot), cloneSubst(subSnapshot));
+                    if (!exprEquals(a, b)) return false;
+                    if (!exprEquals(e, eSnapshot)) return false;
+                    if (sub.size !== subSnapshot.size) return false;
+                    for (const [k, v] of sub) {
+                        const original = subSnapshot.get(k);
+                        if (!original || !exprEquals(v, original)) return false;
+                    }
+                    return true;
                 }),
             );
         });
