@@ -6,6 +6,7 @@ import type { Expr, Location } from "../types/ast.js";
 import type { CoreExpr } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { buildConsChain } from "./buildConsChain.js";
@@ -118,5 +119,78 @@ describe("buildConsChain", () => {
                 }
             }
         }
+    });
+
+    describe("buildConsChain properties", () => {
+        // The defining property of buildConsChain: `[e1, e2, ..., en]` becomes
+        // `Cons(e1, Cons(e2, ..., Cons(en, Nil)))`. This single property fires
+        // across every list of generated elements and would catch any
+        // off-by-one, reversal, or left-association bug.
+
+        const intElementArb = fc.integer({ min: -100, max: 100 }).map((value): { kind: "Element"; expr: Expr } => ({
+            kind: "Element",
+            expr: { kind: "IntLit", value, loc: testLoc },
+        }));
+
+        function chainToArray(expr: CoreExpr): number[] {
+            const result: number[] = [];
+            let current: CoreExpr = expr;
+            while (current.kind === "CoreVariant" && current.constructor === "Cons") {
+                const head = current.args[0];
+                const tail = current.args[1];
+                if (!head || head.kind !== "CoreIntLit" || !tail) break;
+                result.push(head.value);
+                current = tail;
+            }
+            return result;
+        }
+
+        function endsInNil(expr: CoreExpr): boolean {
+            let current: CoreExpr = expr;
+            while (current.kind === "CoreVariant" && current.constructor === "Cons") {
+                const tail = current.args[1];
+                if (!tail) return false;
+                current = tail;
+            }
+            return current.kind === "CoreVariant" && current.constructor === "Nil";
+        }
+
+        it("property: chain order matches input order (right-association preserves left-to-right element order)", () => {
+            fc.assert(
+                fc.property(fc.array(intElementArb, { maxLength: 12 }), (elements) => {
+                    const chain = buildConsChain(elements, testLoc, mockGen, mockDesugar);
+                    const recovered = chainToArray(chain);
+                    const expected = elements.map((e) => (e.expr.kind === "IntLit" ? e.expr.value : Number.NaN));
+                    return recovered.length === expected.length && recovered.every((v, i) => v === expected[i]);
+                }),
+            );
+        });
+
+        it("property: chain always terminates in Nil", () => {
+            fc.assert(
+                fc.property(fc.array(intElementArb, { maxLength: 12 }), (elements) => {
+                    const chain = buildConsChain(elements, testLoc, mockGen, mockDesugar);
+                    return endsInNil(chain);
+                }),
+            );
+        });
+
+        it("property: empty list desugars to Nil", () => {
+            const chain = buildConsChain([], testLoc, mockGen, mockDesugar);
+            expect(chain.kind).toBe("CoreVariant");
+            if (chain.kind === "CoreVariant") {
+                expect(chain.constructor).toBe("Nil");
+            }
+        });
+
+        it("property: deterministic — same input ⇒ same output (structural)", () => {
+            fc.assert(
+                fc.property(fc.array(intElementArb, { maxLength: 8 }), (elements) => {
+                    const a = buildConsChain(elements, testLoc, mockGen, mockDesugar);
+                    const b = buildConsChain(elements, testLoc, mockGen, mockDesugar);
+                    return JSON.stringify(a) === JSON.stringify(b);
+                }),
+            );
+        });
     });
 });
