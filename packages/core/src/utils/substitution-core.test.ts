@@ -308,8 +308,11 @@ describe("Substitution Utilities", () => {
         it("property: substituteMultiple with empty map is identity", () => {
             fc.assert(
                 fc.property(coreExprArb({ depth: 3 }), (e) => {
+                    // Use structural equality (exprEquals) rather than referential
+                    // equality (===): the contract is "no substitutions changes
+                    // the value", not "returns the literal same JS object".
                     const result = substituteMultiple(e, new Map());
-                    return result === e;
+                    return exprEquals(e, result);
                 }),
             );
         });

@@ -7,7 +7,7 @@
  */
 
 import * as fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 
 import { isCoreDeclaration, isCoreExpr, isCoreModule, isCorePattern } from "../core-ast.js";
 import {
@@ -147,6 +147,16 @@ describe("core-ast-arb", () => {
         // Sanity: the constant location used by Tier-A/B generators must be
         // a real Location so any code that touches `loc.line` / `loc.file`
         // works without further checks.
-        expect.objectContaining({ file: expect.any(String), line: expect.any(Number) });
+        fc.assert(
+            fc.property(coreExprArb({ depth: 0 }), (expr) => {
+                const loc = expr.loc;
+                return (
+                    typeof loc.file === "string" &&
+                    typeof loc.line === "number" &&
+                    typeof loc.column === "number" &&
+                    typeof loc.offset === "number"
+                );
+            }),
+        );
     });
 });

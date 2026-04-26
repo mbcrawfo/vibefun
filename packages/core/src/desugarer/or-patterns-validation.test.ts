@@ -8,7 +8,7 @@
  */
 
 import type { Expr, Location, Pattern } from "../types/ast.js";
-import type { CoreLiteralPattern, CoreMatch, CoreVariantPattern } from "../types/core-ast.js";
+import type { CoreExpr, CoreLiteralPattern, CoreMatch, CoreVariantPattern } from "../types/core-ast.js";
 
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
@@ -492,7 +492,7 @@ describe("Or-Pattern properties", () => {
     it("property: nested or-patterns flatten — `(p1 | p2) | p3` expands the same as `p1 | p2 | p3`", () => {
         // The defining property of or-pattern desugaring: associativity of
         // alternation. A flat 3-arm or-pattern and a left-nested 3-arm
-        // or-pattern must produce the same Core AST.
+        // or-pattern must produce structurally identical Core ASTs.
         fc.assert(
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
                 const body: Expr = { kind: "IntLit", value: 1, loc: testLoc };
@@ -513,16 +513,23 @@ describe("Or-Pattern properties", () => {
                     loc: testLoc,
                 };
 
-                let flatResult, nestedResult;
+                let flatResult: CoreExpr, nestedResult: CoreExpr;
                 try {
-                    flatResult = desugar(flat) as CoreMatch;
-                    nestedResult = desugar(nestedMatch) as CoreMatch;
+                    flatResult = desugar(flat);
+                    nestedResult = desugar(nestedMatch);
                 } catch {
-                    return true;
+                    // The validator can reject some pattern combinations
+                    // (e.g. or-patterns binding different variables); discard
+                    // such inputs rather than count them as passes.
+                    // fc.pre(false) is typed `asserts false`, so the catch
+                    // arm exits via an internal throw — discarding the
+                    // generated input rather than counting it as a pass.
+                    fc.pre(false);
                 }
 
-                if (flatResult.cases.length !== nestedResult.cases.length) return false;
-                return flatResult.cases.every((c, i) => exprEquals(c.body, nestedResult.cases[i]!.body));
+                // Full structural equality, not just case-body equality:
+                // patterns, guards, and case ordering must all match.
+                return exprEquals(flatResult, nestedResult);
             }),
         );
     });
@@ -533,11 +540,14 @@ describe("Or-Pattern properties", () => {
         // nested or-patterns; the total must therefore be ≥ N.
         fc.assert(
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
-                let result;
+                let result: CoreMatch;
                 try {
                     result = desugar(makeMatch(patterns)) as CoreMatch;
                 } catch {
-                    return true;
+                    // fc.pre(false) is typed `asserts false`, so the catch
+                    // arm exits via an internal throw — discarding the
+                    // generated input rather than counting it as a pass.
+                    fc.pre(false);
                 }
                 return result.cases.length >= patterns.length;
             }),
@@ -547,12 +557,15 @@ describe("Or-Pattern properties", () => {
     it("property: or-pattern desugaring is deterministic", () => {
         fc.assert(
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 1, maxLength: 4 }), (patterns) => {
-                let a, b;
+                let a: CoreExpr, b: CoreExpr;
                 try {
                     a = desugar(makeMatch(patterns));
                     b = desugar(makeMatch(patterns));
                 } catch {
-                    return true;
+                    // fc.pre(false) is typed `asserts false`, so the catch
+                    // arm exits via an internal throw — discarding the
+                    // generated input rather than counting it as a pass.
+                    fc.pre(false);
                 }
                 return exprEquals(a, b);
             }),

@@ -635,30 +635,31 @@ describe("ModuleGraphBuilder", () => {
 
 describe("ModuleGraphBuilder — property-based", () => {
     /**
-     * Build a Module value from a list of imports. Each import becomes an
-     * ImportDecl with a single placeholder item, exercising the
-     * ImportDecl path through the builder.
+     * Build a Module value from a list of imports. Each import gets a unique
+     * local name (`sym0`, `sym1`, …) so the builder cannot collapse them as
+     * shadowing/duplicate-import errors (`VF5002`/`VF5003`); we want to
+     * exercise edge resolution, not the duplicate-detection path.
      */
     function makeModule(file: string, importPaths: string[]): Module {
         const loc = testLoc(file);
-        const decls: Declaration[] = importPaths.map((p) =>
-            createImportDecl(p, [createImportItem("placeholder")], loc),
+        const decls: Declaration[] = importPaths.map((p, idx) =>
+            createImportDecl(p, [createImportItem(`sym${idx}`)], loc),
         );
         return createModule(file, decls, []);
     }
 
     /**
      * A small generator producing a (modules, pathMap) pair where each
-     * generated module imports zero or more of the others. The path map
-     * resolves every import to the canonical module path it refers to.
+     * generated module imports zero or more of the others. The per-module
+     * import indices are deduplicated so each import path is unique within
+     * a module — a single module never imports the same target twice (which
+     * would also surface as a duplicate-import error and obscure the
+     * properties we actually want to test).
      */
     const moduleSetArb = fc.integer({ min: 1, max: 5 }).chain((n) => {
         const files = Array.from({ length: n }, (_, i) => `/m${i}.vf`);
         return fc
-            .array(fc.array(fc.integer({ min: 0, max: n - 1 }), { maxLength: n }), {
-                minLength: n,
-                maxLength: n,
-            })
+            .array(fc.uniqueArray(fc.integer({ min: 0, max: n - 1 }), { maxLength: n }), { minLength: n, maxLength: n })
             .map((importIndices) => {
                 const modules = new Map<string, Module>();
                 const pathMap = new Map<string, Map<string, string>>();
@@ -695,12 +696,36 @@ describe("ModuleGraphBuilder — property-based", () => {
         );
     });
 
-    it("property: build is deterministic — same inputs ⇒ same module count", () => {
+    it("property: getDependencies(file) equals the resolved targets in pathMap", () => {
+        // Edge resolution is the load-bearing part of the builder. Asserting
+        // module count alone lets a build that drops or rewires dependencies
+        // pass; comparing the resolved targets per file catches that.
+        fc.assert(
+            fc.property(moduleSetArb, ({ modules, pathMap }) => {
+                const result = buildModuleGraph(modules, pathMap);
+                return Array.from(modules.keys()).every((file) => {
+                    const expected = Array.from(pathMap.get(file)?.values() ?? [])
+                        .slice()
+                        .sort();
+                    const actual = result.graph.getDependencies(file).slice().sort();
+                    return expected.length === actual.length && expected.every((dep, i) => dep === actual[i]);
+                });
+            }),
+        );
+    });
+
+    it("property: build is deterministic — same inputs ⇒ same per-file dependency lists", () => {
         fc.assert(
             fc.property(moduleSetArb, ({ modules, pathMap }) => {
                 const a = buildModuleGraph(modules, pathMap);
                 const b = buildModuleGraph(modules, pathMap);
-                return a.graph.getModuleCount() === b.graph.getModuleCount() && a.errors.length === b.errors.length;
+                if (a.graph.getModuleCount() !== b.graph.getModuleCount()) return false;
+                if (a.errors.length !== b.errors.length) return false;
+                return Array.from(modules.keys()).every((file) => {
+                    const left = a.graph.getDependencies(file).slice().sort();
+                    const right = b.graph.getDependencies(file).slice().sort();
+                    return left.length === right.length && left.every((dep, i) => dep === right[i]);
+                });
             }),
         );
     });

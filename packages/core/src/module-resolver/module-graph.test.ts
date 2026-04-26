@@ -563,15 +563,30 @@ describe("ModuleGraph — property-based", () => {
     });
 
     it("property: getReverseDependencies is the transpose of getDependencies", () => {
-        // For every edge from A to B, A must appear in getReverseDependencies(B).
+        // Bidirectional: A appears in getReverseDependencies(B) **iff** B
+        // appears in getDependencies(A). One-way subset checking would let
+        // a buggy implementation that returns extra modules pass.
         fc.assert(
             fc.property(moduleGraphArb({ maxSize: 6, density: 0.4 }), (spec) => {
                 const graph = buildGraph(spec);
-                return graph.getModules().every((from) => {
-                    return graph.getDependencies(from).every((to) => {
-                        return graph.getReverseDependencies(to).includes(from);
-                    });
-                });
+                const modules = graph.getModules();
+                const forwardEdges = new Set<string>();
+                for (const from of modules) {
+                    for (const to of graph.getDependencies(from)) {
+                        forwardEdges.add(`${from} ${to}`);
+                    }
+                }
+                const reverseEdges = new Set<string>();
+                for (const to of modules) {
+                    for (const from of graph.getReverseDependencies(to)) {
+                        reverseEdges.add(`${from} ${to}`);
+                    }
+                }
+                if (forwardEdges.size !== reverseEdges.size) return false;
+                for (const edge of forwardEdges) {
+                    if (!reverseEdges.has(edge)) return false;
+                }
+                return true;
             }),
         );
     });
