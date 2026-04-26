@@ -601,3 +601,60 @@ This tells TypeScript "trust me, this will be initialized before use." However, 
 - Stateless utility functions → use direct imports
 
 Only use dependency injection when you truly need it to break circular dependencies.
+
+## Property-Based Testing (fast-check)
+
+`fast-check` is available across all workspaces for property-based testing. Property tests **augment** existing fixed-input tests — they never replace them. Coverage from fixed tests must be preserved; properties add edge-case discovery on top.
+
+### When to use fast-check
+
+- **Algebraic laws** (functor, monad, monoid; commutativity, associativity, identity).
+- **Round-trip / inverse pairs** (`parse ∘ unparse = id`, `lex ∘ render = id`).
+- **Idempotence** (running an optimizer pass twice equals running it once).
+- **Structural invariants** (every AST node carries a `Location`, free vars and bound vars partition all references).
+- **Crash oracles** ("this function does not throw on any well-formed input").
+
+### When NOT to use fast-check
+
+- Snapshot tests — they are regression oracles by design.
+- Error-message exact-match tests — strings are not properties.
+- Single-bug regression tests — keep the fixed counterexample.
+- Fixed-argv CLI tests — the input space is too small to generate meaningfully.
+
+### Where arbitraries live
+
+Generators are test infrastructure and live next to other test helpers:
+- `packages/stdlib/src/test-arbitraries/` — Option, Result, List, variants.
+- `packages/core/src/types/test-arbitraries/` — Tokens, surface AST, core AST, types.
+
+These directories are excluded from the published `dist/` (via the `files` glob in each `package.json`) and from coverage (via `vitest.config.ts`). Reuse generators across test files; never redefine them per test.
+
+### Naming convention
+
+```typescript
+it("property: <law>", () => {
+    fc.assert(
+        fc.property(myArb, (x) => {
+            // assertion
+        }),
+    );
+});
+```
+
+### Seeding policy
+
+`vitest.setup.ts` calls `fc.configureGlobal({ seed, numRuns })` so per-PR CI runs are deterministic. Override with environment variables for ad-hoc fuzzing:
+
+- `FC_SEED=12345 pnpm test` — reproduce a specific failure.
+- `FC_SEED=random FC_NUM_RUNS=1000 pnpm test` — explore (matches the weekly fuzz workflow).
+
+Do not set per-test seeds in source. If a property reveals a bug, capture the seed in the bug backlog entry; converting the shrunken counterexample to a fixed regression test is preferred over hard-coding the seed.
+
+### Bug triage when a property fails
+
+See `.claude/FAST_CHECK_BUG_BACKLOG.md` for tier definitions:
+- **Tier 1 (trivial fix):** fix in the same commit, add the shrunken counterexample as a fixed regression test, do not skip.
+- **Tier 2 (localized fix):** `it.skip("[BUG: VF-FC-####] ...")` + backlog entry; fix and re-enable in a follow-up commit in the same PR.
+- **Tier 3 (soundness/design):** `it.skip` + backlog entry + halt the PR for human triage.
+
+Never silently weaken a property to make it pass.

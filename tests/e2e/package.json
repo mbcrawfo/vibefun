@@ -11,6 +11,7 @@
     "devDependencies": {
         "@types/node": "24.10.9",
         "@vibefun/std": "workspace:*",
+        "fast-check": "4.7.0",
         "typescript": "5.9.3",
         "vitest": "4.1.0"
     }
