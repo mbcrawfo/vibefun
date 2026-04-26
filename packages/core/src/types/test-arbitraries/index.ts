@@ -33,16 +33,7 @@ export {
 } from "./token-arb.js";
 export type { OperatorDescriptor, OperatorOrPunctuationTokenType } from "./token-arb.js";
 
-export {
-    binaryOpArb,
-    declArb,
-    exprArb,
-    letDeclArb,
-    moduleArb,
-    patternArb,
-    typeExprArb,
-    unaryOpArb,
-} from "./ast-arb.js";
+export { binaryOpArb, declArb, exprArb, letDeclArb, moduleArb, patternArb, typeExprArb, unaryOpArb } from "./ast-arb.js";
 export type { AstArbOptions } from "./ast-arb.js";
 
 export { astEquals } from "./ast-equality.js";
@@ -64,3 +55,26 @@ export {
     SYNTHETIC_LOCATION,
     upperIdentifierArb,
 } from "./source-arb.js";
+
+export {
+    coreBinaryOpArb,
+    coreDeclArb,
+    coreExprArb,
+    coreModuleArb,
+    corePatternArb,
+    coreTypeExprArb,
+    coreUnaryOpArb,
+    moduleGraphArb,
+    substitutionArb,
+} from "./core-ast-arb.js";
+export type {
+    CoreDeclArbOptions,
+    CoreExprArbOptions,
+    CoreExprTier,
+    CoreModuleArbOptions,
+    CorePatternArbOptions,
+    CoreTypeExprArbOptions,
+    ModuleGraphArbOptions,
+    ModuleGraphSpec,
+    SubstitutionArbOptions,
+} from "./core-ast-arb.js";
