@@ -1,3 +1,6 @@
+import type { CoreBinaryOp, CoreUnary } from "../../types/core-ast.js";
+
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +13,7 @@ import {
     MEMBER_PRECEDENCE,
     needsParens,
     PRECEDENCE,
+    UNARY_PRECEDENCE,
 } from "./emit-operators.js";
 
 describe("Emit Operators", () => {
@@ -170,6 +174,79 @@ describe("Emit Operators", () => {
 
         it("should have null for Deref (special syntax)", () => {
             expect(JS_UNARY_OP.Deref).toBe(null);
+        });
+    });
+
+    describe("Properties", () => {
+        const binOpArb = fc.constantFrom(...(Object.keys(PRECEDENCE) as CoreBinaryOp[]));
+        const unaryOpArb = fc.constantFrom(...(Object.keys(UNARY_PRECEDENCE) as CoreUnary[]));
+
+        it("property: getBinaryPrecedence agrees with PRECEDENCE table on every operator", () => {
+            fc.assert(
+                fc.property(binOpArb, (op) => {
+                    return getBinaryPrecedence(op) === PRECEDENCE[op];
+                }),
+            );
+        });
+
+        it("property: getUnaryPrecedence agrees with UNARY_PRECEDENCE table on every operator", () => {
+            fc.assert(
+                fc.property(unaryOpArb, (op) => {
+                    return getUnaryPrecedence(op) === UNARY_PRECEDENCE[op];
+                }),
+            );
+        });
+
+        it("property: needsParens(inner, outer) holds iff inner < outer", () => {
+            fc.assert(
+                fc.property(fc.integer({ min: 0, max: 30 }), fc.integer({ min: 0, max: 30 }), (inner, outer) => {
+                    return needsParens(inner, outer) === inner < outer;
+                }),
+            );
+        });
+
+        it("property: ATOM_PRECEDENCE is greater than every binary precedence (atoms never need parens)", () => {
+            fc.assert(
+                fc.property(binOpArb, (op) => {
+                    return !needsParens(ATOM_PRECEDENCE, getBinaryPrecedence(op));
+                }),
+            );
+        });
+
+        it("property: every unary operator binds tighter than any binary operator", () => {
+            fc.assert(
+                fc.property(unaryOpArb, binOpArb, (u, b) => {
+                    return getUnaryPrecedence(u) >= getBinaryPrecedence(b);
+                }),
+            );
+        });
+
+        it("property: CALL_PRECEDENCE >= every binary precedence (function calls don't need parens around args)", () => {
+            fc.assert(
+                fc.property(binOpArb, (op) => {
+                    return CALL_PRECEDENCE >= getBinaryPrecedence(op);
+                }),
+            );
+        });
+
+        it("property: MEMBER_PRECEDENCE >= CALL_PRECEDENCE (member access binds at least as tight as calls)", () => {
+            expect(MEMBER_PRECEDENCE).toBeGreaterThanOrEqual(CALL_PRECEDENCE);
+        });
+
+        it("property: JS_BINARY_OP and JS_UNARY_OP cover every Core operator without throwing", () => {
+            fc.assert(
+                fc.property(binOpArb, (op) => {
+                    // Lookup must not throw and the returned value is either a string or null.
+                    const v = JS_BINARY_OP[op];
+                    return v === null || typeof v === "string";
+                }),
+            );
+            fc.assert(
+                fc.property(unaryOpArb, (op) => {
+                    const v = JS_UNARY_OP[op];
+                    return v === null || typeof v === "string";
+                }),
+            );
         });
     });
 });
