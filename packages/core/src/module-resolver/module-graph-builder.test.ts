@@ -7,6 +7,7 @@ import type { Declaration, ImportItem, Location, Module, Pattern } from "../type
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { buildModuleGraph, ModuleGraphBuilder } from "./module-graph-builder.js";
 
 // =============================================================================
@@ -724,12 +725,21 @@ describe("ModuleGraphBuilder — property-based", () => {
     });
 
     it("property: build is deterministic — same inputs ⇒ same per-file dependency lists", () => {
+        // Determinism on counts alone would let two runs produce different
+        // diagnostics with the same length and still pass; compare a
+        // normalized signature (code + location) for each diagnostic too.
+        const errorSig = (e: VibefunDiagnostic): string => {
+            const loc = e.diagnostic.location;
+            return `${e.code}:${loc.file}:${loc.line}:${loc.column}`;
+        };
         fc.assert(
             fc.property(moduleSetArb, ({ modules, pathMap }) => {
                 const a = buildModuleGraph(modules, pathMap);
                 const b = buildModuleGraph(modules, pathMap);
                 if (a.graph.getModuleCount() !== b.graph.getModuleCount()) return false;
-                if (a.errors.length !== b.errors.length) return false;
+                const aErr = a.errors.map(errorSig).slice().sort();
+                const bErr = b.errors.map(errorSig).slice().sort();
+                if (aErr.length !== bErr.length || aErr.some((s, i) => s !== bErr[i])) return false;
                 return Array.from(modules.keys()).every((file) => {
                     const left = a.graph.getDependencies(file).slice().sort();
                     const right = b.graph.getDependencies(file).slice().sort();
