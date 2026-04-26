@@ -22,7 +22,16 @@ where they add real value — without dropping coverage.
   fuzz workflow, stdlib arbitraries, 8 stdlib test files enhanced. Coverage
   net-positive across all four metrics.
 - **PR 2 (Token + lexer):** see `fast-check-pr2-lexer.md`.
-- **PR 3 (Surface AST + parser):** see `fast-check-pr3-parser.md`.
+- **PR 3 (Surface AST + parser):** complete (this PR). Surface-AST
+  arbitraries + minimal pretty-printer added under
+  `packages/core/src/types/test-arbitraries/`; 20 of 37 property-test-marked
+  parser test files now carry property tests covering round-trip,
+  trailing-comma equivalence, operator precedence preservation,
+  determinism, location coverage, pattern-name non-emptiness, and crash
+  oracles. Coverage held at PR 1 floor (lines 91.84%, branches 84.78%,
+  functions 91.81%, statements 90.89%); spec-validate stays at 378/378.
+  The 17 remaining property-test-marked files are eligible for follow-up
+  commits — the arbitraries and pretty-printer are reusable.
 - **PR 4 (Desugarer + utils + module-resolver):** see
   `fast-check-pr4-desugarer-utils.md`.
 - **PR 5 (Typechecker):** see `fast-check-pr5-typechecker.md`.
