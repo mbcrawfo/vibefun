@@ -13,12 +13,13 @@ import type {
 import type { Type, TypeEnv } from "../types/environment.js";
 import type { InferenceContext } from "./infer/index.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
 import { createContext, inferExpr } from "./infer/index.js";
-import { primitiveTypes, resetTypeVarCounter } from "./types.js";
+import { primitiveTypes, resetTypeVarCounter, typeEquals } from "./types.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
@@ -416,5 +417,100 @@ describe("Type Annotations", () => {
             expect(e).toBeInstanceOf(VibefunDiagnostic);
             expect((e as VibefunDiagnostic).code).toBe("VF4017");
         }
+    });
+});
+
+describe("Record Inference Properties", () => {
+    type FieldSpec = { readonly name: string; readonly kind: "Int" | "String" | "Bool" };
+
+    const fieldNameArb = fc.constantFrom("x", "y", "z", "name", "value", "left", "right");
+    const fieldKindArb = fc.constantFrom("Int", "String", "Bool") as fc.Arbitrary<FieldSpec["kind"]>;
+    const fieldSpecArb: fc.Arbitrary<FieldSpec> = fc
+        .tuple(fieldNameArb, fieldKindArb)
+        .map(([name, kind]): FieldSpec => ({ name, kind }));
+
+    function literalForKind(kind: FieldSpec["kind"]): import("../types/core-ast.js").CoreExpr {
+        switch (kind) {
+            case "Int":
+                return { kind: "CoreIntLit", value: 0, loc: testLoc };
+            case "String":
+                return { kind: "CoreStringLit", value: "s", loc: testLoc };
+            case "Bool":
+                return { kind: "CoreBoolLit", value: true, loc: testLoc };
+        }
+    }
+
+    function expectedType(kind: FieldSpec["kind"]): Type {
+        switch (kind) {
+            case "Int":
+                return primitiveTypes.Int;
+            case "String":
+                return primitiveTypes.String;
+            case "Bool":
+                return primitiveTypes.Bool;
+        }
+    }
+
+    it("property: empty record always infers to a Record with zero fields", () => {
+        // Pin the trivial-record contract: even after running through the
+        // full inference machinery, the empty literal `{}` produces a Record
+        // type with an empty field map (not a fresh type variable).
+        const expr: CoreRecord = { kind: "CoreRecord", fields: [], loc: testLoc };
+        for (let i = 0; i < 16; i++) {
+            const result = inferExpr(createContext(createTestEnv()), expr);
+            expect(result.type.type).toBe("Record");
+            if (result.type.type === "Record") {
+                expect(result.type.fields.size).toBe(0);
+            }
+        }
+    });
+
+    it("property: a record literal with N distinct fields infers to a Record with N matching field types", () => {
+        fc.assert(
+            fc.property(
+                fc.uniqueArray(fieldSpecArb, { minLength: 1, maxLength: 4, selector: (f) => f.name }),
+                (specs) => {
+                    const fields: CoreRecordField[] = specs.map((spec) => ({
+                        kind: "Field",
+                        name: spec.name,
+                        value: literalForKind(spec.kind),
+                        loc: testLoc,
+                    }));
+                    const expr: CoreRecord = { kind: "CoreRecord", fields, loc: testLoc };
+                    const result = inferExpr(createContext(createTestEnv()), expr);
+                    expect(result.type.type).toBe("Record");
+                    if (result.type.type === "Record") {
+                        expect(result.type.fields.size).toBe(specs.length);
+                        for (const spec of specs) {
+                            const got = result.type.fields.get(spec.name);
+                            expect(got).toBeDefined();
+                            if (got) {
+                                expect(typeEquals(got, expectedType(spec.kind))).toBe(true);
+                            }
+                        }
+                    }
+                },
+            ),
+        );
+    });
+
+    it("property: record inference is deterministic — same input yields the same field set", () => {
+        fc.assert(
+            fc.property(
+                fc.uniqueArray(fieldSpecArb, { minLength: 1, maxLength: 4, selector: (f) => f.name }),
+                (specs) => {
+                    const fields: CoreRecordField[] = specs.map((spec) => ({
+                        kind: "Field",
+                        name: spec.name,
+                        value: literalForKind(spec.kind),
+                        loc: testLoc,
+                    }));
+                    const expr: CoreRecord = { kind: "CoreRecord", fields, loc: testLoc };
+                    const a = inferExpr(createContext(createTestEnv()), expr);
+                    const b = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(a.type, b.type)).toBe(true);
+                },
+            ),
+        );
     });
 });
