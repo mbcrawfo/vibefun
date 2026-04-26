@@ -2,9 +2,17 @@
  * Expression parsing tests - Literals and basic expressions
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
+import {
+    astEquals,
+    lowerIdentifierArb,
+    nonNegativeIntArb,
+    prettyPrintExpr,
+    safeStringContentArb,
+} from "../types/test-arbitraries/index.js";
 import { parseExpression } from "./expression-test-helpers.js";
 
 describe("Parser - Expression Literals", () => {
@@ -270,6 +278,65 @@ describe("Parser - Expression Literals", () => {
                 expect((error as VibefunDiagnostic).code).toBe("VF2101");
                 expect((error as VibefunDiagnostic).hint).toBeDefined();
             }
+        });
+    });
+
+    describe("properties", () => {
+        it("property: any non-negative integer literal parses to IntLit with the same value", () => {
+            fc.assert(
+                fc.property(nonNegativeIntArb, (n) => {
+                    const expr = parseExpression(n.toString(10));
+                    expect(expr).toMatchObject({ kind: "IntLit", value: n });
+                    expect(expr.loc).toBeDefined();
+                }),
+            );
+        });
+
+        it("property: any safe identifier parses to Var with the same name", () => {
+            fc.assert(
+                fc.property(lowerIdentifierArb, (name) => {
+                    const expr = parseExpression(name);
+                    expect(expr).toMatchObject({ kind: "Var", name });
+                }),
+            );
+        });
+
+        it("property: parse(prettyPrintExpr(literalAst)) round-trips for literal nodes", () => {
+            const literalArb = fc.oneof(
+                nonNegativeIntArb.map((value) => ({
+                    kind: "IntLit" as const,
+                    value,
+                    loc: { file: "x", line: 1, column: 1, offset: 0 },
+                })),
+                fc.boolean().map((value) => ({
+                    kind: "BoolLit" as const,
+                    value,
+                    loc: { file: "x", line: 1, column: 1, offset: 0 },
+                })),
+                safeStringContentArb.map((value) => ({
+                    kind: "StringLit" as const,
+                    value,
+                    loc: { file: "x", line: 1, column: 1, offset: 0 },
+                })),
+                fc.constant({
+                    kind: "UnitLit" as const,
+                    loc: { file: "x", line: 1, column: 1, offset: 0 },
+                }),
+            );
+            fc.assert(
+                fc.property(literalArb, (lit) => {
+                    expect(astEquals(parseExpression(prettyPrintExpr(lit)), lit)).toBe(true);
+                }),
+            );
+        });
+
+        it("property: any parenthesized expression parses to the inner expression", () => {
+            fc.assert(
+                fc.property(nonNegativeIntArb, (n) => {
+                    const expr = parseExpression(`(${n})`);
+                    expect(expr).toMatchObject({ kind: "IntLit", value: n });
+                }),
+            );
         });
     });
 });
