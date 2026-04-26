@@ -7,9 +7,11 @@
 
 import type { Expr } from "../types/ast.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "../lexer/index.js";
+import { binaryOpArb, lowerIdentifierArb } from "../types/test-arbitraries/index.js";
 import { Parser } from "./parser.js";
 
 function parse(source: string): Expr {
@@ -189,6 +191,50 @@ describe("Lambda Precedence - Level 0", () => {
             if (expr.kind !== "Lambda") return;
             expect(expr.params).toHaveLength(2);
             expect(expr.body.kind).toBe("Match");
+        });
+    });
+
+    describe("properties", () => {
+        const opSymbol: Record<string, string> = {
+            Add: "+",
+            Subtract: "-",
+            Multiply: "*",
+            Divide: "/",
+            Modulo: "%",
+            Equal: "==",
+            NotEqual: "!=",
+            LessThan: "<",
+            LessEqual: "<=",
+            GreaterThan: ">",
+            GreaterEqual: ">=",
+            LogicalAnd: "&&",
+            LogicalOr: "||",
+            Concat: "&",
+            Cons: "::",
+            ForwardCompose: ">>",
+            BackwardCompose: "<<",
+            RefAssign: ":=",
+        };
+
+        it("property: a single-param lambda body extends through any binary operator chain", () => {
+            // Lambda is precedence 0 (lowest), so `x => a OP b` parses as
+            // Lambda { body: BinOp(a, OP, b) } regardless of operator.
+            fc.assert(
+                fc.property(
+                    lowerIdentifierArb,
+                    binaryOpArb,
+                    lowerIdentifierArb,
+                    lowerIdentifierArb,
+                    (param, op, l, r) => {
+                        const sym = opSymbol[op];
+                        if (sym === undefined) throw new Error(`unknown op symbol for ${op}`);
+                        const expr = parse(`let f = ${param} => ${l} ${sym} ${r};`);
+                        expect(expr.kind).toBe("Lambda");
+                        if (expr.kind !== "Lambda") return;
+                        expect(expr.body.kind).toBe("BinOp");
+                    },
+                ),
+            );
         });
     });
 });
