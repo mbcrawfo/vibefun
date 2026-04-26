@@ -4,12 +4,13 @@
 
 import type { CoreApp, CoreBinOp, CoreIntLit, CoreLambda, CoreVar, CoreVarPattern } from "../types/core-ast.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { createContext, inferExpr } from "./infer/index.js";
 import { createTestEnv, testLoc } from "./typechecker-test-helpers.js";
-import { primitiveTypes, resetTypeVarCounter } from "./types.js";
+import { primitiveTypes, resetTypeVarCounter, typeEquals } from "./types.js";
 
 describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)", () => {
     beforeEach(() => {
@@ -251,5 +252,95 @@ describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)
                 expect(err.code).toBe("VF4018");
             }
         }
+    });
+});
+
+describe("Mutually Recursive Let-Bindings — Properties", () => {
+    // Build `let rec f = (x: Int) => x + addend1 and g = (x: Int) => f(x) + addend2 in g(seed)`
+    // The resulting body always types to Int regardless of the literal values
+    // chosen for `addend1`, `addend2`, and `seed`. This pins the cross-path
+    // soundness of mutually-recursive inference under varying literals.
+    function buildMutualRecursionExpr(addend1: number, addend2: number, seed: number) {
+        const fParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xRef: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const addend1Lit: CoreIntLit = { kind: "CoreIntLit", value: addend1, loc: testLoc };
+        const fBody: CoreBinOp = {
+            kind: "CoreBinOp",
+            op: "Add",
+            left: xRef,
+            right: addend1Lit,
+            loc: testLoc,
+        };
+        const fValue: CoreLambda = { kind: "CoreLambda", param: fParam, body: fBody, loc: testLoc };
+
+        const gParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const fRef: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const xRef2: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const fCall: CoreApp = { kind: "CoreApp", func: fRef, args: [xRef2], loc: testLoc };
+        const addend2Lit: CoreIntLit = { kind: "CoreIntLit", value: addend2, loc: testLoc };
+        const gBody: CoreBinOp = {
+            kind: "CoreBinOp",
+            op: "Add",
+            left: fCall,
+            right: addend2Lit,
+            loc: testLoc,
+        };
+        const gValue: CoreLambda = { kind: "CoreLambda", param: gParam, body: gBody, loc: testLoc };
+
+        const gRef: CoreVar = { kind: "CoreVar", name: "g", loc: testLoc };
+        const seedLit: CoreIntLit = { kind: "CoreIntLit", value: seed, loc: testLoc };
+        const bodyApp: CoreApp = { kind: "CoreApp", func: gRef, args: [seedLit], loc: testLoc };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                    value: fValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+                {
+                    pattern: { kind: "CoreVarPattern", name: "g", loc: testLoc },
+                    value: gValue,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
+            body: bodyApp,
+            loc: testLoc,
+        };
+        return expr;
+    }
+
+    it("property: mutually recursive `f` and `g` over Int literals always infer to Int", () => {
+        fc.assert(
+            fc.property(
+                fc.integer({ min: -100, max: 100 }),
+                fc.integer({ min: -100, max: 100 }),
+                fc.integer({ min: -100, max: 100 }),
+                (a, b, seed) => {
+                    const expr = buildMutualRecursionExpr(a, b, seed);
+                    const result = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(result.type, primitiveTypes.Int)).toBe(true);
+                },
+            ),
+        );
+    });
+
+    it("property: inference of the same recursive expression is deterministic", () => {
+        fc.assert(
+            fc.property(
+                fc.integer({ min: -100, max: 100 }),
+                fc.integer({ min: -100, max: 100 }),
+                fc.integer({ min: -100, max: 100 }),
+                (a, b, seed) => {
+                    const expr = buildMutualRecursionExpr(a, b, seed);
+                    const r1 = inferExpr(createContext(createTestEnv()), expr);
+                    const r2 = inferExpr(createContext(createTestEnv()), expr);
+                    expect(typeEquals(r1.type, r2.type)).toBe(true);
+                },
+            ),
+        );
     });
 });
