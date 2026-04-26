@@ -6,6 +6,7 @@
  * nested `let mut` inside lambdas works end-to-end.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { compileAndGetExport, compileToJs } from "./execution-test-helpers.js";
@@ -64,5 +65,43 @@ describe("mutable references", () => {
             "final",
         );
         expect(result).toBe(2);
+    });
+});
+
+describe("Properties", () => {
+    // Each property run spawns the full pipeline + vm execution. Cap
+    // numRuns at 10 — ref/deref round-trip is the canonical property here.
+
+    const safeIntArb = fc.integer({ min: -1000, max: 1000 });
+
+    it("property: ref/deref round-trip preserves any int value (cap numRuns 10 — spawns JS)", () => {
+        fc.assert(
+            fc.property(safeIntArb, (x) => {
+                const result = compileAndGetExport(
+                    `let mut r = ref(${x});
+                     let result = !r;`,
+                    "result",
+                );
+                return result === x;
+            }),
+            { numRuns: 10 },
+        );
+    });
+
+    it("property: assignment + deref returns the assigned value (cap numRuns 10 — spawns JS)", () => {
+        fc.assert(
+            fc.property(safeIntArb, safeIntArb, (initial, assigned) => {
+                const result = compileAndGetExport(
+                    `let mut r = ref(${initial});
+                     let final = {
+                        r := ${assigned};
+                        !r;
+                     };`,
+                    "final",
+                );
+                return result === assigned;
+            }),
+            { numRuns: 10 },
+        );
     });
 });
