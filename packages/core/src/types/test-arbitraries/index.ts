@@ -78,3 +78,5 @@ export type {
     ModuleGraphSpec,
     SubstitutionArbOptions,
 } from "./core-ast-arb.js";
+export { surfaceBinaryOpArb, surfaceExprArb, surfacePatternArb, surfaceUnaryOpArb } from "./surface-ast-arb.js";
+export type { SurfaceExprArbOptions, SurfacePatternArbOptions } from "./surface-ast-arb.js";
