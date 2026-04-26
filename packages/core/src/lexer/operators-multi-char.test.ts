@@ -5,8 +5,10 @@
  * comparison, arrow, pipe, assignment, list, logical, and spread operators.
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { multiCharOperatorArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
 describe("Lexer - Multi-Character Operators", () => {
@@ -368,5 +370,26 @@ describe("Lexer - Multi-Character Operators", () => {
             expect(tokens[1]?.loc.column).toBe(2); // ==
             expect(tokens[2]?.loc.column).toBe(4); // b
         });
+    });
+});
+
+describe("Lexer - Multi-character operator properties", () => {
+    it("property: every multi-char operator round-trips with kind and value", () => {
+        fc.assert(
+            fc.property(multiCharOperatorArb, (desc) => {
+                const tokens = new Lexer(desc.value, "prop.vf").tokenize();
+                expect(tokens).toHaveLength(2);
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+            }),
+        );
+    });
+
+    it("property: surrounding spaces do not change the kind of a multi-char operator", () => {
+        fc.assert(
+            fc.property(multiCharOperatorArb, (desc) => {
+                const tokens = new Lexer(`  ${desc.value}  `, "prop.vf").tokenize();
+                return tokens[0]?.type === desc.type && tokens[0].value === desc.value;
+            }),
+        );
     });
 });
