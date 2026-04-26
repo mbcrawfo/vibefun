@@ -4,6 +4,7 @@
 
 import type { DiagnosticDefinition } from "./diagnostic.js";
 
+import * as fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { registry } from "./registry.js";
@@ -230,6 +231,46 @@ describe("DiagnosticRegistry", () => {
 
             expect(registry.size).toBe(0);
             expect(registry.has("VF0001")).toBe(false);
+        });
+    });
+
+    describe("Properties", () => {
+        // Code arbitrary: any 4-digit numeric VFxxxx code. Only one definition
+        // per code is allowed by the registry, so a unique-array generator
+        // keeps the test setup safe.
+        const codeArb = fc.stringMatching(/^VF\d{4}$/);
+
+        it("property: get returns undefined for any unregistered code", () => {
+            registry.clear();
+            fc.assert(
+                fc.property(codeArb, (code) => {
+                    return registry.get(code) === undefined && !registry.has(code);
+                }),
+            );
+        });
+
+        it("property: registering a code makes get and has consistent", () => {
+            fc.assert(
+                fc.property(codeArb, (code) => {
+                    registry.clear();
+                    const def = testDefinition(code);
+                    registry.register(def);
+                    return registry.has(code) && registry.get(code) === def;
+                }),
+            );
+        });
+
+        it("property: byPhase('typechecker') returns only typechecker codes", () => {
+            fc.assert(
+                fc.property(fc.uniqueArray(codeArb, { minLength: 1, maxLength: 5 }), (codes) => {
+                    registry.clear();
+                    codes.forEach((c, i) =>
+                        registry.register(testDefinition(c, { phase: i % 2 === 0 ? "typechecker" : "lexer" })),
+                    );
+                    const typecheckers = registry.byPhase("typechecker");
+                    return typecheckers.every((d) => d.phase === "typechecker");
+                }),
+            );
         });
     });
 });
