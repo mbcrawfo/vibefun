@@ -12,8 +12,11 @@ import type { Expr, Location, Pattern } from "../types/ast.js";
 import type { CoreExpr, CorePattern } from "../types/core-ast.js";
 import type { FreshVarGen } from "./FreshVarGen.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { identifierArb } from "../types/test-arbitraries/index.js";
+import { exprEquals } from "../utils/expr-equality.js";
 import { lowerLetBinding } from "./lowerLetBinding.js";
 
 const testLoc: Location = { file: "test.vf", line: 1, column: 1, offset: 0 };
@@ -124,5 +127,65 @@ describe("lowerLetBinding", () => {
             loc: testLoc,
         };
         expect(() => lowerLetBinding(expr, externalBody, mockGen, mockDesugar, mockDesugarPattern)).not.toThrow();
+    });
+
+    describe("lowerLetBinding properties", () => {
+        // Two load-bearing properties:
+        // 1. Recursive=false produces CoreLet (never CoreLetRecExpr).
+        // 2. Recursive=true produces CoreLetRecExpr (never CoreLet) with
+        //    exactly one binding — `let rec x = …` is a single-binding rec
+        //    group per the path documented in 07-let-binding-paths.md.
+
+        it("property: recursive=false ⇒ CoreLet", () => {
+            fc.assert(
+                fc.property(identifierArb, fc.integer({ min: -100, max: 100 }), fc.boolean(), (name, val, mutable) => {
+                    const expr = makeLet({ name, valueLit: val, recursive: false, mutable });
+                    const body: CoreExpr = { kind: "CoreIntLit", value: 0, loc: bodyLoc };
+                    const result = lowerLetBinding(expr, body, mockGen, mockDesugar, mockDesugarPattern);
+                    return result.kind === "CoreLet";
+                }),
+            );
+        });
+
+        it("property: recursive=true ⇒ CoreLetRecExpr with exactly one binding", () => {
+            fc.assert(
+                fc.property(identifierArb, fc.integer({ min: -100, max: 100 }), fc.boolean(), (name, val, mutable) => {
+                    const expr = makeLet({ name, valueLit: val, recursive: true, mutable });
+                    const body: CoreExpr = { kind: "CoreIntLit", value: 0, loc: bodyLoc };
+                    const result = lowerLetBinding(expr, body, mockGen, mockDesugar, mockDesugarPattern);
+                    return result.kind === "CoreLetRecExpr" && result.bindings.length === 1;
+                }),
+            );
+        });
+
+        it("property: mutable flag is preserved through lowering", () => {
+            fc.assert(
+                fc.property(identifierArb, fc.boolean(), (name, mutable) => {
+                    const expr = makeLet({ name, valueLit: 0, recursive: false, mutable });
+                    const body: CoreExpr = { kind: "CoreIntLit", value: 0, loc: bodyLoc };
+                    const result = lowerLetBinding(expr, body, mockGen, mockDesugar, mockDesugarPattern);
+                    if (result.kind !== "CoreLet") return false;
+                    return result.mutable === mutable;
+                }),
+            );
+        });
+
+        it("property: lowering is deterministic (structural)", () => {
+            fc.assert(
+                fc.property(
+                    identifierArb,
+                    fc.integer(),
+                    fc.boolean(),
+                    fc.boolean(),
+                    (name, val, recursive, mutable) => {
+                        const expr = makeLet({ name, valueLit: val, recursive, mutable });
+                        const body: CoreExpr = { kind: "CoreIntLit", value: 0, loc: bodyLoc };
+                        const a = lowerLetBinding(expr, body, mockGen, mockDesugar, mockDesugarPattern);
+                        const b = lowerLetBinding(expr, body, mockGen, mockDesugar, mockDesugarPattern);
+                        return exprEquals(a, b);
+                    },
+                ),
+            );
+        });
     });
 });
