@@ -166,6 +166,111 @@ describe("alphaEquivalent", () => {
     });
 });
 
+// `typeArb` deliberately omits `Union`, `Never`, `StringLit`, and `Module`
+// — those variants have special unification semantics (subtyping with String,
+// bottom-type behavior, nominal equality by path) that would break the
+// soundness / reflexivity / α-equivalence properties driven by typeArb. The
+// fixed unit tests below exercise the helpers (`freeVarsOfType`,
+// `alphaEquivalent`) on those variants directly so the helper code paths
+// still get coverage without polluting the property suites.
+describe("freeVarsOfType — coverage for variants outside typeArb", () => {
+    it("walks Union members", () => {
+        const t: import("../environment.js").Type = {
+            type: "Union",
+            types: [
+                { type: "Var", id: 3, level: 0 },
+                { type: "Const", name: "Int" },
+                { type: "Var", id: 5, level: 0 },
+            ],
+        };
+        expect(Array.from(freeVarsOfType(t)).sort((a, b) => a - b)).toEqual([3, 5]);
+    });
+
+    it("returns empty for Never and StringLit (leaf shapes)", () => {
+        expect(freeVarsOfType({ type: "Never" }).size).toBe(0);
+        expect(freeVarsOfType({ type: "StringLit", value: "pending" }).size).toBe(0);
+    });
+
+    it("returns empty for Module by design (matches production freeTypeVars)", () => {
+        // Production `typechecker/types.ts:freeTypeVars` intentionally
+        // treats `Module` as a leaf because module exports are fully-
+        // generalized schemes — every variable inside an export is bound
+        // by that scheme's own `forall`, so none escape to the outer
+        // scope. `freeVarsOfType` mirrors that decision so the parity
+        // property in `typechecker/types.test.ts` ("freeTypeVars matches
+        // the test-arb's freeVarsOfType helper") holds.
+        const t: import("../environment.js").Type = {
+            type: "Module",
+            path: "@vibefun/std#Mod",
+            exports: new Map([["foo", { vars: [], type: { type: "Var", id: 9, level: 0 } }]]),
+        };
+        expect(freeVarsOfType(t).size).toBe(0);
+    });
+});
+
+describe("alphaEquivalent — coverage for variants outside typeArb", () => {
+    it("treats two Never types as equivalent", () => {
+        expect(alphaEquivalent({ type: "Never" }, { type: "Never" })).toBe(true);
+    });
+
+    it("respects StringLit value equality", () => {
+        expect(alphaEquivalent({ type: "StringLit", value: "x" }, { type: "StringLit", value: "x" })).toBe(true);
+        expect(alphaEquivalent({ type: "StringLit", value: "x" }, { type: "StringLit", value: "y" })).toBe(false);
+    });
+
+    it("compares Module types by path (nominal)", () => {
+        const exports = new Map();
+        expect(
+            alphaEquivalent(
+                { type: "Module", path: "@vibefun/std#A", exports },
+                { type: "Module", path: "@vibefun/std#A", exports },
+            ),
+        ).toBe(true);
+        expect(
+            alphaEquivalent(
+                { type: "Module", path: "@vibefun/std#A", exports },
+                { type: "Module", path: "@vibefun/std#B", exports },
+            ),
+        ).toBe(false);
+    });
+
+    it("walks Union members positionally", () => {
+        const a: import("../environment.js").Type = {
+            type: "Union",
+            types: [
+                { type: "Var", id: 0, level: 0 },
+                { type: "Const", name: "Int" },
+            ],
+        };
+        const b: import("../environment.js").Type = {
+            type: "Union",
+            types: [
+                { type: "Var", id: 9, level: 0 },
+                { type: "Const", name: "Int" },
+            ],
+        };
+        const c: import("../environment.js").Type = {
+            type: "Union",
+            types: [
+                { type: "Const", name: "Int" },
+                { type: "Var", id: 9, level: 0 },
+            ],
+        };
+        expect(alphaEquivalent(a, b)).toBe(true);
+        expect(alphaEquivalent(a, c)).toBe(false);
+    });
+
+    it("rejects nominal Variant pairs whose names differ", () => {
+        const ctors = new Map([["A", []]]);
+        expect(
+            alphaEquivalent(
+                { type: "Variant", name: "Foo", constructors: ctors },
+                { type: "Variant", name: "Bar", constructors: ctors },
+            ),
+        ).toBe(false);
+    });
+});
+
 function walkTypes(t: import("../environment.js").Type, visit: (sub: import("../environment.js").Type) => void): void {
     visit(t);
     switch (t.type) {
