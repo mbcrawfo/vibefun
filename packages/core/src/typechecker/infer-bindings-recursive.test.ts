@@ -255,11 +255,27 @@ describe("Type Inference - Mutually Recursive Let-Bindings (let rec ... and ...)
     });
 });
 
-describe("Mutually Recursive Let-Bindings — Properties", () => {
-    // Build `let rec f = (x: Int) => x + addend1 and g = (x: Int) => f(x) + addend2 in g(seed)`
-    // The resulting body always types to Int regardless of the literal values
-    // chosen for `addend1`, `addend2`, and `seed`. This pins the cross-path
-    // soundness of mutually-recursive inference under varying literals.
+describe("Let-Rec Group With Cross-Binding Reference — Properties", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    // Build `let rec f = (x) => x + addend1 and g = (x) => f(x) + addend2 in g(seed)`.
+    // This exercises the let-rec group path with `g` referencing `f` (a
+    // one-way cross-binding reference; not bidirectional — see the note
+    // below).
+    //
+    // We deliberately do NOT make `f` reference `g` here. Doing so produces
+    // a cyclic substitution chain (`α → β → α`) that the current
+    // `applySubst` walks unboundedly and stack-overflows on; the occurs
+    // check during unification of the recursive group does not catch this
+    // shape today. That is a pre-existing typechecker incompleteness and is
+    // out of scope for this PR. A truly bidirectional property test would
+    // need that fix in `unify.ts` first.
+    //
+    // The resulting body types to `Int` regardless of the literal values
+    // chosen for `addend1`, `addend2`, and `seed`, pinning the cross-path
+    // soundness of let-rec group inference under varying literals.
     function buildMutualRecursionExpr(addend1: number, addend2: number, seed: number) {
         const fParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
         const xRef: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
@@ -313,7 +329,7 @@ describe("Mutually Recursive Let-Bindings — Properties", () => {
         return expr;
     }
 
-    it("property: mutually recursive `f` and `g` over Int literals always infer to Int", () => {
+    it("property: let-rec group with cross-binding reference always infers to Int over Int literals", () => {
         fc.assert(
             fc.property(
                 fc.integer({ min: -100, max: 100 }),
@@ -329,6 +345,11 @@ describe("Mutually Recursive Let-Bindings — Properties", () => {
     });
 
     it("property: inference of the same recursive expression is deterministic", () => {
+        // `InferResult` carries `{ type, subst }`. Both halves must agree
+        // across runs — checking only the type would miss substitution drift
+        // on a typechecker that converges to the same surface type via a
+        // different fresh-variable mapping. Reset the global type-var counter
+        // before each run so the two substitutions share a numbering.
         fc.assert(
             fc.property(
                 fc.integer({ min: -100, max: 100 }),
@@ -336,9 +357,12 @@ describe("Mutually Recursive Let-Bindings — Properties", () => {
                 fc.integer({ min: -100, max: 100 }),
                 (a, b, seed) => {
                     const expr = buildMutualRecursionExpr(a, b, seed);
+                    resetTypeVarCounter();
                     const r1 = inferExpr(createContext(createTestEnv()), expr);
+                    resetTypeVarCounter();
                     const r2 = inferExpr(createContext(createTestEnv()), expr);
                     expect(typeEquals(r1.type, r2.type)).toBe(true);
+                    expect(r1.subst).toEqual(r2.subst);
                 },
             ),
         );

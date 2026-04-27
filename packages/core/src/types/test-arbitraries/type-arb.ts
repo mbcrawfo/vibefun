@@ -35,14 +35,26 @@ export const MAX_VAR_ID = 7;
 export const PRIMITIVE_TYPE_NAMES = ["Int", "Float", "String", "Bool", "Unit"] as const;
 
 /**
- * Type-application constructors restricted to a small, known set.
+ * Type-application constructors paired with their fixed arities.
+ *
+ * Generating `List<a, b>` or `Ref<a, b>` would produce ill-formed types that
+ * unification rejects on grounds unrelated to the property under test, so we
+ * pin each constructor's argument count.
+ *
  * Includes `Ref` — references in the typechecker are represented as
  * `App<Const("Ref"), [inner]>` (see `refType()` in `typechecker/types.ts`),
  * not as the bare `Ref` discriminant on the `Type` union. The bare discriminant
  * exists for completeness but `unify` does not handle it directly, so
  * generators must use the `App` form.
  */
-const APP_CONSTRUCTOR_NAMES = ["List", "Option", "Result", "Box", "Map", "Ref"] as const;
+const APP_CONSTRUCTORS = [
+    { name: "List", arity: 1 },
+    { name: "Option", arity: 1 },
+    { name: "Result", arity: 2 },
+    { name: "Box", arity: 1 },
+    { name: "Map", arity: 2 },
+    { name: "Ref", arity: 1 },
+] as const;
 
 /** Record field name pool. Small so different records collide. */
 const FIELD_NAME_POOL = ["x", "y", "z", "name", "value", "left", "right"] as const;
@@ -105,15 +117,15 @@ export function typeArb(options: TypeArbOptions = {}): fc.Arbitrary<Type> {
             },
             {
                 weight: 2,
-                arbitrary: fc
-                    .tuple(fc.constantFrom(...APP_CONSTRUCTOR_NAMES), fc.array(sub, { minLength: 1, maxLength: 2 }))
-                    .map(
-                        ([name, args]): Type => ({
+                arbitrary: fc.constantFrom(...APP_CONSTRUCTORS).chain(({ name, arity }) =>
+                    fc.array(sub, { minLength: arity, maxLength: arity }).map(
+                        (args): Type => ({
                             type: "App",
                             constructor: { type: "Const", name },
                             args,
                         }),
                     ),
+                ),
             },
             {
                 weight: 1,
