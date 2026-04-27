@@ -561,13 +561,17 @@ describe("Or-Pattern properties", () => {
             // in an `OrPattern` (single-element arrays bypass the wrapping),
             // so the property exercises or-pattern expansion every iteration.
             fc.property(fc.array(patternArb({ depth: 1 }), { minLength: 2, maxLength: 4 }), (patterns) => {
+                // Snapshot the alternative count *before* desugaring and
+                // hand `makeMatch` a clone — otherwise an in-place mutation
+                // of `patterns` could weaken the post-call comparison.
+                const expectedAlternatives = patterns.length;
                 let result: CoreMatch;
                 try {
-                    result = desugar(makeMatch(patterns)) as CoreMatch;
+                    result = desugar(makeMatch(clone(patterns))) as CoreMatch;
                 } catch (error) {
                     discardOnlyExpectedInvalidInput(error);
                 }
-                return result.cases.length >= patterns.length;
+                return result.cases.length >= expectedAlternatives;
             }),
         );
     });

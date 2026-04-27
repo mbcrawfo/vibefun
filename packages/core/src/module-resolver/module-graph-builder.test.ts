@@ -728,9 +728,13 @@ describe("ModuleGraphBuilder — property-based", () => {
         // Determinism on counts alone would let two runs produce different
         // diagnostics with the same length and still pass; compare a
         // normalized signature (code + location) for each diagnostic too.
+        // Defensive: today's `Diagnostic.location` is required, but using
+        // optional-chaining future-proofs the signature against a diagnostic
+        // shape that omits location — the property would still report a
+        // deterministic mismatch instead of throwing.
         const errorSig = (e: VibefunDiagnostic): string => {
             const loc = e.diagnostic.location;
-            return `${e.code}:${loc.file}:${loc.line}:${loc.column}`;
+            return `${e.code}:${loc?.file ?? ""}:${loc?.line ?? -1}:${loc?.column ?? -1}`;
         };
         fc.assert(
             fc.property(moduleSetArb, ({ modules, pathMap }) => {
