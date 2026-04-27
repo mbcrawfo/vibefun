@@ -1003,7 +1003,7 @@ describe("Unification Algebraic Properties", () => {
         // substitution that does NOT actually equate the inputs.
         fc.assert(
             fc.property(typeArb(), typeArb(), (a, b) => {
-                let subst;
+                let subst: ReturnType<typeof unify>;
                 try {
                     subst = unify(a, b, propCtx);
                 } catch (e) {
