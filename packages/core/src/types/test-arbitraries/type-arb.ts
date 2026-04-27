@@ -237,7 +237,47 @@ export function typeSubstitutionArb(options: TypeSubstitutionArbOptions = {}): f
             maxLength: maxSize,
             selector: (entry) => entry[0],
         })
+        .filter((entries) => !hasSubstitutionCycle(entries))
         .map((entries) => new Map<number, Type>(entries));
+}
+
+/**
+ * Detect whether a candidate substitution contains a cycle through its own
+ * domain (e.g. `0 → Var(1), 1 → Var(0)`).
+ *
+ * Such substitutions make `applySubst` recurse unboundedly because it follows
+ * variable chains transitively (see `applySubst` in `typechecker/unify.ts`).
+ * Filtering them out at generation time keeps property tests focused on
+ * substitution laws instead of accidentally tripping a stack overflow when
+ * `groundRange` is disabled.
+ */
+function hasSubstitutionCycle(entries: ReadonlyArray<readonly [number, Type]>): boolean {
+    if (entries.length <= 1) {
+        return false;
+    }
+    const domain = new Set(entries.map(([id]) => id));
+    const edges = new Map<number, number[]>();
+    for (const [id, t] of entries) {
+        const deps = Array.from(freeVarsOfType(t)).filter((v) => domain.has(v));
+        edges.set(id, deps);
+    }
+    const visiting = new Set<number>();
+    const visited = new Set<number>();
+    const visit = (id: number): boolean => {
+        if (visited.has(id)) return false;
+        if (visiting.has(id)) return true;
+        visiting.add(id);
+        for (const next of edges.get(id) ?? []) {
+            if (visit(next)) return true;
+        }
+        visiting.delete(id);
+        visited.add(id);
+        return false;
+    };
+    for (const id of domain) {
+        if (visit(id)) return true;
+    }
+    return false;
 }
 
 /**
