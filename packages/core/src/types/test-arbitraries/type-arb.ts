@@ -228,7 +228,9 @@ export function typeSubstitutionArb(options: TypeSubstitutionArbOptions = {}): f
     const maxVarId = options.maxVarId ?? MAX_VAR_ID;
     const maxSize = options.maxSize ?? 4;
     const groundRange = options.groundRange ?? true;
-    const valueArb = groundRange ? groundTypeArb : typeArb({ depth: 2 });
+    // Thread `maxVarId` through to the non-ground branch so callers asking
+    // for a smaller variable domain don't get value-side vars escaping it.
+    const valueArb = groundRange ? groundTypeArb : typeArb({ depth: 2, maxVarId });
     return fc
         .uniqueArray(fc.tuple(fc.integer({ min: 0, max: maxVarId }), valueArb), {
             minLength: 0,
@@ -444,6 +446,13 @@ export function alphaEquivalent(a: Type, b: Type): boolean {
             }
             case "Variant": {
                 const yv = y as Type & { type: "Variant" };
+                // Variants are nominal: distinct named variants with
+                // identical payload shapes are NOT equivalent. Compare the
+                // optional `name` so two-different-named variants don't
+                // collapse just because their constructor sets line up.
+                if (x.name !== yv.name) {
+                    return false;
+                }
                 if (x.constructors.size !== yv.constructors.size) {
                     return false;
                 }
