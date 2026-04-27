@@ -623,7 +623,7 @@ describe("Operator Inference Properties", () => {
         );
     });
 
-    it("property: equality / disequality on matching primitives always infers to Bool", () => {
+    it("property: equality / disequality on Int literals always infers to Bool", () => {
         fc.assert(
             fc.property(
                 fc.constantFrom(...equalityOps),

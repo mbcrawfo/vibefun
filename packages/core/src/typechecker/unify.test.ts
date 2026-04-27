@@ -1019,15 +1019,13 @@ describe("Unification Algebraic Properties", () => {
         );
     });
 
-    it("property: symmetry — unify(a, b) succeeds iff unify(b, a) succeeds", () => {
-        fc.assert(
-            fc.property(typeArb(), typeArb(), (a, b) => {
-                const ab = tryUnify(a, b);
-                const ba = tryUnify(b, a);
-                expect(ab.ok).toBe(ba.ok);
-            }),
-        );
-    });
+    // No success-symmetry property: `unify` is intentionally directional for
+    // records because width subtyping accepts narrower-expected vs
+    // wider-actual but rejects the reverse (see `unifyRecords` in unify.ts
+    // and the existing record tests in this file). The property below
+    // captures the soundness obligation that does hold symmetrically — when
+    // both directions happen to succeed, both substitutions equate the
+    // inputs.
 
     it("property: symmetry — when both directions succeed, both substitutions equate the inputs", () => {
         fc.assert(

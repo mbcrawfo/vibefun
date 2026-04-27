@@ -505,6 +505,10 @@ describe("Type Inference - Tuples", () => {
 });
 
 describe("Literal Inference Properties", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
     it("property: any IntLit infers to Int", () => {
         fc.assert(
             fc.property(fc.integer({ min: -1_000_000, max: 1_000_000 }), (value) => {
