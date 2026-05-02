@@ -403,10 +403,8 @@ describe("ES2020 Generator", () => {
                 fc.property(generatedDeclArb, (declarations) => {
                     const typedModule = createTypedModule(declarations);
                     let a: string;
-                    let b: string;
                     try {
                         a = generate(typedModule, { filename: "prop.vf" }).code;
-                        b = generate(typedModule, { filename: "prop.vf" }).code;
                     } catch {
                         // Skip out-of-domain inputs via fc.pre instead of a
                         // silent `return true`. Codegen surfaces its rejections
@@ -415,10 +413,17 @@ describe("ES2020 Generator", () => {
                         // fc.pre tracks rejection rate in fast-check's
                         // statistics and aborts if too many consecutive
                         // inputs are skipped, surfacing arb drift instead of
-                        // letting the property silently degenerate.
+                        // letting the property silently degenerate. Note that
+                        // fc.pre(false) throws, so control never reaches the
+                        // statements below this catch on the rejection path.
                         fc.pre(false);
                     }
-                    expect(a!).toBe(b!);
+                    // The second call is NOT wrapped in try/catch: if the first
+                    // succeeded but the second throws, that's the determinism
+                    // failure this property is supposed to catch (statefulness
+                    // / non-pure codegen), not an out-of-domain input.
+                    const b = generate(typedModule, { filename: "prop.vf" }).code;
+                    expect(a!).toBe(b);
                 }),
             );
         });
