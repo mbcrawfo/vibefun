@@ -49,12 +49,11 @@ const CATEGORIZED_LANGUAGES = new Set(["TypeScript", "JavaScript"]);
 function classifyFile(filePath: string): Category {
     const basename = path.basename(filePath);
 
-    // Test code: .test.*, .spec.*, test-helper files, spec-validation, __tests__
+    // Test code: .test.*, .spec.*, test-helper files, __tests__
     if (
         basename.includes(".test.") ||
         basename.includes(".spec.") ||
         basename.includes("test-helper") ||
-        filePath.includes("/spec-validation/") ||
         filePath.includes("/__tests__/")
     ) {
         return "Test";

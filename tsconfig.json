@@ -4,7 +4,6 @@
         { "path": "./packages/core" },
         { "path": "./packages/cli" },
         { "path": "./packages/stdlib" },
-        { "path": "./scripts" },
-        { "path": "./tests/spec-validation" }
+        { "path": "./scripts" }
     ]
 }

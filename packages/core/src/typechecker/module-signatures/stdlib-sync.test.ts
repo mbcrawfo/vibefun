@@ -12,7 +12,7 @@
  *  - Parameter-order drift (data-first vs. data-last).
  *  - Type-shape drift (`Int` vs. `Float` parameters).
  * Those remain guarded by positive-path integration tests in the
- * spec-validation suite.
+ * e2e spec-validation suite (`tests/e2e/spec-validation/`).
  */
 
 import * as std from "@vibefun/std";

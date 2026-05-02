@@ -29,7 +29,7 @@ These directives guide all development work on the vibefun project:
    - **Unit tests** — colocated with the source file (`*.test.ts` next to the implementation) for every new function, branch, and error path. Cover edge cases, boundary conditions, and error conditions.
    - **Integration tests** — exercise module interactions (parser → desugarer → typechecker → codegen pipelines, e.g. `packages/core/src/codegen/es2020/execution-tests/`, `packages/core/src/desugarer/desugarer-integration.test.ts`).
    - **End-to-end tests** — add a case under `tests/e2e/` whenever the change affects CLI behaviour, multi-file resolution, stdlib runtime, or user-visible output.
-   - **Spec-validation** — when the change affects language semantics, update or add tests in `tests/spec-validation/sections/` so the spec suite reflects the new behaviour; rerun `pnpm run spec:validate` and commit expected-pass flips.
+   - **Spec-validation** — when the change affects language semantics, update or add tests in `tests/e2e/spec-validation/` so the spec suite reflects the new behaviour. These are gating: `pnpm run test:e2e` (and `pnpm run verify`) fail if any spec test fails.
    - **Let-binding matrix sync** — when adding or changing a `let` / `let rec` form (parser admits a new shape, desugarer routes differently, typechecker grows a new path), add the form to `tests/e2e/let-binding-matrix.test.ts` so every soundness scenario runs through every form. Cross-path divergence then surfaces as a single failing cell instead of a ninth review round.
    - **AI coding guide sync** — when user-observable syntax, type-system behaviour, stdlib surface, or JS interop semantics change, update `.claude/VIBEFUN_AI_CODING_GUIDE.md` (relevant sections + examples) in the same commit so AI agents see the new rules immediately.
 6. **Quality Checks**: After implementing any changes, always run the following in order:
@@ -38,7 +38,7 @@ These directives guide all development work on the vibefun project:
    - `pnpm test` - Unit and integration tests
    - `pnpm run test:e2e` - End-to-end CLI tests
    - `pnpm run format` - Code formatting with Prettier
-   - OR use the convenience command: `pnpm run verify` (runs `build + check + lint + test + test:e2e + format:check`; note it runs `format:check` rather than rewriting files — run `pnpm run format` separately to fix reported issues, and `pnpm run spec:validate` separately when language semantics change)
+   - OR use the convenience command: `pnpm run verify` (runs `build + check + lint + test + test:e2e + format:check`; note it runs `format:check` rather than rewriting files — run `pnpm run format` separately to fix reported issues)
 
 ## Planning & Code Coverage
 
@@ -93,8 +93,7 @@ vibefun/
 │   └── stdlib/                  # @vibefun/std - Standard library
 │       └── src/                 # Standard library implementation
 ├── tests/
-│   ├── e2e/                     # End-to-end CLI tests (@vibefun/e2e-tests workspace)
-│   └── spec-validation/         # Test suite validating the implementation of language features
+│   └── e2e/                     # End-to-end CLI tests (@vibefun/e2e-tests workspace), including spec-validation/
 ├── tsconfig.base.json           # Shared TypeScript configuration
 └── package.json                 # Workspace root configuration
 ```
@@ -175,9 +174,6 @@ pnpm --filter @vibefun/e2e-tests test
 
 # Regenerate error code docs (run after adding/changing/removing error codes)
 pnpm docs:errors
-
-# Spec validation - check the functionality of language features
-pnpm spec:validate --verbose
 ```
 
 ### Running the Vibefun CLI

@@ -96,7 +96,7 @@ describe("registerTypeDeclarations — variant types", () => {
 
     it("lets a user redefine Option/Result without shadow conflicts", () => {
         // Prior regression: redefining builtin variants produced conflicts
-        // after spec-validation section 11 removed test-fixture duplicates.
+        // after the stdlib spec tests removed test-fixture duplicates.
         const { env } = typeCheckSource(`
             type Option<T> = Some(T) | None;
             type Result<T, E> = Ok(T) | Err(E);

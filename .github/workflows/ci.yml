@@ -51,6 +51,9 @@ jobs:
       - name: Run tests with coverage
         run: pnpm run test:coverage
 
+      - name: Run e2e tests
+        run: pnpm run test:e2e
+
       - name: Upload coverage reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -91,33 +94,3 @@ jobs:
           json-final-path: coverage/coverage-final.json
           file-coverage-mode: 'changes'
 
-      - name: Check for spec-relevant changes
-        if: github.event_name == 'pull_request'
-        id: changes
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
-        with:
-          filters: |
-            spec-relevant:
-              - 'packages/**'
-              - 'tests/spec-validation/**'
-
-      - name: Run spec validation
-        if: github.event_name == 'pull_request' && steps.changes.outputs.spec-relevant == 'true'
-        id: spec-validate
-        run: |
-          pnpm run spec:validate --report spec-report --markdown > spec-summary.md
-
-      - name: Upload spec validation report
-        if: github.event_name == 'pull_request' && always() && steps.spec-validate.outcome != 'skipped'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: spec-validation-report
-          path: spec-report/
-          retention-days: 30
-
-      - name: Comment spec validation summary
-        if: github.event_name == 'pull_request' && always() && steps.spec-validate.outcome != 'skipped'
-        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
-        with:
-          header: spec-validation
-          path: spec-summary.md

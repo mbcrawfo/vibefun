@@ -122,35 +122,6 @@ export default [
         },
     },
     {
-        files: ['tests/spec-validation/**/*.ts'],
-        languageOptions: {
-            parser: tsparser,
-            parserOptions: {
-                ecmaVersion: 2022,
-                sourceType: 'module',
-                project: ['./tests/spec-validation/tsconfig.json'],
-            },
-            globals: {
-                console: 'readonly',
-                process: 'readonly',
-            },
-        },
-        plugins: {
-            '@typescript-eslint': tseslint,
-        },
-        rules: {
-            'no-unused-vars': 'off',
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-            ],
-            '@typescript-eslint/no-explicit-any': 'error',
-            'no-console': 'off', // Test runner uses console for output
-            'prefer-const': 'error',
-            'no-var': 'error',
-        },
-    },
-    {
         files: ['tests/e2e/**/*.ts'],
         languageOptions: {
             parser: tsparser,

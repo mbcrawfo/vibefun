@@ -19,7 +19,6 @@ export default defineConfig({
                 "**/*.test.ts",
                 "**/*.spec.ts",
                 "scripts/**",
-                "tests/spec-validation/**",
                 "**/vitest.config.ts",
                 "**/vitest.setup.ts",
                 "**/coverage/**",

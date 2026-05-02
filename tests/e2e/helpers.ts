@@ -5,10 +5,6 @@
  * actually invoking the CLI binary, resolving `@vibefun/std` from node's
  * module loader, reading multi-file projects, and comparing the final
  * stdout/stderr/exit-code of a real `node` run.
- *
- * Adapted from tests/spec-validation/framework/helpers.ts but kept
- * standalone — the two test harnesses serve different purposes and should
- * evolve independently.
  */
 
 import { spawnSync } from "node:child_process";
@@ -123,8 +119,8 @@ export function createTempProject(files: Record<string, string>): { dir: string;
 }
 
 /**
- * Wrap vibefun source with the standard spec-validation boilerplate:
- * stdlib imports + a single `console_log` call for runtime output.
+ * Wrap vibefun source with the standard spec-test boilerplate: stdlib
+ * imports + a single `console_log` call for runtime output.
  */
 export function withOutput(code: string, outputExpr: string): string {
     return [

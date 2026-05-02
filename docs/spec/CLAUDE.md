@@ -4,11 +4,11 @@ This document explains how to navigate and maintain the Vibefun language specifi
 
 ## Spec Validation Tests
 
-**CRITICAL**: The spec validation test suite in `tests/spec-validation/` must stay synchronized with the language specification. Any changes to the spec should have matching updates to the validation tests.
+**CRITICAL**: The spec validation test suite in `tests/e2e/spec-validation/` must stay synchronized with the language specification. It is a gating suite — `pnpm run test:e2e` and `pnpm run verify` fail if any spec test fails — so spec changes must land with matching test updates in the same commit.
 
 ### When to Update Validation Tests
 
-Update `tests/spec-validation/sections/` whenever you:
+Update `tests/e2e/spec-validation/` whenever you:
 
 1. **Add a new language feature to the spec** - Add corresponding validation tests
 2. **Change existing behavior** - Update tests to match new expected behavior
@@ -18,17 +18,16 @@ Update `tests/spec-validation/sections/` whenever you:
 
 ### Validation Test Structure
 
-Tests are organized by spec section in `tests/spec-validation/sections/`:
-- Each section file (e.g., `02-lexical-structure.ts`) corresponds to a spec section
-- Tests include a `specRef` field pointing to the relevant spec file
+Tests are organized by spec section in `tests/e2e/spec-validation/`:
+- Each section file (e.g., `02-lexical-structure.test.ts`) corresponds to a spec section
+- Tests use vitest `describe`/`it` blocks and the local `helpers.ts` assertion wrappers
 - Tests validate by compiling/running actual `.vf` code through the CLI
 
 ### Running Validation Tests
 
 ```bash
-pnpm run spec:validate              # Summary report
-pnpm run spec:validate --verbose    # Per-test details
-pnpm run spec:validate --report dir # Write report files
+pnpm run test:e2e                                          # All e2e tests including spec-validation
+pnpm --filter @vibefun/e2e-tests exec vitest run spec-validation  # Just the spec-validation folder
 ```
 
 ## Quick Start: Finding Information

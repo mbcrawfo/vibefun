@@ -139,7 +139,7 @@ export function run(inputPath: string | undefined, options: RunOptions = {}): Ru
     // Execute the compiled JS by piping it to node --input-type=module.
     // Node resolves imports (e.g. @vibefun/std) from the process cwd, so
     // this stdin path requires the user's shell cwd to have a reachable
-    // node_modules — same constraint the spec-validation harness relies on.
+    // node_modules — same constraint the e2e harness relies on.
     const child = spawnSync("node", ["--input-type=module"], {
         input: code,
         stdio: ["pipe", "inherit", "inherit"],
