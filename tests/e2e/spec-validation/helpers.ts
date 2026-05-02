@@ -48,6 +48,9 @@ export function expectCompiles(source: string): void {
 export function expectCompileError(source: string, errorCode?: string): void {
     const r = compileSource(source);
     expect(r.exitCode, `expected compile error (exit 1), got ${r.exitCode}`).toBe(1);
+    // Mirror expectFileCompileError: a real diagnostic must appear in stderr,
+    // not just an exit-1 from an unrelated failure.
+    expect(r.stderr, `expected VFxxxx diagnostic in stderr\n${r.stderr}`).toMatch(/\bVF\d+\b/);
     if (errorCode !== undefined) {
         expect(r.stderr, `expected error code ${errorCode} in stderr`).toContain(errorCode);
     }
