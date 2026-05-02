@@ -126,4 +126,24 @@ describe("Properties", () => {
             { numRuns: 25 },
         );
     });
+
+    it("property: integer division truncates toward zero (matches Math.trunc(l / r))", () => {
+        // Regression coverage for the truncation-toward-zero semantics
+        // exercised by the four fixed division tests above (-7/2 = -3, etc.).
+        // Wrap each operand in parens so a negative literal does not collide
+        // with the preceding operator (e.g. `5 / -2` would lex as `5 / -2`
+        // but `(5) / (-2)` is unambiguous and matches the existing fixed-test
+        // convention on this file).
+        fc.assert(
+            fc.property(
+                safeIntArb,
+                safeIntArb.filter((n) => n !== 0),
+                (l, r) => {
+                    const result = compileAndGetExport(`let result = (${l}) / (${r});`, "result");
+                    return result === Math.trunc(l / r);
+                },
+            ),
+            { numRuns: 25 },
+        );
+    });
 });
