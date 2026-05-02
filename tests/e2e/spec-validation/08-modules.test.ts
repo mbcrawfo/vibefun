@@ -36,7 +36,9 @@ function runModuleTest(
     }
     if (check === "compileError") {
         const r = compileFile(mainFile, project.dir);
-        expect(r.exitCode, `expected compile error, got exit code 0`).not.toBe(0);
+        // Match expectCompileError's exact-1 contract so module tests don't
+        // drift from the rest of the suite.
+        expect(r.exitCode, `expected compile error (exit 1), got ${r.exitCode}`).toBe(1);
         // Guard against false positives (process kill, missing CLI, etc.) by
         // requiring stderr to look like a real compiler diagnostic.
         expect(r.stderr, `expected VFxxxx diagnostic in stderr\n${r.stderr}`).toMatch(/\bVF\d+\b/);
