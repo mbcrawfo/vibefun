@@ -109,8 +109,7 @@ let result = match x {
         it("variant pattern - Some", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let x = Some(42);
+                    `let x = Some(42);
 let result = match x {
   | Some(v) => String.fromInt(v)
   | None => "none"
@@ -124,8 +123,7 @@ let result = match x {
         it("variant pattern - None", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let x: Option<Int> = None;
+                    `let x: Option<Int> = None;
 let result = match x {
   | Some(v) => String.fromInt(v)
   | None => "none"
@@ -292,9 +290,7 @@ let result = match node {
         it("nested variant in variant", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Option<Int>, String> = Ok(Some(42));
+                    `let x: Result<Option<Int>, String> = Ok(Some(42));
 let result = match x {
   | Ok(Some(v)) => String.fromInt(v)
   | Ok(None) => "none"
@@ -375,8 +371,7 @@ let f = (o: Option<Int>) => match o {
         it("or-pattern nested in constructor", () => {
             expectRunOutput(
                 withOutput(
-                    `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<String, String> = Ok("a");
+                    `let x: Result<String, String> = Ok("a");
 let result = match x {
   | Ok("a" | "b") => "matched"
   | Ok(_) => "other"
@@ -391,8 +386,7 @@ let result = match x {
         it("nested variant in list", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let xs: List<Option<Int>> = [Some(1), Some(2)];
+                    `let xs: List<Option<Int>> = [Some(1), Some(2)];
 let result = match xs {
   | [Some(a), Some(b), ...rest] => String.fromInt(a + b)
   | _ => "other"
@@ -406,8 +400,7 @@ let result = match xs {
         it("nested list in variant", () => {
             expectRunOutput(
                 withOutput(
-                    `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<List<Int>, String> = Ok([10, 20, 30]);
+                    `let x: Result<List<Int>, String> = Ok([10, 20, 30]);
 let result = match x {
   | Ok([first, ...rest]) => String.fromInt(first)
   | Ok([]) => "empty"

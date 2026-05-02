@@ -82,8 +82,7 @@ let result = inf > 1000000.0;`,
         it("Result type - Ok variant", () => {
             expectRunOutput(
                 withOutput(
-                    `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Ok(42);
+                    `let x: Result<Int, String> = Ok(42);
 let result = match x {
   | Ok(v) => String.fromInt(v)
   | Err(e) => e
@@ -97,8 +96,7 @@ let result = match x {
         it("Result type - Err variant", () => {
             expectRunOutput(
                 withOutput(
-                    `type Result<T, E> = Ok(T) | Err(E);
-let x: Result<Int, String> = Err("failed");
+                    `let x: Result<Int, String> = Err("failed");
 let result = match x {
   | Ok(v) => String.fromInt(v)
   | Err(e) => e
@@ -114,8 +112,7 @@ let result = match x {
         it("Option type - Some variant", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let x = Some(42);
+                    `let x = Some(42);
 let result = match x {
   | Some(v) => String.fromInt(v)
   | None => "none"
@@ -129,8 +126,7 @@ let result = match x {
         it("Option type - None variant", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let x: Option<Int> = None;
+                    `let x: Option<Int> = None;
 let result = match x {
   | Some(v) => String.fromInt(v)
   | None => "none"
@@ -146,9 +142,7 @@ let result = match x {
         it("nested Result in Option", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-type Result<T, E> = Ok(T) | Err(E);
-let x: Option<Result<Int, String>> = Some(Ok(42));
+                    `let x: Option<Result<Int, String>> = Some(Ok(42));
 let result = match x {
   | Some(Ok(v)) => String.fromInt(v)
   | Some(Err(e)) => e

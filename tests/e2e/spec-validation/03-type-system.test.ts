@@ -194,8 +194,7 @@ let y: Option<Int> = None;`);
         it("variant pattern matching", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let x = Some(42);
+                    `let x = Some(42);
 let result = match x {
   | Some(v) => String.fromInt(v)
   | None => "none"
