@@ -13,10 +13,11 @@
  *   unsafe subtree to assert against.
  */
 import type { CoreExpr } from "../core-ast.js";
+import type { CoreExprArbOptions } from "./core-ast-arb.js";
 
 import * as fc from "fast-check";
 
-import { coreExprArb, type CoreExprArbOptions } from "./core-ast-arb.js";
+import { coreExprArb } from "./core-ast-arb.js";
 import { SYNTHETIC_LOCATION } from "./source-arb.js";
 
 const LOC = SYNTHETIC_LOCATION;
@@ -37,6 +38,4 @@ export const optimizableExprArb = (options: CoreExprArbOptions = {}): fc.Arbitra
  * leave unsafe blocks verbatim.
  */
 export const coreExprWithUnsafeArb = (options: CoreExprArbOptions = {}): fc.Arbitrary<CoreExpr> =>
-    coreExprArb({ depth: 2, ...options }).map(
-        (inner): CoreExpr => ({ kind: "CoreUnsafe", expr: inner, loc: LOC }),
-    );
+    coreExprArb({ depth: 2, ...options }).map((inner): CoreExpr => ({ kind: "CoreUnsafe", expr: inner, loc: LOC }));

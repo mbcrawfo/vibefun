@@ -7,8 +7,8 @@ import type { CoreExpr } from "../types/core-ast.js";
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { coreExprArb, optimizableExprArb } from "../types/test-arbitraries/index.js";
 import { OptimizationLevel } from "../types/optimizer.js";
+import { coreExprArb, optimizableExprArb } from "../types/test-arbitraries/index.js";
 import { exprEquals } from "../utils/expr-equality.js";
 import { Optimizer } from "./optimizer.js";
 import { BetaReductionPass } from "./passes/beta-reduction.js";
