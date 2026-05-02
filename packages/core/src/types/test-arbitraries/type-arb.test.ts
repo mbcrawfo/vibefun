@@ -219,7 +219,7 @@ describe("alphaEquivalent — coverage for variants outside typeArb", () => {
     });
 
     it("compares Module types by path (nominal)", () => {
-        const exports = new Map();
+        const exports: Map<string, import("../environment.js").TypeScheme> = new Map();
         expect(
             alphaEquivalent(
                 { type: "Module", path: "@vibefun/std#A", exports },
