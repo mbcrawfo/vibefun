@@ -457,6 +457,14 @@ describe("BetaReductionPass", () => {
     });
 
     describe("Properties", () => {
+        // Note: no idempotence property. `BetaReductionPass.transform`
+        // does a single bottom-up walk and reduces redexes that exist at
+        // call time. Substitution can introduce *new* redexes that the
+        // walk has already passed — e.g. `((f) => f(2))((x) => x+1)` → after
+        // one pass `((x) => x+1)(2)`, which is itself a redex on a second
+        // call. The optimizer's fixed-point loop (`OptimizationLevel.O2`
+        // in `optimizer.ts`) drives convergence; idempotence in a single
+        // `transform` call is not an invariant of this pass.
         it("property: transform is deterministic on closed Core expressions", () => {
             fc.assert(
                 fc.property(optimizableExprArb({ depth: 3 }), (expr) => {

@@ -167,7 +167,9 @@ describe("Reserved Words", () => {
             const anyIdent = fc.oneof(reservedWordArb, fc.stringMatching(/^[a-z][a-zA-Z0-9]{0,8}$/));
             fc.assert(
                 fc.property(anyIdent, (name) => {
-                    return escapeIdentifier(name) === escapeIdentifier(name);
+                    const first = escapeIdentifier(name);
+                    const second = escapeIdentifier(name);
+                    return first === second;
                 }),
             );
         });

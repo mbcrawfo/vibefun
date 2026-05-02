@@ -949,6 +949,15 @@ describe("InlineExpansionPass", () => {
     });
 
     describe("Properties", () => {
+        // Note: no idempotence property. `InlineExpansionPass.transform`
+        // performs a single bottom-up walk per call. Substituting a let
+        // binding's value into its body can expose *new* inlinable bindings
+        // higher up the tree (e.g. `let f = (x) => x; let g = f` → after
+        // one pass `g = (x) => x`, which is then itself inlinable on a
+        // second call). The optimizer's fixed-point loop (`OptimizationLevel.O2`
+        // in `optimizer.ts`) drives convergence; idempotence in a single
+        // `transform` call is not an invariant of this pass, so asserting
+        // it here would fail on counter-examples that are correct behaviour.
         it("property: inline.transform is deterministic on closed Core expressions", () => {
             fc.assert(
                 fc.property(optimizableExprArb({ depth: 3 }), (expr) => {

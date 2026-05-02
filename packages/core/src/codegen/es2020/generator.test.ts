@@ -420,9 +420,19 @@ describe("ES2020 Generator", () => {
                         a = generate(typedModule, { filename: "prop.vf" }).code;
                         b = generate(typedModule, { filename: "prop.vf" }).code;
                     } catch {
-                        // Codegen rejects shapes the type system permits but
-                        // the desugarer never produces (e.g. let-rec with
-                        // non-Var binders). Skip these — see file comment.
+                        // Bare catch is intentional. Codegen surfaces its
+                        // out-of-domain rejections as plain `Error` with
+                        // messages that are NOT a stable contract — the
+                        // wording can change without a behaviour change.
+                        // Pattern-matching on those strings here would
+                        // either (a) couple the property to internal error
+                        // text and break it on innocuous wording changes,
+                        // or (b) miss new rejection paths added later.
+                        // The narrower `coreExprArb({ depth: 1 })` input
+                        // distribution above already minimizes how often
+                        // this branch fires; if the skip rate spikes the
+                        // remediation is to narrow the input further, not
+                        // to start parsing error strings.
                         return true;
                     }
                     return a === b;

@@ -66,6 +66,15 @@ describe("prefix ! disambiguation", () => {
 describe("Properties", () => {
     // Round-trip: !(ref x) === x for any int x. Cap numRuns at 10 — every
     // run spawns a full compile + vm execution.
+    //
+    // Note: this property exercises the same source pattern as
+    // `mutable-refs.test.ts`'s ref/deref round-trip. The duplication is
+    // intentional — `prefix-bang.test.ts` is the home for `!`-disambiguation
+    // tests (typechecker rewriting `LogicalNot` → `Deref` when the operand
+    // is `Ref<T>`), and the property belongs alongside those fixed tests
+    // for navigability. Removing it from here would split the disambiguation
+    // story across two files. Each property runs at numRuns 10 so the
+    // duplicated cost is a few hundred ms total.
     it("property: !(ref x) deref equals x for any int (cap numRuns 10 — spawns JS)", () => {
         const safeIntArb = fc.integer({ min: -1000, max: 1000 });
         fc.assert(
