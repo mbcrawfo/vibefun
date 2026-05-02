@@ -174,6 +174,35 @@ describe("alphaEquivalent", () => {
 // `alphaEquivalent`) on those variants directly so the helper code paths
 // still get coverage without polluting the property suites.
 describe("freeVarsOfType — coverage for variants outside typeArb", () => {
+    it("walks Variant constructor payloads", () => {
+        const t: import("../environment.js").Type = {
+            type: "Variant",
+            name: "Opt",
+            constructors: new Map<string, import("../environment.js").Type[]>([
+                ["Some", [{ type: "Var", id: 1, level: 0 }]],
+                [
+                    "Pair",
+                    [
+                        { type: "Const", name: "Int" },
+                        { type: "Var", id: 4, level: 0 },
+                    ],
+                ],
+            ]),
+        };
+        expect(Array.from(freeVarsOfType(t)).sort((a, b) => a - b)).toEqual([1, 4]);
+    });
+
+    it("walks Ref inner type", () => {
+        // The bare `Ref` discriminant is unreachable in `unify` (production
+        // routes references through App<Const("Ref"), [inner]>), but the
+        // `Type` union still includes it and the helper must walk it.
+        const t: import("../environment.js").Type = {
+            type: "Ref",
+            inner: { type: "Var", id: 7, level: 0 },
+        };
+        expect(Array.from(freeVarsOfType(t))).toEqual([7]);
+    });
+
     it("walks Union members", () => {
         const t: import("../environment.js").Type = {
             type: "Union",
@@ -209,6 +238,23 @@ describe("freeVarsOfType — coverage for variants outside typeArb", () => {
 });
 
 describe("alphaEquivalent — coverage for variants outside typeArb", () => {
+    it("walks Ref inner types", () => {
+        // Two `Ref` types are α-equivalent iff their inners are. Type vars
+        // inside a `Ref` should map under the same bijection as anywhere else.
+        expect(
+            alphaEquivalent(
+                { type: "Ref", inner: { type: "Var", id: 0, level: 0 } },
+                { type: "Ref", inner: { type: "Var", id: 9, level: 0 } },
+            ),
+        ).toBe(true);
+        expect(
+            alphaEquivalent(
+                { type: "Ref", inner: { type: "Var", id: 0, level: 0 } },
+                { type: "Ref", inner: { type: "Const", name: "Int" } },
+            ),
+        ).toBe(false);
+    });
+
     it("treats two Never types as equivalent", () => {
         expect(alphaEquivalent({ type: "Never" }, { type: "Never" })).toBe(true);
     });
