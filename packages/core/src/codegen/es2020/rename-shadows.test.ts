@@ -686,7 +686,7 @@ describe("renameTopLevelShadows", () => {
     describe("Properties", () => {
         it("property: after renameTopLevelShadows, top-level VarPattern bindings have unique JS names", () => {
             fc.assert(
-                fc.property(coreModuleArb({ depth: 2, maxBreadth: 3 }), (module) => {
+                fc.property(coreModuleArb({ depth: 2 }), (module) => {
                     const { module: renamed } = renameTopLevelShadows(module);
                     const names = new Set<string>();
                     for (const decl of renamed.declarations) {
@@ -702,7 +702,7 @@ describe("renameTopLevelShadows", () => {
 
         it("property: renameTopLevelShadows is idempotent on its own output", () => {
             fc.assert(
-                fc.property(coreModuleArb({ depth: 2, maxBreadth: 3 }), (module) => {
+                fc.property(coreModuleArb({ depth: 2 }), (module) => {
                     const once = renameTopLevelShadows(module).module;
                     const twice = renameTopLevelShadows(once).module;
                     // Compare top-level pattern names — the second pass should
@@ -721,7 +721,7 @@ describe("renameTopLevelShadows", () => {
 
         it("property: renameTopLevelShadows is deterministic", () => {
             fc.assert(
-                fc.property(coreModuleArb({ depth: 2, maxBreadth: 3 }), (module) => {
+                fc.property(coreModuleArb({ depth: 2 }), (module) => {
                     const a = renameTopLevelShadows(module).module;
                     const b = renameTopLevelShadows(module).module;
                     return JSON.stringify(a) === JSON.stringify(b);

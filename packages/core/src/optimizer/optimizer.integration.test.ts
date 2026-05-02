@@ -401,9 +401,7 @@ describe("Optimizer Integration Tests", () => {
             fc.assert(
                 fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
                     const optimized = buildO2().optimize(expr).expr;
-                    return collectUnsafe(expr).every((u) =>
-                        collectUnsafe(optimized).some((v) => exprEquals(u, v)),
-                    );
+                    return collectUnsafe(expr).every((u) => collectUnsafe(optimized).some((v) => exprEquals(u, v)));
                 }),
             );
         });
