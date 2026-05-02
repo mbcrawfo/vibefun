@@ -46,8 +46,6 @@ right subtopic. New section file? Drop it next to the others as
 `NN-name.test.ts`; vitest's `**/*.test.ts` glob picks it up
 automatically.
 
-## Maintenance
+---
 
-This file refers to specific helper names and the `08-modules.test.ts`
-pattern. Update it in the same commit if you rename helpers, change the
-multi-file approach, or restructure how tests are grouped.
+Maintenance: This file names specific helper identifiers (`expectCompiles`, `withOutput`, `createTempProject`, etc.) and the `08-modules.test.ts` multi-file pattern. If any referenced helper name or pattern changes, update this `CLAUDE.md` in the same commit.

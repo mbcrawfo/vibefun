@@ -366,3 +366,7 @@ The specification is distinct from:
 **For Learning**: Use `README.md` for sequential, comprehensive reading.
 
 The agent map is the **primary tool** for efficient specification navigation. Keep it current, accurate, and optimized for query-based information retrieval.
+
+---
+
+Maintenance: This file names specific spec files, the `tests/e2e/spec-validation/` test layout, the `.agent-map.md` and `.claude/VIBEFUN_AI_CODING_GUIDE.md` companion docs, and the per-section folder structure under `docs/spec/`. If any referenced path, filename, or directory layout changes, update this `CLAUDE.md` in the same commit.

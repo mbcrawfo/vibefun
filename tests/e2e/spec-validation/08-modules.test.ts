@@ -37,6 +37,9 @@ function runModuleTest(
     if (check === "compileError") {
         const r = compileFile(mainFile, project.dir);
         expect(r.exitCode, `expected compile error, got exit code 0`).not.toBe(0);
+        // Guard against false positives (process kill, missing CLI, etc.) by
+        // requiring stderr to look like a real compiler diagnostic.
+        expect(r.stderr, `expected VFxxxx diagnostic in stderr\n${r.stderr}`).toMatch(/\bVF\d+\b/);
         return;
     }
     const r = runFile(mainFile, project.dir);
