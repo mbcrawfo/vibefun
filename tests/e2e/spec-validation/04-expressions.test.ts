@@ -286,8 +286,7 @@ while false {
         it("nested match as expression", () => {
             expectRunOutput(
                 withOutput(
-                    `type Option<T> = Some(T) | None;
-let x: Option<Int> = Some(5);
+                    `let x: Option<Int> = Some(5);
 let result = match x {
   | Some(n) => match n > 0 {
     | true => "positive"
