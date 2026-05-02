@@ -14,10 +14,20 @@ import { createTempProject, expectFileCompileError, expectFileCompiles, expectFi
 let activeProjects: Array<{ dir: string; dispose: () => void }> = [];
 
 afterEach(() => {
+    let firstDisposeError: unknown;
     for (const p of activeProjects) {
-        p.dispose();
+        try {
+            p.dispose();
+        } catch (error) {
+            if (firstDisposeError === undefined) {
+                firstDisposeError = error;
+            }
+        }
     }
     activeProjects = [];
+    if (firstDisposeError !== undefined) {
+        throw firstDisposeError;
+    }
 });
 
 function project(files: Record<string, string>): { dir: string; dispose: () => void } {
