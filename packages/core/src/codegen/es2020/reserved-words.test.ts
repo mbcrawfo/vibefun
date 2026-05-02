@@ -163,6 +163,20 @@ describe("Reserved Words", () => {
             );
         });
 
+        it("property: escapeIdentifier is idempotent on reserved words", () => {
+            // After one escape (e.g. `class` → `class$`) a second escape must
+            // be a no-op. Catches the regression where `class$` (or any
+            // `<reserved>$` form) is inadvertently added to RESERVED_WORDS,
+            // which would re-escape into `class$$` and break round-tripping.
+            fc.assert(
+                fc.property(reservedWordArb, (word) => {
+                    const once = escapeIdentifier(word);
+                    const twice = escapeIdentifier(once);
+                    return once === twice;
+                }),
+            );
+        });
+
         it("property: escapeIdentifier is deterministic", () => {
             const anyIdent = fc.oneof(reservedWordArb, fc.stringMatching(/^[a-z][a-zA-Z0-9]{0,8}$/));
             fc.assert(

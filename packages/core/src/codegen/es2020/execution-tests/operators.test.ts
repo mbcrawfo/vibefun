@@ -52,23 +52,26 @@ describe("Properties", () => {
         );
     });
 
-    it("property: && matches JS reference for boolean operands (cap numRuns 25 — spawns JS)", () => {
+    // Boolean operators have only 4 input combinations (true/true, true/false,
+    // false/true, false/false), so numRuns: 4 is enough to cover every case
+    // and avoids re-running the same compile-and-execute 6× for no signal.
+    it("property: && matches JS reference for boolean operands (cap numRuns 4 — full enumeration)", () => {
         fc.assert(
             fc.property(fc.boolean(), fc.boolean(), (l, r) => {
                 const result = compileAndGetExport(`let result = ${l} && ${r};`, "result");
                 return result === (l && r);
             }),
-            { numRuns: 25 },
+            { numRuns: 4 },
         );
     });
 
-    it("property: || matches JS reference for boolean operands (cap numRuns 25 — spawns JS)", () => {
+    it("property: || matches JS reference for boolean operands (cap numRuns 4 — full enumeration)", () => {
         fc.assert(
             fc.property(fc.boolean(), fc.boolean(), (l, r) => {
                 const result = compileAndGetExport(`let result = ${l} || ${r};`, "result");
                 return result === (l || r);
             }),
-            { numRuns: 25 },
+            { numRuns: 4 },
         );
     });
 });

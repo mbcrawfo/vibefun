@@ -391,51 +391,29 @@ describe("ES2020 Generator", () => {
         // to end) without bumping into codegen invariants outside its
         // documented domain.
         const simpleValueArb = coreExprArb({ depth: 1 });
-        const generatedExprAsModuleArb = simpleValueArb.map((value) => ({
-            imports: [] as const,
-            declarations: [
-                {
-                    kind: "CoreLetDecl" as const,
-                    pattern: {
-                        kind: "CoreVarPattern" as const,
-                        name: "x",
-                        loc: { file: "<arb>", line: 1, column: 1, offset: 0 },
-                    },
-                    value,
-                    mutable: false,
-                    exported: false,
-                    loc: { file: "<arb>", line: 1, column: 1, offset: 0 },
-                },
-            ],
-            loc: { file: "<arb>", line: 1, column: 1, offset: 0 },
-        }));
+        const generatedDeclArb = simpleValueArb.map((value) => [letDecl(varPat("x"), value)]);
 
         it("property: generate is deterministic on simple value modules — same input yields same output", () => {
             fc.assert(
-                fc.property(generatedExprAsModuleArb, (module) => {
-                    const typedModule = createTypedModule(module.declarations as CoreDeclaration[]);
+                fc.property(generatedDeclArb, (declarations) => {
+                    const typedModule = createTypedModule(declarations);
                     let a: string;
                     let b: string;
                     try {
                         a = generate(typedModule, { filename: "prop.vf" }).code;
                         b = generate(typedModule, { filename: "prop.vf" }).code;
                     } catch {
-                        // Bare catch is intentional. Codegen surfaces its
-                        // out-of-domain rejections as plain `Error` with
-                        // messages that are NOT a stable contract — the
-                        // wording can change without a behaviour change.
-                        // Pattern-matching on those strings here would
-                        // either (a) couple the property to internal error
-                        // text and break it on innocuous wording changes,
-                        // or (b) miss new rejection paths added later.
-                        // The narrower `coreExprArb({ depth: 1 })` input
-                        // distribution above already minimizes how often
-                        // this branch fires; if the skip rate spikes the
-                        // remediation is to narrow the input further, not
-                        // to start parsing error strings.
-                        return true;
+                        // Skip out-of-domain inputs via fc.pre instead of a
+                        // silent `return true`. Codegen surfaces its rejections
+                        // as plain `Error` whose wording is not a stable
+                        // contract, so we cannot pattern-match the message.
+                        // fc.pre tracks rejection rate in fast-check's
+                        // statistics and aborts if too many consecutive
+                        // inputs are skipped, surfacing arb drift instead of
+                        // letting the property silently degenerate.
+                        fc.pre(false);
                     }
-                    return a === b;
+                    expect(a!).toBe(b!);
                 }),
             );
         });
