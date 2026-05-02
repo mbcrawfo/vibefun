@@ -401,7 +401,22 @@ describe("Optimizer Integration Tests", () => {
             fc.assert(
                 fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
                     const optimized = buildO2().optimize(expr).expr;
-                    return collectUnsafe(expr).every((u) => collectUnsafe(optimized).some((v) => exprEquals(u, v)));
+                    const before = collectUnsafe(expr);
+                    const after = collectUnsafe(optimized);
+                    if (before.length !== after.length) return false;
+
+                    // 1-to-1 match: each input unsafe must consume one distinct
+                    // output unsafe. Without the `matched` bookkeeping, two
+                    // structurally-identical CoreUnsafe nodes in the input
+                    // could both match the same surviving output node and the
+                    // property would pass even if the optimizer dropped one.
+                    const matched = new Array<boolean>(after.length).fill(false);
+                    return before.every((u) => {
+                        const idx = after.findIndex((v, i) => !matched[i] && exprEquals(u, v));
+                        if (idx === -1) return false;
+                        matched[idx] = true;
+                        return true;
+                    });
                 }),
             );
         });

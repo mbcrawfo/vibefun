@@ -213,18 +213,22 @@ describe("Emit Operators", () => {
             );
         });
 
-        it("property: every unary operator binds tighter than any binary operator", () => {
+        it("property: every unary operator binds strictly tighter than any binary operator", () => {
+            // Strict `>` rather than `>=` — if a unary precedence ever matched a
+            // binary one, a re-render of `-x + y` could lose the implicit grouping.
             fc.assert(
                 fc.property(unaryOpArb, binOpArb, (u, b) => {
-                    return getUnaryPrecedence(u) >= getBinaryPrecedence(b);
+                    return getUnaryPrecedence(u) > getBinaryPrecedence(b);
                 }),
             );
         });
 
-        it("property: CALL_PRECEDENCE >= every binary precedence (function calls don't need parens around args)", () => {
+        it("property: CALL_PRECEDENCE > every binary precedence (function calls bind strictly tighter than binary ops)", () => {
+            // Strict `>` rather than `>=` — equality with a binary op would let
+            // `f(x) op y` re-render with parens around `f(x)` that change meaning.
             fc.assert(
                 fc.property(binOpArb, (op) => {
-                    return CALL_PRECEDENCE >= getBinaryPrecedence(op);
+                    return CALL_PRECEDENCE > getBinaryPrecedence(op);
                 }),
             );
         });
