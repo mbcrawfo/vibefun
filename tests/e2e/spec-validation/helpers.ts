@@ -10,7 +10,7 @@
 
 import { expect } from "vitest";
 
-import { compileSource, runSource } from "../helpers.js";
+import { compileFile, compileSource, runFile, runSource } from "../helpers.js";
 
 export { compileFile, createTempProject, runFile } from "../helpers.js";
 export type { CliResult } from "../helpers.js";
@@ -71,5 +71,36 @@ export function expectRuntimeError(source: string, errorMsg?: string): void {
 
 export function expectRuns(source: string): void {
     const r = runSource(source);
+    expect(r.exitCode, `expected successful run\nstderr:\n${r.stderr}`).toBe(0);
+}
+
+// File-based variants for multi-file tests where the source lives on disk
+// (see 08-modules.test.ts). Each takes a path relative to `cwd` so the CLI
+// resolves imports against the temp project root.
+
+export function expectFileCompiles(filePath: string, cwd: string): void {
+    const r = compileFile(filePath, cwd);
+    expect(r.exitCode, `expected compile success\nstderr:\n${r.stderr}`).toBe(0);
+}
+
+export function expectFileCompileError(filePath: string, cwd: string, errorCode?: string): void {
+    const r = compileFile(filePath, cwd);
+    expect(r.exitCode, `expected compile error (exit 1), got ${r.exitCode}`).toBe(1);
+    // Guard against false positives (process kill, missing CLI, etc.) by
+    // requiring stderr to look like a real compiler diagnostic.
+    expect(r.stderr, `expected VFxxxx diagnostic in stderr\n${r.stderr}`).toMatch(/\bVF\d+\b/);
+    if (errorCode !== undefined) {
+        expect(r.stderr, `expected error code ${errorCode} in stderr`).toContain(errorCode);
+    }
+}
+
+export function expectFileRunOutput(filePath: string, cwd: string, expected: string): void {
+    const r = runFile(filePath, cwd);
+    expect(r.exitCode, `expected successful run\nstderr:\n${r.stderr}`).toBe(0);
+    expect(r.stdout.trim()).toBe(expected.trim());
+}
+
+export function expectFileRuns(filePath: string, cwd: string): void {
+    const r = runFile(filePath, cwd);
     expect(r.exitCode, `expected successful run\nstderr:\n${r.stderr}`).toBe(0);
 }
