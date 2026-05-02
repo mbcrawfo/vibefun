@@ -27,14 +27,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0  # Full history for incremental diffs
 
       - name: Run Claude Code Review (Initial)
         if: github.event.action == 'opened'
         id: claude-review-initial
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@fefa07e9c665b7320f08c3b525980457f22f58aa # v1.0.111
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
@@ -71,7 +71,7 @@ jobs:
       - name: Run Claude Code Review (Update)
         if: github.event.action == 'synchronize'
         id: claude-review-update
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@fefa07e9c665b7320f08c3b525980457f22f58aa # v1.0.111
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
