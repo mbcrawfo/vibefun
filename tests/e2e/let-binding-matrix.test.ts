@@ -16,12 +16,6 @@
  * **Adding a new let-binding form** (or refactoring a path)? Add it to
  * `forms` below. **Adding a new soundness scenario?** Add it to
  * `scenarios`. The grid stays exhaustive automatically.
- *
- * **Why this lives under `tests/e2e/` and not `tests/spec-validation/`:**
- * spec validation is informative — its failures don't fail CI or
- * `pnpm run verify`. A cross-path soundness regression must be gating, so
- * the matrix runs through vitest where any expectation miss hard-fails the
- * suite.
  */
 
 import { describe, expect, it } from "vitest";

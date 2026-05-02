@@ -5,7 +5,7 @@
  * desugarer → typechecker → codegen) and asserts on the emitted JS
  * shape. We can't VM-execute the output because the target modules
  * live in separate files, so these tests stop at codegen — runtime
- * behaviour is exercised end-to-end via `pnpm run spec:validate`.
+ * behaviour is exercised end-to-end via `pnpm run test:e2e`.
  */
 
 import { describe, expect, it } from "vitest";

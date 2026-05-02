@@ -266,7 +266,6 @@ Per the project's *Planning & Code Coverage* directive in `CLAUDE.md`:
 Before declaring the migration complete, confirm:
 
 - [ ] `pnpm run verify` passes (build + check + lint + test + test:e2e + format:check).
-- [ ] `pnpm run spec:validate --verbose` passes.
 - [ ] `pnpm docs:errors` is clean (no new VFxxxx codes added without docs).
 - [ ] No remaining `throwDiagnostic` calls inside `unify.ts` reach `typeCheck`'s caller — they're caught by `solveConstraints`.
 - [ ] `constraints.ts` is referenced by the inference pipeline (check via `grep -r "solveConstraints" packages/core/src/typechecker/`); the typechecker `CLAUDE.md` no longer warns it is dead code.
