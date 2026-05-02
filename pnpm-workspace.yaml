@@ -1,3 +1,16 @@
 packages:
   - "packages/*"
   - "tests/e2e"
+overrides:
+  brace-expansion: 5.0.5
+  picomatch: 4.0.4
+  flatted: 3.4.2
+  vite: 8.0.8
+saveExact: true
+autoInstallPeers: true
+strictPeerDependencies: true
+saveWorkspaceProtocol: rolling
+linkWorkspacePackages: true
+ignoreScripts: true
+provenance: true
+publishBranch: main

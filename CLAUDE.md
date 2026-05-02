@@ -119,7 +119,7 @@ Keep this document in sync with the repo layout and developer commands — see t
 - **Classes when practical**: Use classes for lexers, parsers, and stateful components when it improves clarity
 - **Node 24.13**: Using modern Node.js features
 - **`@types/node` version policy**: The `@types/node` major version must match the project's Node.js major version (currently 24). When upgrading the Node.js engine version, upgrade `@types/node` to match.
-- **`pnpm.overrides` version policy**: When adding `pnpm.overrides` in `package.json`, always use pinned versions (e.g., `"4.0.4"`), never ranges (e.g., `">=4.0.4"`).
+- **`overrides` version policy**: When adding entries to `overrides` in `pnpm-workspace.yaml`, always use pinned versions (e.g., `"4.0.4"`), never ranges (e.g., `">=4.0.4"`). (pnpm v11 moved this block out of `package.json#pnpm.overrides`.)
 - **Comprehensive testing**: All code must have thorough test coverage
 
 ### Compilation Pipeline
