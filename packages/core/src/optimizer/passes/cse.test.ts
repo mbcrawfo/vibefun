@@ -7,7 +7,7 @@ import type { CoreExpr } from "../../types/core-ast.js";
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { optimizableExprArb } from "../../types/test-arbitraries/index.js";
+import { coreExprWithUnsafeArb, optimizableExprArb } from "../../types/test-arbitraries/index.js";
 import { exprEquals } from "../../utils/expr-equality.js";
 import { CommonSubexpressionEliminationPass } from "./cse.js";
 
@@ -115,6 +115,29 @@ describe("CommonSubexpressionEliminationPass", () => {
             fc.assert(
                 fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
                     expect(() => pass.transform(expr)).not.toThrow();
+                }),
+            );
+        });
+
+        // The next two are trivially true today (CSE is a no-op) — they
+        // exist as forward-compatibility guards so when CSE is implemented
+        // for real, regressions in idempotence or CoreUnsafe handling
+        // surface immediately rather than during a later property review.
+        it("property: cse.transform is idempotent", () => {
+            fc.assert(
+                fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
+                    const once = pass.transform(expr);
+                    const twice = pass.transform(once);
+                    return exprEquals(once, twice);
+                }),
+            );
+        });
+
+        it("property: cse preserves CoreUnsafe nodes", () => {
+            fc.assert(
+                fc.property(coreExprWithUnsafeArb({ depth: 2 }), (expr) => {
+                    if (expr.kind !== "CoreUnsafe") return true;
+                    return exprEquals(pass.transform(expr), expr);
                 }),
             );
         });

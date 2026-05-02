@@ -684,18 +684,32 @@ describe("renameTopLevelShadows", () => {
     });
 
     describe("Properties", () => {
+        // Extract every top-level binder name introduced by simple `CoreLetDecl`
+        // VarPatterns and by `CoreLetRecGroup` bindings (also renamed by the
+        // pass — the unit tests at lines 386–439 show let-rec rebindings
+        // collapse to `f$1`, `g$1` shapes).
+        const collectTopLevelVarNames = (m: CoreModule): string[] => {
+            const out: string[] = [];
+            for (const decl of m.declarations) {
+                if (decl.kind === "CoreLetDecl" && decl.pattern.kind === "CoreVarPattern") {
+                    out.push(decl.pattern.name);
+                } else if (decl.kind === "CoreLetRecGroup") {
+                    for (const binding of decl.bindings) {
+                        if (binding.pattern.kind === "CoreVarPattern") {
+                            out.push(binding.pattern.name);
+                        }
+                    }
+                }
+            }
+            return out;
+        };
+
         it("property: after renameTopLevelShadows, top-level VarPattern bindings have unique JS names", () => {
             fc.assert(
                 fc.property(coreModuleArb({ depth: 2 }), (module) => {
                     const { module: renamed } = renameTopLevelShadows(module);
-                    const names = new Set<string>();
-                    for (const decl of renamed.declarations) {
-                        if (decl.kind === "CoreLetDecl" && decl.pattern.kind === "CoreVarPattern") {
-                            if (names.has(decl.pattern.name)) return false;
-                            names.add(decl.pattern.name);
-                        }
-                    }
-                    return true;
+                    const names = collectTopLevelVarNames(renamed);
+                    return new Set(names).size === names.length;
                 }),
             );
         });
@@ -705,16 +719,12 @@ describe("renameTopLevelShadows", () => {
                 fc.property(coreModuleArb({ depth: 2 }), (module) => {
                     const once = renameTopLevelShadows(module).module;
                     const twice = renameTopLevelShadows(once).module;
-                    // Compare top-level pattern names — the second pass should
+                    // Compare top-level binder names — the second pass should
                     // not introduce any further renaming because the first pass
                     // already made them unique.
-                    const namesOf = (m: CoreModule): string[] =>
-                        m.declarations
-                            .filter((d) => d.kind === "CoreLetDecl" && d.pattern.kind === "CoreVarPattern")
-                            .map((d) =>
-                                d.kind === "CoreLetDecl" && d.pattern.kind === "CoreVarPattern" ? d.pattern.name : "",
-                            );
-                    return JSON.stringify(namesOf(once)) === JSON.stringify(namesOf(twice));
+                    return (
+                        JSON.stringify(collectTopLevelVarNames(once)) === JSON.stringify(collectTopLevelVarNames(twice))
+                    );
                 }),
             );
         });

@@ -92,7 +92,6 @@ describe("Properties", () => {
     // cleanly through Number → string → vibefun → emitted JS.
     const safeFloatArb = fc
         .double({ min: 1.0, max: 100.0, noNaN: true, noDefaultInfinity: true })
-        .filter((n) => Number.isFinite(n))
         .map((n) => Math.round(n * 1000) / 1000);
 
     it("property: float addition matches JS reference (cap numRuns 25 — spawns JS)", () => {
