@@ -382,14 +382,19 @@ describe("ES2020 Generator", () => {
     });
 
     describe("Properties", () => {
-        // Generator determinism on a narrow Tier-A subset. The Core AST type
-        // permits more shapes than codegen actually accepts (e.g. let-rec
-        // bindings whose pattern is a CoreVariantPattern / CoreRecordPattern
-        // — shapes the desugarer never emits in practice). We restrict to
-        // simple value expressions: leaf literals, var refs, BinOp / UnaryOp
-        // over leaves. That keeps the property meaningful (codegen runs end
-        // to end) without bumping into codegen invariants outside its
-        // documented domain.
+        // Generator determinism on a `let x = <Tier-A expr>` module. The Core
+        // AST type permits more shapes than codegen actually accepts (e.g.
+        // `CoreLetRecExpr` whose binder is a `CoreVariantPattern` /
+        // `CoreRecordPattern` — shapes the desugarer never emits in
+        // practice). `coreExprArb({ depth: 1 })` still produces some of those
+        // shapes inside the value, so we wrap the body in `try / fc.pre`:
+        // when codegen rejects an out-of-domain shape, fast-check reclassifies
+        // the input as a precondition failure and tracks the skip rate. If
+        // the rejection rate ever spikes (the arb has drifted), fast-check
+        // aborts the property — silently degenerating into trivially-true
+        // skips is not a failure mode this can hide. depth: 1 was chosen
+        // over depth: 0 so the property exercises BinOp / UnaryOp / variant
+        // construction through the emitter, not just leaf literals.
         const simpleValueArb = coreExprArb({ depth: 1 });
         const generatedDeclArb = simpleValueArb.map((value) => [letDecl(varPat("x"), value)]);
 
