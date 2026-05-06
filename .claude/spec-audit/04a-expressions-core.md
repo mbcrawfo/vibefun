@@ -720,4 +720,4 @@ All tests serve distinct purposes (parser acceptance, type validation, runtime b
 
 ---
 
-**Summary**: 56 features identified; 23 entries marked ⚠️ Partial / ⚠️ Thin / ❌ Missing / ❌ Untested across status and coverage assessments combined (recounted after the F-15 correction). The "Testing Gaps (this section)" list contains 10 explicit bullets covering 12 distinct F-NN IDs (some bullets reference multiple IDs, e.g. F-45/F-46, F-49/F-50). 0 redundant tests.
+**Summary**: 56 features identified; 22 entries marked ⚠️ Partial / ⚠️ Thin / ❌ Missing / ❌ Untested across status and coverage assessments combined (verified by `grep -cE '^- \*\*(Status|Coverage assessment)\*\*: (⚠️|❌)'`). The "Testing Gaps (this section)" list contains 10 explicit bullets covering 12 distinct F-NN IDs (some bullets reference multiple IDs, e.g. F-45/F-46, F-49/F-50). 0 redundant tests.
