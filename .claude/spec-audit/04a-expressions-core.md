@@ -157,7 +157,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:72-75` — `*` operator for Int and Float; no automatic coercion
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:411-443` — `parseMultiplicative()` matches OP_STAR at precedence 14
+  - `packages/core/src/parser/parse-expression-operators.ts:411-443` — `parseMultiplicative()` matches OP_STAR at precedence level 13
   - `packages/core/src/desugarer/desugarer.ts:327-328` — BinOp with "Multiply" desugars
   - `packages/core/src/codegen/es2020/emit-operators.ts:126` — Maps Multiply to "*"
 - **Tests**:
@@ -169,10 +169,10 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:76-131` — Integer division truncates toward zero; e.g., `7 / 2 = 3`, `-7 / 2 = -3`; compile-time literal division by zero may be detected
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:411-443` — `parseMultiplicative()` matches OP_SLASH at precedence 14
+  - `packages/core/src/parser/parse-expression-operators.ts:411-443` — `parseMultiplicative()` matches OP_SLASH at precedence level 13
   - `packages/core/src/desugarer/desugarBinOp.ts` — Desugars Divide to IntDivide or FloatDivide based on inferred operand type
   - `packages/core/src/typechecker/infer/infer-operators.ts` — Type inference determines Int vs Float division from operand types
-  - `packages/core/src/codegen/es2020/emit-operators.ts:128-129` — IntDivide emits `Math.trunc(a / b)`; FloatDivide emits `/`
+  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:107-114` — `IntDivide` emits `$intDiv(a, b)` runtime helper (which throws on `b === 0`; see F-15 below). FloatDivide emits the JS `/` operator directly. The stale comment at `emit-operators.ts:128` ("Special: Math.trunc(a / b)") describes only the helper's *body*, not the call site.
 - **Tests**:
   - E2E: `04-expressions.test.ts:integer division` (line 96-98), `float division` (line 120-122)
 - **Coverage assessment**: ✅ Adequate
@@ -182,9 +182,9 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:78` — `%` operator for Int remainder
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:411-443` — `parseMultiplicative()` matches OP_PERCENT at precedence 14
+  - `packages/core/src/parser/parse-expression-operators.ts:411-443` — `parseMultiplicative()` matches OP_PERCENT at precedence level 13
   - `packages/core/src/desugarer/desugarer.ts:327-328` — BinOp with "Modulo" desugars
-  - `packages/core/src/codegen/es2020/emit-operators.ts:130` — Maps Modulo to "%"
+  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:116-125` — `Modulo` emits `$intMod(a, b)` runtime helper (throws on `b === 0`; see F-15)
 - **Tests**:
   - E2E: `04-expressions.test.ts:modulo` (line 100-102)
 - **Coverage assessment**: ✅ Adequate
@@ -206,7 +206,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:104-107` — Integer division by zero panics at runtime; float division by zero follows IEEE 754 (returns Infinity/NaN)
 - **Status**: ✅ Implemented — corrected from a previous commit's erroneous ❌ Missing verdict. The codegen does panic on integer division/modulo by zero via runtime helpers; see implementation citations below.
 - **Implementation**:
-  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:107-114` — `IntDivide` emits `$intDiv(a, b)` (not raw `Math.trunc(a / b)` as a stale comment in `emit-operators.ts:128` suggests).
+  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:107-114` — `IntDivide` emits `$intDiv(a, b)` runtime helper.
   - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:116-125` — `Modulo` emits `$intMod(a, b)`.
   - `packages/core/src/codegen/es2020/runtime-helpers.ts:71` — `$intDiv = (a, b) => { if (b === 0) throw new Error("Division by zero"); return Math.trunc(a / b); };`
   - `packages/core/src/codegen/es2020/runtime-helpers.ts:81-82` — `$intMod` similarly throws on `b === 0`.
