@@ -236,7 +236,6 @@ These are not necessarily *uncovered* features — most are tests that the per-s
 - `packages/core/src/utils/{ast-analysis,ast-transform-fold-expr,ast-transform-transform-children,ast-transform-transform-expr,ast-transform-visit-expr,expr-equality-equals,expr-equality-equivalent,substitution-core,substitution-expressions}.test.ts` (9) — F-CC16
 - `packages/core/src/diagnostics/test-helpers.test.ts` (1) — F-CC17
 - `packages/core/src/types/{environment,token}.test.ts` (2) — F-CC16-adjacent (token-shape tests, env data structure)
-- `packages/core/src/types/environment.test.ts` (`packages/core/src/types/environment.test.ts`) — type-environment data structure tests
 - `packages/cli/src/{format-error,utils/file-io,utils/timer}.test.ts` (3) — F-CC18
 
 ### Should be referenced by `02-lexical-structure.md`
