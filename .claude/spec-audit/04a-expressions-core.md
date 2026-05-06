@@ -234,7 +234,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:156-174` — Equals operator returns Bool; requires same type for both operands; primitives by value, records structural, variants constructor+value, functions not comparable
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:255-277` — `parseEquality()` matches OP_EQ at precedence 9
+  - `packages/core/src/parser/parse-expression-operators.ts:255-277` — `parseEquality()` matches OP_EQ at precedence level 7 (per the function docstring)
   - `packages/core/src/desugarer/desugarer.ts:327-328` — BinOp with "Equal" desugars
   - `packages/core/src/typechecker/infer/infer-operators.ts` — Type inference enforces same type for both operands; rejects function comparison
   - `packages/core/src/codegen/es2020/emit-operators.ts:131` — Maps Equal to "===" for primitives, or calls $eq for structural types
@@ -686,7 +686,7 @@
 ## Feature Gaps (this section)
 
 - **F-08**: Partial application is not explicitly tested; only implicit via multi-argument functions. Add a test like `let add5 = add(5); let result = add5(3);` to validate partial application explicitly.
-- **F-15**: Division by zero at runtime is not explicitly tested. While JavaScript handles it, add a test that verifies the panic behavior or delegates to stdlib tests.
+_F-15 (division-by-zero) is no longer a gap — see the F-15 entry above for citations to the existing `$intDiv`/`$intMod` runtime helpers and the execution + spec-validation tests in `09-error-handling`._
 - **F-26**: Dereference operator (! on Ref<T>) is not tested in 04-expressions tests; it belongs in mutable-references tests but should be cross-validated here.
 - **F-28**: Field access operator is not tested in 04-expressions tests; it belongs in 04-expressions/data-literals tests (outside scope).
 - **F-29, F-30, F-31**: Pipe and composition operators are not tested in 04-expressions E2E tests; they are tested at parser/desugarer level but not end-to-end.
