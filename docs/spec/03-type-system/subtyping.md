@@ -52,24 +52,17 @@ let p2again: Point2D = colored;  // OK
 // (missing required field y)
 ```
 
-### Symmetric Width Matching in Unification
+### Width Matching in Unification
 
-**Important**: Vibefun's width subtyping is implemented through **unification**, not a separate subtyping check. During record unification:
-
-1. Find the common fields between both record types
-2. Unify only the common fields
-3. Extra fields in either record are ignored
-
-This means width subtyping is **symmetric** during unification—either record can have extra fields:
+**Important**: Vibefun's width subtyping is implemented through **unification**, not a separate subtyping check. Unification is **directional**: it takes an *expected* record `R1` (e.g. a function parameter type) and an *actual* record `R2` (e.g. a call-site argument type). Every field `R1` requires must exist in `R2` with a compatible type; `R2` may carry extra fields that `R1` does not name.
 
 ```vibefun
-// Both directions work during unification
 let f = (x: { a: Int }) => x.a;
 
-f({ a: 1, b: 2 });  // OK: argument has extra field b
+f({ a: 1, b: 2 });  // OK: actual has extra field b that expected ignores
 ```
 
-This differs from traditional subsumption-based subtyping where `<:` is directional.
+The reverse direction is **not** accepted — passing a record that is missing a required field is a type error (see [Missing Required Fields](#examples) above and `VF4503` in the error reference). This matches the standard width-subtyping rule and is what enables principal-type inference: a fully symmetric algorithm would accept `unify({ x: Int }, { y: Int })` (no common fields, extras on both sides ignored) and let any record satisfy any other.
 
 ## Integration with Type Inference
 
@@ -84,13 +77,16 @@ Vibefun integrates subtyping into Hindley-Milner type inference through a modifi
 The unification algorithm for records works as follows:
 
 ```
-unify(Record1, Record2):
-    common_fields = intersection(Record1.fields, Record2.fields)
-    for each field in common_fields:
-        unify(Record1[field], Record2[field])
-    // Extra fields are NOT an error
+unify(R1, R2):  // R1 = expected (narrower), R2 = actual (possibly wider)
+    for each field f in R1:
+        if f not in R2: error (VF4503: missing required field)
+        unify(R1[f], R2[f])
+    // Extra fields in R2 are accepted (width subtyping)
+    // Extra fields in R1 are an error (handled by the loop above)
     return success
 ```
+
+Inside an invariant position — that is, as a generic type-application argument such as `Box<{ x: Int }>` (see [Type Parameter Invariance](#type-parameter-invariance)) — neither side may carry extras and a separate diagnostic (`VF4504`) reports the mismatch. The implementation lives in `unifyRecords` in `packages/core/src/typechecker/unify.ts`.
 
 ### Why Not Full Subtyping?
 
