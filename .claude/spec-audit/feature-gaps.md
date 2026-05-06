@@ -153,7 +153,7 @@ Severity is a **hint**, not a verdict. Final remediation order is up to the main
 - **Set** (15 functions, F-68 → F-82) — construction (`empty`, `fromList`, `singleton`), access (`has`, `size`, `isEmpty`), immutable modification (`add`, `delete`), set ops (`union`, `intersect`, `diff`, `isSubset`), transformation (`filter`, `fold`, `toList`).
 - **JSON** (1 type + 12 functions, F-83 → F-94) — `JSON` discriminated union, parse/stringify, accessor extractors (`asNull`, `asBool`, `asNumber`, `asString`, `asArray`, `asObject`), field access (`getField`, `getFieldAs`). Depends on Map.
 
-See `/Users/michael/Projects/vibefun/.claude/spec-audit/11b-stdlib-extra.md` for full per-function spec references and signatures.
+See `.claude/spec-audit/11b-stdlib-extra.md` for full per-function spec references and signatures.
 
 ## Notes on Tier Distribution
 

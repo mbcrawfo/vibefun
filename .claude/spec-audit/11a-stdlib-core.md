@@ -644,12 +644,13 @@
 
 ## Feature Gaps (this section)
 
-- **F-10**: `List.flatten` — Missing fixed unit tests for spec examples (empty outer list, outer list with empty inner lists, single-level verification). Recommend adding: (1) `flattenEmpty`, (2) `flattenWithEmptyInners`, (3) `flattenTwoLevelsOnlyFlattensOne`.
+_None._ All 37 features in scope are ✅ Implemented.
 
 ---
 
 ## Testing Gaps (this section)
 
+- **F-10**: `List.flatten` — ✅ Implemented but ⚠️ Thin: missing fixed unit tests for spec examples. Recommend adding: (1) `flattenEmpty`, (2) `flattenWithEmptyInners`, (3) `flattenTwoLevelsOnlyFlattensOne` to confirm one-level-only semantics.
 - **F-29**: `String.split` — No explicit test for edge cases: empty string input, empty separator. Recommend adding fixed test: (1) `split("", ",")` → `[""]`, (2) `split("hello", "")` (if spec'd behavior).
 - **F-30**: `String.contains` — No test for empty substring case (`contains("hello", "") === true`). Recommend adding fixed test.
 - **F-31**: `String.startsWith` — No test for empty prefix or prefix longer than string. Recommend adding edge-case fixed test.
@@ -665,7 +666,7 @@ _None_. Every test layer (unit fixed, property, e2e) covers distinct aspects: fi
 
 **Summary**:
 - **Features**: 37 (List: 10, Option: 6, Result: 8, String: 13)
-- **Gaps**: 1 feature-gap (F-10: List.flatten missing fixed examples), 4 testing-gaps (F-29, F-30, F-31, F-32 edge cases)
-- **Testing-gap count**: 4 scenarios
+- **Feature gaps**: 0 (all implemented).
+- **Testing gaps**: 5 (F-10 List.flatten thin; F-29/30/31/32 String edge cases).
 - **Redundancies**: 0
-- **Output file**: `/Users/michael/Projects/vibefun/.claude/spec-audit/11a-stdlib-core.md`
+- **Output file**: `.claude/spec-audit/11a-stdlib-core.md`

@@ -708,7 +708,7 @@
 ### F-42: Invalid number format - multiple decimal points
 
 - **Spec ref**: `docs/spec/02-lexical-structure/operators.md:9-11` — Multiple decimal points (1.2.3) is lexer error
-- **Status**: ✅ Implemented
+- **Status**: ⚠️ Partial — error is produced, but at parser level rather than lexer level as the spec calls for.
 - **Implementation**:
   - `packages/core/src/lexer/number-parser.ts:67` — Decimal point only consumed if followed by digit; second decimal point triggers new number parse as separate token, which causes parser error
 - **Tests**:
@@ -719,7 +719,7 @@
   - Spec-validation: `02-lexical-structure.test.ts:"multiple decimal points error"` (153-154)
   - Property: (none)
 - **Coverage assessment**: ⚠️ Thin
-- **Notes**: Error is produced but at parser level (two floats in sequence); lexer itself doesn't have dedicated error for multiple decimals in same number.
+- **Notes**: Error is produced but at parser level (two floats in sequence); lexer itself doesn't have dedicated error for multiple decimals in same number. Spec interpretation should be reconciled (either tighten the lexer to emit a dedicated lexical error, or relax the spec to allow the parser-level fallback).
 
 ### F-43: Invalid number format - scientific notation errors
 

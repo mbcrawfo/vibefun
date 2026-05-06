@@ -204,13 +204,14 @@
 ### F-15: Division by Zero — Runtime Panic
 
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:104-107` — Integer division by zero panics at runtime; float division by zero follows IEEE 754 (returns Infinity/NaN)
-- **Status**: ✅ Implemented
+- **Status**: ❌ Missing — JavaScript codegen does not panic on integer division by zero.
 - **Implementation**:
-  - `packages/core/src/codegen/es2020/emit-operators.ts:128-129` — IntDivide wraps as `Math.trunc(a / b)`, which will throw when `b` is 0
-  - JavaScript runtime enforces division-by-zero panic
+  - `packages/core/src/codegen/es2020/emit-operators.ts:128-129` — IntDivide wraps as `Math.trunc(a / b)`. In JavaScript `a / 0` returns `Infinity` (or `NaN` for `0 / 0`) and `Math.trunc(Infinity)` returns `Infinity` — neither path throws. Spec requirement of a runtime panic is therefore not met for the integer case.
+  - Float case does follow IEEE 754 as the spec allows.
 - **Tests**:
-  - E2E: No explicit panic test found; relies on JavaScript runtime behavior
-- **Coverage assessment**: ⚠️ Thin — runtime panic is implicit via JavaScript; no explicit panic verification test
+  - E2E: No explicit panic test found.
+- **Coverage assessment**: ❌ Untested — and a guard test would currently fail because the implementation does not match the spec.
+- **Notes**: This is a real implementation gap, not just a doc miss. Remediation: emit a runtime check in codegen for IntDivide (or import a stdlib helper) that throws when divisor is 0, then add an E2E panic test.
 
 ### F-16: Integer Overflow and Underflow
 
@@ -525,18 +526,19 @@
   - No test needed; reserved keywords prevent use
 - **Coverage assessment**: ✅ Adequate
 
-### F-43: Try/Catch Not Supported (Use Result/Option)
+### F-43: Try/Catch Is Not Part of Vibefun's Error Model (Use Result/Option)
 
-- **Spec ref**: `docs/spec/04-expressions/control-flow.md:424-475` — Try/catch not a Vibefun feature; use Result<T, E> and Option<T> for error handling
-- **Status**: ✅ Implemented
+- **Spec ref**: `docs/spec/04-expressions/control-flow.md:424-475` — Try/catch is **not** Vibefun's error-handling mechanism; use `Result<T, E>` and `Option<T>` instead.
+- **Status**: ✅ Implemented as a JS-interop construct (not as a Vibefun error-handling feature). The spec claim is "not part of Vibefun's error model" — that part holds. The construct IS available syntactically, scoped to `unsafe` JS-interop contexts.
 - **Implementation**:
-  - Parser: `packages/core/src/parser/parse-expression-primary.ts:253-284` — Try/catch is PARSED (for JavaScript interop within unsafe blocks)
+  - Parser: `packages/core/src/parser/parse-expression-primary.ts:253-284` — Try/catch is parsed (intended for JavaScript interop within `unsafe` blocks)
   - `packages/core/src/desugarer/desugarer.ts:368-375` — Desugars TryCatch to CoreTryCatch
-  - Typechecker: No special handling (try/catch is expression within unsafe block, operates on external values)
+  - Typechecker: no special Vibefun-level semantics; it operates on external values inside `unsafe`
 - **Tests**:
-  - Try/catch is supported syntactically only within unsafe blocks (JavaScript interop)
-  - No E2E test in 04-expressions (this is JavaScript-only, not Vibefun semantics)
-- **Coverage assessment**: ⚠️ Thin — try/catch exists for JavaScript interop but isn't Vibefun error handling
+  - E2E: `tests/e2e/try-catch.test.ts` exercises the JS-interop scenario.
+  - No E2E test in `04-expressions.test.ts` (and none expected — this construct is for JS interop, not Vibefun semantics)
+- **Coverage assessment**: ⚠️ Thin — the JS-interop semantics are exercised end-to-end, but there is no test that explicitly asserts try/catch is rejected outside an `unsafe` block (which would pin down the spec's "not Vibefun error handling" half).
+- **Notes**: Read F-43 in two halves: (a) Vibefun-level error handling = ✅ via Result/Option (not try/catch); (b) JS-interop-level try/catch inside `unsafe` blocks = ✅ available, ⚠️ thin coverage of the boundary check.
 
 ### F-44: Evaluation Order — General Principles
 

@@ -346,8 +346,8 @@
   - `packages/core/src/typechecker/unify.ts:437-455` — unifyVar calls occursIn before binding, throws VF4300 on cycle
 - **Tests**:
   - Unit: `unify.test.ts:"should detect variable occurs in itself"` (line 177), `"should detect variable occurs in nested structure"` (line 198), `"should fail occurs check when unifying variable with type containing itself"` (line 290)
-- **Coverage assessment**: ✅ Adequate — occurs check tested on variables, functions, applications, records, variants, unions, tuples.
-- **Notes**: No pathological cases missed; covers all type constructors.
+- **Coverage assessment**: ⚠️ Thin — occurs check tested on direct variable bindings across major type constructors, but cyclic substitution chains across genuinely bidirectional mutual `let rec` groups (`α → β → α`) can still overflow `applySubst` since the current occurs check fires only at unification time, not when chasing existing substitutions.
+- **Notes**: Covers all type constructors at the unify-call site; does not cover post-binding cyclic chains in mutual recursion. Add a property/regression test that constructs a bidirectional mutual-recursive group and asserts a sane diagnostic instead of stack overflow.
 
 ## Feature Gaps (this section)
 
@@ -388,5 +388,5 @@ _None_ additional high-confidence redundancies detected. The test suite spans pa
 - **Gaps**: 2 (general unions lacking E2E validation, function-type variance lacking E2E test).
 - **Testing gaps**: 5 (keyword field use, partial variant application, standalone union-type unification, general union semantics, function-type assignment incompatibility).
 - **Redundancies**: None flagged with high confidence; test suite spans complementary layers.
-- **Output file**: `/Users/michael/Projects/vibefun/.claude/spec-audit/03b-types-composite.md`
+- **Output file**: `.claude/spec-audit/03b-types-composite.md`
 

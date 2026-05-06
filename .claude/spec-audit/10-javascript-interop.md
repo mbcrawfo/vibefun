@@ -90,7 +90,7 @@
 ### F-05: Restriction: all overloads must have same JavaScript name
 
 - **Spec ref**: `docs/spec/10-javascript-interop/external-declarations.md:237-243` and VF4801 — All overloads map to same jsName
-- **Status**: ✅ Implemented
+- **Status**: ❌ Missing — VF4801 is defined but never thrown; the typechecker accepts conflicting jsNames silently.
 - **Implementation**:
   - `packages/core/src/typechecker/typechecker.ts` — no explicit check (parser allows different jsNames for same vfName; typechecker does not validate)
 - **Tests**:
@@ -101,7 +101,7 @@
 ### F-06: Restriction: all overloads must have same module import (from)
 
 - **Spec ref**: `docs/spec/10-javascript-interop/external-declarations.md:237-243` and VF4802 — All overloads share the same from clause
-- **Status**: ✅ Implemented (partially)
+- **Status**: ❌ Missing — VF4802 is defined but never thrown.
 - **Implementation**:
   - `packages/core/src/typechecker/typechecker.ts` — no explicit check (from is optional on each decl)
 - **Tests**:
@@ -112,7 +112,7 @@
 ### F-07: Restriction: overloads must be function types
 
 - **Spec ref**: `docs/spec/10-javascript-interop/external-declarations.md:242` — "All overloads must have function type" and VF4803
-- **Status**: ✅ Implemented (error code exists, enforcement unclear)
+- **Status**: ❌ Missing — VF4803 is defined but no call site emits it; non-function overloads are accepted silently.
 - **Implementation**:
   - VF4803 defined in `diagnostics/codes/typechecker/ffi.ts` but no callsite in typechecker
 - **Tests**:
