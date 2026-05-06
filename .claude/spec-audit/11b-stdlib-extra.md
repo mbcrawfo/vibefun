@@ -158,7 +158,7 @@
   - Property: `packages/stdlib/src/float.test.ts:101-110` — `"property: round respects round-half-away-from-zero direction"`
   - Spec-validation: `tests/e2e/spec-validation/11-stdlib.test.ts:146-148` — `"Float.round"`
 - **Coverage assessment**: ✅ Adequate — away-from-zero semantics explicitly tested; property validates rounding bounds
-- **Notes**: Implementation custom: `n >= 0 ? Math.round(n) : -Math.round(Math.abs(n))` to enforce away-from-zero for negatives (JavaScript's default rounds half toward even). Returns Int per spec.
+- **Notes**: Implementation custom: `n >= 0 ? Math.round(n) : -Math.round(Math.abs(n))` to enforce away-from-zero for negatives. JavaScript's `Math.round` rounds halves toward `+∞` (so `Math.round(2.5) = 3`, `Math.round(-2.5) = -2`), which is "away from zero" only for positive halves; the wrapper above is what forces consistent away-from-zero behavior across signs. Returns Int per spec.
 
 ---
 

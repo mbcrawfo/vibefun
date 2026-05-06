@@ -62,7 +62,7 @@
 - Unit/Integration: `packages/cli/src/commands/*.test.ts` (2 files)
 - Unit: `packages/cli/src/utils/*.test.ts` (4 files)
 - Unit: `packages/cli/src/output/*.test.ts` (2 files)
-- E2E: `packages/cli/tests/*.test.ts` (7 files: compilation.test.ts, emit-modes.test.ts, error-handling.test.ts, flags.test.ts, global-commands.test.ts, output-validity.test.ts, run.test.ts, stdin.test.ts)
+- E2E: `packages/cli/tests/*.test.ts` (8 files: compilation.test.ts, emit-modes.test.ts, error-handling.test.ts, flags.test.ts, global-commands.test.ts, output-validity.test.ts, run.test.ts, stdin.test.ts)
 - Spec-validation: `tests/e2e/spec-validation/12-compilation.test.ts`
 - E2E: `tests/e2e/smoke.test.ts`
 
