@@ -638,9 +638,9 @@
 - **Tests**:
   - Unit: (none)
   - Spec-validation: (none)
-  - Property: (none — impure function, cannot property-test without effect tracking)
-- **Coverage assessment**: ❌ Untested — impure, so no practical test layer available at unit level; would require unsafe block spec-validation
-- **Notes**: Type signature correct (Unit → Float). Spec notes impure, should be used inside unsafe blocks. No tests available because JavaScript's Math.random() is impure by design.
+  - Property: (none) — exact-value tests aren't possible, but distributional/invariant property tests are (e.g. `forall n. let r = random(); 0.0 <= r && r < 1.0 && Float.isFinite(r)`)
+- **Coverage assessment**: ⚠️ Thin — the function is exercised by no test today, but invariant tests are feasible: assert the result is a finite Float in `[0.0, 1.0)`, and that two successive calls differ with overwhelming probability. Impurity does not preclude testing, only equality testing on a specific value.
+- **Notes**: Type signature correct (Unit → Float). Spec marks impure, intended for use inside `unsafe` blocks. Remediation: add a unit test asserting the `[0.0, 1.0)` invariant (10–1000 samples) and at least one spec-validation case running `random()` from inside `unsafe { … }`.
 
 ---
 
@@ -1267,7 +1267,7 @@
 - **F-68 through F-82**: Set module entirely unimplemented — 15 functions missing (construction, access, set operations, transformation)
 - **F-83 through F-94**: Json module entirely unimplemented — 1 type definition (F-83) + 11 functions (F-84..F-94) missing (parsing, serialization, extraction)
 - **F-30**: Math.round returns Float per spec but has no tests (Float.round F-08 returns Int; separate modules, both correct but confusing)
-- **F-38**: Math.random is impure; cannot be unit-tested effectively (by design; spec correctly marks as unsafe); no spec-validation test
+- **F-38**: Math.random has no tests today — but tests are feasible (invariant: result is a finite Float in `[0.0, 1.0)`); reclassified to a testing gap rather than an "untestable" feature.
 
 ---
 
@@ -1284,7 +1284,7 @@
 - **F-31, F-32**: Math.floor, Math.ceil — add more fixed test examples; test edge cases
 - **F-33**: Math.trunc — add fixed test examples
 - **F-35**: Math.sign — add fixed tests for negative, zero, and positive inputs explicitly
-- **F-38**: Math.random — no practical tests available (impure); consider marking as known limitation
+- **F-38**: Math.random — add an invariant test asserting `0.0 <= r < 1.0 && Float.isFinite(r)` over many samples, plus a spec-validation case exercising `random()` inside an `unsafe` block. Impurity does not preclude testing — only exact-value testing.
 - **F-39 through F-82**: Array, Map, Set modules — add comprehensive unit, integration, and spec-validation tests (priority: critical)
 - **F-83 through F-94**: Json module — add comprehensive tests for parsing, stringification, and type extraction
 
