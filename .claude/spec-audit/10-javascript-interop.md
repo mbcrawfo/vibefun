@@ -64,16 +64,15 @@
 ### F-03: Arity-based external overloading for functions only
 
 - **Spec ref**: `docs/spec/10-javascript-interop/external-declarations.md:195-243` — Multiple external signatures allowed for same JS function; resolved by argument count
-- **Status**: ✅ Implemented
+- **Status**: ⚠️ Partial — declaration-level support is in place; arity-based call-site resolution is **not** implemented (see F-30). Narrowed from "✅ Implemented" to remove the inconsistency between this status and the note below.
 - **Implementation**:
   - `packages/core/src/parser/parse-declarations/external.ts:20-89` — Parser allows duplicate names across multiple ExternalDecl nodes
-  - `packages/core/src/typechecker/typechecker.ts:325-346` — Bindings created for each; overload resolution by arity happens at call site
-  - (Overload resolution at inference time: planned but not yet in VF4804 error; See design note below)
+  - `packages/core/src/typechecker/typechecker.ts:325-346` — Bindings created for each declaration. Call-site overload resolution: not implemented; VF4804 currently throws "not yet supported".
 - **Tests**:
   - Unit: `overloading.test.ts:it("parses multiple external declarations for same function name")` (line 21), `it("parses external overloads in external block")` (line 44)
   - Spec-validation: (none explicitly test overload resolution at call)
 - **Coverage assessment**: ⚠️ Thin
-- **Notes**: Parser accepts all overload forms; typechecker creates multiple bindings. Overload **resolution** (arity matching) at call site is marked "not yet supported" (VF4804) — the infrastructure exists but is incomplete. See F-30.
+- **Notes**: Declaration-level only. Full spec compliance (arity-based selection at call) is deferred to F-30.
 
 ### F-04: Restriction: only externals can be overloaded, not pure Vibefun functions
 

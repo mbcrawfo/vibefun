@@ -410,4 +410,4 @@ _None_.
 **Gap count**: 0 missing or partial implementations  
 **Testing-gap count**: 3 (arity error messages, polymorphic recursion rejection, name shadowing)
 **Redundancy count**: 3 candidates identified and justified (all kept)
-**Output file path**: `/Users/michael/Projects/vibefun/.claude/spec-audit/06-functions.md`
+**Output file path**: `.claude/spec-audit/06-functions.md`

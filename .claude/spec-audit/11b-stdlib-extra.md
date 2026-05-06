@@ -1265,7 +1265,7 @@
 - **F-39 through F-53**: Array module entirely unimplemented — 15 functions missing (construction, access, mutation, transformation)
 - **F-54 through F-67**: Map module entirely unimplemented — 14 functions missing (construction, access, modification, transformation)
 - **F-68 through F-82**: Set module entirely unimplemented — 15 functions missing (construction, access, set operations, transformation)
-- **F-83 through F-94**: Json module entirely unimplemented — 12 functions + type definition missing (parsing, serialization, extraction)
+- **F-83 through F-94**: Json module entirely unimplemented — 1 type definition (F-83) + 11 functions (F-84..F-94) missing (parsing, serialization, extraction)
 - **F-30**: Math.round returns Float per spec but has no tests (Float.round F-08 returns Int; separate modules, both correct but confusing)
 - **F-38**: Math.random is impure; cannot be unit-tested effectively (by design; spec correctly marks as unsafe); no spec-validation test
 
