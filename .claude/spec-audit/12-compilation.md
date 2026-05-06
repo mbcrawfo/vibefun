@@ -868,7 +868,7 @@
 
 - **F-46**: Runtime type checking — feature described in `docs/spec/12-compilation/runtime.md:5-11` with `--runtime-checks=ffi|all|none` flag, but CLI does not implement this flag. Remediation: add CLI flag and codegen instrumentation if feature is prioritized.
 
-- **F-45**: Tail call optimization — spec notes TCO is supported "where supported by JavaScript runtime" (`docs/spec/12-compilation/codegen.md:414`), but not implemented. Remediation: depends on JS engine support; currently no proper-tail-calls transpiling.
+_F-45 (Tail call optimization) is tagged ⏸️ Future in the inventory and is **not** counted as an active feature gap here. See the inventory for context (`docs/spec/12-compilation/codegen.md:410-414`)._
 
 ## Testing Gaps (this section)
 

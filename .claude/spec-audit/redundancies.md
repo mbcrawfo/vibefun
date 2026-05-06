@@ -205,8 +205,8 @@ A candidate is only worth consolidating if removing one test would not weaken an
   - Test A: `option.test.ts:27-32` "isSome / isNone discriminate"
   - Test B: `option.test.ts:106-112` property test "isSome and isNone are mutually exclusive and exhaustive"
   - **Duplicated assertion**: Both assert that `isSome` and `isNone` correctly discriminate `Option`.
-  - **Per-section recommendation**: The property test already covers this behavior; the fixed test is redundant and could be removed in favor of keeping only the property test.
-  - **Synthesis recommendation**: Confirm keep — explicitly overridden by the project's `.claude/CODING_STANDARDS.md` § Property-Based Testing rule: "Property tests **augment** existing fixed-input tests — they never replace them. Coverage from fixed tests must be preserved." The per-section recommendation conflicts with this directive; do not consolidate.
+  - **Per-section recommendation (superseded)**: The original per-section note read "the fixed test is redundant and could be removed in favor of keeping only the property test." This recommendation is **explicitly superseded by synthesis** — see below. It is recorded here only to show that the per-section author identified a behavioral overlap; the directive to remove the fixed test was incorrect.
+  - **Synthesis recommendation**: Confirm keep. The project's `.claude/CODING_STANDARDS.md` § Property-Based Testing states: "Property tests **augment** existing fixed-input tests — they never replace them. Coverage from fixed tests must be preserved." The fixed test must remain; do not consolidate. The per-section recommendation above must not be acted on.
 
 ## Notes
 

@@ -346,8 +346,8 @@
   - `packages/core/src/typechecker/unify.ts:437-455` — unifyVar calls occursIn before binding, throws VF4300 on cycle
 - **Tests**:
   - Unit: `unify.test.ts:"should detect variable occurs in itself"` (line 177), `"should detect variable occurs in nested structure"` (line 198), `"should fail occurs check when unifying variable with type containing itself"` (line 290)
-- **Coverage assessment**: ⚠️ Thin — occurs check tested on direct variable bindings across major type constructors, but cyclic substitution chains across genuinely bidirectional mutual `let rec` groups (`α → β → α`) can still overflow `applySubst` since the current occurs check fires only at unification time, not when chasing existing substitutions.
-- **Notes**: Covers all type constructors at the unify-call site; does not cover post-binding cyclic chains in mutual recursion. Add a property/regression test that constructs a bidirectional mutual-recursive group and asserts a sane diagnostic instead of stack overflow.
+- **Coverage assessment**: ⚠️ Thin (speculative) — occurs check tested on direct variable bindings across major type constructors. There is a *hypothesized* gap around cyclic substitution chains in genuinely bidirectional mutual `let rec` groups (`α → β → α`) that the unification-time occurs check would not catch when chasing existing substitutions in `applySubst`. **No reproducer is currently in hand**; this hypothesis was raised by review and has not been validated against the implementation in this audit.
+- **Notes**: Treat the bidirectional-mutual-recursion concern as speculative until a reproducer exists. Suggested follow-up: write a property test that builds a bidirectional mutual-recursive group and asserts the typechecker either rejects with a sane diagnostic or terminates without stack-overflow; if the test fails, the speculative gap is confirmed and this entry should be promoted to ⚠️ Partial with the failing fixture cited.
 
 ## Feature Gaps (this section)
 

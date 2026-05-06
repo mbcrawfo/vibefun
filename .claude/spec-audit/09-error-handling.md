@@ -392,8 +392,8 @@
 - **Status**: ✅ Implemented
 - **Implementation**:
   - Type system enforces Result/Option for recoverable errors
-  - Typechecker rejects try-catch (not a language construct)
-  - Only panic (unrecoverable) and match (recovery via pattern matching) available
+  - Try/catch is **not part of Vibefun's error model** (use Result/Option). It is parsed and supported syntactically only inside `unsafe` JS-interop contexts — see `04a-expressions-core.md` F-43 and `13-appendix.md` F-23 for the JS-interop scope.
+  - Pure-Vibefun control flow offers `panic` (unrecoverable) and `match` (recovery via pattern matching).
 - **Tests**:
   - (none specific to "no exceptions" — verified by absence of try-catch support)
 - **Coverage assessment**: ✅ Adequate

@@ -475,7 +475,7 @@
 - **Spec ref**: `docs/spec/08-modules.md:27` (example) — `Lib.x` after `import * as Lib`
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expressions/parse-expression-primary.ts` — member access `Lib.x`
+  - `packages/core/src/parser/parse-expression-primary.ts` — member access `Lib.x`
   - `packages/core/src/typechecker/` — resolves namespace bindings
   - `packages/core/src/codegen/es2020/` — emits member access as `Lib.x`
 - **Tests**:
@@ -484,14 +484,13 @@
 - **Coverage assessment**: ✅ Adequate — namespace member access tested and runs successfully
 - **Notes**: None
 
-### F-32: Dynamic package import (future; listed in F-32 as possible)
+---
 
-- **Spec ref**: `docs/spec/08-modules.md` (not mentioned)
-- **Status**: ⏸️ Future (not in current spec scope)
-- **Implementation**: Not implemented
-- **Tests**: None
-- **Coverage assessment**: N/A
-- **Notes**: Dynamic imports are not in the current spec
+## Out of Scope / Future (not part of the spec-vs-implementation feature inventory)
+
+These items are **not** counted in the F-NN feature inventory above and do not feed the synthesis docs. Listed here only so future readers know they were considered and intentionally excluded.
+
+- **Dynamic package import** — Not in the current spec; not implemented. Out of scope for this audit. (Removed from the feature inventory at CodeRabbit's request to avoid skewing gap counts.)
 
 ---
 

@@ -254,7 +254,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:159` — `<` operator; only Int, Float, String, Bool support ordering
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_LT at precedence 10
+  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_LT at precedence level 8 (per the docstring on the function)
   - `packages/core/src/desugarer/desugarer.ts:327-328` — BinOp with "LessThan" desugars
   - `packages/core/src/codegen/es2020/emit-operators.ts:133` — Maps LessThan to "<"
 - **Tests**:
@@ -266,7 +266,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:161` — `>` operator; only orderable types
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_GT at precedence 10
+  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_GT at precedence level 8
   - `packages/core/src/codegen/es2020/emit-operators.ts:135` — Maps GreaterThan to ">"
 - **Tests**:
   - E2E: `04-expressions.test.ts:greater than comparison` (line 138-140)
@@ -406,7 +406,7 @@
 - **Spec ref**: `docs/spec/13-appendix.md:83-151` — Complete precedence table from 0 (lambda) to 16 (field access)
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts` — All precedence levels implemented in order: parseLambda (0), parseRefAssign (1), parseTypeAnnotation (2), parsePipe (3), parseComposition (4), parseLogicalOr (5), parseLogicalAnd (6), parseEquality (7-9), parseComparison (9), parseCons (11), parseConcat (12), parseAdditive (13), parseMultiplicative (14), parseUnary (15), parseCall (16)
+  - `packages/core/src/parser/parse-expression-operators.ts` — Precedence levels per function docstrings: parseLambda (0), parseRefAssign (1), parseTypeAnnotation (2), parsePipe (3), parseComposition (4), parseLogicalOr (5), parseLogicalAnd (6), parseEquality (7), parseComparison (8), parseConcat (10), parseCons (11, right-assoc), parseAdditive (12), parseMultiplicative (13), parseUnary (14), parseCall (15). These now match F-09/F-19 above and are the canonical numbering taken from the parser source docstrings.
   - Parser uses precedence climbing
 - **Tests**:
   - Parser: `operator-edge-cases.test.ts` includes property test for precedence round-trip
@@ -715,4 +715,4 @@ All tests serve distinct purposes (parser acceptance, type validation, runtime b
 
 ---
 
-**Summary**: 56 features identified; 50 implemented; 6 partially or thinly tested. 15 testing gaps across evaluation-order validation, operator edge cases, and error conditions. 0 redundant tests.
+**Summary**: 56 features identified; 24 entries marked ⚠️ Partial / ⚠️ Thin / ❌ Missing / ❌ Untested across status and coverage assessments combined (recounted). 15 testing gaps explicitly listed across evaluation-order validation, operator edge cases, and error conditions. 0 redundant tests.

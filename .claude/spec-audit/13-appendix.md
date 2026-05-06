@@ -33,7 +33,7 @@
 
 ### SYNTAX SUMMARY VERIFICATION (Positive Audit)
 
-Each form listed in appendix.md:13-appendix.md (lines 15-58) is verified as implemented.
+Each form listed in `docs/spec/13-appendix.md:15-58` is verified as implemented.
 
 #### F-01: Let binding syntax (`let name = value`)
 
@@ -334,7 +334,7 @@ Each form listed in appendix.md:13-appendix.md (lines 15-58) is verified as impl
 
 #### F-23: Try-catch expression (`try { ... } catch (e) { ... }`)
 
-- **Spec ref**: `docs/spec/13-appendix.md:` — NOT in syntax summary, but keywords included
+- **Spec ref**: `docs/spec/13-appendix.md:60-81` (keywords table includes `try`/`catch`); NOT enumerated in the syntax summary at `docs/spec/13-appendix.md:15-58`
 - **Status**: ✅ Implemented (feature found but not documented in syntax summary)
 - **Implementation**:
   - `packages/core/src/parser/parse-expression-primary.ts:240-285` — parseTryExpr()
@@ -346,7 +346,7 @@ Each form listed in appendix.md:13-appendix.md (lines 15-58) is verified as impl
 
 #### F-24: While loop (`while condition { body }`)
 
-- **Spec ref**: `docs/spec/13-appendix.md:` — NOT in syntax summary, but `while` in keywords table
+- **Spec ref**: `docs/spec/13-appendix.md:60-81` (keywords table includes `while`); NOT enumerated in the syntax summary at `docs/spec/13-appendix.md:15-58`
 - **Status**: ✅ Implemented (feature found but not documented in syntax summary)
 - **Implementation**:
   - `packages/core/src/parser/parse-expression-primary.ts:287-308` — parseWhileExpr()
