@@ -395,9 +395,10 @@
   - Try/catch is **not part of Vibefun's error model** (use Result/Option). It is parsed and supported syntactically only inside `unsafe` JS-interop contexts — see `04a-expressions-core.md` F-43 and `13-appendix.md` F-23 for the JS-interop scope.
   - Pure-Vibefun control flow offers `panic` (unrecoverable) and `match` (recovery via pattern matching).
 - **Tests**:
-  - (none specific to "no exceptions" — verified by absence of try-catch support)
-- **Coverage assessment**: ✅ Adequate
-- **Notes**: Philosophy is enforced at language level through type system and lack of exception syntax.
+  - (no test directly asserts "no exceptions in pure Vibefun" — the type-system absence of an exception-throwing primitive in the pure-Vibefun fragment is the in-language enforcement)
+  - JS-interop try/catch (the `unsafe`-scoped construct) is exercised end-to-end at `tests/e2e/try-catch.test.ts`; it is *not* part of Vibefun's error model.
+- **Coverage assessment**: ⚠️ Thin — a dedicated test that try/catch is rejected outside an `unsafe` block would pin down the "not Vibefun error handling" half of the spec.
+- **Notes**: Philosophy: pure Vibefun uses Result/Option (not exceptions). Try/catch syntax exists only inside `unsafe` JS-interop contexts; cross-references: `04a-expressions-core.md` F-43, `13-appendix.md` F-23.
 
 ## Feature Gaps (this section)
 

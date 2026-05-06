@@ -277,7 +277,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:160` — `<=` operator; only orderable types
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_LTE at precedence 10
+  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_LTE at precedence level 8
   - `packages/core/src/codegen/es2020/emit-operators.ts:134` — Maps LessEqual to "<="
 - **Tests**:
   - E2E: `04-expressions.test.ts:less than or equal comparison` (line 146-148)
@@ -288,7 +288,7 @@
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:162` — `>=` operator; only orderable types
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_GTE at precedence 10
+  - `packages/core/src/parser/parse-expression-operators.ts:284-313` — `parseComparison()` matches OP_GTE at precedence level 8
   - `packages/core/src/codegen/es2020/emit-operators.ts:136` — Maps GreaterEqual to ">="
 - **Tests**:
   - E2E: `04-expressions.test.ts:greater than or equal comparison` (line 142-144)
