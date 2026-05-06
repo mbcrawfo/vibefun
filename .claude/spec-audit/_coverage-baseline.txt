@@ -1,0 +1,16 @@
+Vibefun coverage baseline at start of spec audit.
+Source: pnpm run test:coverage (monorepo root)
+Captured: 2026-05-06
+
+Combined totals from coverage/coverage-summary.json:
+  Lines      : 92.80% (7038/7584)
+  Statements : 91.92% (7300/7941)
+  Functions  : 92.59% (1076/1162)
+  Branches   : 86.71% (3996/4608)
+
+Per-package totals available in:
+  packages/core/coverage/coverage-summary.json
+  packages/stdlib/coverage/coverage-summary.json
+
+Per-CLAUDE.md, follow-up implementation/test work driven by this audit's
+gap reports must defend ≥ these percentages.
