@@ -6,7 +6,8 @@ Aggregate of all `❌ Missing` and `⚠️ Partial` features across the per-sect
 
 - Total ❌ Missing: 60
 - Total ⚠️ Partial: 20
-- Sections with 0 gaps: 02 Lexical Structure, 04a Expressions Core, 04b Expressions Data/Fns, 06 Functions, 09 Error Handling, 11a Stdlib Core, cross-cutting
+- Sections with 0 gaps: 02 Lexical Structure, 04a Expressions Core, 04b Expressions Data/Fns, 06 Functions, 11a Stdlib Core, cross-cutting
+- 09 Error Handling: 2 gaps that are cross-references to the 11b Stdlib Extra cluster (Array module unimplemented); not double-counted in the totals above. See "09 Error Handling" section below.
 - Sections with most gaps: 11b Stdlib Extra (56), 03c Types/Errors (10), 13 Appendix (6)
 
 ## Priority Tiers
@@ -53,6 +54,11 @@ Severity is a **hint**, not a verdict. Final remediation order is up to the main
 ### 08 Modules
 
 - **F-30** (`08-modules.md`) — Module initialization for circular dependencies (deferred / undefined bindings): cycle detector + warnings exist; no test validates the spec's claim that calling a circularly-imported function at module top level fails at initialization time. Status: ⚠️ Partial. Tier: P2. Remediation hint: add an E2E test that asserts top-level invocation across a cycle errors with the expected runtime message.
+
+### 09 Error Handling
+
+- **F-19** (`09-error-handling.md`) — `Array.get` returns `Option` on out-of-bounds: not implemented. Status: ❌ Missing. Tier: P1. **Cross-reference**: same gap as `11b-stdlib-extra.md` F-42 (Array module entirely unimplemented). Remediation tracked under the stdlib cluster, not double-counted in the totals.
+- **F-20** (`09-error-handling.md`) — `Array.set` panics on out-of-bounds: not implemented. Status: ❌ Missing. Tier: P1. **Cross-reference**: same gap as `11b-stdlib-extra.md` F-43. Remediation tracked under the stdlib cluster.
 
 ### 10 JavaScript Interop
 

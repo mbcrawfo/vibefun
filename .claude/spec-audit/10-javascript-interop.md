@@ -369,16 +369,17 @@
 
 ### F-27: Variant representation in JavaScript (tag field)
 
-- **Spec ref**: `docs/spec/10-javascript-interop/calling-conventions.md:58-80` — Variants compile to objects with `tag` field
+- **Spec ref**: `docs/spec/10-javascript-interop/calling-conventions.md:58-80` — Variants compile to objects with a tag field
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/codegen/es2020/emit-expressions/collections.ts` — variant construction emits `{ tag: "...", value: ... }`
-  - Pattern matching codegen handles tag-based dispatch
+  - `packages/core/src/codegen/es2020/emit-expressions/collections.ts:88-104` — variant construction emits `{ $tag: "Name" }` for nullary, `{ $tag: "Name", $0: a, $1: b, ... }` for arity ≥ 1 (positional `$N` payload fields, not `value`).
+  - `packages/core/src/codegen/es2020/emit-declarations.ts:263-292` — same shape for ambient constructor bindings.
+  - `packages/core/src/codegen/es2020/emit-patterns.ts:320` — pattern matching dispatches on `scrutinee.$tag === "Name"`.
 - **Tests**:
   - Unit: codegen tests for variant emission
   - E2E: `pattern-matching.test.ts` in execution-tests
 - **Coverage assessment**: ✅ Adequate
-- **Notes**: Transparent representation; users don't write JS manually for variants in this spec section.
+- **Notes**: The `$`-prefixed names (`$tag`, `$0`, `$1`, …) avoid collision with user record fields. **Reconciled with `12-compilation.md` runtime contract** — both audit docs now describe the same `$tag/$N` shape.
 
 ### F-28: Record representation in JavaScript (plain objects)
 
@@ -392,17 +393,19 @@
 - **Coverage assessment**: ✅ Adequate
 - **Notes**: Full support.
 
-### F-29: Refs as mutable objects with .value field in JavaScript
+### F-29: Refs as mutable objects with $value field in JavaScript
 
-- **Spec ref**: `docs/spec/10-javascript-interop/calling-conventions.md:117-140` — Refs compile to `{ value: ... }` with mutable .value field
+- **Spec ref**: `docs/spec/10-javascript-interop/calling-conventions.md:117-140` — Refs compile to a mutable single-field object
 - **Status**: ✅ Implemented
 - **Implementation**:
-  - `packages/core/src/codegen/es2020/emit-expressions/collections.ts` — ref construction and access
+  - `packages/core/src/codegen/es2020/runtime-helpers.ts:14-20` — `const ref = ($value) => ({ $value });`
+  - `packages/core/src/codegen/es2020/emit-declarations.ts:143-158` — mutable bindings wrap as `{ $value: ... }`
+  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:128-132` — `:=` emits `(a.$value = b, undefined)`; deref reads `x.$value`
 - **Tests**:
   - Unit: codegen ref tests
   - E2E: `mutable-refs.test.ts` in execution-tests
 - **Coverage assessment**: ✅ Adequate
-- **Notes**: Full support; JS can mutate .value directly.
+- **Notes**: Field name is `$value` (with `$` prefix) — JS interop code must use `.$value`, not `.value`. **Reconciled with `12-compilation.md`** — both audit docs now describe the same `$value` contract.
 
 ### F-30: Arity-based external overload resolution at call site
 
@@ -525,4 +528,4 @@ _None_. External and unsafe tests are well-organized by feature and layer (parse
 - **Gaps**: 6 incomplete features (overload validation, runtime type-checking, overload resolution)
 - **Testing Gaps**: 5 major test-coverage gaps (overload consistency, Error type, Any unification, null handling, overload resolution)
 - **Redundancies**: 0
-- **Output**: `/Users/michael/Projects/vibefun/.claude/spec-audit/10-javascript-interop.md`
+- **Output**: `.claude/spec-audit/10-javascript-interop.md`
