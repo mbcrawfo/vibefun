@@ -26,6 +26,7 @@ import {
     unionType,
     variantType,
 } from "./types.js";
+import { unifyEquivalent } from "./unify-test-helpers.js";
 import { applySubst, composeSubst, emptySubst, occursIn, singleSubst, unify } from "./unify.js";
 
 // Test context for unification - provides a dummy location for error messages
@@ -997,10 +998,16 @@ describe("Unification Algebraic Properties", () => {
         );
     });
 
-    it("property: soundness — when unify(a, b) succeeds with σ, applySubst(σ, a) === applySubst(σ, b)", () => {
-        // Generated types may not unify; on failure the property is vacuously
-        // satisfied. The point is to catch the case where unify returns a
-        // substitution that does NOT actually equate the inputs.
+    it("property: soundness — when unify(a, b) succeeds with σ, applySubst(σ, a) is unify-equivalent to applySubst(σ, b)", () => {
+        // Vibefun's unifier is a directional subtype solver, not a classical
+        // Robinson unifier: at record positions the post-condition is
+        // `σ(a) <: σ(b)` under one-sided width subtyping (every field in σ(a)
+        // exists in σ(b) with an equivalent type; σ(b) may carry extras).
+        // Strict structural equality holds elsewhere. See `unifyRecords` in
+        // unify.ts and docs/spec/03-type-system/subtyping.md. The property
+        // catches the case where unify returns a substitution that does NOT
+        // satisfy this post-condition. Generated types may not unify; on
+        // failure the property is vacuously satisfied.
         fc.assert(
             fc.property(typeArb(), typeArb(), (a, b) => {
                 let subst: ReturnType<typeof unify>;
@@ -1014,9 +1021,33 @@ describe("Unification Algebraic Properties", () => {
                 }
                 const aPrime = applySubst(subst, a);
                 const bPrime = applySubst(subst, b);
-                expect(typeEquals(aPrime, bPrime)).toBe(true);
+                expect(unifyEquivalent(aPrime, bPrime)).toBe(true);
             }),
         );
+    });
+
+    it("regression: width-subtyped records satisfy the soundness oracle (fuzz seed -234736366)", () => {
+        // Shrunken counterexample from the 2026-05-04 weekly fuzz run. The
+        // unifier accepts narrower (1 field) → wider (2 fields), binds the
+        // var, and the post-condition holds under one-sided width subtyping
+        // even though strict structural equality does not.
+        const a = recordType(
+            new Map<string, Type>([["name", { type: "Tuple", elements: [primitiveTypes.Int, primitiveTypes.Int] }]]),
+        );
+        const b = recordType(
+            new Map<string, Type>([
+                ["name", { type: "Var", id: 0, level: 0 }],
+                ["x", primitiveTypes.Int],
+            ]),
+        );
+
+        const subst = unify(a, b, testCtx);
+
+        expect(unifyEquivalent(applySubst(subst, a), applySubst(subst, b))).toBe(true);
+        // The strict structural check still detects the field-set difference
+        // — pin it so a future "simplification" that collapses the oracle
+        // back into typeEquals is caught immediately.
+        expect(typeEquals(applySubst(subst, a), applySubst(subst, b))).toBe(false);
     });
 
     // No success-symmetry property: `unify` is intentionally directional for

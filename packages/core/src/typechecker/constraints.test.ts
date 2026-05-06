@@ -22,6 +22,7 @@ import {
     typeEquals,
     variantType,
 } from "./types.js";
+import { unifyEquivalent } from "./unify-test-helpers.js";
 import { applySubst, emptySubst, singleSubst } from "./unify.js";
 
 // Test location for constraints
@@ -544,11 +545,13 @@ describe("Constraint Solver Algebraic Properties", () => {
         );
     });
 
-    it("property: consistency — applying the solved subst makes every equality constraint hold", () => {
+    it("property: consistency — applying the solved subst makes every equality constraint hold under unify-equivalence", () => {
         // For any equality constraint set the solver accepts, applying the
-        // returned substitution to both sides of every constraint must yield
-        // structurally-equal types. This is the constraint-solver analog of
-        // unification soundness.
+        // returned substitution to both sides must satisfy the directional
+        // post-condition of `unify` — `σ(t1) <: σ(t2)` under one-sided width
+        // subtyping at record positions, structural equality elsewhere. This
+        // is the constraint-solver analog of unification soundness; see
+        // `unifyRecords` in unify.ts and docs/spec/03-type-system/subtyping.md.
         fc.assert(
             fc.property(fc.array(equalityConstraintArb, { maxLength: 3 }), (constraints) => {
                 const r = trySolve(constraints);
@@ -558,10 +561,37 @@ describe("Constraint Solver Algebraic Properties", () => {
                 for (const c of constraints) {
                     const left = applySubst(r.subst, c.t1);
                     const right = applySubst(r.subst, c.t2);
-                    expect(typeEquals(left, right)).toBe(true);
+                    expect(unifyEquivalent(left, right)).toBe(true);
                 }
             }),
         );
+    });
+
+    it("regression: width-subtyped equality constraint satisfies the consistency oracle (fuzz seed -234729922)", () => {
+        // Shrunken counterexample from the 2026-05-04 weekly fuzz run. The
+        // solver accepts the narrower-then-wider equality, binds the var, and
+        // the post-condition holds under one-sided width subtyping even
+        // though strict structural equality does not.
+        const t1 = recordType(new Map<string, Type>([["x", { type: "Var", id: 0, level: 0 }]]));
+        const t2 = recordType(
+            new Map<string, Type>([
+                [
+                    "x",
+                    {
+                        type: "Tuple",
+                        elements: [primitiveTypes.Int, { type: "Var", id: 1, level: 0 }],
+                    },
+                ],
+                ["name", funType([], primitiveTypes.Int)],
+            ]),
+        );
+
+        const subst = solveConstraints([equalityConstraint(t1, t2, testLoc)]);
+
+        expect(unifyEquivalent(applySubst(subst, t1), applySubst(subst, t2))).toBe(true);
+        // Strict structural equality must still detect the field-set
+        // difference, pinning the oracle's discriminating behaviour.
+        expect(typeEquals(applySubst(subst, t1), applySubst(subst, t2))).toBe(false);
     });
 
     it("property: applySubstToConstraint with empty subst is the identity (modulo structural equality)", () => {
