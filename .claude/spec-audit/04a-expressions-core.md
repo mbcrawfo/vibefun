@@ -204,14 +204,19 @@
 ### F-15: Division by Zero — Runtime Panic
 
 - **Spec ref**: `docs/spec/04-expressions/basic-expressions.md:104-107` — Integer division by zero panics at runtime; float division by zero follows IEEE 754 (returns Infinity/NaN)
-- **Status**: ❌ Missing — JavaScript codegen does not panic on integer division by zero.
+- **Status**: ✅ Implemented — corrected from a previous commit's erroneous ❌ Missing verdict. The codegen does panic on integer division/modulo by zero via runtime helpers; see implementation citations below.
 - **Implementation**:
-  - `packages/core/src/codegen/es2020/emit-operators.ts:128-129` — IntDivide wraps as `Math.trunc(a / b)`. In JavaScript `a / 0` returns `Infinity` (or `NaN` for `0 / 0`) and `Math.trunc(Infinity)` returns `Infinity` — neither path throws. Spec requirement of a runtime panic is therefore not met for the integer case.
-  - Float case does follow IEEE 754 as the spec allows.
+  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:107-114` — `IntDivide` emits `$intDiv(a, b)` (not raw `Math.trunc(a / b)` as a stale comment in `emit-operators.ts:128` suggests).
+  - `packages/core/src/codegen/es2020/emit-expressions/operators.ts:116-125` — `Modulo` emits `$intMod(a, b)`.
+  - `packages/core/src/codegen/es2020/runtime-helpers.ts:71` — `$intDiv = (a, b) => { if (b === 0) throw new Error("Division by zero"); return Math.trunc(a / b); };`
+  - `packages/core/src/codegen/es2020/runtime-helpers.ts:81-82` — `$intMod` similarly throws on `b === 0`.
+  - Float case correctly returns Infinity/NaN per IEEE 754 (no special helper needed).
 - **Tests**:
-  - E2E: No explicit panic test found.
-- **Coverage assessment**: ❌ Untested — and a guard test would currently fail because the implementation does not match the spec.
-- **Notes**: This is a real implementation gap, not just a doc miss. Remediation: emit a runtime check in codegen for IntDivide (or import a stdlib helper) that throws when divisor is 0, then add an E2E panic test.
+  - Execution: `packages/core/src/codegen/es2020/execution-tests/numeric.test.ts:67-77` — "should panic at runtime on integer division by zero" (and modulo)
+  - E2E: `tests/e2e/spec-validation/09-error-handling.test.ts:14-20` — "integer division by zero panics" + modulo
+  - Float side: `numeric.test.ts:79-87` — "should NOT panic on float division by zero"; `09-error-handling.test.ts:22-32` — Infinity/NaN/-Infinity cases
+- **Coverage assessment**: ✅ Adequate — both code paths have execution-test and spec-validation coverage. The Testing Gaps bullet below for F-15 (E2E in 04-expressions) refers to *cross-section* coverage convenience, not a missing test.
+- **Notes**: Reconciled with `09-error-handling.md` F-14/F-15 which already had the correct citations. The earlier ❌ Missing verdict in this audit was based on a misread of `emit-operators.ts:128`'s stale comment; the runtime helper layer was overlooked.
 
 ### F-16: Integer Overflow and Underflow
 
@@ -695,7 +700,7 @@
 ## Testing Gaps (this section)
 
 - **Partial application (F-08)**: Add E2E test: `let add = (x: Int, y: Int) => x + y; let add5 = add(5); expectRunOutput(..., "8")` to validate currying behavior.
-- **Division by zero panic (F-15)**: Add E2E test: `expectRuntimeError('let x = 10 / 0;')` to verify panic behavior.
+- **Division by zero panic (F-15)** — covered: integer panic + float Infinity/NaN are tested at the codegen execution-tests layer and in `09-error-handling.test.ts`. An additional E2E case in `04-expressions.test.ts` would be a convenience cross-link, not a coverage gap. Item retained here for navigability only.
 - **Dereference in expressions (F-26)**: Add cross-validation test in 04-expressions for `!` on Ref<T>.
 - **If short-circuit with side effects (F-36)**: Add E2E test: `let mut x = ref(0); let r = if true then { x := 1; } else { x := 2; }; expectRunOutput(..., String.fromInt(!x), "1")` to verify only one branch executes.
 - **While loop type errors (F-40)**: Add error tests: `expectCompileError('while 42 { () };')` (non-Bool) and `expectCompileError('while true { 42; };')` (non-Unit body).
@@ -715,4 +720,4 @@ All tests serve distinct purposes (parser acceptance, type validation, runtime b
 
 ---
 
-**Summary**: 56 features identified; 24 entries marked ⚠️ Partial / ⚠️ Thin / ❌ Missing / ❌ Untested across status and coverage assessments combined (recounted). 15 testing gaps explicitly listed across evaluation-order validation, operator edge cases, and error conditions. 0 redundant tests.
+**Summary**: 56 features identified; 23 entries marked ⚠️ Partial / ⚠️ Thin / ❌ Missing / ❌ Untested across status and coverage assessments combined (recounted after the F-15 correction). The "Testing Gaps (this section)" list contains 10 explicit bullets covering 12 distinct F-NN IDs (some bullets reference multiple IDs, e.g. F-45/F-46, F-49/F-50). 0 redundant tests.
