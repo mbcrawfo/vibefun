@@ -45,9 +45,10 @@ pnpm run test:coverage
    - F-17: lambda recursion rejection — `let fact = (n) => if n == 0 then 1 else n * fact(n - 1);` should fail with "fact undefined" (lambdas don't see their own binding; only `let rec` does). `expectCompileError`.
    - F-18: operator section — `expectCompileError("let inc = (+ 1);");` and `expectCompileError("let plus = (+);");`. Assert specific parse error.
    - F-22: block sequential — `{ let _ = unsafe { console_log("a") }; let _ = unsafe { console_log("b") }; () }` prints `a\nb` in order.
-3. **`packages/core/src/typechecker/infer-bindings-basic.test.ts`** (extend) — Layer: U.
+3. **`packages/core/src/typechecker/infer-bindings-basic.test.ts`** (extend) — Layer: U (typechecker).
    - F-17: assert that `(n) => fact(n - 1)` typechecks against an outer `fact` (lambda recursion via outer binding works), but the **let-bound lambda** does NOT see itself — exact form per spec.
-   - F-18: parser-level rejection of `(+)` and `(+ 1)` (use parser-level test, not typechecker).
+4. **`packages/core/src/parser/parser.test.ts`** (or the most appropriate parser test file under `packages/core/src/parser/`) (extend) — Layer: U (parser).
+   - F-18: assert the parser rejects `(+)` and `(+ 1)` (operator sections) with a parse error. This belongs in the parser suite, not the typechecker suite — the spec disallows the syntax at parse time.
 
 ## Behavior expectations (for bug-triage)
 

@@ -1,6 +1,6 @@
 # Testing Gap Remediation Plan
 
-This folder contains the chunked implementation plan for closing the **123 testing gaps** documented in `.claude/spec-audit/testing-gaps.md`. Each chunk produces one PR (~500 LOC target). The meta-plan with chunk overview and methodology lives at `~/.claude/plans/examine-the-testing-gaps-cheerful-snowflake.md`.
+This folder contains the chunked implementation plan for closing the **123 testing gaps** documented in `.claude/spec-audit/testing-gaps.md`. Each chunk produces one PR (~500 LOC target). This README is the index; the per-chunk files below carry the full methodology (orphan-check, coverage discipline, spec citations, tests-only constraint).
 
 ## Chunk index
 

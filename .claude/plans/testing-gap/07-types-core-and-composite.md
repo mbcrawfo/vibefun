@@ -44,7 +44,7 @@ pnpm run test:coverage
 
 ## Behavior expectations (for bug-triage)
 
-- F-21 message wording: if the test reveals the actual message uses different separators or capitalisation than the spec, that's a docs-vs-code drift — pick whichever has more contributors agreeing and file a bug for the other side.
+- F-21 message wording: the **spec is the contract**. If the test reveals the actual message uses different separators or capitalisation than the spec, file a bug against the implementation — the test asserts the spec text. If you believe the spec wording is wrong, do not silently match implementation; open a separate spec-clarification ticket and pause the chunk until that resolves.
 - F-19 variance: if function types unify too liberally, type system is unsound. File a bug; do NOT weaken the test to match implementation.
 - F-09 partial variant: if `f` infers to `Shape` instead of `(Float) -> Shape`, the desugarer/typechecker isn't curryifying variant constructors per spec. File a bug.
 

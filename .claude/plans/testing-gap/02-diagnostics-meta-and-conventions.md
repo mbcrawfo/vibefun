@@ -9,7 +9,7 @@ Closes 03c F-03, F-10, F-11, F-12, F-19, F-20.
 ## Spec under test
 
 - `docs/spec/03-type-system/04-error-reporting.md` — error ordering ("errors are reported in source order"), type display convention (`Int`, `String`, `Bool`, `Float`, `Unit`), and type variable naming convention (`'a`, `'b`, `'c` in order encountered).
-- `packages/core/src/diagnostics/codes/README.md` — error code ranges, including warnings 4900-4999 reserved (note: the audit refers to the "900-999 range" within the 4xxx prefix; verify against `codes/typechecker/index.ts` comment).
+- `packages/core/src/diagnostics/codes/README.md` — error code ranges; the warning range is **VF4900–VF4999** (the audit's "900-999 range" phrasing means the last three digits within the 4xxx typechecker prefix). All F-10 assertions in this chunk use the explicit `VF4900–VF4999` range; do not rephrase.
 - `docs/errors/` (auto-generated) — must stay in sync with `packages/core/src/diagnostics/codes/`.
 
 ## Pre-flight orphan check
@@ -33,7 +33,7 @@ pnpm run test:coverage
 
 1. **`packages/core/src/diagnostics/registry.test.ts`** (extend) — Layer: U.
    - F-19: assert `registry.size === <N>` where N is the current registered-code count. Use the actual count (read it once, hardcode it; the test acts as a tripwire — adding/removing a code requires updating the assertion).
-   - F-10: iterate every diagnostic in the registry; assert any with `severity: "warning"` has `code` matching `/^VF\d{4}$/` with the numeric suffix in the warning range documented in `codes/README.md`.
+   - F-10: iterate every diagnostic in the registry; assert any with `severity: "warning"` has `code` matching `/^VF49\d{2}$/` (i.e., in the **VF4900–VF4999** warning range).
 2. **`packages/core/src/typechecker/error-ordering.test.ts`** (new) — Layer: U + I.
    - F-03: typecheck a fixture with multiple independent errors arranged at known source locations. Run typechecker twice; assert error order is stable run-to-run. (If typechecker currently throws on first error, this test reduces to "first-encountered location is the first reported" — note the limitation in a comment, since multi-error reporting is a feature gap routed elsewhere.)
 3. **`packages/core/src/typechecker/format.test.ts`** (extend, do not duplicate) — Layer: U.

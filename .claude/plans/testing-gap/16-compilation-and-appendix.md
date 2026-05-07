@@ -36,14 +36,20 @@ pnpm run test:coverage
      - third arm: `_` — should not be reached for x=5
    - Assert the second arm is selected. Then a value `x=15` selects the first arm.
    - F-38 fallthrough: when all guards fail on a matched constructor, the matcher must continue to the next pattern (not throw a non-exhaustive error if a later pattern would match).
-2. **`packages/core/src/parser/snapshot-tests/if-without-else.test.ts`** (new) — Layer: S.
-   - F-13: parse `if c then e` (no else) and snapshot the AST. The snapshot should show an explicit `UnitLit` in the else branch — spec mandates desugared form.
+2. **Snapshot the desugared form of if-without-else** — Layer: S.
+   - F-13: spec citation `docs/spec/12-compilation/01-desugaring.md` places the UnitLit injection at the **desugarer stage**, not the parser. Add the snapshot under `packages/core/src/desugarer/snapshot-tests/` (create the directory if it doesn't exist) — or extend an existing desugarer snapshot file. Compile `if c then e` and snapshot the **post-desugar core AST**, which should show an explicit `UnitLit` in the else branch.
+   - The test verifies *desugarer behaviour*, not parser behaviour. If the parser produces an `IfExpr` with `else: undefined` and the desugarer fills in `UnitLit`, that's the contract; the parser snapshot is uninteresting.
+   - Implementer pre-flight: read `packages/core/src/desugarer/desugarer-integration.test.ts` to confirm where the desugarer is exercised; place the snapshot adjacent to other desugarer snapshots.
 
 ### Appendix (13)
 
 3. **`packages/core/src/lexer/reserved-keywords.test.ts`** (extend if not already — orphan) — Layer: U.
-   - F-25: assert the live `KEYWORDS` set (or whatever the lexer's keyword constant is named) equals a hardcoded list matching `13-appendix.md`'s table 1:1. Tripwire-style — adding/removing a keyword requires updating both the spec and this test.
-   - **Note**: the appendix doc is currently *missing* `try`, `catch`, `while` per the audit. Resolve by: (a) confirming actual `KEYWORDS` set includes them, (b) include them in the test's expected list (matching code, not buggy doc), (c) file the docs bug separately. Do NOT match the buggy doc.
+   - F-25: assert the live `KEYWORDS` set (or whatever the lexer's keyword constant is named) equals a hardcoded list of every keyword the implementation actually accepts.
+   - **Oracle hierarchy** (resolves the appendix-table conflict):
+     1. **The runtime `KEYWORDS` set is authoritative** — it's what the lexer actually accepts and reject; the test pins to that list (which currently includes `try`, `catch`, `while`).
+     2. The appendix table in `docs/spec/13-appendix.md` is a documentation mirror that **must be updated to match** runtime. The doc fix is a separate PR (route via the post-snapshot addendum in `feature-gaps.md`); this chunk does not touch the appendix.
+     3. A separate "appendix-vs-runtime parity" tripwire test can be added *after* the doc fix lands — out of scope for this chunk.
+   - Net effect for this chunk: hardcode the test's expected list to whatever the runtime set contains today. Do not assert against the appendix table.
 4. **`tests/e2e/spec-validation/04-expressions.test.ts`** or `02-lexical-structure.test.ts` (extend) — Layer: V + U.
    - F-19 / F-36 pipe + composition precedence: `f >> g |> value` should parse as `(f >> g) |> value`. Add:
      - U-layer parser test asserting AST shape.

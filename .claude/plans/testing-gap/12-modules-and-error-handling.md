@@ -60,7 +60,7 @@ pnpm run test:coverage
 9. **`packages/stdlib/src/int.test.ts`** (extend) — Layer: U + P.
    - F-18: property test over the safe-integer boundary. `fc.property(fc.bigInt(2n**52n, 2n**53n + 100n), (n) => { /* assert toString round-trips and arithmetic does not crash */ })`. Document expected lossy-but-non-crashing behaviour.
 10. **`tests/e2e/spec-stack-overflow.test.ts`** (new in `tests/e2e/`, NOT in spec-validation since it's a runtime surface check) — Layer: E.
-    - F-27: deep recursion fixture (compile a `.vf` file with non-tail-recursive function calling itself 100k deep). Run via CLI; assert exit non-zero and stderr contains `Maximum call stack size exceeded`. Use a new file outside spec-validation because spec-validation is gating and this test is OS/Node-version sensitive.
+    - F-27: deep recursion fixture (compile a `.vf` file with non-tail-recursive function calling itself 100k deep). Run via CLI; assert (a) exit code is non-zero, (b) stderr contains `RangeError`, and (c) stderr matches `/call stack/i`. **Avoid asserting the exact phrase `Maximum call stack size exceeded`** — Node's wording can change across versions. Use a new file outside spec-validation because spec-validation is gating and this test is OS/Node-version sensitive even with the relaxed regex.
 
 ## Behavior expectations (for bug-triage)
 
