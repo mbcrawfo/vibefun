@@ -43,7 +43,7 @@ Then for each construct, capture the order of `tick("a")`, `tick("b")`, etc. in 
 
 1. **F-44 general principles** — combined `f(g(), h())` test asserting `g` printed before `h` before `f`.
 2. **F-45 function application argument order** — `add(tick("first"), tick("second"))` outputs `first\nsecond`. Add a property test (Layer: P) over a multi-arg generator to confirm consistent left-to-right across argument counts 2–5.
-3. **F-46 binary operator order** — `tick("L") + tick("R")` prints `L\nR`. Repeat for `*`, `&` (string concat), `&&` (with no short-circuit considerations — both should evaluate when LHS is true).
+3. **F-46 binary operator order** — `tick("L") + tick("R")` prints `L\nR`. Repeat for `*` and `&` (string concat). **Do not include `&&` or `||`** — those are short-circuiting and would produce false-positive ordering observations; see the bug-triage note on Line 59.
 4. **F-49 record construction order** — `{ x: tick("x"), y: tick("y"), z: tick("z") }` prints `x\ny\nz`.
 5. **F-50 list construction order** — `[tick("a"), tick("b"), tick("c")]` prints `a\nb\nc`.
 6. **F-51 if expression order** — already partly in chunk 08 F-36, but this is the **scrutinee-then-branch** assertion: `if tick("cond") > 0 then tick("then") else tick("else")` for both true and false paths, asserting `cond` always prints before the branch.

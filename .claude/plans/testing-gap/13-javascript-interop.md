@@ -2,7 +2,7 @@
 
 ## Context
 
-Closes 13 testing gaps in section 10: arity-based external overloading (parser side), pure-function overload restriction, overload validation error codes (V-layer only — emission already implemented), opaque types Json/JsObject/Promise/Error/Any, null→Option pattern, parser VF2007.
+Closes 12 testing gaps in section 10: arity-based external overloading (parser side), pure-function overload restriction, overload validation error codes (V-layer only — emission already implemented), opaque types Json/JsObject/Promise/Error/Any, null→Option pattern, parser VF2007.
 
 Closes: 10 F-03, F-04, F-05, F-06, F-07, F-18, F-19, F-20, F-21, F-22, F-25, F-31.
 
