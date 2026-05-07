@@ -164,3 +164,20 @@ See `.claude/spec-audit/11b-stdlib-extra.md` for full per-function spec referenc
 ## Notes on Tier Distribution
 
 The vast majority of P1 gaps (58 of ~62) sit inside the stdlib cluster — four spec-defined modules that don't exist yet. Outside the stdlib cluster, only two non-stdlib P1 issues exist: `--source-maps` and `--runtime-checks` are documented user-facing CLI flags with no implementation. The P2 tier is dominated by the type-system error-recovery model (03c F-13/F-14/F-15/F-16): the spec describes a sophisticated cascading-prevention mechanism that the eager-throw implementation simply doesn't provide — the best fix may be to amend the spec rather than build the machinery. P3 gaps are largely documentation alignment in the appendix and missing tests around determinism/IDE integration.
+
+---
+
+## Addendum (post-snapshot, 2026-05-07): Feature gaps incorrectly identified as testing gaps
+
+This is a **correction added after the original audit snapshot** during planning of the testing-gap remediation work (`.claude/plans/testing-gap/`). The entries below appear in `testing-gaps.md` but on closer inspection are **feature gaps**, not testing gaps — the test cannot be written until the feature is implemented (or until the spec is amended to match implementation reality).
+
+This addendum does not modify the original synthesis; it routes these entries to feature-implementation work rather than the testing-gap plan.
+
+- **03c F-04 — Multi-error reporting.** The typechecker currently throws on the first error rather than collecting and reporting multiple. Implementing collect-then-throw is a feature change in the typechecker pipeline. The "missing test" cannot exist until this lands.
+- **03c F-32 — VF4900 unreachable-pattern warning.** The code is registered in the diagnostics registry but never emitted; `warning-collector.ts:21` only references it in a JSDoc example. Pattern-matching exhaustiveness analysis must wire this emission before any test can assert it.
+- **10 F-30 — VF4804 arity-based overload resolution at call site.** The error definition itself states "not yet supported." Resolution logic is unimplemented; the testing-gaps entry presumes a feature that does not exist.
+- **12 F-19 — Source maps.** `--source-maps` is documented in the CLI help but the codegen does not produce `.map` files. Same root cause as the other CLI flag P1 entries above.
+- **F-CC09 — Stdlib-sync expansion for Array/Map/Set/JSON.** The cross-cutting note says "when Array/Map/Set/Json land, the sync test must be expanded." This depends entirely on those four modules being implemented (the P1 stdlib cluster) and is not actionable as testing work today.
+- **13-appendix doc gaps for `try`/`catch`/`while`.** The appendix syntax-summary table omits these keywords. This is a **documentation** fix against `docs/spec/13-appendix.md`, not a missing-test condition. (Chunk 16 of the testing-gap plan does add a tripwire test that the live `KEYWORDS` set matches the documented table — that test exists to *catch* this kind of drift, not to fix it; the doc fix lands separately.)
+
+Where to track these: each goes into a separate feature-implementation plan with its own coverage baseline. The testing-gap chunks reference this addendum in their "Out of scope" sections so the implementer of any chunk doesn't burn time re-triaging.
