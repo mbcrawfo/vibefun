@@ -27,10 +27,16 @@ import {
 const MAX_SHRINK_STEPS = 1000;
 
 /**
- * Tokenize a source fragment. If a `VibefunDiagnostic` escapes, return its
- * code so the property can assert it's registered. Plain `Error` throws
- * propagate (those would mean the generator hit an unhandled lexer path
- * and the property should fail loudly).
+ * Tokenize a source fragment. Returns `{ kind: "ok" }` on a clean lex,
+ * `{ kind: "diag" }` if the lexer emits a registered `VibefunDiagnostic`.
+ * Plain `Error` throws propagate (those mean the generator hit an
+ * unhandled lexer path and the property should fail loudly).
+ *
+ * Round-trip properties built on `source-arb` arbitraries should treat
+ * any `diag` outcome as a property failure: these generators are designed
+ * to produce input that lexes cleanly, so a registered diagnostic still
+ * means the generator emitted something the lexer rejects — the exact
+ * vacuous-input bug these meta-tests exist to catch.
  */
 function lexOrCode(
     source: string,
@@ -62,7 +68,7 @@ describe("source arbitraries", () => {
             fc.assert(
                 fc.property(lowerIdentifierArb, (s) => {
                     const result = lexOrCode(s);
-                    if (result.kind === "diag") return /^VF\d{4}$/.test(result.code);
+                    if (result.kind === "diag") return false;
                     // [IDENTIFIER, EOF]
                     return (
                         result.tokens.length === 2 &&
@@ -83,7 +89,7 @@ describe("source arbitraries", () => {
             fc.assert(
                 fc.property(upperIdentifierArb, (s) => {
                     const result = lexOrCode(s);
-                    if (result.kind === "diag") return /^VF\d{4}$/.test(result.code);
+                    if (result.kind === "diag") return false;
                     return (
                         result.tokens.length === 2 &&
                         result.tokens[0]?.type === "IDENTIFIER" &&
@@ -117,7 +123,7 @@ describe("source arbitraries", () => {
                     const rendered = renderStringLit(s);
                     if (JSON.parse(rendered) !== s) return false;
                     const result = lexOrCode(rendered);
-                    if (result.kind === "diag") return /^VF\d{4}$/.test(result.code);
+                    if (result.kind === "diag") return false;
                     return (
                         result.tokens.length === 2 &&
                         result.tokens[0]?.type === "STRING_LITERAL" &&
