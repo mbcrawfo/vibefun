@@ -9,7 +9,7 @@
  */
 
 import * as fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { VibefunDiagnostic } from "../../diagnostics/index.js";
 import { Lexer } from "../../lexer/index.js";
@@ -53,6 +53,23 @@ function lexOrCode(
 }
 
 describe("source arbitraries", () => {
+    describe("lexOrCode", () => {
+        it("maps a lexer VibefunDiagnostic to { kind: 'diag', code }", () => {
+            // Unterminated string literal triggers VF1003.
+            const result = lexOrCode('"');
+            expect(result.kind).toBe("diag");
+            if (result.kind === "diag") expect(result.code).toMatch(/^VF\d{4}$/);
+        });
+
+        it("rethrows non-VibefunDiagnostic errors from the lexer", () => {
+            const spy = vi.spyOn(Lexer.prototype, "tokenize").mockImplementationOnce(() => {
+                throw new Error("boom");
+            });
+            expect(() => lexOrCode("x")).toThrow("boom");
+            spy.mockRestore();
+        });
+    });
+
     describe("lowerIdentifierArb", () => {
         it("matches the documented regex and is never a reserved word", () => {
             fc.assert(
