@@ -40,7 +40,7 @@ pnpm run test:coverage
    - F-11: snapshot or string-equality test asserting `formatType` produces exactly `Int`, `String`, `Bool`, `Float`, `Unit` for each primitive — once for each. Reject lowercase / aliased forms.
    - F-12: type-check a generic identity binding `let f = (x) => x` and assert the displayed type uses `'a` for the first free variable. Then a 2-arg generic to assert `'a, 'b` in source order.
 4. **`tests/e2e/docs-errors-sync.test.ts`** (new) — Layer: E.
-   - F-20: spawn `pnpm docs:errors` in a temp clone of `docs/errors/`, then `git diff` the output against committed files. Fail if any change. (If a CI step already does this, prefer extending it; otherwise add the e2e.)
+   - F-20: run `pnpm docs:errors` against the working tree, then `git diff -- docs/errors/` and assert empty output (no untracked or modified files under `docs/errors/`). The test must restore `docs/errors/` to its pre-run state on teardown (e.g., `git checkout -- docs/errors/`) so a CI failure doesn't leave the working tree dirty for subsequent tests. (If a CI step already does this, prefer extending it; otherwise add the e2e.)
 
 ## Behavior expectations (for bug-triage)
 
