@@ -15,7 +15,7 @@ When a property fails:
 
 | ID | File | Property | Tier | Counterexample (shrunken) | Seed | Conjecture | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| _none yet_ | | | | | | | |
+| VF-FC-0001 | `packages/core/src/types/test-arbitraries/optimizable-expr-arb.test.ts` | `optimizableExprArb` typechecks without unregistered throws | 2 | `CoreLambda { param: CoreVariantPattern { constructor: "A", args: [] }, body: CoreLet { pattern: CoreVariantPattern, value: CoreUnitLit, body: CoreRecord { fields: [] } } }` | 1447445058 | `lambdaArb` in `core-ast-arb.ts` uses the full `CorePattern` arb for the lambda parameter, but the typechecker requires `CoreVarPattern` or `CoreWildcardPattern` (post-desugaring invariant). Fix: restrict the param arb in `lambdaArb`, then re-enable the property. | Open |
 
 ## Triage tiers (reference)
 
