@@ -597,7 +597,7 @@ let x = !(!r);`,
             expectRunOutput(
                 withOutput(
                     `let mut counter = ref(0);
-let _r = if true then unsafe { counter := !counter + 1; } else unsafe { counter := !counter + 100; };`,
+let _r = if true then { counter := !counter + 1; } else { counter := !counter + 100; };`,
                     `String.fromInt(!counter)`,
                 ),
                 "1",
