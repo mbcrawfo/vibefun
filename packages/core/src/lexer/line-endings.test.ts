@@ -10,6 +10,8 @@
  * matching the LF-only equivalent.
  */
 
+import type { Token } from "../types/index.js";
+
 import { describe, expect, it } from "vitest";
 
 import { Lexer } from "./lexer.js";
@@ -29,16 +31,25 @@ describe("Lexer - line endings", () => {
         expect(crlfTypes.filter((t) => t === "NEWLINE")).toHaveLength(1);
     });
 
-    it("preserves NEWLINE token line/column positions across CRLF and LF forms", () => {
-        // Location tracking must agree — `\r` is a column-only advance
-        // and `\n` is the line break. If CRLF and LF disagree on line
-        // numbers, downstream error spans would shift.
+    it("preserves token line/column positions across CRLF and LF forms (NEWLINE column excepted)", () => {
+        // Lines must agree for every token; columns must agree for
+        // every token EXCEPT the NEWLINE itself. CRLF's `\r` is a
+        // column-only advance, so the NEWLINE's column is one greater
+        // in the CRLF form (`\n` sits at column 3 vs. column 2). The
+        // line break still resets the column to 1, so every token
+        // AFTER the newline must land at the same line+column in
+        // both forms — that's the load-bearing invariant downstream
+        // error spans depend on.
         const lf = new Lexer("a\nb", "test.vf").tokenize();
         const crlf = new Lexer("a\r\nb", "test.vf").tokenize();
 
-        expect(crlf.map((t) => ({ type: t.type, line: t.loc.line }))).toEqual(
-            lf.map((t) => ({ type: t.type, line: t.loc.line })),
-        );
+        const project = (t: Token) => ({
+            type: t.type,
+            line: t.loc.line,
+            column: t.type === "NEWLINE" ? null : t.loc.column,
+        });
+
+        expect(crlf.map(project)).toEqual(lf.map(project));
     });
 
     it("handles trailing CRLF the same as trailing LF", () => {
