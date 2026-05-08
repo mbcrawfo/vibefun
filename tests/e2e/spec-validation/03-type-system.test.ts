@@ -38,13 +38,14 @@ describe("03-type-system", () => {
 
         // Spec ref: docs/spec/03-type-system/primitive-types.md:129-146 — list
         // elements share a single homogeneous type; no implicit numeric
-        // widening (audit 03a F-10).
+        // widening (audit 03a F-10). Pinning VF4020 (CannotUnify) prevents
+        // a false-positive pass from an unrelated parser/phase failure.
         it("list with mixed Int/Float elements rejected", () => {
-            expectCompileError(`let xs = [1, 2.0, 3];`);
+            expectCompileError(`let xs = [1, 2.0, 3];`, "VF4020");
         });
 
         it("list with mixed Int/String elements rejected", () => {
-            expectCompileError(`let xs = [1, "two", 3];`);
+            expectCompileError(`let xs = [1, "two", 3];`, "VF4020");
         });
 
         it("Int division truncates toward zero", () => {
@@ -350,7 +351,7 @@ let (a, b, c) = pair;`,
         });
 
         it("nested tuple type annotation rejected on inner-element mismatch", () => {
-            expectCompileError(`let p: ((Int, String), (Bool, Bool)) = ((1, "a"), (true, 2.5));`);
+            expectCompileError(`let p: ((Int, String), (Bool, Bool)) = ((1, "a"), (true, 2.5));`, "VF4020");
         });
 
         // Spec ref: docs/spec/03-type-system/tuples.md:53-67 — nested tuples
@@ -410,8 +411,9 @@ let s: Status = "unknown";`,
         // Spec ref: docs/spec/03-type-system/type-inference.md:595-604 — a
         // string-literal-union annotation rejects values not in the union
         // even when they typecheck as plain `String` (audit 03a F-46).
+        // VF4001 fires from the bidirectional StringLit/Union check.
         it("inline string-literal-union annotation rejects out-of-set literal", () => {
-            expectCompileError(`let s: "yes" | "no" = "maybe";`);
+            expectCompileError(`let s: "yes" | "no" = "maybe";`, "VF4001");
         });
     });
 
@@ -509,6 +511,8 @@ let result = f(b);`,
         // mismatch), so the suite still pins one half of the
         // exact-matching contract while the bug is open.
         it("function types reject assignment when actual param record is missing fields (P2D fn into P3D slot)", () => {
+            // VF4503 (missing required field) fires when unifying the
+            // function param records — Point3D's `z` is missing in Point2D.
             expectCompileError(
                 `type Point2D = { x: Int, y: Int };
 type Point3D = { x: Int, y: Int, z: Int };
@@ -516,6 +520,7 @@ type FromP3D = (Point3D) -> Int;
 type FromP2D = (Point2D) -> Int;
 let f: FromP2D = (p: Point2D) => p.x;
 let g: FromP3D = f;`,
+                "VF4503",
             );
         });
     });
