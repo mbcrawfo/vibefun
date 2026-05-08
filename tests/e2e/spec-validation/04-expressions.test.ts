@@ -7,7 +7,14 @@
 
 import { describe, it } from "vitest";
 
-import { expectCompileError, expectCompiles, expectRunOutput, withOutput, withOutputs } from "./helpers.js";
+import {
+    expectCompileError,
+    expectCompiles,
+    expectRunOutput,
+    expectRuntimeError,
+    withOutput,
+    withOutputs,
+} from "./helpers.js";
 
 describe("04-expressions", () => {
     describe("literal expressions", () => {
@@ -526,6 +533,138 @@ let result = f(5);`,
 
         it("cons is right-associative", () => {
             expectRunOutput(withOutput(`let xs = 1 :: 2 :: 3 :: [];`, `String.fromInt(List.length(xs))`), "3");
+        });
+    });
+
+    // Spec: 04-expressions/basic-expressions.md §Function Calls > Partial Application
+    describe("partial application", () => {
+        it("supports partial application via curried lambdas", () => {
+            expectRunOutput(
+                withOutput(
+                    `let add = (a: Int) => (b: Int) => a + b;
+let add5 = add(5);
+let result = add5(3);`,
+                    `String.fromInt(result)`,
+                ),
+                "8",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/basic-expressions.md §Division Semantics > Division by zero
+    // Spec: 09-error-handling.md §Division by Zero
+    describe("integer division by zero", () => {
+        it("panics at runtime with the spec-defined message", () => {
+            // Use a non-literal divisor so the panic surfaces at runtime; the
+            // spec permits compile-time rejection of literal `n / 0`.
+            expectRuntimeError(
+                withOutput(
+                    `let zero = 0;
+let result = 10 / zero;`,
+                    `String.fromInt(result)`,
+                ),
+                "Division by zero",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/basic-expressions.md §Comparison Operators > Chained Comparisons
+    describe("chained comparisons", () => {
+        it("rejects chained comparisons (parses as Bool < Int)", () => {
+            expectCompileError(`let x = 5;
+let r = 1 < x < 10;`);
+        });
+    });
+
+    // Spec: 04-expressions/basic-expressions.md §NOT Operator (`!`)
+    describe("NOT vs deref disambiguation", () => {
+        it("disambiguates ! by operand type when nested over a Ref<Bool>", () => {
+            // Inner `!r` derefs Ref<Bool> -> Bool; outer `!` is logical NOT.
+            expectRunOutput(
+                withOutput(
+                    `let mut r = ref(true);
+let x = !(!r);`,
+                    `String.fromBool(x)`,
+                ),
+                "false",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/control-flow.md §Short-Circuit Evaluation (if)
+    describe("if branch short-circuit", () => {
+        it("only evaluates the taken branch of an if expression", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut counter = ref(0);
+let _r = if true then unsafe { counter := !counter + 1; } else unsafe { counter := !counter + 100; };`,
+                    `String.fromInt(!counter)`,
+                ),
+                "1",
+            );
+        });
+    });
+
+    // Spec: 05-pattern-matching/advanced-patterns.md §Pattern Guards (cross-validation in Section 04)
+    describe("match guards (when clauses)", () => {
+        it("selects the guarded arm when the guard succeeds", () => {
+            expectRunOutput(
+                withOutput(
+                    `let x = 5;
+let result = match x {
+  | n when n > 0 => "pos"
+  | _ => "nonpos"
+};`,
+                    `result`,
+                ),
+                "pos",
+            );
+        });
+
+        it("falls through to the next arm when the guard fails", () => {
+            expectRunOutput(
+                withOutput(
+                    `let x = -3;
+let result = match x {
+  | n when n > 0 => "pos"
+  | _ => "nonpos"
+};`,
+                    `result`,
+                ),
+                "nonpos",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/control-flow.md §While Loops > Type Checking Rules
+    describe("while loop type errors", () => {
+        it("rejects a non-Bool condition", () => {
+            expectCompileError(`let _ = while 42 { (); };`);
+        });
+
+        // The body-must-be-Unit rule (spec §Type Checking Rules item 2) is not
+        // currently enforced by the typechecker — `while cond { intExpr; }`
+        // compiles cleanly. That divergence is out of scope for this
+        // tests-only chunk; tracked separately as a follow-up to audit F-40.
+    });
+
+    // Spec: 04-expressions/control-flow.md §Try/Catch (JS syntax inside unsafe)
+    describe("try/catch inside unsafe", () => {
+        it("returns the catch value when the try body throws", () => {
+            expectRunOutput(
+                withOutput(
+                    `external js_throw: () -> Int = "(() => { throw new Error('boom'); })";
+let result = unsafe {
+  try {
+    js_throw();
+  } catch (e) {
+    42;
+  }
+};`,
+                    `String.fromInt(result)`,
+                ),
+                "42",
+            );
         });
     });
 });
