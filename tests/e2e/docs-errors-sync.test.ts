@@ -77,7 +77,13 @@ function restoreDocsErrors(): void {
     }
 }
 
-describe("docs/errors/ sync (F-20)", () => {
+// `tests/e2e/vitest.config.ts` enables parallel execution because every
+// other suite isolates itself in a tempdir. This suite is the exception:
+// it mutates the shared `docs/errors/` directory in the repo. `sequential`
+// guarantees that any future test added to this `describe` block runs
+// after the current one finishes its `git checkout` + `git clean`
+// teardown, so the suite can't race against itself.
+describe.sequential("docs/errors/ sync (F-20)", () => {
     // Tracks whether docs/errors/ was clean when the test started. The
     // teardown is destructive (`git checkout` + `git clean`), so we must
     // only run it when we know the dirty state was caused by the test
