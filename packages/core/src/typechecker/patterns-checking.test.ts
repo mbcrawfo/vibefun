@@ -714,12 +714,16 @@ describe("Pattern Checking", () => {
         }
 
         it("property: nested tuple patterns up to depth 5 bind every leaf to its primitive type", () => {
+            // Force a node at the root so every run exercises tuple
+            // destructuring rather than skipping degenerate leaf-only
+            // shapes (a bare leaf is just a variable bound against a
+            // primitive — not the spec we're pinning here). Combining
+            // two depth-4 subtrees gives an overall depth ≤ 5.
+            const nonLeafTreeArb: fc.Arbitrary<ShapedNode> = fc
+                .tuple(shapedTreeArb(4), shapedTreeArb(4))
+                .map(([left, right]) => ({ tag: "node" as const, left, right }));
             fc.assert(
-                fc.property(shapedTreeArb(5), (rawTree) => {
-                    // Trees with no `node` are degenerate (just a leaf binder
-                    // against a primitive); the spec we want to test is
-                    // tuple destructuring, so skip those.
-                    if (rawTree.tag === "leaf") return;
+                fc.property(nonLeafTreeArb, (rawTree) => {
                     const tree: ShapedNode = JSON.parse(JSON.stringify(rawTree));
                     assignNames(tree, { i: 0 });
                     const pattern = buildPattern(tree);
