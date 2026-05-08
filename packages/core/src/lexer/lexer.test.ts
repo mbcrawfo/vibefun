@@ -813,6 +813,73 @@ describe("Lexer - Error Recovery and Handling", () => {
     });
 });
 
+describe("Lexer - basic structure spec coverage", () => {
+    // The tests in this block address residual gaps from chunk 05 of the
+    // testing-gap remediation plan. Each `it` cites the F-NN entry from
+    // .claude/spec-audit/02-lexical-structure.md it closes, plus the
+    // spec section it validates.
+
+    describe("F-10 empty blocks", () => {
+        // Spec ref: docs/spec/02-lexical-structure/basic-structure.md:102-107
+        it("emits exactly LBRACE, RBRACE, EOF for an empty block", () => {
+            const tokens = new Lexer("{}", "test.vf").tokenize();
+            expect(tokens.map((t) => t.type)).toEqual(["LBRACE", "RBRACE", "EOF"]);
+        });
+    });
+
+    describe("F-13 keywords as record field names", () => {
+        // Spec ref: docs/spec/02-lexical-structure/tokens.md:17 — keywords
+        // (let, type, if, ...) are valid as record field names. The lexer
+        // continues to emit KEYWORD tokens; the parser disambiguates by
+        // context.
+        it("tokenises `{ type: 1 }` with KEYWORD(type) followed by COLON and INT_LITERAL", () => {
+            const tokens = new Lexer("{ type: 1 }", "test.vf").tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["LBRACE", "KEYWORD", "COLON", "INT_LITERAL", "RBRACE", "EOF"]);
+            expect(tokens[1]).toMatchObject({ type: "KEYWORD", value: "type" });
+            expect(tokens[3]).toMatchObject({ type: "INT_LITERAL", value: 1 });
+        });
+
+        it("tokenises a keyword field accessor (`x.match`) with DOT followed by KEYWORD", () => {
+            const tokens = new Lexer("x.match", "test.vf").tokenize();
+
+            expect(tokens.map((t) => t.type)).toEqual(["IDENTIFIER", "DOT", "KEYWORD", "EOF"]);
+            expect(tokens[2]).toMatchObject({ type: "KEYWORD", value: "match" });
+        });
+    });
+
+    describe("F-28 unit literal", () => {
+        // Spec ref: docs/spec/02-lexical-structure/tokens.md:130-134.
+        // The lexer does not have a dedicated UNIT token — `()` is two
+        // adjacent paren tokens. Parser-level unit recognition lives in
+        // chunk 06's spec-validation suite.
+        it("tokenises a standalone `()` as LPAREN, RPAREN, EOF", () => {
+            const tokens = new Lexer("()", "test.vf").tokenize();
+            expect(tokens.map((t) => t.type)).toEqual(["LPAREN", "RPAREN", "EOF"]);
+        });
+    });
+
+    describe("F-30 unary minus context-dependence", () => {
+        // Spec ref: docs/spec/02-lexical-structure/operators.md:155-163.
+        // The lexer must emit a single OP_MINUS token regardless of
+        // whether the minus is unary or binary. Disambiguation is the
+        // parser's job — leak from the lexer would surface as a
+        // different token type for one form.
+        it("emits the same OP_MINUS token shape for unary `-5` and binary `1-5`", () => {
+            const unary = new Lexer("-5", "test.vf").tokenize();
+            const binary = new Lexer("1-5", "test.vf").tokenize();
+
+            expect(unary.map((t) => t.type)).toEqual(["OP_MINUS", "INT_LITERAL", "EOF"]);
+            expect(binary.map((t) => t.type)).toEqual(["INT_LITERAL", "OP_MINUS", "INT_LITERAL", "EOF"]);
+
+            const unaryMinus = unary[0]!;
+            const binaryMinus = binary[1]!;
+            expect(unaryMinus.type).toBe(binaryMinus.type);
+            expect(unaryMinus.value).toBe(binaryMinus.value);
+        });
+    });
+});
+
 describe("Lexer - properties", () => {
     it("property: round-trip lex(render(token)) preserves kind and value", () => {
         fc.assert(

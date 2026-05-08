@@ -5,6 +5,8 @@
  * pattern matching, pipes, comments, strings, and operators.
  */
 
+import type { Token } from "../types/index.js";
+
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
@@ -317,6 +319,37 @@ with "quotes"
                 "INT_LITERAL",
                 "EOF",
             ]);
+        });
+    });
+
+    describe("multi-line continuation", () => {
+        // F-07 (testing-gap chunk 05) — spec ref:
+        // docs/spec/02-lexical-structure/basic-structure.md:38-40, 69-100.
+        // Newlines are not significant. A multi-line operator chain must
+        // produce the same non-newline token stream as its single-line
+        // form; only NEWLINE tokens differ.
+        it("emits the same non-newline tokens whether an operator chain is split across lines or not", () => {
+            const oneLine = new Lexer("1 + 2 * 3", "test.vf").tokenize();
+            const multiLine = new Lexer("1 +\n2\n* 3", "test.vf").tokenize();
+
+            const stripNewlines = (toks: Token[]) =>
+                toks.filter((t) => t.type !== "NEWLINE").map((t) => ({ type: t.type, value: t.value }));
+
+            expect(stripNewlines(multiLine)).toEqual(stripNewlines(oneLine));
+        });
+
+        // F-09 (testing-gap chunk 05) — spec ref:
+        // docs/spec/02-lexical-structure/basic-structure.md:69-100.
+        // Commas in multi-line lists must continue without semicolons.
+        it("tokenises a multi-line list with only commas between elements (no semicolons)", () => {
+            const tokens = new Lexer("[1,\n2,\n3]", "test.vf").tokenize();
+
+            const types = tokens.map((t) => t.type);
+            expect(types).not.toContain("SEMICOLON");
+            expect(types.filter((t) => t === "COMMA")).toHaveLength(2);
+            expect(types.filter((t) => t === "INT_LITERAL")).toHaveLength(3);
+            expect(types[0]).toBe("LBRACKET");
+            expect(types[types.length - 2]).toBe("RBRACKET");
         });
     });
 });
