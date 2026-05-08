@@ -91,6 +91,26 @@ let y = 2`);
         it("reserved future keyword return rejected", () => {
             expectCompileError(`let return = 42;`);
         });
+
+        it("reserved future keyword trait rejected", () => {
+            expectCompileError(`let trait = 1;`);
+        });
+
+        it("reserved future keyword impl rejected", () => {
+            expectCompileError(`let impl = 1;`);
+        });
+
+        it("reserved future keyword where rejected", () => {
+            expectCompileError(`let where = 1;`);
+        });
+
+        it("reserved future keyword do rejected", () => {
+            expectCompileError(`let do = 1;`);
+        });
+
+        it("reserved future keyword yield rejected", () => {
+            expectCompileError(`let yield = 1;`);
+        });
     });
 
     describe("identifiers", () => {
@@ -324,6 +344,88 @@ x := 1;`,
             expectCompiles(
                 `let xs = [1, 2];
 let ys = [0, ...xs];`,
+            );
+        });
+
+        it("recognises mixed arithmetic operators end-to-end", () => {
+            // 3*4=12, 12/5=2 (int trunc), 2%6=2, 1+2-2=1
+            expectRunOutput(withOutput(`let r = 1 + 2 - 3 * 4 / 5 % 6;`, `Int.toString(r)`), "1");
+        });
+
+        it("recognises logical operators end-to-end", () => {
+            expectRunOutput(withOutput(`let r = (true && false) || !false;`, `String.fromBool(r)`), "true");
+        });
+
+        it("recognises & for string concatenation end-to-end", () => {
+            expectRunOutput(withOutput(`let r = "a" & "b";`, `r`), "ab");
+        });
+
+        it("recognises forward composition >>", () => {
+            // (inc >> double)(5) = double(inc(5)) = double(6) = 12
+            expectRunOutput(
+                withOutput(
+                    `let inc = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let h = inc >> double;
+let r = h(5);`,
+                    `Int.toString(r)`,
+                ),
+                "12",
+            );
+        });
+
+        it("recognises backward composition <<", () => {
+            // (inc << double)(5) = inc(double(5)) = inc(10) = 11
+            expectRunOutput(
+                withOutput(
+                    `let inc = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let h = inc << double;
+let r = h(5);`,
+                    `Int.toString(r)`,
+                ),
+                "11",
+            );
+        });
+
+        it("recognises := for ref assignment end-to-end", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut r = ref(0);
+r := 42;`,
+                    `Int.toString(!r)`,
+                ),
+                "42",
+            );
+        });
+
+        it("recognises ! as logical NOT on Bool", () => {
+            expectRunOutput(withOutput(`let r = !true;`, `String.fromBool(r)`), "false");
+        });
+
+        it("recognises ! as deref on Ref<T>", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut r = ref(42);
+let v = !r;`,
+                    `Int.toString(v)`,
+                ),
+                "42",
+            );
+        });
+
+        it("recognises parens, braces, and brackets for tuples, records, and lists", () => {
+            // (1,2) + { age: 30 } + [1,2,3] => 1 + 2 + 30 + 3 = 36
+            expectRunOutput(
+                withOutput(
+                    `let pair = (1, 2);
+let person = { name: "Alice", age: 30 };
+let xs = [1, 2, 3];
+let (a, b) = pair;
+let total = a + b + person.age + List.length(xs);`,
+                    `Int.toString(total)`,
+                ),
+                "36",
             );
         });
     });
