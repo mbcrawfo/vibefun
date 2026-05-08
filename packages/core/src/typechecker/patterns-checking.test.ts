@@ -8,12 +8,14 @@ import type {
     CorePattern,
     CoreRecordPattern,
     CoreRecordPatternField,
+    CoreTuplePattern,
     CoreVariantPattern,
     CoreVarPattern,
     CoreWildcardPattern,
 } from "../types/core-ast.js";
 import type { Type } from "../types/environment.js";
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { listType, optionType } from "./builtins.js";
@@ -596,6 +598,143 @@ describe("Pattern Checking", () => {
             expect(() => {
                 checkPattern(env, pattern, expected, emptySubst(), 0);
             }).toThrow("VF4402");
+        });
+
+        // Spec ref: docs/spec/03-type-system/tuples.md:53-67 — nested tuples
+        // are destructurable at arbitrary levels. The audit (03a F-15) flagged
+        // that 3+-level nesting lacks dedicated regression coverage.
+        it("should bind every leaf of a 3-level nested tuple `((a, b), (c, (d, e)))`", () => {
+            const pattern: CoreTuplePattern = {
+                kind: "CoreTuplePattern",
+                elements: [
+                    {
+                        kind: "CoreTuplePattern",
+                        elements: [
+                            { kind: "CoreVarPattern", name: "a", loc: testLoc },
+                            { kind: "CoreVarPattern", name: "b", loc: testLoc },
+                        ],
+                        loc: testLoc,
+                    },
+                    {
+                        kind: "CoreTuplePattern",
+                        elements: [
+                            { kind: "CoreVarPattern", name: "c", loc: testLoc },
+                            {
+                                kind: "CoreTuplePattern",
+                                elements: [
+                                    { kind: "CoreVarPattern", name: "d", loc: testLoc },
+                                    { kind: "CoreVarPattern", name: "e", loc: testLoc },
+                                ],
+                                loc: testLoc,
+                            },
+                        ],
+                        loc: testLoc,
+                    },
+                ],
+                loc: testLoc,
+            };
+            const innerDE: Type = { type: "Tuple", elements: [primitiveTypes.Int, primitiveTypes.Bool] };
+            const innerCInner: Type = { type: "Tuple", elements: [primitiveTypes.String, innerDE] };
+            const innerAB: Type = { type: "Tuple", elements: [primitiveTypes.Int, primitiveTypes.String] };
+            const expected: Type = { type: "Tuple", elements: [innerAB, innerCInner] };
+
+            const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+
+            expect(result.bindings.size).toBe(5);
+            expect(result.bindings.get("a")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("b")).toEqual(primitiveTypes.String);
+            expect(result.bindings.get("c")).toEqual(primitiveTypes.String);
+            expect(result.bindings.get("d")).toEqual(primitiveTypes.Int);
+            expect(result.bindings.get("e")).toEqual(primitiveTypes.Bool);
+        });
+
+        // Property: a balanced binary tuple of any depth ≤ 5 destructures
+        // into exactly the right number of leaf bindings, each carrying the
+        // primitive type at that leaf's position. This pins the recursive
+        // pattern-checker contract without enumerating every shape.
+        type LeafKind = "Int" | "String" | "Bool";
+        const leafKindArb = fc.constantFrom<LeafKind>("Int", "String", "Bool");
+        const primitiveFor = (k: LeafKind): Type =>
+            k === "Int" ? primitiveTypes.Int : k === "String" ? primitiveTypes.String : primitiveTypes.Bool;
+
+        type ShapedNode =
+            | { tag: "leaf"; kind: LeafKind; varName: string }
+            | { tag: "node"; left: ShapedNode; right: ShapedNode };
+
+        function nameForIndex(i: number): string {
+            // Names like a, b, …, z, a1, b1, … so depth-5 (≤ 32 leaves) fits
+            // within the alphabet without colliding with binders elsewhere.
+            const letter = String.fromCharCode("a".charCodeAt(0) + (i % 26));
+            const suffix = Math.floor(i / 26);
+            return suffix === 0 ? letter : `${letter}${suffix}`;
+        }
+
+        function shapedTreeArb(depth: number): fc.Arbitrary<ShapedNode> {
+            if (depth === 0) return leafKindArb.map((kind) => ({ tag: "leaf" as const, kind, varName: "" }));
+            return fc.oneof(
+                leafKindArb.map((kind) => ({ tag: "leaf" as const, kind, varName: "" })),
+                fc
+                    .tuple(shapedTreeArb(depth - 1), shapedTreeArb(depth - 1))
+                    .map(([left, right]) => ({ tag: "node" as const, left, right })),
+            );
+        }
+
+        function assignNames(node: ShapedNode, counter: { i: number }): void {
+            if (node.tag === "leaf") {
+                node.varName = nameForIndex(counter.i++);
+                return;
+            }
+            assignNames(node.left, counter);
+            assignNames(node.right, counter);
+        }
+
+        function buildPattern(node: ShapedNode): CorePattern {
+            if (node.tag === "leaf") {
+                return { kind: "CoreVarPattern", name: node.varName, loc: testLoc };
+            }
+            return {
+                kind: "CoreTuplePattern",
+                elements: [buildPattern(node.left), buildPattern(node.right)],
+                loc: testLoc,
+            };
+        }
+
+        function buildType(node: ShapedNode): Type {
+            if (node.tag === "leaf") return primitiveFor(node.kind);
+            return { type: "Tuple", elements: [buildType(node.left), buildType(node.right)] };
+        }
+
+        function collectLeaves(node: ShapedNode, out: Array<{ name: string; kind: LeafKind }>): void {
+            if (node.tag === "leaf") {
+                out.push({ name: node.varName, kind: node.kind });
+                return;
+            }
+            collectLeaves(node.left, out);
+            collectLeaves(node.right, out);
+        }
+
+        it("property: nested tuple patterns up to depth 5 bind every leaf to its primitive type", () => {
+            fc.assert(
+                fc.property(shapedTreeArb(5), (rawTree) => {
+                    // Trees with no `node` are degenerate (just a leaf binder
+                    // against a primitive); the spec we want to test is
+                    // tuple destructuring, so skip those.
+                    if (rawTree.tag === "leaf") return;
+                    const tree: ShapedNode = JSON.parse(JSON.stringify(rawTree));
+                    assignNames(tree, { i: 0 });
+                    const pattern = buildPattern(tree);
+                    const expected = buildType(tree);
+                    const leaves: Array<{ name: string; kind: LeafKind }> = [];
+                    collectLeaves(tree, leaves);
+
+                    const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+
+                    expect(result.bindings.size).toBe(leaves.length);
+                    for (const { name, kind } of leaves) {
+                        expect(result.bindings.get(name)).toEqual(primitiveFor(kind));
+                    }
+                }),
+            );
         });
     });
 });

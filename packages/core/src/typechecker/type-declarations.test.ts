@@ -13,6 +13,7 @@ import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
 import { Parser } from "../parser/index.js";
 import { typeCheck } from "./typechecker.js";
+import { primitiveTypes } from "./types.js";
 
 function typeCheckSource(source: string) {
     const lexer = new Lexer(source, "test.vf");
@@ -174,5 +175,63 @@ describe("registerTypeDeclarations — validation coverage", () => {
                 type Recursive = { head: Int, tail: Pair<Int, Recursive> };
             `),
         ).not.toThrow();
+    });
+});
+
+describe("variant constructor partial application (03b F-09)", () => {
+    // Spec ref: docs/spec/03-type-system/variant-types.md:32-42 — multi-arg
+    // variant constructors are curried functions whose terminal return is
+    // the variant type. Partial application yields a function value.
+    it("infers `(Float) -> Shape` for `let f = Rectangle(3.14)` where `Rectangle(Float, Float)` is a 2-arg variant", () => {
+        const { declarationTypes } = typeCheckSource(`
+            type Shape = Rectangle(Float, Float) | Circle(Float);
+            let f = Rectangle(3.14);
+        `);
+
+        const fType = declarationTypes.get("f");
+        expect(fType).toBeDefined();
+        if (!fType) return;
+
+        // After partial application, `f` should still be a function awaiting
+        // the second `Float` argument and then producing `Shape`.
+        expect(fType.type).toBe("Fun");
+        if (fType.type !== "Fun") return;
+        expect(fType.params).toHaveLength(1);
+        expect(fType.params[0]).toEqual(primitiveTypes.Float);
+        expect(fType.return.type).toBe("Const");
+        if (fType.return.type === "Const") {
+            expect(fType.return.name).toBe("Shape");
+        }
+    });
+
+    it("typechecks `f(2.0)` as `Shape` after partial application of a 2-arg variant constructor", () => {
+        // Applying the partially-applied constructor to its remaining
+        // argument yields the variant type itself — this is the round-trip
+        // that justifies treating partial variant application as a function.
+        const { declarationTypes } = typeCheckSource(`
+            type Shape = Rectangle(Float, Float) | Circle(Float);
+            let f = Rectangle(3.14);
+            let r = f(2.0);
+        `);
+
+        const rType = declarationTypes.get("r");
+        expect(rType).toBeDefined();
+        if (!rType) return;
+        expect(rType.type).toBe("Const");
+        if (rType.type === "Const") {
+            expect(rType.name).toBe("Shape");
+        }
+    });
+
+    it("rejects partial application with a wrong-typed argument", () => {
+        // Rectangle's first parameter is Float; passing an Int must fail
+        // unification (no implicit Int↔Float coercion per the spec).
+        expectDiagnosticCode(
+            `
+                type Shape = Rectangle(Float, Float) | Circle(Float);
+                let f = Rectangle(1);
+            `,
+            "VF4020",
+        );
     });
 });
