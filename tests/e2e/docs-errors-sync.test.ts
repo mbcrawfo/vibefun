@@ -78,18 +78,27 @@ function restoreDocsErrors(): void {
 }
 
 describe("docs/errors/ sync (F-20)", () => {
-    // Defensive — even when the assertion passes (no diff), prior failed
-    // runs or unrelated dirty state could leave docs/errors/ dirty. The
-    // restore is idempotent, so running it after every test is cheap.
+    // Tracks whether docs/errors/ was clean when the test started. The
+    // teardown is destructive (`git checkout` + `git clean`), so we must
+    // only run it when we know the dirty state was caused by the test
+    // itself — running it on a working tree that was already dirty would
+    // wipe a developer's unrelated local edits.
+    let docsErrorsWasCleanAtStart = false;
+
     afterEach(() => {
-        restoreDocsErrors();
+        if (docsErrorsWasCleanAtStart) {
+            restoreDocsErrors();
+        }
+        docsErrorsWasCleanAtStart = false;
     });
 
     it("pnpm docs:errors leaves the working tree clean under docs/errors/", () => {
         // Snapshot the pre-run state so we can give a useful failure
         // message if docs/errors/ was already dirty for an unrelated
-        // reason — that would mask the regression we care about.
+        // reason — that would mask the regression we care about. Only
+        // arm the teardown once we know we started clean.
         const before = gitStatusDocsErrors();
+        docsErrorsWasCleanAtStart = before === "";
         expect(
             before,
             `docs/errors/ was already dirty before regenerating; ` +
