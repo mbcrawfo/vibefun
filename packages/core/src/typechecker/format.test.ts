@@ -6,7 +6,11 @@ import type { Type, TypeScheme } from "../types/environment.js";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { desugarModule } from "../desugarer/index.js";
+import { Lexer } from "../lexer/lexer.js";
+import { Parser } from "../parser/parser.js";
 import { findSimilarStrings, levenshteinDistance, typeSchemeToString, typeToString } from "./format.js";
+import { typeCheck } from "./typechecker.js";
 import {
     appType,
     constType,
@@ -604,5 +608,109 @@ describe("findSimilarStrings", () => {
             const result = findSimilarStrings("coutn", vars, 2);
             expect(result).toContain("count"); // distance 1 (transposition)
         });
+    });
+});
+
+/**
+ * Spec-mandated display conventions (F-11, F-12).
+ *
+ * Spec: docs/spec/03-type-system/04-error-reporting.md.
+ *
+ * The individual cases above already verify each primitive's spelling and a
+ * handful of `'a`/`'b`/`'c` shapes. The cases below are convention
+ * tripwires: a single source-of-truth table for the canonical primitive
+ * spelling, and end-to-end checks that the typechecker (not just
+ * `typeToString` on a hand-built type) actually emits `'a, 'b` in source
+ * order for a generic binding.
+ */
+describe("Display conventions (F-11, F-12)", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    // F-11: spec-mandated spelling for each user-facing primitive. PascalCase
+    // exactly — no `int`, no `integer`, no `bool` aliases. Adding or
+    // renaming a primitive requires updating this table (and the spec).
+    it("F-11: primitives render with the exact spec-mandated spelling", () => {
+        const expectations: ReadonlyArray<readonly [Type, string]> = [
+            [primitiveTypes.Int, "Int"],
+            [primitiveTypes.String, "String"],
+            [primitiveTypes.Bool, "Bool"],
+            [primitiveTypes.Float, "Float"],
+            [primitiveTypes.Unit, "Unit"],
+        ];
+        for (const [type, expected] of expectations) {
+            const rendered = typeToString(type);
+            expect(rendered, `primitive should render as ${expected}`).toBe(expected);
+            // Reject lowercase / aliased forms produced by accidental
+            // case folding or constructor renaming.
+            expect(rendered.toLowerCase(), `primitive ${expected} must not render lowercased`).not.toBe(rendered);
+            expect(rendered, `primitive ${expected} must not contain whitespace`).not.toMatch(/\s/);
+        }
+    });
+
+    // F-12: the typechecker should render a generic identity binding's
+    // type with 'a for its first free type variable. Spec
+    // (docs/spec/03-type-system/error-reporting.md) mandates per-scheme
+    // sequential naming starting at 'a.
+    //
+    // Currently SKIPPED because the implementation in `format.ts`
+    // renders type variables with `'${String.fromCharCode(97 + (id % 26))}`
+    // — a *raw* mapping over the global type-variable counter, with no
+    // per-scheme normalisation. The first user-visible scheme picks up
+    // whatever id the counter happens to be at after the typechecker has
+    // allocated builtins (currently `'r`), which violates the convention
+    // and breaks across-error reproducibility too.
+    //
+    // Per the testing-gap plan (`.claude/plans/testing-gap/02-…`), this
+    // is recorded as a real bug to be fixed in a follow-up PR — the
+    // current chunk is a tests-only PR. Re-enable the test once
+    // `typeSchemeToString` (and `typeToString` of `Var`) renumbers
+    // quantified variables to a per-scheme `'a, 'b, 'c, …` sequence.
+    it.skip("F-12: identity binding's inferred type uses 'a for the first free variable [BUG: type-var display not normalised per scheme]", () => {
+        const source = "let f = (x) => x;";
+        const lexer = new Lexer(source, "format-conventions.vf");
+        const tokens = lexer.tokenize();
+        const parser = new Parser(tokens, "format-conventions.vf");
+        const surface = parser.parse();
+        const core = desugarModule(surface);
+        const typed = typeCheck(core);
+
+        const fBinding = typed.env.values.get("f");
+        expect(fBinding?.kind, "f must be a Value binding (not external)").toBe("Value");
+        if (fBinding?.kind !== "Value") return;
+        const rendered = typeSchemeToString(fBinding.scheme);
+        // forall 'a. 'a -> 'a — assert the convention without locking in
+        // the exact whitespace of the scheme prefix.
+        expect(rendered).toContain("'a -> 'a");
+        // The second variable should not be introduced — only one free var.
+        expect(rendered).not.toContain("'b");
+    });
+
+    // F-12 (2-arg): same convention check for a 2-arg generic. SKIPPED
+    // for the same reason as above — the implementation does not
+    // normalise type variable ids per scheme.
+    it.skip("F-12: two-argument generic binding uses 'a, 'b in source order [BUG: type-var display not normalised per scheme]", () => {
+        const source = "let pair = (x, y) => x;";
+        const lexer = new Lexer(source, "format-conventions.vf");
+        const tokens = lexer.tokenize();
+        const parser = new Parser(tokens, "format-conventions.vf");
+        const surface = parser.parse();
+        const core = desugarModule(surface);
+        const typed = typeCheck(core);
+
+        const pairBinding = typed.env.values.get("pair");
+        expect(pairBinding?.kind, "pair must be a Value binding (not external)").toBe("Value");
+        if (pairBinding?.kind !== "Value") return;
+        const rendered = typeSchemeToString(pairBinding.scheme);
+        // Both 'a and 'b must appear, with 'a (the x-position type) before
+        // 'b (the y-position type) in the rendered string.
+        const aIndex = rendered.indexOf("'a");
+        const bIndex = rendered.indexOf("'b");
+        expect(aIndex, "'a must appear in the rendered type").toBeGreaterThanOrEqual(0);
+        expect(bIndex, "'b must appear in the rendered type").toBeGreaterThanOrEqual(0);
+        expect(aIndex).toBeLessThan(bIndex);
+        // No 'c — only two free type variables for a pair-like binding.
+        expect(rendered).not.toContain("'c");
     });
 });

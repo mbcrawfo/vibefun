@@ -5,8 +5,13 @@
 import type { DiagnosticDefinition } from "./diagnostic.js";
 
 import * as fc from "fast-check";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
+import { registerDesugarerCodes } from "./codes/desugarer.js";
+import { registerLexerCodes } from "./codes/lexer.js";
+import { registerModulesCodes } from "./codes/modules.js";
+import { registerParserCodes } from "./codes/parser/index.js";
+import { registerTypecheckerCodes } from "./codes/typechecker/index.js";
 import { registry } from "./registry.js";
 
 // Helper to create a test definition
@@ -272,5 +277,70 @@ describe("DiagnosticRegistry", () => {
                 }),
             );
         });
+    });
+});
+
+/**
+ * Meta-tests asserting spec-mandated conventions across the entire registry.
+ *
+ * These tests reload the production registry directly (the unit-test suite
+ * above clears the singleton in beforeEach), so they run in their own
+ * top-level describe block with explicit setup/teardown.
+ */
+describe("Diagnostic registry conventions (meta-tests)", () => {
+    function reloadProductionRegistry(): void {
+        registry.clear();
+        registerDesugarerCodes();
+        registerLexerCodes();
+        registerModulesCodes();
+        registerParserCodes();
+        registerTypecheckerCodes();
+    }
+
+    beforeEach(() => {
+        reloadProductionRegistry();
+    });
+
+    afterAll(() => {
+        // Leave the registry populated so any subsequent test files that
+        // depend on diagnostic codes (e.g. throwDiagnostic call sites) work.
+        reloadProductionRegistry();
+    });
+
+    // F-19: tripwire on the registered-code count. Plan-asserted target is 127.
+    // Adding or removing a VFxxxx definition requires updating this assertion
+    // (and regenerating docs/errors/ via `pnpm docs:errors`).
+    it("F-19: registry contains the expected number of registered codes", () => {
+        expect(registry.size).toBe(127);
+    });
+
+    // F-10: every registered warning must live in its phase's reserved
+    // 9xx slot per `codes/README.md` (e.g. typechecker warnings VF4900-VF4999,
+    // module warnings VF5900-VF5999).
+    it("F-10: every warning code lives in its phase's 900-999 range", () => {
+        const warnings = registry.bySeverity("warning");
+        expect(warnings.length).toBeGreaterThan(0);
+        const warningRangePattern = /^VF\d9\d{2}$/;
+        const offenders = warnings.filter((def) => !warningRangePattern.test(def.code));
+        expect(offenders).toEqual([]);
+    });
+
+    // F-10 (typechecker subset): the spec under test names VF4900-VF4999
+    // explicitly as the typechecker warning reservation. Asserting it as a
+    // separate check makes a regression in the typechecker phase localizable.
+    it("F-10: every typechecker warning lives in VF4900-VF4999", () => {
+        const typecheckerWarnings = registry.bySeverity("warning").filter((def) => def.phase === "typechecker");
+        const typecheckerRangePattern = /^VF49\d{2}$/;
+        const offenders = typecheckerWarnings.filter((def) => !typecheckerRangePattern.test(def.code));
+        expect(offenders).toEqual([]);
+    });
+
+    // F-10 (inverse): nothing in any phase's warning range may be filed as an
+    // error. Catches the symmetric mistake — an error mis-assigned a 9xx code.
+    it("F-10: no error code lives in a phase's 900-999 warning range", () => {
+        const errors = registry.bySeverity("error");
+        const warningRangePattern = /^VF\d9\d{2}$/;
+        const misfiled = errors.filter((def) => warningRangePattern.test(def.code));
+        expect(misfiled).toEqual([]);
     });
 });
