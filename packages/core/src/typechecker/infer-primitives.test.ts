@@ -6,15 +6,19 @@ import type {
     CoreApp,
     CoreBinOp,
     CoreBoolLit,
+    CoreExpr,
     CoreFloatLit,
     CoreIntLit,
     CoreLambda,
     CoreStringLit,
     CoreTuple,
+    CoreTupleType,
     CoreTypeAnnotation,
     CoreTypeConst,
+    CoreTypeExpr,
     CoreUnitLit,
     CoreVar,
+    CoreVariant,
     CoreVarPattern,
 } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
@@ -567,5 +571,195 @@ describe("Literal Inference Properties", () => {
                 expect(typeEquals(a.type, b.type)).toBe(true);
             }),
         );
+    });
+});
+
+describe("Type Inference - List element homogeneity (03a F-10)", () => {
+    // Spec ref: docs/spec/03-type-system/primitive-types.md:129-146 — list
+    // elements must share a single homogeneous type. The desugarer emits
+    // list literals as a `Cons(head, Cons(head, …, Nil))` chain, so the
+    // typechecker enforces homogeneity through unification of the
+    // polymorphic Cons constructor's element parameter across the chain.
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    function nilExpr(): CoreVariant {
+        return { kind: "CoreVariant", constructor: "Nil", args: [], loc: testLoc };
+    }
+
+    function consExpr(head: CoreExpr, tail: CoreExpr): CoreVariant {
+        return { kind: "CoreVariant", constructor: "Cons", args: [head, tail], loc: testLoc };
+    }
+
+    it("should accept a homogeneous Int list `[1, 2, 3]`", () => {
+        // Sanity: the same chain shape with Int-only elements typechecks
+        // and infers `List<Int>`. Pins that the rejection in the next
+        // test is about element-type heterogeneity, not chain construction.
+        const expr = consExpr(
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            consExpr(
+                { kind: "CoreIntLit", value: 2, loc: testLoc },
+                consExpr({ kind: "CoreIntLit", value: 3, loc: testLoc }, nilExpr()),
+            ),
+        );
+
+        const result = inferExpr(createContext(createTestEnv()), expr);
+
+        expect(result.type.type).toBe("App");
+        if (result.type.type === "App") {
+            expect(result.type.constructor).toEqual({ type: "Const", name: "List" });
+            expect(result.type.args).toHaveLength(1);
+            expect(result.type.args[0]).toEqual(primitiveTypes.Int);
+        }
+    });
+
+    it("should reject a heterogeneous numeric list `[1, 2.0, 3]` with VF4020", () => {
+        // Mixed Int/Float elements must fail unification: the spec
+        // forbids implicit Int↔Float coercion (no auto-widening).
+        const expr = consExpr(
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            consExpr(
+                { kind: "CoreFloatLit", value: 2.0, loc: testLoc },
+                consExpr({ kind: "CoreIntLit", value: 3, loc: testLoc }, nilExpr()),
+            ),
+        );
+
+        try {
+            inferExpr(createContext(createTestEnv()), expr);
+            throw new Error("Expected inferExpr to throw");
+        } catch (error: unknown) {
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            expect((error as VibefunDiagnostic).code).toBe("VF4020");
+        }
+    });
+
+    it('should reject a heterogeneous mixed-type list `[1, "two", 3]` with VF4020', () => {
+        // Cross-type heterogeneity (Int vs String) fails for the same
+        // reason as numeric heterogeneity — Cons's element parameter is
+        // a single fresh type variable across the chain.
+        const expr = consExpr(
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            consExpr(
+                { kind: "CoreStringLit", value: "two", loc: testLoc },
+                consExpr({ kind: "CoreIntLit", value: 3, loc: testLoc }, nilExpr()),
+            ),
+        );
+
+        try {
+            inferExpr(createContext(createTestEnv()), expr);
+            throw new Error("Expected inferExpr to throw");
+        } catch (error: unknown) {
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            expect((error as VibefunDiagnostic).code).toBe("VF4020");
+        }
+    });
+});
+
+describe("Type Inference - Complex tuple type annotations (03a F-13)", () => {
+    // Spec ref: docs/spec/03-type-system/tuples.md:17-32 — tuple types use
+    // parenthesized comma-separated type syntax. The audit flagged that
+    // complex nested/polymorphic tuple shapes lack dedicated edge case
+    // tests; these pin the bidirectional check at the typechecker layer.
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    function constType(name: string): CoreTypeConst {
+        return { kind: "CoreTypeConst", name, loc: testLoc };
+    }
+
+    function tupleType(elements: CoreTypeExpr[]): CoreTupleType {
+        return { kind: "CoreTupleType", elements, loc: testLoc };
+    }
+
+    function tupleExpr(elements: CoreExpr[]): CoreTuple {
+        return { kind: "CoreTuple", elements: elements as CoreTuple["elements"], loc: testLoc };
+    }
+
+    it("should accept `((Int, String), (Bool, Float))` with matching value", () => {
+        // ((1, "a"), (true, 2.5)) annotated as the matching nested tuple.
+        const value = tupleExpr([
+            tupleExpr([
+                { kind: "CoreIntLit", value: 1, loc: testLoc },
+                { kind: "CoreStringLit", value: "a", loc: testLoc },
+            ]),
+            tupleExpr([
+                { kind: "CoreBoolLit", value: true, loc: testLoc },
+                { kind: "CoreFloatLit", value: 2.5, loc: testLoc },
+            ]),
+        ]);
+        const annotation: CoreTypeAnnotation = {
+            kind: "CoreTypeAnnotation",
+            expr: value,
+            typeExpr: tupleType([
+                tupleType([constType("Int"), constType("String")]),
+                tupleType([constType("Bool"), constType("Float")]),
+            ]),
+            loc: testLoc,
+        };
+
+        const result = inferExpr(createContext(createTestEnv()), annotation);
+
+        const innerLeft = { type: "Tuple" as const, elements: [primitiveTypes.Int, primitiveTypes.String] };
+        const innerRight = { type: "Tuple" as const, elements: [primitiveTypes.Bool, primitiveTypes.Float] };
+        expect(result.type).toEqual({ type: "Tuple", elements: [innerLeft, innerRight] });
+    });
+
+    it("should reject mismatched-shape annotation `((Int, String), (Bool, Float))` with `((Int, String), (Bool, Bool))`", () => {
+        // The leaf Float value cannot unify with the annotated Bool — the
+        // mismatch surfaces from the typechecker's bidirectional check
+        // (VF4020 cannot-unify) at the inner element.
+        const value = tupleExpr([
+            tupleExpr([
+                { kind: "CoreIntLit", value: 1, loc: testLoc },
+                { kind: "CoreStringLit", value: "a", loc: testLoc },
+            ]),
+            tupleExpr([
+                { kind: "CoreBoolLit", value: true, loc: testLoc },
+                { kind: "CoreFloatLit", value: 2.5, loc: testLoc },
+            ]),
+        ]);
+        const annotation: CoreTypeAnnotation = {
+            kind: "CoreTypeAnnotation",
+            expr: value,
+            typeExpr: tupleType([
+                tupleType([constType("Int"), constType("String")]),
+                tupleType([constType("Bool"), constType("Bool")]),
+            ]),
+            loc: testLoc,
+        };
+
+        try {
+            inferExpr(createContext(createTestEnv()), annotation);
+            throw new Error("Expected inferExpr to throw");
+        } catch (error: unknown) {
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            expect((error as VibefunDiagnostic).code).toBe("VF4020");
+        }
+    });
+
+    it("should reject arity-mismatched annotation `(Int, String, Bool)` for a 2-tuple value with VF4026", () => {
+        // Annotating a 2-tuple with a 3-tuple type is a structural arity
+        // mismatch — VF4026 (TupleArityMismatch) fires before generic
+        // unification.
+        const value = tupleExpr([
+            { kind: "CoreIntLit", value: 1, loc: testLoc },
+            { kind: "CoreStringLit", value: "a", loc: testLoc },
+        ]);
+        const annotation: CoreTypeAnnotation = {
+            kind: "CoreTypeAnnotation",
+            expr: value,
+            typeExpr: tupleType([constType("Int"), constType("String"), constType("Bool")]),
+            loc: testLoc,
+        };
+
+        try {
+            inferExpr(createContext(createTestEnv()), annotation);
+            throw new Error("Expected inferExpr to throw");
+        } catch (error: unknown) {
+            expect(error).toBeInstanceOf(VibefunDiagnostic);
+            expect((error as VibefunDiagnostic).code).toBe("VF4026");
+        }
     });
 });
