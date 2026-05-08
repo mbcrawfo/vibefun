@@ -639,7 +639,7 @@ let result = match x {
     // Spec: 04-expressions/control-flow.md §While Loops > Type Checking Rules
     describe("while loop type errors", () => {
         it("rejects a non-Bool condition", () => {
-            expectCompileError(`let _ = while 42 { (); };`);
+            expectCompileError(`let bad: Unit = while 42 { (); };`);
         });
 
         // The body-must-be-Unit rule (spec §Type Checking Rules item 2) is not
