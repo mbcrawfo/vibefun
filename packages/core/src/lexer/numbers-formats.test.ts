@@ -775,6 +775,28 @@ describe("Lexer - Number formats properties", () => {
         );
     });
 
+    // F-47 (testing-gap chunk 05) — spec ref:
+    // docs/spec/02-lexical-structure/tokens.md (integer literals).
+    // The spec permits precision loss for integers above
+    // Number.MAX_SAFE_INTEGER (2^53 − 1) but the lexer must not throw on
+    // them. This property fuzzes 10001 values starting at MAX_SAFE_INTEGER
+    // and asserts only the no-crash invariant; a returned value may be
+    // imprecise, which is the documented best-effort behaviour.
+    it("property: integers in [MAX_SAFE_INTEGER, MAX_SAFE_INTEGER + 10000] tokenise without throwing", () => {
+        fc.assert(
+            fc.property(fc.integer({ min: 0, max: 10000 }), (offset) => {
+                const n = Number.MAX_SAFE_INTEGER + offset;
+                const source = n.toString();
+                expect(() => new Lexer(source, "prop.vf").tokenize()).not.toThrow();
+
+                const tokens = new Lexer(source, "prop.vf").tokenize();
+                // Must still produce a numeric literal token, even if the
+                // value is the JavaScript best-approximation of `n`.
+                expect(tokens[0]?.type).toMatch(/^(INT_LITERAL|FLOAT_LITERAL)$/);
+            }),
+        );
+    });
+
     it("property: underscore separators inside the digit run do not change the value", () => {
         // Insert an underscore at every other position into the decimal form.
         fc.assert(
