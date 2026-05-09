@@ -6,9 +6,8 @@
  */
 
 import * as fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 
-import { runSource } from "../helpers.js";
 import {
     expectCompileError,
     expectCompiles,
@@ -724,23 +723,23 @@ let _ = add(tick("first"), tick("second"));`,
         // order. CLI invocations are slow, so default to a small numRuns;
         // override with FC_NUM_RUNS for fuzzing.
         it("property: function argument evaluation is left-to-right for arities 2–5", () => {
-            const numRuns = Number.parseInt(process.env["FC_NUM_RUNS"] ?? "20", 10);
+            const parsedNumRuns = Number.parseInt(process.env["FC_NUM_RUNS"] ?? "20", 10);
+            const numRuns = Number.isInteger(parsedNumRuns) && parsedNumRuns > 0 ? parsedNumRuns : 20;
             const labelArb = fc.stringMatching(/^[a-z]{1,5}$/);
             fc.assert(
                 fc.property(fc.uniqueArray(labelArb, { minLength: 2, maxLength: 5 }), (labels) => {
                     const params = labels.map((_, i) => `_x${i}: Int`).join(", ");
                     const args = labels.map((l) => `tick("${l}")`).join(", ");
-                    const source = `import { String, List, Option, Result, Int, Float, Math } from "@vibefun/std";
-external console_log: (String) -> Unit = "console.log";
-let tick = (label: String) => {
+                    const source = withOutputs(
+                        `let tick = (label: String) => {
   let _ = unsafe { console_log(label) };
   0;
 };
 let f = (${params}) => 0;
-let _ = f(${args});`;
-                    const r = runSource(source);
-                    expect(r.exitCode, `expected successful run\nstderr:\n${r.stderr}`).toBe(0);
-                    expect(r.stdout.trim()).toBe(labels.join("\n"));
+let _ = f(${args});`,
+                        [],
+                    );
+                    expectRunOutput(source, labels.join("\n"));
                 }),
                 { numRuns },
             );
