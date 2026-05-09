@@ -3,12 +3,15 @@
  */
 
 import type {
+    CoreIntLit,
+    CoreLet,
     CoreRecord,
     CoreRecordAccess,
     CoreRecordField,
     CoreRecordUpdate,
     CoreTypeAnnotation,
     CoreVar,
+    CoreVarPattern,
 } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 import type { InferenceContext } from "./infer/index.js";
@@ -96,6 +99,47 @@ describe("Type Inference - Records", () => {
             expect(result.type.fields.size).toBe(2);
             expect(result.type.fields.get("x")).toEqual(primitiveTypes.Int);
             expect(result.type.fields.get("y")).toEqual(primitiveTypes.String);
+        }
+    });
+
+    // Spec: 04-expressions/data-literals.md §Field Shorthand — `{ x }` is the same
+    // as `{ x: x }`, so the field inherits the bound variable's type.
+    // Audit: 04b F-04. The desugarer emits a Field whose value is `CoreVar("x")`,
+    // so this test pins inference at exactly that post-desugar shape.
+    it("should infer shorthand field type from outer let binding", () => {
+        // let x = 5 in { x }
+        const xPattern: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xValue: CoreIntLit = { kind: "CoreIntLit", value: 5, loc: testLoc };
+        const xRef: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const shorthandField: CoreRecordField = {
+            kind: "Field",
+            name: "x",
+            value: xRef,
+            loc: testLoc,
+        };
+        const record: CoreRecord = {
+            kind: "CoreRecord",
+            fields: [shorthandField],
+            loc: testLoc,
+        };
+        const expr: CoreLet = {
+            kind: "CoreLet",
+            pattern: xPattern,
+            value: xValue,
+            body: record,
+            mutable: false,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const result = inferExpr(ctx, expr);
+
+        expect(result.type.type).toBe("Record");
+        if (result.type.type === "Record") {
+            expect(result.type.fields.size).toBe(1);
+            expect(result.type.fields.get("x")).toEqual(primitiveTypes.Int);
         }
     });
 

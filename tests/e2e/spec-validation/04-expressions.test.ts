@@ -941,4 +941,170 @@ let _u = tick("done");`,
             );
         });
     });
+
+    // Spec: 04-expressions/data-literals.md §Field Shorthand.
+    // Audit: 04b F-04.
+    describe("record field shorthand", () => {
+        it("constructs a record with shorthand and reads the field back", () => {
+            expectRunOutput(
+                withOutput(
+                    `let x = 5;
+let r = { x };`,
+                    `String.fromInt(r.x)`,
+                ),
+                "5",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/data-literals.md §Keywords as Field Names.
+    // Audit: 04b F-05. Same shape as 03b F-05; pinned here in the
+    // V-layer file the audit explicitly tags.
+    describe("keyword field names", () => {
+        it("permits a keyword as an explicit record field name", () => {
+            expectRunOutput(withOutput(`let r = { type: "foo" };`, `r.type`), "foo");
+        });
+    });
+
+    // Spec: 04-expressions/data-literals.md §Empty List Type Inference.
+    // Audit: 04b F-07. The first concrete use fixes the empty list's
+    // element type — value restriction prevents generalisation, so a
+    // second use at a different element type must be a TypeMismatch.
+    //
+    // [BUG: VF-FC-0003] The current typechecker generalises `let xs = []`
+    // across uses, so the program below compiles cleanly even though
+    // soundness requires it to fail. Skipped pending the fix tracked in
+    // `.claude/FAST_CHECK_BUG_BACKLOG.md`.
+    describe("empty list value restriction", () => {
+        it.skip("[BUG: VF-FC-0003] monomorphises after first use; second incompatible use fails", () => {
+            expectCompileError(
+                `let xs = [];
+let _: List<Int> = xs;
+let _: List<String> = xs;`,
+            );
+        });
+    });
+
+    // Spec: 04-expressions/data-literals.md §Cons Operator.
+    // Audit: 04b F-09. Earlier tests in this file check `List.length`;
+    // this case asserts the actual element values to verify the cons
+    // chain produces `[1, 2, 3]` end-to-end. Vibefun's list-pattern
+    // syntax is bracketed (`[a, b, c]`) rather than `head :: tail`
+    // (see docs/spec/05-pattern-matching/data-patterns.md), so the
+    // reverse direction is exercised here against a list built with
+    // the cons expression.
+    describe("cons standalone expression", () => {
+        it("produces [1, 2, 3] when prepending to a list literal", () => {
+            expectRunOutput(
+                withOutput(
+                    `let xs = 1 :: [2, 3];
+let result = match xs {
+  | [a, b, c] => String.fromInt(a) & "," & String.fromInt(b) & "," & String.fromInt(c)
+  | _ => "fail"
+};`,
+                    `result`,
+                ),
+                "1,2,3",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/data-literals.md §Multi-Line List Syntax.
+    // Audit: 04b F-10. Trailing comma on the last element is permitted
+    // and the parser must accept newlines between elements.
+    describe("multi-line list literal", () => {
+        it("parses a multi-line list with trailing comma", () => {
+            expectRunOutput(
+                withOutput(
+                    `let xs = [
+  1,
+  2,
+  3,
+];`,
+                    `String.fromInt(List.length(xs))`,
+                ),
+                "3",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/functions-composition.md §Type Annotations.
+    // Audit: 04b F-15. Annotations must be enforced at the call site,
+    // not silently dropped.
+    describe("lambda type annotations", () => {
+        it("rejects an argument that violates the annotated parameter type", () => {
+            expectCompileError(
+                `let f = (x: Int) => x;
+let _ = f("a");`,
+            );
+        });
+    });
+
+    // Spec: 04-expressions/functions-composition.md §Destructuring Parameters.
+    // Audit: 04b F-16. End-to-end: a lambda whose only parameter is a
+    // record pattern unpacks it inside the body.
+    //
+    // [BUG: VF-FC-0004] The spec example uses no annotation on the
+    // destructured parameter, but the typechecker currently rejects
+    // `({ x, y }) => x + y` with VF4500 because the synthesised match
+    // arm runs against a fresh type variable rather than the closed
+    // record type implied by the pattern. Skipped pending the fix
+    // tracked in `.claude/FAST_CHECK_BUG_BACKLOG.md`.
+    describe("lambda destructuring parameter", () => {
+        it.skip("[BUG: VF-FC-0004] unpacks a record argument and uses its fields", () => {
+            expectRunOutput(
+                withOutput(
+                    `let f = ({ x, y }) => x + y;
+let result = f({ x: 1, y: 2 });`,
+                    `String.fromInt(result)`,
+                ),
+                "3",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/functions-composition.md §Lambdas Cannot Be Recursive.
+    // Audit: 04b F-17. A let-bound lambda does NOT see its own binding;
+    // only `let rec` does. The right-hand side must therefore fail to
+    // resolve `fact` (no other binding in scope).
+    describe("lambda recursion", () => {
+        it("rejects a let-bound lambda that calls itself by name", () => {
+            expectCompileError(`let fact = (n: Int) => if n == 0 then 1 else n * fact(n - 1);`);
+        });
+    });
+
+    // Spec: 04-expressions/functions-composition.md §Operator Sections Not Supported.
+    // Audit: 04b F-18. Both bare and partial operator sections must be
+    // rejected at parse time. Detailed coverage of all operator forms
+    // lives in `packages/core/src/parser/operator-sections.test.ts`;
+    // this V-layer pair pins the user-visible compile failure.
+    describe("operator sections", () => {
+        it("rejects a bare operator section `(+)`", () => {
+            expectCompileError(`let plus = (+);`);
+        });
+
+        it("rejects a right operator section `(+ 1)`", () => {
+            expectCompileError(`let inc = (+ 1);`);
+        });
+    });
+
+    // Spec: 04-expressions/functions-composition.md §Sequential Execution.
+    // Audit: 04b F-22. Two side-effecting `console_log` calls inside one
+    // block must print top-to-bottom in source order. The terminating
+    // `()` makes the block's type Unit.
+    describe("block sequential side effects", () => {
+        it("prints two console_log calls in source order", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let _b = {
+  let _ = unsafe { console_log("a") };
+  let _ = unsafe { console_log("b") };
+  ();
+};`,
+                    [],
+                ),
+                "a\nb",
+            );
+        });
+    });
 });
