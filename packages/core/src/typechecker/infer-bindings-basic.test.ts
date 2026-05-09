@@ -101,6 +101,69 @@ describe("Type Inference - Let-Bindings", () => {
         expect(result2.type).toEqual(primitiveTypes.Bool);
     });
 
+    // Spec: 04-expressions/functions-composition.md §Lambdas Cannot Be Recursive.
+    // Audit: 04b F-17.
+    //
+    // A let-bound lambda does not see its own binding — only `let rec`
+    // does. The companion V-layer test in
+    // `tests/e2e/spec-validation/04-expressions.test.ts` covers the
+    // user-visible compile failure for `let fact = (n) => fact(n - 1)`.
+    // This U-layer test pins the working alternative: a lambda that
+    // calls a *separately-bound* outer `fact` typechecks cleanly,
+    // confirming the language doesn't ban self-referential calls in
+    // general — only ones that go through the lambda's own pattern.
+    it("typechecks a lambda that calls an outer binding of the same name", () => {
+        // Construct an environment with `fact: Int -> Int`, then
+        // typecheck `(n: Int) => fact(n - 1)`. With `fact` already in
+        // scope, the recursive-looking call resolves against the
+        // outer binding, not the lambda itself.
+        const env = createTestEnv();
+        const factType: Type = {
+            type: "Fun",
+            params: [primitiveTypes.Int],
+            return: primitiveTypes.Int,
+        };
+        env.values.set("fact", {
+            kind: "Value",
+            scheme: { vars: [], type: factType },
+            loc: testLoc,
+        });
+
+        const param: CoreVarPattern = { kind: "CoreVarPattern", name: "n", loc: testLoc };
+        const factRef: CoreVar = { kind: "CoreVar", name: "fact", loc: testLoc };
+        const nRef: CoreVar = { kind: "CoreVar", name: "n", loc: testLoc };
+        const one: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const nMinusOne: CoreBinOp = {
+            kind: "CoreBinOp",
+            op: "Subtract",
+            left: nRef,
+            right: one,
+            loc: testLoc,
+        };
+        const recursiveCall: CoreApp = {
+            kind: "CoreApp",
+            func: factRef,
+            args: [nMinusOne],
+            loc: testLoc,
+        };
+        const lambda: CoreLambda = {
+            kind: "CoreLambda",
+            param,
+            body: recursiveCall,
+            loc: testLoc,
+        };
+
+        const ctx = createContext(env);
+        const result = inferExpr(ctx, lambda);
+
+        expect(result.type.type).toBe("Fun");
+        if (result.type.type === "Fun") {
+            expect(result.type.params).toHaveLength(1);
+            expect(result.type.params[0]).toEqual(primitiveTypes.Int);
+            expect(result.type.return).toEqual(primitiveTypes.Int);
+        }
+    });
+
     it("should support recursive let-bindings", () => {
         // let rec factorial = n => if n == 0 then 1 else n * factorial(n - 1) in factorial(5)
         // Simplified: let rec f = x => f(x) in f(42).
