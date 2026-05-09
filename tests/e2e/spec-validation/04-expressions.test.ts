@@ -1041,6 +1041,7 @@ let result = match xs {
             expectCompileError(
                 `let f = (x: Int) => x;
 let _ = f("a");`,
+                "VF4020",
             );
         });
     });
@@ -1063,6 +1064,7 @@ let _ = f("a");`,
             expectCompileError(
                 `let f = ({ x, y }) => x + y;
 let result = f({ x: 1, y: 2 });`,
+                "VF4500",
             );
         });
     });
@@ -1073,7 +1075,7 @@ let result = f({ x: 1, y: 2 });`,
     // resolve `fact` (no other binding in scope).
     describe("lambda recursion", () => {
         it("rejects a let-bound lambda that calls itself by name", () => {
-            expectCompileError(`let fact = (n: Int) => if n == 0 then 1 else n * fact(n - 1);`);
+            expectCompileError(`let fact = (n: Int) => if n == 0 then 1 else n * fact(n - 1);`, "VF4100");
         });
     });
 
@@ -1084,11 +1086,11 @@ let result = f({ x: 1, y: 2 });`,
     // this V-layer pair pins the user-visible compile failure.
     describe("operator sections", () => {
         it("rejects a bare operator section `(+)`", () => {
-            expectCompileError(`let plus = (+);`);
+            expectCompileError(`let plus = (+);`, "VF2112");
         });
 
         it("rejects a right operator section `(+ 1)`", () => {
-            expectCompileError(`let inc = (+ 1);`);
+            expectCompileError(`let inc = (+ 1);`, "VF2112");
         });
     });
 
