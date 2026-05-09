@@ -967,28 +967,14 @@ let r = { x };`,
     });
 
     // Spec: 04-expressions/data-literals.md §Empty List Type Inference.
-    // Audit: 04b F-07. The first concrete use should fix the empty
-    // list's element type — value restriction prevents generalisation,
-    // so a second use at a different element type ought to be a
-    // TypeMismatch.
-    //
-    // [BUG: VF-FC-0003] The current typechecker generalises
-    // `let xs = []` across uses, so the program below compiles cleanly
-    // even though soundness requires it to fail. The assertion pins
-    // the buggy behavior so the gap surfaces in the suite without
-    // breaking CI; when VF-FC-0003 is fixed (see
-    // `.claude/FAST_CHECK_BUG_BACKLOG.md`), flip `expectCompiles` to
-    // `expectCompileError` and remove the bug banner. Mirrors the
-    // workaround pattern chunk 09 used for VF-FC-0002.
-    describe("empty list value restriction", () => {
-        it("[BUG: VF-FC-0003] currently accepts `let xs = []` polymorphically across uses", () => {
-            expectCompiles(
-                `let xs = [];
-let _: List<Int> = xs;
-let _: List<String> = xs;`,
-            );
-        });
-    });
+    // Audit: 04b F-07. Spec-validation coverage deferred — the
+    // intended assertion (`let xs = []; let _: List<Int> = xs; let _:
+    // List<String> = xs;` is rejected) currently fails because the
+    // typechecker generalises `let xs = []` across uses despite the
+    // value restriction. Tracked as VF-FC-0003 in
+    // `.claude/FAST_CHECK_BUG_BACKLOG.md`; the spec-correct
+    // assertion will land in the same PR that fixes the
+    // generalisation logic.
 
     // Spec: 04-expressions/data-literals.md §Cons Operator.
     // Audit: 04b F-09. Earlier tests in this file check `List.length`;
@@ -1047,27 +1033,15 @@ let _ = f("a");`,
     });
 
     // Spec: 04-expressions/functions-composition.md §Destructuring Parameters.
-    // Audit: 04b F-16. End-to-end: a lambda whose only parameter is a
-    // record pattern should unpack it inside the body.
-    //
-    // [BUG: VF-FC-0004] The spec example uses no annotation on the
-    // destructured parameter, but the typechecker currently rejects
-    // `({ x, y }) => x + y` with VF4500 because the synthesised match
-    // arm runs against a fresh type variable rather than the closed
-    // record type implied by the pattern. The assertion pins the
-    // buggy behavior so the gap surfaces in the suite without breaking
-    // CI; when VF-FC-0004 is fixed (see
-    // `.claude/FAST_CHECK_BUG_BACKLOG.md`), flip `expectCompileError`
-    // back to a runtime assertion of `"3"` and remove the bug banner.
-    describe("lambda destructuring parameter", () => {
-        it("[BUG: VF-FC-0004] currently rejects untyped record-destructuring lambda parameter", () => {
-            expectCompileError(
-                `let f = ({ x, y }) => x + y;
-let result = f({ x: 1, y: 2 });`,
-                "VF4500",
-            );
-        });
-    });
+    // Audit: 04b F-16. Spec-validation coverage deferred — the
+    // intended assertion (`let f = ({x, y}) => x + y; f({x: 1, y: 2})`
+    // runs and returns 3) currently fails to compile with VF4500
+    // because the synthesised match arm runs against a fresh type
+    // variable rather than the closed record type implied by the
+    // pattern. Tracked as VF-FC-0004 in
+    // `.claude/FAST_CHECK_BUG_BACKLOG.md`; the spec-correct
+    // assertion will land in the same PR that wires inference for
+    // record-pattern lambdas.
 
     // Spec: 04-expressions/functions-composition.md §Lambdas Cannot Be Recursive.
     // Audit: 04b F-17. A let-bound lambda does NOT see its own binding;
