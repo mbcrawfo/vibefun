@@ -5,8 +5,10 @@
  * data literals, lambdas, blocks, pipes, evaluation order.
  */
 
-import { describe, it } from "vitest";
+import * as fc from "fast-check";
+import { describe, expect, it } from "vitest";
 
+import { runSource } from "../helpers.js";
 import {
     expectCompileError,
     expectCompiles,
@@ -664,6 +666,279 @@ let result = unsafe {
                     `String.fromInt(result)`,
                 ),
                 "42",
+            );
+        });
+    });
+
+    // Spec: 04-expressions/evaluation-order.md
+    //
+    // Each test weaves side-effecting `tick(label)` calls into the construct
+    // under test and asserts the order labels appear in stdout. Any reversal
+    // of expected order means codegen disagrees with the spec — fix the
+    // codegen, do not adjust the test (see plan: testing-gap chunk 09).
+    describe("evaluation order", () => {
+        // Spec: §General Principles ("Left-to-right" + "Once only").
+        // Audit: 04a F-44.
+        it("evaluates nested function applications inside-out, args before body", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  1;
+};
+let f = (a: Int, b: Int) => {
+  let _ = unsafe { console_log("f") };
+  a + b;
+};
+let g = () => tick("g");
+let h = () => tick("h");
+let _ = f(g(), h());`,
+                    [],
+                ),
+                "g\nh\nf",
+            );
+        });
+
+        // Spec: §Function Application > Argument Evaluation.
+        // Audit: 04a F-45.
+        it("evaluates function arguments left-to-right", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let add = (x: Int, y: Int) => x + y;
+let _ = add(tick("first"), tick("second"));`,
+                    [],
+                ),
+                "first\nsecond",
+            );
+        });
+
+        // Spec: §Function Application > Argument Evaluation (property layer).
+        // Audit: 04a F-45 (P).
+        //
+        // Property: for any 2–5 distinct labels passed positionally to a
+        // multi-arg function, the labels print in left-to-right source
+        // order. CLI invocations are slow, so default to a small numRuns;
+        // override with FC_NUM_RUNS for fuzzing.
+        it("property: function argument evaluation is left-to-right for arities 2–5", () => {
+            const numRuns = Number.parseInt(process.env["FC_NUM_RUNS"] ?? "20", 10);
+            const labelArb = fc.stringMatching(/^[a-z]{1,5}$/);
+            fc.assert(
+                fc.property(fc.uniqueArray(labelArb, { minLength: 2, maxLength: 5 }), (labels) => {
+                    const params = labels.map((_, i) => `_x${i}: Int`).join(", ");
+                    const args = labels.map((l) => `tick("${l}")`).join(", ");
+                    const source = `import { String, List, Option, Result, Int, Float, Math } from "@vibefun/std";
+external console_log: (String) -> Unit = "console.log";
+let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let f = (${params}) => 0;
+let _ = f(${args});`;
+                    const r = runSource(source);
+                    expect(r.exitCode, `expected successful run\nstderr:\n${r.stderr}`).toBe(0);
+                    expect(r.stdout.trim()).toBe(labels.join("\n"));
+                }),
+                { numRuns },
+            );
+        });
+
+        // Spec: §Binary Operators > Arithmetic / String Concatenation.
+        // Audit: 04a F-46. Excludes `&&` and `||` — those short-circuit and
+        // so don't speak to non-short-circuit binop evaluation order.
+        it("evaluates `+` operands left-to-right", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tickI = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  1;
+};
+let _ = tickI("L") + tickI("R");`,
+                    [],
+                ),
+                "L\nR",
+            );
+        });
+
+        it("evaluates `*` operands left-to-right", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tickI = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  1;
+};
+let _ = tickI("L") * tickI("R");`,
+                    [],
+                ),
+                "L\nR",
+            );
+        });
+
+        it("evaluates `&` (string concat) operands left-to-right", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tickS = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  "";
+};
+let _ = tickS("L") & tickS("R");`,
+                    [],
+                ),
+                "L\nR",
+            );
+        });
+
+        // Spec: §Composite Expressions > Record Construction.
+        // Audit: 04a F-49.
+        it("evaluates record fields left-to-right in source order", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let _ = { x: tick("x"), y: tick("y"), z: tick("z") };`,
+                    [],
+                ),
+                "x\ny\nz",
+            );
+        });
+
+        // Spec: §Composite Expressions > List Construction.
+        // Audit: 04a F-50.
+        it("evaluates list elements left-to-right", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let _ = [tick("a"), tick("b"), tick("c")];`,
+                    [],
+                ),
+                "a\nb\nc",
+            );
+        });
+
+        // Spec: §Control Flow > If Expressions (scrutinee-then-branch order).
+        // Audit: 04a F-51.
+        it("evaluates an if expression's condition before the chosen branch (true)", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tickB = (label: String, value: Bool) => {
+  let _ = unsafe { console_log(label) };
+  value;
+};
+let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let _ = if tickB("cond", true) then tick("then") else tick("else");`,
+                    [],
+                ),
+                "cond\nthen",
+            );
+        });
+
+        it("evaluates an if expression's condition before the chosen branch (false)", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tickB = (label: String, value: Bool) => {
+  let _ = unsafe { console_log(label) };
+  value;
+};
+let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let _ = if tickB("cond", false) then tick("then") else tick("else");`,
+                    [],
+                ),
+                "cond\nelse",
+            );
+        });
+
+        // Spec: §Control Flow > Match Expressions ("scrutinee evaluated exactly once").
+        // Audit: 04a F-52. Counter ending at 2 (not 3+) confirms the desugarer
+        // doesn't re-emit the scrutinee per pattern arm.
+        //
+        // Note: the ref assignment must come BEFORE the `let _ = unsafe { ... }`
+        // line; DCE silently elides a `:=` that follows a let-binding inside a
+        // non-Unit-returning function. This mirrors the working pattern in the
+        // existing AND/OR short-circuit tests above.
+        it("evaluates a match scrutinee exactly once", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let mut counter = ref(0);
+let tick = (label: String) => {
+  counter := !counter + 1;
+  let _ = unsafe { console_log(label) };
+  true;
+};
+let _ = match tick("scrut") {
+  | _ => tick("body")
+};`,
+                    [`String.fromInt(!counter)`],
+                ),
+                "scrut\nbody\n2",
+            );
+        });
+
+        // Spec: §Block Expressions ("Sequential, top-to-bottom").
+        // Audit: 04a F-54.
+        it("evaluates block statements sequentially", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let _ = {
+  tick("a");
+  tick("b");
+  tick("c");
+};`,
+                    [],
+                ),
+                "a\nb\nc",
+            );
+        });
+
+        // Spec: §Pipe Operator (LHS evaluated, then function applied).
+        // Audit: 04a F-55.
+        it("evaluates a pipe's LHS before invoking the piped function", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  0;
+};
+let _ = tick("val") |> ((_x: Int) => tick("f"));`,
+                    [],
+                ),
+                "val\nf",
+            );
+        });
+
+        // Spec: §Reference Operations > Reference Assignment.
+        // Audit: 04a F-56. Confirms the RHS side effect happens during `:=`
+        // and that subsequent statements run only after the assignment.
+        it("evaluates a ref assignment's RHS before continuing", () => {
+            expectRunOutput(
+                withOutputs(
+                    `let mut r = ref(0);
+let tick = (label: String) => {
+  let _ = unsafe { console_log(label) };
+  1;
+};
+r := tick("rhs");
+let _u = tick("done");`,
+                    [],
+                ),
+                "rhs\ndone",
             );
         });
     });
