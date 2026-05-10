@@ -535,5 +535,54 @@ let result = classify((0, 0));`,
 };`,
             );
         });
+
+        // Spec ref: docs/spec/05-pattern-matching/exhaustiveness.md:67-70
+        // (tuple component expansion). Audit 05 F-35 flagged that the
+        // current Phase 5.1 checker does not perform pairwise element
+        // exhaustiveness — a tuple match without an explicit catch-all is
+        // rejected even when the elements are conceptually exhaustive.
+        // These two cases pin that limitation: the same arms compile if
+        // and only if a `| _ => …` (or `(_, _)`) catch-all is present.
+        // When Phase 5.2 lands and the typechecker expands tuple
+        // components, the first case will start compiling — flip the
+        // assertion then.
+        it("tuple match without catch-all errors despite element-wise exhaustiveness (Phase 5.1 limitation)", () => {
+            expectCompileError(
+                `let f = (a: Bool, b: Bool) => match (a, b) {
+  | (true, _) => 1
+  | (false, _) => 2
+};`,
+            );
+        });
+
+        it("same tuple match compiles once a catch-all is added", () => {
+            expectRunOutput(
+                withOutput(
+                    `let f = (a: Bool, b: Bool) => match (a, b) {
+  | (true, _) => 1
+  | (false, _) => 2
+  | _ => 3
+};
+let result = f(true, false);`,
+                    `String.fromInt(result)`,
+                ),
+                "1",
+            );
+        });
+
+        // Spec ref: docs/spec/05-pattern-matching/advanced-patterns.md:439-461 —
+        // all or-pattern alternatives must have compatible types. Audit
+        // 05 F-51 flagged the lack of an explicit V-layer test pinning
+        // this. The literal `0 | "zero"` mixes Int and String; the
+        // expanded cases fail to unify with a single scrutinee type.
+        it("or-pattern alternatives must have compatible types", () => {
+            expectCompileError(
+                `let f = (n: Int) => match n {
+  | 0 | "zero" => 1
+  | _ => 2
+};`,
+                "VF4020",
+            );
+        });
     });
 });

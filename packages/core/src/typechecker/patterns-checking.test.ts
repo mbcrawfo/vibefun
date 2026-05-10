@@ -741,4 +741,84 @@ describe("Pattern Checking", () => {
             );
         });
     });
+
+    // Spec ref: docs/spec/05-pattern-matching/advanced-patterns.md:15-40 —
+    // patterns can nest arbitrarily (variant in variant, list in variant, …)
+    // with no documented depth limit. Audit (05 F-28) flagged that the
+    // recursive checker has no explicit deep-nesting test, so a regression
+    // that introduces a depth limit (e.g. accidental linear stack frame
+    // growth that overflows on real inputs) would slip through.
+    describe("Pattern Nesting Depth", () => {
+        it("property: deeply nested Some(Some(...x...)) of depth ≤ 12 binds the leaf", () => {
+            // Build `Some(Some(...Some(x)...))` of varying depths and an
+            // `Option<Option<...Option<Int>...>>` scrutinee of matching
+            // depth, then assert checkPattern binds `x` to Int regardless
+            // of nesting. 12 is comfortably above the 3-4 levels covered
+            // by existing E2E tests but well within practical limits.
+            const buildPattern = (depth: number): CorePattern => {
+                if (depth === 0) {
+                    return { kind: "CoreVarPattern", name: "x", loc: testLoc };
+                }
+                return {
+                    kind: "CoreVariantPattern",
+                    constructor: "Some",
+                    args: [buildPattern(depth - 1)],
+                    loc: testLoc,
+                };
+            };
+
+            const buildType = (depth: number): Type => {
+                if (depth === 0) return primitiveTypes.Int;
+                return optionType(buildType(depth - 1));
+            };
+
+            fc.assert(
+                fc.property(fc.integer({ min: 1, max: 12 }), (depth) => {
+                    const pattern = buildPattern(depth);
+                    const expected = buildType(depth);
+                    const result = checkPattern(env, pattern, expected, emptySubst(), 0);
+                    expect(result.bindings.size).toBe(1);
+                    expect(result.bindings.get("x")).toEqual(primitiveTypes.Int);
+                }),
+            );
+        });
+    });
+
+    // Spec ref: docs/spec/05-pattern-matching/advanced-patterns.md:439-461 —
+    // all alternatives in an or-pattern must have compatible types.
+    // Or-patterns are expanded by the desugarer (F-36) into separate
+    // cases, so by the time the typechecker sees them they're individual
+    // patterns checked in sequence against the scrutinee's type. A type
+    // mismatch in one alternative manifests as a unification failure when
+    // that alternative's literal pattern is checked. Audit (05 F-51)
+    // flagged the lack of an explicit test pinning this contract.
+    describe("Or-Pattern Type Compatibility (post-expansion)", () => {
+        it("rejects an alternative whose literal type doesn't match the scrutinee", () => {
+            // `0 | "zero"` post-expansion becomes two patterns: a literal
+            // 0 (Int) and a literal "zero" (String). Each must check
+            // against the scrutinee's type. Pin Int as the scrutinee and
+            // assert the String literal arm fails to unify.
+            const intLiteralPattern: CoreLiteralPattern = {
+                kind: "CoreLiteralPattern",
+                literal: 0,
+                loc: testLoc,
+            };
+            const stringLiteralPattern: CoreLiteralPattern = {
+                kind: "CoreLiteralPattern",
+                literal: "zero",
+                loc: testLoc,
+            };
+
+            // First alternative typechecks against Int.
+            const intResult = checkPattern(env, intLiteralPattern, primitiveTypes.Int, emptySubst(), 0);
+            expect(intResult.type).toEqual(primitiveTypes.Int);
+
+            // Second alternative against the same scrutinee type fails.
+            // The unification produces a VF40xx mismatch (concretely
+            // VF4020 — Cannot unify String with Int).
+            expect(() => {
+                checkPattern(env, stringLiteralPattern, primitiveTypes.Int, emptySubst(), 0);
+            }).toThrow(/VF4020/);
+        });
+    });
 });

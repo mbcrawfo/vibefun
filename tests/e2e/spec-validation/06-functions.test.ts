@@ -307,4 +307,53 @@ let result = add(1, 2, 3);`,
             );
         });
     });
+
+    // Spec ref: docs/spec/06-functions.md:311 — "Vibefun does not
+    // support polymorphic recursion." Audit (06 F-21) flagged the
+    // lack of an explicit V-layer test pinning this rejection.
+    // The recursive call `f([x])` requires f : List<'a> -> _ while
+    // the binding gives f : 'a -> _, so 'a must unify with List<'a>
+    // — the occurs check rejects it (VF4300 — InfiniteType).
+    describe("polymorphic recursion", () => {
+        it("rejects polymorphic recursion with InfiniteType (VF4300)", () => {
+            expectCompileError(
+                `let rec f = (x) => f([x]);
+let r = f(1);`,
+                "VF4300",
+            );
+        });
+    });
+
+    // Spec ref: docs/spec/06-functions.md (lexical scoping is implicit).
+    // Audit (06 F-24) flagged the lack of an explicit V-layer test that
+    // an inner lambda parameter shadows an outer let-binding of the
+    // same name. A regression that mishandles environment extension
+    // would surface as the outer binding leaking into the inner scope.
+    describe("name shadowing", () => {
+        it("inner lambda parameter shadows outer let binding", () => {
+            expectRunOutput(
+                withOutput(
+                    `let x = 1;
+let f = (x: Int) => x + 10;
+let result = f(5);`,
+                    `String.fromInt(result)`,
+                ),
+                "15",
+            );
+        });
+
+        it("inner let binding shadows outer let binding within a block", () => {
+            expectRunOutput(
+                withOutput(
+                    `let x = 1;
+let result = {
+  let x = 100;
+  x + 1;
+};`,
+                    `String.fromInt(result)`,
+                ),
+                "101",
+            );
+        });
+    });
 });

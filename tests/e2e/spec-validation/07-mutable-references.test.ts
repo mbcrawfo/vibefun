@@ -198,4 +198,65 @@ x := Some("hello");`,
             );
         });
     });
+
+    // Spec ref: docs/spec/07-mutable-references.md:334-359 — pattern
+    // matching directly on a `Ref<T>` is forbidden; the user must
+    // dereference with `!` first. Audit (07 F-11) flagged the lack of
+    // a V-layer test pinning this rejection. The diagnostic surfaces
+    // through type unification (the variant pattern expects
+    // `Option<…>` but receives `Ref<Option<…>>`), which produces
+    // VF4020 — a generic "cannot unify" error. The audit notes this
+    // diagnostic is too vague (a "Ref<T> is not pattern-matchable"
+    // dedicated message would be friendlier), but the rejection
+    // itself is correct.
+    describe("pattern matching on refs", () => {
+        it("rejects matching directly on a Ref<Option<…>> with VF4020", () => {
+            expectCompileError(
+                `let mut r = ref(Some(5));
+let v = match r {
+  | Some(x) => x
+  | None => 0
+};`,
+                "VF4020",
+            );
+        });
+
+        it("compiles when the ref is dereferenced first", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut r = ref(Some(5));
+let v = match !r {
+  | Some(x) => x
+  | None => 0
+};`,
+                    `String.fromInt(v)`,
+                ),
+                "5",
+            );
+        });
+    });
+
+    // Spec ref: docs/spec/07-mutable-references.md:54-82 — a `let mut`
+    // ref binding may be reassigned to a new ref via `x = ref(...)`.
+    // Audit (07 F-14) marked this ✅ Implemented but did not have a
+    // direct test. Authoring the test surfaces a parser gap: the
+    // surface syntax `<ident> = <expr>;` is rejected with VF2107
+    // (`Expected ';' or newline between declarations`) at the top
+    // level and the equivalent VF2107 inside blocks. Only `:=`
+    // (mutating the ref's contents) is admitted today.
+    //
+    // [BUG: VF-FC-0005] The assertion below pins the buggy parser
+    // behavior so the gap surfaces in the suite without breaking CI.
+    // When VF-FC-0005 is fixed (see `.claude/FAST_CHECK_BUG_BACKLOG.md`),
+    // flip `expectCompileError` to `expectRunOutput(..., "10")` per
+    // the spec example, and remove the bug banner.
+    describe("mutable binding reassignment", () => {
+        it("[BUG: VF-FC-0005] currently rejects `x = ref(10)` as a parser error", () => {
+            expectCompileError(
+                `let mut x = ref(0);
+x = ref(10);`,
+                "VF2107",
+            );
+        });
+    });
 });
