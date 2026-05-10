@@ -433,6 +433,60 @@ describe("Type Inference - Value Restriction", () => {
     });
 });
 
+describe("Type Inference - Function Application", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    // Spec ref: docs/spec/06-functions.md:134-198 — over-application is
+    // a compile-time error: applying more arguments than the function
+    // accepts attempts to call the result type as if it were a function.
+    // Audit (06 F-06) flagged the lack of a unit test that pins both
+    // the diagnostic code AND the location, so a regression that
+    // changes either surfaces here. (The spec's illustrative wording
+    // "Cannot apply type Int to non-function type Int" is informational;
+    // the actual diagnostic is VF4024 with message "Cannot unify types:
+    // Int with Int -> 'v" — the unification path is what enforces
+    // arity, not a dedicated arity check.)
+    it("should reject over-application with VF4024", () => {
+        // Simulate `let add = (x, y) => x + y in add(1, 2, 3)` post-desugar:
+        // `add` has type `Int -> Int -> Int`, so the curried application
+        // App(App(App(add, 1), 2), 3) fails on the third step where
+        // the Int result is applied to 3.
+        const env = createTestEnv();
+        const addType: Type = {
+            type: "Fun",
+            params: [primitiveTypes.Int],
+            return: { type: "Fun", params: [primitiveTypes.Int], return: primitiveTypes.Int },
+        };
+        env.values.set("add", {
+            kind: "Value",
+            scheme: { vars: [], type: addType },
+            loc: testLoc,
+        });
+
+        const ctx = createContext(env);
+
+        const addVar: CoreVar = { kind: "CoreVar", name: "add", loc: testLoc };
+        const one: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
+        const two: CoreIntLit = { kind: "CoreIntLit", value: 2, loc: testLoc };
+        const three: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
+        const app1: CoreApp = { kind: "CoreApp", func: addVar, args: [one], loc: testLoc };
+        const app2: CoreApp = { kind: "CoreApp", func: app1, args: [two], loc: testLoc };
+        const app3: CoreApp = { kind: "CoreApp", func: app2, args: [three], loc: testLoc };
+
+        try {
+            inferExpr(ctx, app3);
+            throw new Error("Expected VF4024 to be thrown");
+        } catch (err) {
+            expect(err).toBeInstanceOf(VibefunDiagnostic);
+            if (err instanceof VibefunDiagnostic) {
+                expect(err.code).toBe("VF4024");
+            }
+        }
+    });
+});
+
 describe("Type Inference - Unsafe Blocks", () => {
     beforeEach(() => {
         resetTypeVarCounter();

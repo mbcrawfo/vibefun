@@ -368,3 +368,89 @@ describe("Let-Rec Group With Cross-Binding Reference — Properties", () => {
         );
     });
 });
+
+// Spec ref: docs/spec/06-functions.md:311 — "Vibefun does not support
+// polymorphic recursion. Recursive functions must call themselves with
+// the same type instantiation." Audit (06 F-21) flagged the lack of an
+// explicit test that the typechecker rejects a recursive call at a
+// different type instantiation. The classic counterexample is
+// `let rec f = (x) => f([x])`, where the recursive call requires
+// `f : List<'a> -> _` while the binding is `f : 'a -> _`. With
+// polymorphic recursion forbidden, `'a` and `List<'a>` must unify,
+// failing the occurs check (VF4300 — InfiniteType).
+describe("Polymorphic Recursion Prohibition (let rec)", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    it("rejects `let rec f = (x) => f([x])` with VF4300 InfiniteType", () => {
+        // f: ('a) -> 'b, body: f(Cons(x, Nil)) where x: 'a means
+        // Cons(x, Nil): List<'a>, so the recursive call needs
+        // f: List<'a> -> 'b. Unifying 'a with List<'a> triggers the
+        // occurs check.
+        const env = createTestEnv();
+        const ctx = createContext(env);
+
+        const fParam: CoreVarPattern = { kind: "CoreVarPattern", name: "x", loc: testLoc };
+        const xVar: CoreVar = { kind: "CoreVar", name: "x", loc: testLoc };
+        const nilVariant: import("../types/core-ast.js").CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Nil",
+            args: [],
+            loc: testLoc,
+        };
+        const consVariant: import("../types/core-ast.js").CoreVariant = {
+            kind: "CoreVariant",
+            constructor: "Cons",
+            args: [xVar, nilVariant],
+            loc: testLoc,
+        };
+        const fVar: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const recursiveCall: CoreApp = {
+            kind: "CoreApp",
+            func: fVar,
+            args: [consVariant],
+            loc: testLoc,
+        };
+        const fLambda: CoreLambda = {
+            kind: "CoreLambda",
+            param: fParam,
+            body: recursiveCall,
+            loc: testLoc,
+        };
+
+        // Body of the let-rec: an actual use that forces inference of f.
+        const fVarBody: CoreVar = { kind: "CoreVar", name: "f", loc: testLoc };
+        const seedLit: CoreIntLit = { kind: "CoreIntLit", value: 0, loc: testLoc };
+        const bodyApp: CoreApp = {
+            kind: "CoreApp",
+            func: fVarBody,
+            args: [seedLit],
+            loc: testLoc,
+        };
+
+        const expr: import("../types/core-ast.js").CoreLetRecExpr = {
+            kind: "CoreLetRecExpr",
+            bindings: [
+                {
+                    pattern: { kind: "CoreVarPattern", name: "f", loc: testLoc },
+                    value: fLambda,
+                    mutable: false,
+                    loc: testLoc,
+                },
+            ],
+            body: bodyApp,
+            loc: testLoc,
+        };
+
+        try {
+            inferExpr(ctx, expr);
+            throw new Error("Expected VF4300 to be thrown");
+        } catch (err) {
+            expect(err).toBeInstanceOf(VibefunDiagnostic);
+            if (err instanceof VibefunDiagnostic) {
+                expect(err.code).toBe("VF4300");
+            }
+        }
+    });
+});
