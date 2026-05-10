@@ -448,11 +448,17 @@ describe("Type Inference - Function Application", () => {
     // the actual diagnostic is VF4024 with message "Cannot unify types:
     // Int with Int -> 'v" — the unification path is what enforces
     // arity, not a dedicated arity check.)
-    it("should reject over-application with VF4024", () => {
+    it("should reject over-application with VF4024 at the over-application site", () => {
         // Simulate `let add = (x, y) => x + y in add(1, 2, 3)` post-desugar:
         // `add` has type `Int -> Int -> Int`, so the curried application
         // App(App(App(add, 1), 2), 3) fails on the third step where
         // the Int result is applied to 3.
+        //
+        // Each application carries a distinct location so we can assert
+        // the diagnostic is reported on the *third* (over-applying)
+        // CoreApp, not the inner two that succeed. A regression that
+        // bubbles the error from a deeper unify site would surface as a
+        // mismatched location here.
         const env = createTestEnv();
         const addType: Type = {
             type: "Fun",
@@ -467,13 +473,17 @@ describe("Type Inference - Function Application", () => {
 
         const ctx = createContext(env);
 
+        const app1Loc = { file: "test.vf", line: 2, column: 1, offset: 10 };
+        const app2Loc = { file: "test.vf", line: 2, column: 5, offset: 14 };
+        const app3Loc = { file: "test.vf", line: 2, column: 9, offset: 18 };
+
         const addVar: CoreVar = { kind: "CoreVar", name: "add", loc: testLoc };
         const one: CoreIntLit = { kind: "CoreIntLit", value: 1, loc: testLoc };
         const two: CoreIntLit = { kind: "CoreIntLit", value: 2, loc: testLoc };
         const three: CoreIntLit = { kind: "CoreIntLit", value: 3, loc: testLoc };
-        const app1: CoreApp = { kind: "CoreApp", func: addVar, args: [one], loc: testLoc };
-        const app2: CoreApp = { kind: "CoreApp", func: app1, args: [two], loc: testLoc };
-        const app3: CoreApp = { kind: "CoreApp", func: app2, args: [three], loc: testLoc };
+        const app1: CoreApp = { kind: "CoreApp", func: addVar, args: [one], loc: app1Loc };
+        const app2: CoreApp = { kind: "CoreApp", func: app1, args: [two], loc: app2Loc };
+        const app3: CoreApp = { kind: "CoreApp", func: app2, args: [three], loc: app3Loc };
 
         try {
             inferExpr(ctx, app3);
@@ -482,6 +492,10 @@ describe("Type Inference - Function Application", () => {
             expect(err).toBeInstanceOf(VibefunDiagnostic);
             if (err instanceof VibefunDiagnostic) {
                 expect(err.code).toBe("VF4024");
+                // Pin the location to the over-applying CoreApp so a
+                // regression that reports the error at app1/app2 (or
+                // some inner unify site) surfaces here.
+                expect(err.location).toEqual(app3Loc);
             }
         }
     });
