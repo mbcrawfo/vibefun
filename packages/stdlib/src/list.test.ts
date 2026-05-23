@@ -99,6 +99,28 @@ describe("List", () => {
         });
     });
 
+    describe("flatten", () => {
+        it("flattens one level: empty, all-empty, and mixed inner lists", () => {
+            expect(toArray(L.flatten<number>(Nil))).toEqual([]);
+            const allEmpty: List<List<number>> = fromArray<List<number>>([Nil, Nil]);
+            expect(toArray(L.flatten(allEmpty))).toEqual([]);
+            const mixed: List<List<number>> = fromArray([fromArray([1]), fromArray([2, 3])]);
+            expect(toArray(L.flatten(mixed))).toEqual([1, 2, 3]);
+        });
+
+        it("flattens only one level — nested inner lists survive as elements", () => {
+            // Spec: List.flatten([[[1, 2]], [[3, 4]]]) => [[1, 2], [3, 4]] (one level only).
+            const a: List<number> = fromArray([1, 2]);
+            const b: List<number> = fromArray([3, 4]);
+            const nested: List<List<List<number>>> = fromArray([fromArray([a]), fromArray([b])]);
+            const flat = L.flatten(nested);
+            expect(toArray(flat).map(toArray)).toEqual([
+                [1, 2],
+                [3, 4],
+            ]);
+        });
+    });
+
     describe("properties", () => {
         const intList: fc.Arbitrary<List<number>> = listArb(fc.integer());
         const intListIntList = fc.tuple(intList, intList);

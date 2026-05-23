@@ -491,4 +491,73 @@ let result = unsafe { math_abs(-5.0) };`,
             );
         });
     });
+
+    // Constants and transcendental functions resolved through the @vibefun/std
+    // `Math` import (not external bindings). These assert the symbol is wired
+    // through the stdlib import and produces the right value at runtime; the
+    // unit/property suites in packages/stdlib own value-correctness coverage.
+    describe("math (stdlib import)", () => {
+        it("Math.pi in a computation (circle area, r = 2)", () => {
+            expectRunOutput(
+                withOutput(`let area = Math.pi * Math.pow(2.0, 2.0);`, `String.fromFloat(area)`),
+                "12.566370614359172",
+            );
+        });
+
+        it("Math.e via Math.log(Math.e)", () => {
+            expectRunOutput(withOutput(`let x = Math.log(Math.e);`, `String.fromFloat(x)`), "1");
+        });
+
+        it("Math.sin", () => {
+            expectRunOutput(withOutput(`let x = Math.sin(Math.pi / 2.0);`, `String.fromFloat(x)`), "1");
+        });
+
+        it("Math.cos", () => {
+            expectRunOutput(withOutput(`let x = Math.cos(Math.pi);`, `String.fromFloat(x)`), "-1");
+        });
+
+        it("Math.tan", () => {
+            expectRunOutput(withOutput(`let x = Math.tan(0.0);`, `String.fromFloat(x)`), "0");
+        });
+
+        it("Math.asin", () => {
+            expectRunOutput(withOutput(`let x = Math.asin(0.0);`, `String.fromFloat(x)`), "0");
+        });
+
+        it("Math.acos", () => {
+            expectRunOutput(withOutput(`let x = Math.acos(1.0);`, `String.fromFloat(x)`), "0");
+        });
+
+        it("Math.atan", () => {
+            expectRunOutput(withOutput(`let x = Math.atan(0.0);`, `String.fromFloat(x)`), "0");
+        });
+
+        it("Math.atan2", () => {
+            expectRunOutput(withOutput(`let x = Math.atan2(0.0, 1.0);`, `String.fromFloat(x)`), "0");
+        });
+
+        it("Math.exp", () => {
+            expectRunOutput(withOutput(`let x = Math.exp(0.0);`, `String.fromFloat(x)`), "1");
+        });
+
+        it("Math.log", () => {
+            expectRunOutput(withOutput(`let x = Math.log(1.0);`, `String.fromFloat(x)`), "0");
+        });
+
+        it("Math.log10", () => {
+            expectRunOutput(withOutput(`let x = Math.log10(100.0);`, `String.fromFloat(x)`), "2");
+        });
+
+        it("Math.log2", () => {
+            expectRunOutput(withOutput(`let x = Math.log2(8.0);`, `String.fromFloat(x)`), "3");
+        });
+
+        it("Math.pow (curried application)", () => {
+            expectRunOutput(withOutput(`let x = Math.pow(2.0)(10.0);`, `String.fromFloat(x)`), "1024");
+        });
+
+        it("Math.sqrt", () => {
+            expectRunOutput(withOutput(`let x = Math.sqrt(2.0);`, `String.fromFloat(x)`), "1.4142135623730951");
+        });
+    });
 });
