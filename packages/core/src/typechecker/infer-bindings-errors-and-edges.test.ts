@@ -589,3 +589,35 @@ describe("Type Inference - Generalization Edge Cases", () => {
         });
     });
 });
+
+describe("Type Inference - try/catch binder type", () => {
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    // F-21: `inferTryCatch` binds the `catch (e)` variable to the opaque `Json`
+    // type (infer/infer-primitives.ts). This is observable: a `try` body of a
+    // different concrete type forces a unification of the try/catch result
+    // types, and the catch body (the bare binder) is `Json` — so the whole
+    // expression fails to unify `Int` with `Json`. A *fresh* type variable
+    // would instead unify freely and never throw, so the throw (and the
+    // "Json" in its message) pins the binder's type to `Json` specifically.
+    it("types the catch binder as Json (rigid, not a fresh variable)", () => {
+        const tryBody: CoreIntLit = { kind: "CoreIntLit", value: 0, loc: testLoc };
+        const catchBody: CoreVar = { kind: "CoreVar", name: "e", loc: testLoc };
+        const expr: import("../types/core-ast.js").CoreTryCatch = {
+            kind: "CoreTryCatch",
+            tryBody,
+            catchBinder: "e",
+            catchBody,
+            loc: testLoc,
+        };
+
+        const env = createTestEnv();
+        // try/catch is only inferable inside an unsafe context (else VF4806).
+        const ctx = { ...createContext(env), inUnsafe: true };
+
+        expect(() => inferExpr(ctx, expr)).toThrow(VibefunDiagnostic);
+        expect(() => inferExpr(ctx, expr)).toThrow(/Json/);
+    });
+});
