@@ -72,6 +72,31 @@ describe("String", () => {
         expect(S.toFloat("")).toEqual(None);
     });
 
+    describe("edge cases", () => {
+        it("split on empty input returns a single empty segment", () => {
+            expect(toArray(S.split("")(","))).toEqual([""]);
+        });
+        it("split on empty separator splits into individual code units", () => {
+            // Delegates to JS String.prototype.split(""), which splits per UTF-16 code unit.
+            expect(toArray(S.split("hello")(""))).toEqual(["h", "e", "l", "l", "o"]);
+            // Contrast with S.length, which counts code points (length("🎉") === 1):
+            // an astral character splits into its two surrogate-pair code units.
+            const emojiParts = toArray(S.split("🎉")(""));
+            expect(emojiParts.length).toBe(2);
+            expect(emojiParts.join("")).toBe("🎉");
+        });
+        it("contains the empty substring is always true", () => {
+            expect(S.contains("hello")("")).toBe(true);
+            expect(S.contains("")("")).toBe(true);
+        });
+        it("startsWith/endsWith: empty affix true, over-long affix false", () => {
+            expect(S.startsWith("hi")("")).toBe(true);
+            expect(S.startsWith("hi")("hello")).toBe(false);
+            expect(S.endsWith("hi")("")).toBe(true);
+            expect(S.endsWith("hi")("hello")).toBe(false);
+        });
+    });
+
     describe("properties", () => {
         // String.length counts Unicode code points (via spread iterator), so
         // arbitrary strings — including astral characters and surrogate pairs —

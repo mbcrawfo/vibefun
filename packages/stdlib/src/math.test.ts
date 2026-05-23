@@ -30,6 +30,35 @@ describe("Math", () => {
         expect(M.e).toBe(Math.E);
     });
 
+    it("sin / cos / tan at canonical angles", () => {
+        // ECMAScript mandates exact results for sin(0), cos(0), tan(0).
+        expect(M.sin(0)).toBe(0);
+        expect(M.sin(M.pi / 2)).toBeCloseTo(1, 10);
+        expect(M.cos(0)).toBe(1);
+        expect(M.cos(M.pi)).toBeCloseTo(-1, 10);
+        expect(M.tan(0)).toBe(0);
+    });
+
+    it("atan2 returns the correct angle per quadrant", () => {
+        // atan2(y)(x) follows the math convention atan2(y, x).
+        expect(M.atan2(0)(1)).toBe(0); // +x axis
+        expect(M.atan2(1)(0)).toBeCloseTo(Math.PI / 2, 10); // +y axis
+        expect(M.atan2(0)(-1)).toBeCloseTo(Math.PI, 10); // -x axis
+        expect(M.atan2(-1)(0)).toBeCloseTo(-Math.PI / 2, 10); // -y axis
+    });
+
+    it("exp / log / log10 / log2 at canonical points", () => {
+        // ECMAScript mandates exact results for exp(0), log(1), log10(1), log2(1).
+        expect(M.exp(0)).toBe(1);
+        expect(M.exp(1)).toBeCloseTo(M.e, 10);
+        expect(M.log(1)).toBe(0);
+        expect(M.log(M.e)).toBeCloseTo(1, 10);
+        expect(M.log10(1)).toBe(0);
+        expect(M.log10(100)).toBeCloseTo(2, 10);
+        expect(M.log2(1)).toBe(0);
+        expect(M.log2(8)).toBeCloseTo(3, 10);
+    });
+
     describe("properties", () => {
         const finite = fc.double({ noNaN: true, noDefaultInfinity: true });
         const nonNeg = fc.double({ noNaN: true, noDefaultInfinity: true, min: 0 });
@@ -104,6 +133,73 @@ describe("Math", () => {
                     expect(M.sin(n)).toBeLessThanOrEqual(1);
                     expect(M.cos(n)).toBeGreaterThanOrEqual(-1);
                     expect(M.cos(n)).toBeLessThanOrEqual(1);
+                }),
+            );
+        });
+
+        it("property: tan(x) === sin(x) / cos(x) away from the asymptotes", () => {
+            // Restrict to (-π/4, π/4): cos(x) stays >= ~0.707, so the quotient is
+            // well-conditioned and matches the dedicated tan implementation.
+            const nearZero = fc.double({ noNaN: true, noDefaultInfinity: true, min: -0.7, max: 0.7 });
+            fc.assert(
+                fc.property(nearZero, (x) => {
+                    expect(M.tan(x)).toBeCloseTo(M.sin(x) / M.cos(x), 10);
+                }),
+            );
+        });
+
+        it("property: asin(sin(x)) === x on [-π/2, π/2] (with endpoint margin)", () => {
+            // asin's derivative diverges at ±1, so leave a small margin off ±π/2 to
+            // keep the round-trip well-conditioned.
+            const inRange = fc.double({
+                noNaN: true,
+                noDefaultInfinity: true,
+                min: -Math.PI / 2 + 0.01,
+                max: Math.PI / 2 - 0.01,
+            });
+            fc.assert(
+                fc.property(inRange, (x) => {
+                    expect(M.asin(M.sin(x))).toBeCloseTo(x, 9);
+                }),
+            );
+        });
+
+        it("property: acos(cos(x)) === x on [0, π] (with endpoint margin)", () => {
+            // acos's derivative diverges at ±1 (i.e. x near 0 and π); same margin rationale.
+            const inRange = fc.double({ noNaN: true, noDefaultInfinity: true, min: 0.01, max: Math.PI - 0.01 });
+            fc.assert(
+                fc.property(inRange, (x) => {
+                    expect(M.acos(M.cos(x))).toBeCloseTo(x, 9);
+                }),
+            );
+        });
+
+        it("property: atan(tan(x)) === x on (-π/2, π/2) (with endpoint margin)", () => {
+            // tan diverges near ±π/2; a 0.1 margin keeps the forward map finite.
+            const inRange = fc.double({
+                noNaN: true,
+                noDefaultInfinity: true,
+                min: -Math.PI / 2 + 0.1,
+                max: Math.PI / 2 - 0.1,
+            });
+            fc.assert(
+                fc.property(inRange, (x) => {
+                    expect(M.atan(M.tan(x))).toBeCloseTo(x, 9);
+                }),
+            );
+        });
+
+        it("property: atan2(sin θ, cos θ) === θ on (-π, π)", () => {
+            // Stay off the ±π branch cut where atan2 wraps.
+            const theta = fc.double({
+                noNaN: true,
+                noDefaultInfinity: true,
+                min: -Math.PI + 0.01,
+                max: Math.PI - 0.01,
+            });
+            fc.assert(
+                fc.property(theta, (t) => {
+                    expect(M.atan2(M.sin(t))(M.cos(t))).toBeCloseTo(t, 10);
                 }),
             );
         });
