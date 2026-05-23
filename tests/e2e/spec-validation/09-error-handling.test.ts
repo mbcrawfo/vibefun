@@ -154,4 +154,18 @@ let result = match x {
             );
         });
     });
+
+    describe("panic", () => {
+        // [BUG: VF-FC-0006] `panic` typechecks and compiles, but codegen emits a
+        // bare `panic(...)` reference with no runtime definition, so the program
+        // dies with "ReferenceError: panic is not defined" instead of throwing
+        // the supplied message. Spec 09-error-handling.md §97-127 requires panic
+        // to terminate the program with the given message ("boom"). This pins the
+        // current (buggy) runtime error; once codegen emits a panic helper, flip
+        // the expected substring from "panic is not defined" to "boom". Tracked in
+        // .claude/FAST_CHECK_BUG_BACKLOG.md.
+        it("[BUG: VF-FC-0006] panic compiles but is undefined at runtime", () => {
+            expectRuntimeError(withOutput('let _crash = unsafe { panic("boom") };', '"never"'), "panic is not defined");
+        });
+    });
 });

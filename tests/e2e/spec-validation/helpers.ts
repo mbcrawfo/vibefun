@@ -107,3 +107,22 @@ export function expectFileRuns(filePath: string, cwd: string): void {
     const r = runFile(filePath, cwd);
     expect(r.exitCode, `expected successful run\nstderr:\n${r.stderr}`).toBe(0);
 }
+
+/**
+ * File-based counterpart to `expectRuntimeError`: the project compiles
+ * cleanly (exit 0, warnings allowed) but the emitted program fails at
+ * runtime under node. Used for init-time failures that the type system
+ * can't catch — thrown initializers and circular-dependency top-level
+ * calls (see 08-modules).
+ */
+export function expectFileRuntimeError(filePath: string, cwd: string, errorMsg?: string): void {
+    const compile = compileFile(filePath, cwd);
+    expect(compile.exitCode, `expected compile success before runtime error\nstderr:\n${compile.stderr}`).toBe(0);
+    const run = runFile(filePath, cwd);
+    expect(run.exitCode, `expected runtime error, but program exited 0\nstdout:\n${run.stdout}`).not.toBe(0);
+    if (errorMsg !== undefined) {
+        expect(run.stderr, `expected error message containing "${errorMsg}"\nstderr:\n${run.stderr}`).toContain(
+            errorMsg,
+        );
+    }
+}
