@@ -26,9 +26,15 @@ describe("Result", () => {
         expect(R.isErr(Ok<number, string>(1))).toBe(false);
         expect(R.isErr(Err<number, string>("x"))).toBe(true);
     });
-    it("unwrap returns value on Ok and throws on Err", () => {
+    // [BUG: VF-FC-0007] The anchored regex pins the EXACT current message. It
+    // diverges from docs/spec/11-stdlib/result.md:224, which specifies
+    // "Called unwrap on Err value: failed" (embedding the error value). The plan
+    // treats the message as public API ("the spec is the contract"), so once the
+    // stdlib message is aligned with the spec, flip the regex to the spec wording.
+    // Tracked in .claude/FAST_CHECK_BUG_BACKLOG.md.
+    it("unwrap returns value on Ok and throws the exact message on Err", () => {
         expect(R.unwrap(Ok<number, string>(9))).toBe(9);
-        expect(() => R.unwrap(Err<number, string>("no"))).toThrow(/unwrap called on Err/);
+        expect(() => R.unwrap(Err<number, string>("no"))).toThrow(/^Result\.unwrap called on Err$/);
     });
     it("unwrapOr returns value on Ok and fallback on Err", () => {
         expect(R.unwrapOr(Ok<number, string>(9))(0)).toBe(9);

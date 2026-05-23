@@ -9,7 +9,13 @@
 
 import { afterEach, describe, it } from "vitest";
 
-import { createTempProject, expectFileCompileError, expectFileCompiles, expectFileRunOutput } from "./helpers.js";
+import {
+    createTempProject,
+    expectFileCompileError,
+    expectFileCompiles,
+    expectFileRunOutput,
+    expectFileRuntimeError,
+} from "./helpers.js";
 
 let activeProjects: Array<{ dir: string; dispose: () => void }> = [];
 
@@ -81,6 +87,17 @@ let _ = unsafe { console_log(y) };`,
             });
             expectFileRunOutput("main.vf", p.dir, "hello");
         });
+
+        it("named import with `as` rename binds the local alias", () => {
+            const p = project({
+                "lib.vf": `export let foo = 42;`,
+                "main.vf": `import { String } from "@vibefun/std";
+import { foo as bar } from "./lib";
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log(String.fromInt(bar)) };`,
+            });
+            expectFileRunOutput("main.vf", p.dir, "42");
+        });
     });
 
     describe("namespace imports", () => {
@@ -134,6 +151,46 @@ let _ = unsafe { console_log(String.fromInt(value + a)) };`,
         });
     });
 
+    describe("module initialization errors", () => {
+        it("propagates an error thrown during a dependency's initialization", () => {
+            // spec 08-modules.md §471-512: an error thrown while a module
+            // initializes propagates up through the importing module and
+            // aborts the program before the importer's own body runs.
+            const p = project({
+                "lib.vf": `external js_throw: (String) -> Unit = "((msg) => { throw new Error(msg); })";
+let _ = unsafe { js_throw("lib init failed") };
+export let value = 42;`,
+                "main.vf": `import { String } from "@vibefun/std";
+import { value } from "./lib";
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log(String.fromInt(value)) };`,
+            });
+            expectFileRuntimeError("main.vf", p.dir, "lib init failed");
+        });
+
+        it("fails at runtime when a cycle calls a deferred binding during init", () => {
+            // spec 08-modules.md §194-237: circular value imports use
+            // deferred initialization, so a binding from the other module
+            // in the cycle is still uninitialized when called at top level.
+            // Both modules call across the boundary during init, so whichever
+            // node initializes first hits the not-yet-initialized binding —
+            // surfacing as a TDZ "before initialization" ReferenceError.
+            const p = project({
+                "a.vf": `import { ping } from "./b";
+export let pong = (x: Int) => x * 2;
+export let aval = ping(21);`,
+                "b.vf": `import { pong } from "./a";
+export let ping = (x: Int) => x + 1;
+export let bval = pong(10);`,
+                "main.vf": `import { String } from "@vibefun/std";
+import { aval } from "./a";
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log(String.fromInt(aval)) };`,
+            });
+            expectFileRuntimeError("main.vf", p.dir, "before initialization");
+        });
+    });
+
     describe("re-exports", () => {
         it("re-export from another module", () => {
             const p = project({
@@ -157,6 +214,31 @@ external console_log: (String) -> Unit = "console.log";
 let _ = unsafe { console_log(y) };`,
             });
             expectFileRunOutput("main.vf", p.dir, "hello");
+        });
+
+        it("re-export with `as` alias exposes the renamed binding", () => {
+            const p = project({
+                "lib.vf": `export let x = 42;`,
+                "mid.vf": `export { x as y } from "./lib";`,
+                "main.vf": `import { String } from "@vibefun/std";
+import { y } from "./mid";
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log(String.fromInt(y)) };`,
+            });
+            expectFileRunOutput("main.vf", p.dir, "42");
+        });
+
+        it("transitive re-export chain (a → b → c) resolves the original binding", () => {
+            const p = project({
+                "a.vf": `export let f = (x: Int) => x + 1;`,
+                "b.vf": `export { f } from "./a";`,
+                "c.vf": `export { f } from "./b";`,
+                "main.vf": `import { String } from "@vibefun/std";
+import { f } from "./c";
+external console_log: (String) -> Unit = "console.log";
+let _ = unsafe { console_log(String.fromInt(f(41))) };`,
+            });
+            expectFileRunOutput("main.vf", p.dir, "42");
         });
     });
 
