@@ -7,7 +7,7 @@
 
 import { describe, it } from "vitest";
 
-import { expectRunOutput, withOutput } from "./helpers.js";
+import { expectRunOutput, withOutput, withOutputs } from "./helpers.js";
 
 describe("11-stdlib", () => {
     describe("string", () => {
@@ -145,6 +145,12 @@ describe("11-stdlib", () => {
 
         it("Float.round", () => {
             expectRunOutput(withOutput(`let x = Float.round(3.5);`, `String.fromInt(x)`), "4");
+        });
+
+        it("Float.toString deterministic format", () => {
+            // Float.toString is spec-equivalent to String.fromFloat; assert a fixed,
+            // platform-independent rendering rather than precision-sensitive output.
+            expectRunOutput(withOutput(`let x = Float.toString(1.5);`, `x`), "1.5");
         });
     });
 
@@ -558,6 +564,55 @@ let result = unsafe { math_abs(-5.0) };`,
 
         it("Math.sqrt", () => {
             expectRunOutput(withOutput(`let x = Math.sqrt(2.0);`, `String.fromFloat(x)`), "1.4142135623730951");
+        });
+
+        // Rounding family + sign. Wrapping each result in String.fromFloat also pins
+        // the Float -> Float return type: if any of these narrowed to Int, the program
+        // would fail to type-check and the test would fail to run.
+        it("Math.round (half rounds toward +Infinity)", () => {
+            expectRunOutput(withOutput(`let x = Math.round(2.5);`, `String.fromFloat(x)`), "3");
+        });
+
+        it("Math.floor", () => {
+            expectRunOutput(withOutput(`let x = Math.floor(3.7);`, `String.fromFloat(x)`), "3");
+        });
+
+        it("Math.ceil", () => {
+            expectRunOutput(withOutput(`let x = Math.ceil(3.2);`, `String.fromFloat(x)`), "4");
+        });
+
+        it("Math.trunc drops the fractional part toward zero", () => {
+            expectRunOutput(withOutput(`let x = Math.trunc(-1.7);`, `String.fromFloat(x)`), "-1");
+        });
+
+        it("Math.sign", () => {
+            expectRunOutput(withOutput(`let x = Math.sign(-3.14);`, `String.fromFloat(x)`), "-1");
+        });
+
+        it("Math.min (curried application)", () => {
+            expectRunOutput(withOutput(`let x = Math.min(2.5)(1.0);`, `String.fromFloat(x)`), "1");
+        });
+
+        it("Math.max (curried application)", () => {
+            expectRunOutput(withOutput(`let x = Math.max(2.5)(1.0);`, `String.fromFloat(x)`), "2.5");
+        });
+
+        it("Math.random produces values in [0, 1)", () => {
+            // Math.random is impure, so each call sits in its own unsafe block. The
+            // [0, 1) contract per docs/spec/11-stdlib/math.md means both draws must be
+            // in range; the (astronomically rare) boundary hit would still be a real
+            // contract violation worth surfacing, not noise to tolerate.
+            expectRunOutput(
+                withOutputs(
+                    `let a = unsafe { Math.random() };
+let b = unsafe { Math.random() };`,
+                    [
+                        `if a >= 0.0 && a < 1.0 then "a-ok" else "a-bad"`,
+                        `if b >= 0.0 && b < 1.0 then "b-ok" else "b-bad"`,
+                    ],
+                ),
+                "a-ok\nb-ok",
+            );
         });
     });
 });
