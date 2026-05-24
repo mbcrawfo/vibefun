@@ -115,8 +115,17 @@ unsafe {
 
 **Characteristics:**
 - **Completely opaque**: No guarantees about what the value is
-- **Least type-safe**: Equivalent to TypeScript's `any` or `unknown`
+- **Least type-safe**: Like TypeScript's `unknown` — the value is unconstrained, but you cannot use it directly
 - **Operations**: Can only pass to externals that accept `Any`
+- **Opaque, not a top type**: `Any` unifies *only* with `Any`. Unlike TypeScript's `any`, it does **not** silently coerce to or from concrete types. An `Any` value flows to/from externals declared with `Any`, but using it where a concrete type is expected is a type error (`VF4020`):
+
+```vibefun
+external to_any: (Int) -> Any = "((x) => x)";
+unsafe {
+    let x = to_any(42);
+    let y = x + 1;  // ❌ error[VF4020]: Cannot unify Any with Int
+}
+```
 
 **When to use:**
 - **Last resort** when JavaScript API is too dynamic to type

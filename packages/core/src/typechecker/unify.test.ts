@@ -225,6 +225,24 @@ describe("Unify Primitives", () => {
     });
 });
 
+describe("Unify Any Type (opaque, not a top type)", () => {
+    it("should unify Any with Any", () => {
+        const subst = unify(constType("Any"), constType("Any"), testCtx);
+        expect(subst.size).toBe(0);
+    });
+
+    it("should fail to unify Any with a concrete type (VF4020)", () => {
+        expect(() => unify(constType("Any"), primitiveTypes.Int, testCtx)).toThrow(VibefunDiagnostic);
+        expect(() => unify(primitiveTypes.String, constType("Any"), testCtx)).toThrow("Cannot unify");
+    });
+
+    it("should not bind a type variable through Any (Any is rigid, unlike Never)", () => {
+        // Never unifies with anything; Any must not. A fresh var unifies with Any
+        // (var rule), but Any must never coerce to a concrete constant.
+        expect(() => unify(constType("Any"), primitiveTypes.Bool, testCtx)).toThrow(VibefunDiagnostic);
+    });
+});
+
 describe("Unify Never Type", () => {
     beforeEach(() => {
         resetTypeVarCounter();

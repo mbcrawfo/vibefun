@@ -260,7 +260,14 @@ export function unify(t1: Type, t2: Type, ctx: UnifyContext): Substitution {
         return emptySubst();
     }
 
-    // Constant type unification
+    // Constant type unification.
+    //
+    // Note `Any` (the FFI escape-hatch type) is represented as `Const "Any"` and
+    // is handled by this nominal rule with no special case. This is intentional:
+    // `Any` is *opaque*, not a TypeScript-style top type. It unifies only with
+    // itself, so an `Any` value flows to/from externals declared with `Any` but
+    // using it at a concrete type fails here with VF4020. See
+    // docs/spec/10-javascript-interop/external-declarations.md (the "Any" section).
     if (isConstType(t1) && isConstType(t2)) {
         if (t1.name === t2.name) {
             return emptySubst();

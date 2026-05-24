@@ -233,11 +233,18 @@ let a = unsafe { from_any(to_any(42)) };`,
                 "42",
             );
         });
-        // F-22 (cont.): whether `Any` also unifies with *concrete* types
-        // (top-type behavior, as the "equivalent to TypeScript any" wording
-        // implies) is unresolved — today `Any` unifies only with `Any` (VF4020
-        // otherwise). Deferred pending spec clarification; tracked in
-        // .claude/FAST_CHECK_BUG_BACKLOG.md [BUG: VF-FC-0011].
+        // F-22 (cont.): `Any` is opaque, NOT a top type. A value typed `Any`
+        // only flows to/from externals declared with `Any`; using it at a
+        // concrete type is a type error (VF4020). See
+        // external-declarations.md:104-126.
+        it("Any does not unify with a concrete type (opaque, not a top type)", () => {
+            expectCompileError(
+                `external to_any: (Int) -> Any = "((x) => x)";
+let x = unsafe { to_any(42) };
+let y = x + 1;`,
+                "VF4020",
+            );
+        });
     });
 
     describe("try/catch error binding", () => {
