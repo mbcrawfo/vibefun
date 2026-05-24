@@ -28,5 +28,5 @@ export const isNone = <A>(opt: Option<A>): boolean => opt.$tag === "None";
 
 export const unwrap = <A>(opt: Option<A>): A => {
     if (opt.$tag === "Some") return opt.$0;
-    throw new Error("Option.unwrap called on None");
+    throw new Error("Called unwrap on None");
 };

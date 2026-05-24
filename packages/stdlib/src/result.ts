@@ -28,7 +28,7 @@ export const isErr = <T, E>(result: Result<T, E>): boolean => result.$tag === "E
 
 export const unwrap = <T, E>(result: Result<T, E>): T => {
     if (result.$tag === "Ok") return result.$0;
-    throw new Error("Result.unwrap called on Err");
+    throw new Error(`Called unwrap on Err value: ${String(result.$0)}`);
 };
 
 export const unwrapOr =

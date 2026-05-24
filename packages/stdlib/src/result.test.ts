@@ -26,15 +26,17 @@ describe("Result", () => {
         expect(R.isErr(Ok<number, string>(1))).toBe(false);
         expect(R.isErr(Err<number, string>("x"))).toBe(true);
     });
-    // [BUG: VF-FC-0007] The anchored regex pins the EXACT current message. It
-    // diverges from docs/spec/11-stdlib/result.md:224, which specifies
-    // "Called unwrap on Err value: failed" (embedding the error value). The plan
-    // treats the message as public API ("the spec is the contract"), so once the
-    // stdlib message is aligned with the spec, flip the regex to the spec wording.
-    // Tracked in .claude/FAST_CHECK_BUG_BACKLOG.md.
-    it("unwrap returns value on Ok and throws the exact message on Err", () => {
+    // Message is part of the public API and matches the spec contract
+    // (docs/spec/11-stdlib/result.md:224): "Called unwrap on Err value: <err>",
+    // embedding the stringified error value.
+    it("unwrap returns value on Ok and throws the spec message embedding the err on Err", () => {
         expect(R.unwrap(Ok<number, string>(9))).toBe(9);
-        expect(() => R.unwrap(Err<number, string>("no"))).toThrow(/^Result\.unwrap called on Err$/);
+        expect(() => R.unwrap(Err<number, string>("failed"))).toThrow(/^Called unwrap on Err value: failed$/);
+    });
+    it("unwrap interpolates the error value into the panic message", () => {
+        expect(() => R.unwrap(Err<number, string>("custom"))).toThrow(/Called unwrap on Err value: custom/);
+        // Non-string errors are stringified via String(err).
+        expect(() => R.unwrap(Err<number, number>(404))).toThrow(/^Called unwrap on Err value: 404$/);
     });
     it("unwrapOr returns value on Ok and fallback on Err", () => {
         expect(R.unwrapOr(Ok<number, string>(9))(0)).toBe(9);
