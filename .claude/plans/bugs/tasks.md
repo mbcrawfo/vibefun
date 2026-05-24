@@ -98,7 +98,7 @@ add unit→integration tests until back to par.
 | `tests/e2e/spec-validation/04-expressions.test.ts` | 0002, 0003, 0004, 0012 | Distinct sections; sequential, so no merge collisions. |
 | `tests/e2e/spec-validation/10-javascript-interop.test.ts` | 0008, 0009, 0010, 0011 | Distinct sections; sequential. |
 | `tests/e2e/let-binding-matrix.test.ts` | 0003, 0009 | Add forms as each lands; rerun matrix. |
-| `.claude/VIBEFUN_AI_CODING_GUIDE.md` | 0005, 0007, 0009, 0011, 0012 | Sequential edits (different sections). |
+| `.claude/VIBEFUN_AI_CODING_GUIDE.md` | required: 0005, 0012 · conditional: 0003, 0007, 0009, 0010, 0011 | Update the guide for **new/changed user-observable syntax** (0005 reassignment, 0012 indexing). For **spec-conformance fixes** (0003, 0007, 0009, 0010, 0011) update **only if** the guide currently misstates the behavior. Sequential edits (different sections). |
 | `.claude/spec-audit/13-appendix.md` | 0012 | Correct F-33 (wrongly ✅) in the same commit. |
 
 ---

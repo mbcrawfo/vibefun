@@ -38,8 +38,9 @@ Re-run; confirm green.
 
 ## Test layers (CLAUDE.md directive 5)
 - **Unit:** `result.test.ts`, `option.test.ts` (message + value-interpolation assertions).
-- **AI-guide sync:** update the stdlib quick-reference in `.claude/VIBEFUN_AI_CODING_GUIDE.md`
-  to document the exact `unwrap` panic messages.
+- **AI-guide (conditional):** this aligns runtime messages to the existing spec contract
+  (not new behavior), so a guide update is **not** expected. Update the stdlib quick-reference
+  in `.claude/VIBEFUN_AI_CODING_GUIDE.md` only if it currently documents the old `unwrap` messages.
 - No e2e/integration needed (pure stdlib functions).
 
 ## Cross-cutting concerns
