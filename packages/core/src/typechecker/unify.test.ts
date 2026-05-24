@@ -235,6 +235,7 @@ describe("Unify Any Type (opaque, not a top type)", () => {
         expect(() => unify(constType("Any"), primitiveTypes.Int, testCtx)).toThrow(VibefunDiagnostic);
         expect(() => unify(constType("Any"), primitiveTypes.Int, testCtx)).toThrow("Cannot unify");
         expect(() => unify(primitiveTypes.String, constType("Any"), testCtx)).toThrow(VibefunDiagnostic);
+        expect(() => unify(primitiveTypes.String, constType("Any"), testCtx)).toThrow("Cannot unify");
     });
 });
 
