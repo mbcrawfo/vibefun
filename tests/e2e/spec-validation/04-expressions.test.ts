@@ -515,6 +515,39 @@ let result = f(5);`,
                 "11",
             );
         });
+
+        // Composition binds tighter than pipe (spec §Pipe vs Composition,
+        // appendix precedence 4 > 3; audit 13 F-19 / F-31 / F-36). Pipe is
+        // `value |> function`, so the value is on the LEFT and the composition
+        // on the RIGHT. `3 |> add1 >> double` must parse as
+        // `3 |> (add1 >> double)` = double(add1(3)) = double(4) = 8. If pipe
+        // bound tighter it would parse as `(3 |> add1) >> double`, i.e.
+        // `add1(3) >> double` — composing an Int with a function, a type error.
+        it("composition binds tighter than pipe (forward)", () => {
+            expectRunOutput(
+                withOutput(
+                    `let add1 = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let result = 3 |> add1 >> double;`,
+                    `String.fromInt(result)`,
+                ),
+                "8",
+            );
+        });
+
+        it("composition binds tighter than pipe (backward)", () => {
+            // `double << add1` = (x) => double(add1(x)); 3 |> (double << add1)
+            // = double(add1(3)) = double(4) = 8.
+            expectRunOutput(
+                withOutput(
+                    `let add1 = (x: Int) => x + 1;
+let double = (x: Int) => x * 2;
+let result = 3 |> double << add1;`,
+                    `String.fromInt(result)`,
+                ),
+                "8",
+            );
+        });
     });
 
     describe("field access", () => {
@@ -524,6 +557,24 @@ let result = f(5);`,
 
         it("chained field access", () => {
             expectRunOutput(withOutput(`let obj = { inner: { value: "deep" } };`, `obj.inner.value`), "deep");
+        });
+    });
+
+    // Spec: docs/spec/13-appendix.md:89 lists `[]` as a precedence-16
+    // list/record indexing operator. It is NOT implemented: there is no Index
+    // AST node and the parser has no LBRACKET postfix rule, so `xs[0]` and
+    // `r["a"]` fail to parse (VF2107). These bug-pin the current behaviour.
+    //
+    // [BUG: VF-FC-0012] When indexing lands, replace these with real read +
+    // out-of-bounds tests per the spec-defined semantics. See
+    // .claude/FAST_CHECK_BUG_BACKLOG.md.
+    describe("list/record indexing operator `[]` (F-33, unimplemented)", () => {
+        it("list indexing `xs[0]` does not parse", () => {
+            expectCompileError(`let xs = [10, 20, 30];\nlet y = xs[0];`, "VF2107");
+        });
+
+        it('record indexing `r["a"]` does not parse', () => {
+            expectCompileError(`let r = { a: 1 };\nlet y = r["a"];`, "VF2107");
         });
     });
 

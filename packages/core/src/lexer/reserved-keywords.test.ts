@@ -6,6 +6,7 @@ import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { expectDiagnostic, VibefunDiagnostic } from "../diagnostics/index.js";
+import { isKeyword, KEYWORDS } from "../types/index.js";
 import { reservedKeywordArb } from "../types/test-arbitraries/index.js";
 import { Lexer } from "./lexer.js";
 
@@ -147,5 +148,63 @@ describe("Lexer - Reserved Keywords properties", () => {
                 expect(() => new Lexer(`"${rk}"`, "prop.vf").tokenize()).not.toThrow();
             }),
         );
+    });
+});
+
+describe("Lexer - Active keyword set (F-25)", () => {
+    // Independent hardcoded mirror of the runtime KEYWORDS set in
+    // packages/core/src/types/token.ts. The runtime set is authoritative — it
+    // is exactly what the lexer accepts as a keyword and rejects as an
+    // identifier. This list pins that surface so an accidental addition or
+    // removal fails loudly and forces a conscious update.
+    //
+    // The Keywords table in docs/spec/13-appendix.md is a documentation mirror
+    // that must be kept in sync separately (it currently lists `ref`, which is
+    // not a lexer keyword, and omits `try`/`catch`). If you change the set,
+    // update both this list and that table in the same change.
+    const EXPECTED_KEYWORDS = [
+        "let",
+        "mut",
+        "type",
+        "if",
+        "then",
+        "else",
+        "match",
+        "when",
+        "rec",
+        "and",
+        "import",
+        "export",
+        "external",
+        "unsafe",
+        "while",
+        "from",
+        "as",
+        "try",
+        "catch",
+    ];
+
+    it("the live KEYWORDS set equals the expected list exactly", () => {
+        expect([...KEYWORDS].sort()).toEqual([...EXPECTED_KEYWORDS].sort());
+    });
+
+    it("contains exactly 19 keywords", () => {
+        expect(KEYWORDS.size).toBe(EXPECTED_KEYWORDS.length);
+        expect(EXPECTED_KEYWORDS).toHaveLength(19);
+    });
+
+    it("treats try, catch, and while as keywords, not identifiers", () => {
+        // If any of these dropped out of the set the lexer would silently lex
+        // them as identifiers and the parser would accept them as variable
+        // names (audit 13 F-25 behaviour note).
+        expect(isKeyword("try")).toBe(true);
+        expect(isKeyword("catch")).toBe(true);
+        expect(isKeyword("while")).toBe(true);
+    });
+
+    it("does not treat `ref` as a keyword (it is a builtin, despite the appendix table)", () => {
+        // `isKeyword` is the public wrapper around `KEYWORDS.has`, so this is
+        // the set membership check without a type assertion.
+        expect(isKeyword("ref")).toBe(false);
     });
 });
