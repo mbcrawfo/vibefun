@@ -30,15 +30,11 @@ describe("Option", () => {
         expect(O.isNone(Some(1))).toBe(false);
         expect(O.isNone(None)).toBe(true);
     });
-    // [BUG: VF-FC-0007] The anchored regex pins the EXACT current message. It
-    // diverges from docs/spec/11-stdlib/option.md:200, which specifies
-    // "Called unwrap on None". The plan treats the message as public API ("the
-    // spec is the contract"), so once the stdlib message is aligned with the
-    // spec, flip the regex to the spec wording. Tracked in
-    // .claude/FAST_CHECK_BUG_BACKLOG.md.
-    it("unwrap returns value on Some and throws the exact message on None", () => {
+    // Message is part of the public API and matches the spec contract
+    // (docs/spec/11-stdlib/option.md:200): "Called unwrap on None".
+    it("unwrap returns value on Some and throws the spec message on None", () => {
         expect(O.unwrap(Some(9))).toBe(9);
-        expect(() => O.unwrap<number>(None)).toThrow(/^Option\.unwrap called on None$/);
+        expect(() => O.unwrap<number>(None)).toThrow(/^Called unwrap on None$/);
     });
 
     describe("properties", () => {
