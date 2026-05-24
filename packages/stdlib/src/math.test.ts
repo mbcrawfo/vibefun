@@ -16,6 +16,37 @@ describe("Math", () => {
         expect(M.abs(-2.5)).toBe(2.5);
         expect(M.abs(3.14)).toBe(3.14);
     });
+    it("round rounds half toward +Infinity (JS Math.round semantics)", () => {
+        // docs/spec/11-stdlib/math.md types round as (Float) -> Float but is silent
+        // on the halfway rule; the binding inherits JS Math.round, which rounds ties
+        // toward +Infinity. -0.5 therefore lands on negative zero.
+        expect(M.round(0.5)).toBe(1);
+        expect(M.round(1.5)).toBe(2);
+        expect(M.round(2.5)).toBe(3);
+        expect(M.round(-1.5)).toBe(-1); // toward +Infinity, so -1 (not -2)
+        expect(M.round(-0.5)).toBe(-0); // tie toward +Infinity; JS yields negative zero
+    });
+    it("floor returns a Float across integer-valued, negative-zero, and large inputs", () => {
+        // Return type stays Float -> Float (the spec-validation V-layer pins the type
+        // via String.fromFloat); here we pin the numeric results across edge magnitudes.
+        expect(M.floor(2.0)).toBe(2); // already integer-valued
+        expect(M.floor(1e15)).toBe(1e15); // large but exactly representable
+        expect(M.floor(-0.0)).toBe(-0); // preserves negative zero
+    });
+    it("ceil returns a Float across integer-valued, negative-zero, and large inputs", () => {
+        expect(M.ceil(2.0)).toBe(2);
+        expect(M.ceil(1e15)).toBe(1e15);
+        expect(M.ceil(-0.0)).toBe(-0);
+    });
+    it("trunc drops the fractional part toward zero", () => {
+        expect(M.trunc(1.7)).toBe(1);
+        expect(M.trunc(-1.7)).toBe(-1);
+    });
+    it("sign returns -1, 0, or 1", () => {
+        expect(M.sign(-3.14)).toBe(-1);
+        expect(M.sign(0)).toBe(0); // sign(+0) is +0, not -0
+        expect(M.sign(2.5)).toBe(1);
+    });
     it("curried binary functions", () => {
         expect(M.pow(2)(3)).toBe(8);
         expect(M.pow(5)(0)).toBe(1);
