@@ -41,7 +41,9 @@ Any↔Any pass-through test still passes.
 2. **Code (only if the red test does not already error):** add an explicit `Any`-vs-other
    case in `unify` that produces `VF4020` with a clear message. If the test already errors,
    add a short comment in `unify.ts` documenting the intentional opacity instead.
-3. **AI-guide:** note in `.claude/VIBEFUN_AI_CODING_GUIDE.md` that `Any` is opaque.
+3. **AI-guide (only if behavior changes):** no behavior changes here (`Any` is already
+   opaque), so a guide update is **not** expected; update `.claude/VIBEFUN_AI_CODING_GUIDE.md`
+   only if it currently implies `Any` is a top type.
 
 ## Test layers (CLAUDE.md directive 5)
 - **Spec-validation:** the new `expectCompileError` + the existing Any↔Any pass-through.

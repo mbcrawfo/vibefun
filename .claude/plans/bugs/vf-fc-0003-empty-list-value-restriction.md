@@ -55,7 +55,8 @@ Verify that:
 - **Spec-validation:** the `expectCompileError` above + a positive single-use case.
 - **let-binding-matrix sync:** add the empty-list binding form to
   `tests/e2e/let-binding-matrix.test.ts` so every `let`/`let rec` path runs this scenario.
-- **AI-guide:** note empty-list monomorphism if not already documented.
+- **AI-guide (conditional):** this is a spec-conformance fix (no new syntax), so a guide
+  update is **not** expected; update only if the guide currently misstates empty-list typing.
 
 ## Cross-cutting concerns
 `isSyntacticValue` is shared by **every** binding generalisation path — high blast radius.

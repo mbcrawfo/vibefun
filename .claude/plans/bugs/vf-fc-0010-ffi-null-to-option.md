@@ -52,7 +52,9 @@ marshalling is unconditional (not gated by `--runtime-checks`).
 - **Execution-tests:** `packages/core/src/codegen/es2020/execution-tests/` — null→None,
   undefined→None, value→Some.
 - **Spec-validation:** the three flipped/added cases above.
-- **AI-guide + spec doc:** document unconditional null→Option marshalling at the FFI boundary.
+- **Spec doc:** document unconditional null→Option marshalling at the FFI boundary.
+- **AI-guide (conditional):** this aligns behavior to the existing spec, so a guide update is
+  **not** expected; update only if the guide currently implies null externals are unsafe/unhandled.
 
 ## Cross-cutting concerns
 **After VF-FC-0006** (reuse the runtime-helper/gating style if a helper is preferred over inline)
