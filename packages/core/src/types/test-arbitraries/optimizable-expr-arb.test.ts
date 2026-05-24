@@ -82,12 +82,7 @@ describe("optimizable-expr arbitraries", () => {
             );
         });
 
-        // Skipped: see `.claude/FAST_CHECK_BUG_BACKLOG.md` entry VF-FC-0001.
-        // The generator emits `CoreLambda` parameters with non-`CoreVarPattern`/
-        // non-`CoreWildcardPattern` patterns, violating the post-desugaring
-        // invariant the typechecker enforces (raw `Error` thrown). Fix lives in
-        // `core-ast-arb.ts`'s `lambdaArb`, out of scope for this tests-only PR.
-        it.skip("[BUG: VF-FC-0001] type-checking either succeeds or throws a registered VibefunDiagnostic — never an unregistered Error", () => {
+        it("type-checking either succeeds or throws a registered VibefunDiagnostic — never an unregistered Error", () => {
             fc.assert(
                 fc.property(optimizableExprArb({ depth: 3 }), (expr) => {
                     try {

@@ -367,12 +367,20 @@ export const coreExprArb = (options: CoreExprArbOptions = {}): fc.Arbitrary<Core
             loc: LOC,
         }));
 
-    const lambdaArb: fc.Arbitrary<CoreLambda> = fc.record({ param: pattern, body: child }).map(({ param, body }) => ({
-        kind: "CoreLambda" as const,
-        param,
-        body,
-        loc: LOC,
-    }));
+    // Post-desugaring, a lambda parameter is only ever a CoreVarPattern or
+    // CoreWildcardPattern; the typechecker enforces this invariant and throws a
+    // raw Error on anything else. The arbitraries build Core AST directly, so we
+    // restrict the param here rather than emit patterns the pipeline rejects.
+    const lambdaParamArb: fc.Arbitrary<CorePattern> = fc.oneof(varPatternArb, wildcardPatternArb);
+
+    const lambdaArb: fc.Arbitrary<CoreLambda> = fc
+        .record({ param: lambdaParamArb, body: child })
+        .map(({ param, body }) => ({
+            kind: "CoreLambda" as const,
+            param,
+            body,
+            loc: LOC,
+        }));
 
     const appArb: fc.Arbitrary<CoreApp> = fc
         .record({ func: child, args: fc.array(child, { minLength: 1, maxLength: 3 }) })
