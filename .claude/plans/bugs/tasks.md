@@ -31,10 +31,10 @@ pnpm run test:coverage
 
 | Metric | Baseline % | Source: main |
 | --- | --- | --- |
-| Lines | _TODO_ | |
-| Statements | _TODO_ | |
-| Functions | _TODO_ | |
-| Branches | _TODO_ | |
+| Lines | 92.84 | combined `All files` (repo-root `pnpm run test:coverage`, pre-Phase-0) |
+| Statements | 92.04 | combined `All files` |
+| Functions | 93.02 | combined `All files` |
+| Branches | 86.78 | combined `All files` |
 
 Re-run after every phase; coverage must stay **≥ baseline** (CI gates this). If it drops,
 add unit→integration tests until back to par.
