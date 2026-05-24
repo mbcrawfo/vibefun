@@ -318,6 +318,43 @@ describe("Parser - Binary Operators", () => {
                     right: { kind: "Var", name: "validate" },
                 });
             });
+
+            // Composition (precedence 4) binds tighter than pipe (precedence 3).
+            // Spec: docs/spec/13-appendix.md:142-143 and
+            // docs/spec/04-expressions/functions-composition.md §Pipe vs
+            // Composition (audit 13 F-19 / F-31 / F-36).
+            it("parses `f >> g |> value` as `(f >> g) |> value`", () => {
+                const expr = parseExpression("f >> g |> value");
+
+                // Pipe is the outermost node; the composition `f >> g` is its
+                // piped value, NOT `f >> (g |> value)`.
+                expect(expr).toMatchObject({
+                    kind: "Pipe",
+                    expr: {
+                        kind: "BinOp",
+                        op: "ForwardCompose",
+                        left: { kind: "Var", name: "f" },
+                        right: { kind: "Var", name: "g" },
+                    },
+                    func: { kind: "Var", name: "value" },
+                });
+            });
+
+            it("parses `value |> f >> g` as `value |> (f >> g)`", () => {
+                const expr = parseExpression("value |> f >> g");
+
+                // The piped function is the whole composition, not just `f`.
+                expect(expr).toMatchObject({
+                    kind: "Pipe",
+                    expr: { kind: "Var", name: "value" },
+                    func: {
+                        kind: "BinOp",
+                        op: "ForwardCompose",
+                        left: { kind: "Var", name: "f" },
+                        right: { kind: "Var", name: "g" },
+                    },
+                });
+            });
         });
 
         describe("precedence", () => {
