@@ -66,6 +66,24 @@ describe("mutable references", () => {
         );
         expect(result).toBe(2);
     });
+
+    it("runs side-effecting statements that follow a let binding (VF-FC-0002)", () => {
+        // The block parses with `x := 1` as the let's greedily-captured body;
+        // the desugarer must sequence it (and the subsequent `x := !x + 1`)
+        // before the final expression rather than dropping the let's body.
+        // A dropped `x := 1` would leave the result at 1 instead of 2.
+        const result = compileAndGetExport(
+            `let mut x = ref(0);
+            let final = {
+                let _unused = 99;
+                x := 1;
+                x := !x + 1;
+                !x;
+            };`,
+            "final",
+        );
+        expect(result).toBe(2);
+    });
 });
 
 describe("Properties", () => {

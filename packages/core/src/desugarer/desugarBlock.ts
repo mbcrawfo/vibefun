@@ -52,34 +52,63 @@ export function desugarBlock(
         throw new Error("Block has undefined last expression");
     }
 
-    // Process expressions right-to-left to build nested structure
+    // Process expressions right-to-left to build nested structure.
     let result = desugar(lastExpr, gen);
 
-    // Work backwards through all but the last expression. Non-final
-    // expressions may be either `Let` bindings (introducing names) or
-    // bare side-effect expressions like `sideEffect();` or `x := 5;`.
-    // Bare expressions desugar to `let _ = expr in body`, reusing the
-    // wildcard-let path the typechecker and codegen already support.
+    // Work backwards through all but the last expression, sequencing each
+    // non-final block expression in front of the running continuation.
     for (let i = exprs.length - 2; i >= 0; i--) {
         const expr = exprs[i];
         if (!expr) {
             // Internal error: array bounds check
             throw new Error(`Block has undefined expression at index ${i}`);
         }
-
-        if (expr.kind === "Let") {
-            result = lowerLetBinding(expr, result, gen, desugar, desugarPattern);
-        } else {
-            result = {
-                kind: "CoreLet",
-                pattern: { kind: "CoreWildcardPattern", loc: expr.loc },
-                value: desugar(expr, gen),
-                body: result,
-                mutable: false,
-                loc: expr.loc,
-            };
-        }
+        result = sequenceExpr(expr, result, gen, desugar, desugarPattern);
     }
 
     return result;
+}
+
+/**
+ * Sequence a non-final block expression in front of an already-built
+ * continuation (`tail`).
+ *
+ * Non-final expressions are either `Let` bindings (introducing names) or
+ * bare side-effect expressions like `sideEffect();` or `x := 5;`. Bare
+ * expressions desugar to `let _ = expr in tail`, reusing the wildcard-let
+ * path the typechecker and codegen already support.
+ *
+ * `Let` is the subtle case: the parser parses `let p = v; rest` greedily,
+ * capturing the FIRST following expression as the `Let`'s `body` while any
+ * remaining block siblings stay as siblings (the `tail`). The binding must
+ * scope over BOTH its captured body and the tail, so we thread `tail` into
+ * the captured body's own sequence rather than discarding the body. Dropping
+ * it would silently elide side effects in `{ let x = …; effect(); … }`
+ * (VF-FC-0002).
+ */
+function sequenceExpr(
+    expr: Expr,
+    tail: CoreExpr,
+    gen: FreshVarGen,
+    desugar: (expr: Expr, gen: FreshVarGen) => CoreExpr,
+    desugarPattern: (pattern: Pattern, gen: FreshVarGen) => CorePattern,
+): CoreExpr {
+    if (expr.kind === "Let") {
+        return lowerLetBinding(
+            expr,
+            sequenceExpr(expr.body, tail, gen, desugar, desugarPattern),
+            gen,
+            desugar,
+            desugarPattern,
+        );
+    }
+
+    return {
+        kind: "CoreLet",
+        pattern: { kind: "CoreWildcardPattern", loc: expr.loc },
+        value: desugar(expr, gen),
+        body: tail,
+        mutable: false,
+        loc: expr.loc,
+    };
 }

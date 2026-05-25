@@ -44,6 +44,8 @@ describe("Block Desugaring - Basic Cases", () => {
     });
 
     it("should desugar two-expression block (one let + final expr)", () => {
+        // `{ let x = 10; x }` — the parser captures the final `x` as the
+        // let's body, producing a single-element block.
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -52,11 +54,10 @@ describe("Block Desugaring - Basic Cases", () => {
                     recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc }, // Dummy body
+                    body: { kind: "Var", name: "x", loc: testLoc },
                     mutable: false,
                     loc: testLoc,
                 },
-                { kind: "Var", name: "x", loc: testLoc },
             ],
             loc: testLoc,
         };
@@ -74,6 +75,9 @@ describe("Block Desugaring - Basic Cases", () => {
     });
 
     it("should desugar three-expression block (two lets + final expr)", () => {
+        // `{ let x = 10; let y = 20; x + y }` — consecutive lets nest, so the
+        // parser produces a single block element with the second let (and the
+        // final `x + y`) captured as the first let's body.
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -82,24 +86,22 @@ describe("Block Desugaring - Basic Cases", () => {
                     recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
+                    body: {
+                        kind: "Let",
+                        recursive: false,
+                        pattern: { kind: "VarPattern", name: "y", loc: testLoc },
+                        value: { kind: "IntLit", value: 20, loc: testLoc },
+                        body: {
+                            kind: "BinOp",
+                            op: "Add",
+                            left: { kind: "Var", name: "x", loc: testLoc },
+                            right: { kind: "Var", name: "y", loc: testLoc },
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
                     mutable: false,
-                    loc: testLoc,
-                },
-                {
-                    kind: "Let",
-                    recursive: false,
-                    pattern: { kind: "VarPattern", name: "y", loc: testLoc },
-                    value: { kind: "IntLit", value: 20, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
-                    mutable: false,
-                    loc: testLoc,
-                },
-                {
-                    kind: "BinOp",
-                    op: "Add",
-                    left: { kind: "Var", name: "x", loc: testLoc },
-                    right: { kind: "Var", name: "y", loc: testLoc },
                     loc: testLoc,
                 },
             ],
@@ -127,6 +129,8 @@ describe("Block Desugaring - Basic Cases", () => {
     });
 
     it("should desugar four-expression block (three lets + final expr)", () => {
+        // `{ let a = 1; let b = 2; let c = 3; "done" }` — three consecutive
+        // lets nest into a single block element.
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -135,29 +139,26 @@ describe("Block Desugaring - Basic Cases", () => {
                     recursive: false,
                     pattern: { kind: "VarPattern", name: "a", loc: testLoc },
                     value: { kind: "IntLit", value: 1, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
+                    body: {
+                        kind: "Let",
+                        recursive: false,
+                        pattern: { kind: "VarPattern", name: "b", loc: testLoc },
+                        value: { kind: "IntLit", value: 2, loc: testLoc },
+                        body: {
+                            kind: "Let",
+                            recursive: false,
+                            pattern: { kind: "VarPattern", name: "c", loc: testLoc },
+                            value: { kind: "IntLit", value: 3, loc: testLoc },
+                            body: { kind: "StringLit", value: "done", loc: testLoc },
+                            mutable: false,
+                            loc: testLoc,
+                        },
+                        mutable: false,
+                        loc: testLoc,
+                    },
                     mutable: false,
                     loc: testLoc,
                 },
-                {
-                    kind: "Let",
-                    recursive: false,
-                    pattern: { kind: "VarPattern", name: "b", loc: testLoc },
-                    value: { kind: "IntLit", value: 2, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
-                    mutable: false,
-                    loc: testLoc,
-                },
-                {
-                    kind: "Let",
-                    recursive: false,
-                    pattern: { kind: "VarPattern", name: "c", loc: testLoc },
-                    value: { kind: "IntLit", value: 3, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
-                    mutable: false,
-                    loc: testLoc,
-                },
-                { kind: "StringLit", value: "done", loc: testLoc },
             ],
             loc: testLoc,
         };
@@ -236,6 +237,8 @@ describe("Block Desugaring - Mutable and Recursive Let", () => {
 
 describe("Block Desugaring - Nested Blocks", () => {
     it("should desugar nested blocks", () => {
+        // `{ let x = { let a = 5; a }; x }` — both the inner and outer blocks
+        // capture their final expression as the let body.
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -244,7 +247,7 @@ describe("Block Desugaring - Nested Blocks", () => {
                     recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: {
-                        // Inner block
+                        // Inner block: { let a = 5; a }
                         kind: "Block",
                         exprs: [
                             {
@@ -252,19 +255,17 @@ describe("Block Desugaring - Nested Blocks", () => {
                                 recursive: false,
                                 pattern: { kind: "VarPattern", name: "a", loc: testLoc },
                                 value: { kind: "IntLit", value: 5, loc: testLoc },
-                                body: { kind: "UnitLit", loc: testLoc },
+                                body: { kind: "Var", name: "a", loc: testLoc },
                                 mutable: false,
                                 loc: testLoc,
                             },
-                            { kind: "Var", name: "a", loc: testLoc },
                         ],
                         loc: testLoc,
                     },
-                    body: { kind: "UnitLit", loc: testLoc },
+                    body: { kind: "Var", name: "x", loc: testLoc },
                     mutable: false,
                     loc: testLoc,
                 },
-                { kind: "Var", name: "x", loc: testLoc },
             ],
             loc: testLoc,
         };
@@ -288,6 +289,8 @@ describe("Block Desugaring - Nested Blocks", () => {
 
 describe("Block Desugaring - Complex Expressions", () => {
     it("should desugar blocks with complex final expression", () => {
+        // `{ let x = 10; x * (2 + 3) }` — the final expression is captured as
+        // the let's body.
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -296,22 +299,21 @@ describe("Block Desugaring - Complex Expressions", () => {
                     recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
-                    mutable: false,
-                    loc: testLoc,
-                },
-                {
-                    // Complex final expression
-                    kind: "BinOp",
-                    op: "Multiply",
-                    left: { kind: "Var", name: "x", loc: testLoc },
-                    right: {
+                    body: {
+                        // Complex final expression
                         kind: "BinOp",
-                        op: "Add",
-                        left: { kind: "IntLit", value: 2, loc: testLoc },
-                        right: { kind: "IntLit", value: 3, loc: testLoc },
+                        op: "Multiply",
+                        left: { kind: "Var", name: "x", loc: testLoc },
+                        right: {
+                            kind: "BinOp",
+                            op: "Add",
+                            left: { kind: "IntLit", value: 2, loc: testLoc },
+                            right: { kind: "IntLit", value: 3, loc: testLoc },
+                            loc: testLoc,
+                        },
                         loc: testLoc,
                     },
+                    mutable: false,
                     loc: testLoc,
                 },
             ],
@@ -437,7 +439,10 @@ describe("Block Desugaring - Bare Expressions", () => {
         }
     });
 
-    it("wraps an interior non-let statement between two lets", () => {
+    it("wraps an interior non-let statement after a let", () => {
+        // `{ let x = 10; 20; x }` — the parser captures `20` as the let's
+        // body and leaves the final `x` as a sibling. The captured `20` must
+        // be sequenced (wildcard let) before `x`, not dropped (VF-FC-0002).
         const block: Expr = {
             kind: "Block",
             exprs: [
@@ -446,11 +451,10 @@ describe("Block Desugaring - Bare Expressions", () => {
                     recursive: false,
                     pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                     value: { kind: "IntLit", value: 10, loc: testLoc },
-                    body: { kind: "UnitLit", loc: testLoc },
+                    body: { kind: "IntLit", value: 20, loc: testLoc },
                     mutable: false,
                     loc: testLoc,
                 },
-                { kind: "IntLit", value: 20, loc: testLoc },
                 { kind: "Var", name: "x", loc: testLoc },
             ],
             loc: testLoc,
