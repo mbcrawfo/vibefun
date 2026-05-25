@@ -464,6 +464,44 @@ let result: Int = inc(5);`,
 let x = inner;`,
             );
         });
+
+        // Regression for VF-FC-0002: a side-effecting statement that follows
+        // a `let` binding inside a block must not be dropped. The block
+        // `{ let _x = 1; counter := …; true; }` parses with the assignment as
+        // the let's greedily-captured body; the desugarer must sequence it
+        // before the continuation rather than discard it.
+        it("runs a side effect that follows a let binding (assignment not last)", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut counter = ref(0);
+let tick = () => {
+  let _x = 1;
+  counter := !counter + 1;
+  true;
+};
+let _ = tick();`,
+                    `String.fromInt(!counter)`,
+                ),
+                "1",
+            );
+        });
+
+        it("runs multiple side effects after a let binding in order", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut counter = ref(0);
+let go = () => {
+  let _x = 1;
+  counter := !counter + 1;
+  counter := !counter + 10;
+  true;
+};
+let _ = go();`,
+                    `String.fromInt(!counter)`,
+                ),
+                "11",
+            );
+        });
     });
 
     describe("pipe and composition", () => {
@@ -913,12 +951,10 @@ let _ = if tickB("cond", false) then tick("then") else tick("else");`,
 
         // Spec: §Control Flow > Match Expressions ("scrutinee evaluated exactly once").
         // Audit: 04a F-52. Counter ending at 2 (not 3+) confirms the desugarer
-        // doesn't re-emit the scrutinee per pattern arm.
-        //
-        // Note: the ref assignment must come BEFORE the `let _ = unsafe { ... }`
-        // line; DCE silently elides a `:=` that follows a let-binding inside a
-        // non-Unit-returning function. This mirrors the working pattern in the
-        // existing AND/OR short-circuit tests above.
+        // doesn't re-emit the scrutinee per pattern arm. (The ordering here is
+        // arbitrary now that VF-FC-0002 is fixed — a `:=` that follows a let
+        // binding inside a block is no longer dropped; see the "block
+        // expressions" regression tests above.)
         it("evaluates a match scrutinee exactly once", () => {
             expectRunOutput(
                 withOutputs(

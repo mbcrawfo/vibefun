@@ -58,14 +58,18 @@ describe("desugarBlock", () => {
         }
     });
 
-    it("should desugar block with let binding", () => {
+    it("should desugar block with let binding, sequencing the let's captured body", () => {
+        // A `let` parsed inside a block greedily captures the next expression
+        // as its `body`; the remaining block siblings follow. The binding must
+        // scope over BOTH, so the captured body (`effect`) is sequenced via a
+        // wildcard let before the continuation (`x`) — it must not be dropped.
         const exprs: Expr[] = [
             {
                 kind: "Let",
                 recursive: false,
                 pattern: { kind: "VarPattern", name: "x", loc: testLoc },
                 value: { kind: "IntLit", value: 42, loc: testLoc },
-                body: { kind: "Var", name: "x", loc: testLoc },
+                body: { kind: "Var", name: "effect", loc: testLoc },
                 mutable: false,
                 loc: testLoc,
             },
@@ -78,7 +82,14 @@ describe("desugarBlock", () => {
         if (result.kind === "CoreLet") {
             expect(result.pattern.kind).toBe("CoreVarPattern");
             expect(result.value.kind).toBe("CoreIntLit");
-            expect(result.body.kind).toBe("CoreVar");
+            // The let's captured body becomes a wildcard let wrapping the
+            // continuation — the side effect survives.
+            expect(result.body.kind).toBe("CoreLet");
+            if (result.body.kind === "CoreLet") {
+                expect(result.body.pattern.kind).toBe("CoreWildcardPattern");
+                expect(result.body.value).toEqual({ kind: "CoreVar", name: "effect", loc: testLoc });
+                expect(result.body.body).toEqual({ kind: "CoreVar", name: "x", loc: testLoc });
+            }
         }
     });
 
