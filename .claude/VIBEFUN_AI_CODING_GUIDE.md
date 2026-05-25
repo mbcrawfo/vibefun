@@ -498,7 +498,7 @@ This prevents accidental integer truncation in generic code.
 
 ### #3: Value Restriction
 
-Polymorphic values must be syntactic values (functions or constructors), not computed expressions.
+Polymorphic values must be syntactic values — functions, or constructors applied to values — not computed expressions. A *nullary* constructor (`[]`, `None`) is **not** a syntactic value: it stays monomorphic and is fixed by its first concrete use.
 
 ```vibefun
 // ❌ PROBLEMATIC: Empty list becomes monomorphic at first use

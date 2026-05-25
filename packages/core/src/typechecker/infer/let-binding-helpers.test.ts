@@ -184,6 +184,24 @@ describe("computeBindingScheme", () => {
         expect(scheme.vars.length).toBeGreaterThan(0);
     });
 
+    it("does not generalise a nullary-variant binding (empty-list value restriction)", () => {
+        // `let xs = []` (desugars to the nullary `Nil`) must stay monomorphic
+        // even though it is a simple-variable binding: the empty list is not a
+        // syntactic value, so its free element type variable is NOT quantified.
+        // Generalising it would let one binding be used at two incompatible
+        // element types (VF-FC-0003).
+        const emptyList: CoreExpr = { kind: "CoreVariant", constructor: "Nil", args: [], loc: testLoc };
+        const listOfFresh: Type = appType(constType("List"), [freshTypeVar(1)]);
+        const scheme = computeBindingScheme({
+            binding: { mutable: false, value: emptyList, pattern: varPattern },
+            inferredType: listOfFresh,
+            subst: emptySubst(),
+            level: 1,
+            env: createTestEnv(),
+        });
+        expect(scheme.vars).toHaveLength(0);
+    });
+
     it("does not generalise when the value is not a syntactic value", () => {
         // Application is not a syntactic value — value restriction kicks in.
         const fresh = freshTypeVar(1);
