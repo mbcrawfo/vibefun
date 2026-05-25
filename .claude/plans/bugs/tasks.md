@@ -58,10 +58,10 @@ add unit→integration tests until back to par.
 ## Task list (do top to bottom)
 
 ### Phase 0 — Quick wins (isolated, low risk)
-- [ ] **1. VF-FC-0001** — restrict `lambdaArb` param to var/wildcard → `vf-fc-0001-test-arb-lambda-param.md`
-- [ ] **2. VF-FC-0007** — align unwrap panic messages to spec → `vf-fc-0007-unwrap-messages.md`
-- [ ] **3. VF-FC-0011** — document `Any` as opaque + deferred test → `vf-fc-0011-any-opaque.md`
-- [ ] Phase gate: `pnpm run verify` + `pnpm run test:coverage` (≥ baseline)
+- [x] **1. VF-FC-0001** — restrict `lambdaArb` param to var/wildcard → `vf-fc-0001-test-arb-lambda-param.md`
+- [x] **2. VF-FC-0007** — align unwrap panic messages to spec → `vf-fc-0007-unwrap-messages.md`
+- [x] **3. VF-FC-0011** — document `Any` as opaque + deferred test → `vf-fc-0011-any-opaque.md`
+- [x] Phase gate: `pnpm run verify` + `pnpm run test:coverage` (≥ baseline)
 
 ### Phase 1 — Soundness foundation
 - [ ] **4. VF-FC-0002** — optimizer must not drop side-effecting wildcard-let (diagnostic-first) → `vf-fc-0002-optimizer-side-effects.md`
