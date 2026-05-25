@@ -66,7 +66,7 @@ add unit→integration tests until back to par.
 ### Phase 1 — Soundness foundation
 - [x] **4. VF-FC-0002** — root cause was the **desugarer** (`desugarBlock` discarded a block-`Let`'s parsed body), not the optimizer/codegen; the optimizer isn't even run in the CLI pipeline → `vf-fc-0002-optimizer-side-effects.md`
 - [x] **5. VF-FC-0003** — empty-list value restriction → `vf-fc-0003-empty-list-value-restriction.md`
-- [ ] Phase gate: `pnpm run verify` + coverage
+- [x] Phase gate: `pnpm run verify` + coverage (combined ≥ baseline: lines 92.97, stmts 92.16, funcs 93.03, branches 86.96)
 
 ### Phase 2 — Typechecker externals/inference cluster (strict order)
 - [ ] **6. VF-FC-0009** — curry multi-param `(A,B)->R` function types → `vf-fc-0009-multiarg-function-type-curry.md`
