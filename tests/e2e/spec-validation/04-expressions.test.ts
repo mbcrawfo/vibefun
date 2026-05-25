@@ -1054,14 +1054,23 @@ let r = { x };`,
     });
 
     // Spec: 04-expressions/data-literals.md §Empty List Type Inference.
-    // Audit: 04b F-07. Spec-validation coverage deferred — the
-    // intended assertion (`let xs = []; let _: List<Int> = xs; let _:
-    // List<String> = xs;` is rejected) currently fails because the
-    // typechecker generalises `let xs = []` across uses despite the
-    // value restriction. Tracked as VF-FC-0003 in
-    // `.claude/FAST_CHECK_BUG_BACKLOG.md`; the spec-correct
-    // assertion will land in the same PR that fixes the
-    // generalisation logic.
+    // Audit: 04b F-07. `let xs = []` binds a non-syntactic value, so the
+    // value restriction makes `xs` monomorphic: the first concrete use
+    // fixes the element type and a second incompatible use is an error.
+    // (VF-FC-0003)
+    describe("empty list value restriction", () => {
+        it("rejects using a bound empty list at two incompatible element types", () => {
+            expectCompileError("let xs = []; let _: List<Int> = xs; let _: List<String> = xs;");
+        });
+
+        it("allows a single concrete use of a bound empty list", () => {
+            expectCompiles("let xs = []; let _: List<Int> = xs;");
+        });
+
+        it("still rejects a mixed-element list literal", () => {
+            expectCompileError(`let xs = [1, "two"];`);
+        });
+    });
 
     // Spec: 04-expressions/data-literals.md §Cons Operator.
     // Audit: 04b F-09. Earlier tests in this file check `List.length`;

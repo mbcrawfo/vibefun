@@ -45,12 +45,10 @@ type Scenario = {
      * renderer wraps bare expressions in `let _matrixSetupN = (...)` so
      * every Block-internal item is a `Let`.
      *
-     * **Why the wrap:** vibefun's parser greedily consumes the
-     * expression immediately following a `Let` into the Let's body, but
-     * `desugarBlock` only writes the *value* of an inner Let — the
-     * parsed body is dropped when the Let is followed by another sibling
-     * expression in the block. Wrapping every setup as a Let chains them
-     * correctly so nothing is silently lost.
+     * The wrap also keeps each setup statement uniform (always a `Let`),
+     * which renders identically across the top-level and expression-block
+     * programs. (A bare side-effecting statement after a `let` is no longer
+     * dropped — that was VF-FC-0002, now fixed in `desugarBlock`.)
      */
     setupStmts: string[];
     /**
@@ -240,6 +238,17 @@ const scenarios: Scenario[] = [
         // Same shape — Int then Bool — exercises the restriction at a
         // different concrete pair.
         setupStmts: ["x := Some(42)", "x := Some(true)"],
+        outputExpr: '"unreachable"',
+        expectation: { kind: "compileError" },
+    },
+    {
+        name: "empty-list-value-restriction",
+        requires: { mutable: false, recursive: false, mutual: false },
+        rhs: "[]",
+        // `let x = []` binds a non-syntactic value, so `x` is monomorphic.
+        // Using it at two incompatible element types must fail; if `x` were
+        // generalised across uses, both annotations would type-check. (VF-FC-0003)
+        setupStmts: ["let _i: List<Int> = x", "let _s: List<String> = x"],
         outputExpr: '"unreachable"',
         expectation: { kind: "compileError" },
     },

@@ -586,9 +586,16 @@ export function isSyntacticValue(expr: CoreExpr): boolean {
         case "CoreLambda":
             return true;
 
-        // Variant constructors are syntactic values if all arguments are
+        // Variant constructors are syntactic values if all arguments are.
+        // A *nullary* constructor (`Nil`/`[]`, `None`, custom `Empty`, …) is
+        // deliberately NOT a syntactic value here: per the spec's value
+        // restriction (docs/spec/04-expressions/data-literals.md §Empty List
+        // Type Inference), `let xs = []` must be monomorphic — the binding's
+        // free type variables stay un-generalised so the first concrete use
+        // fixes the element type. Generalising it would let one binding be
+        // used at two incompatible element types in the same scope.
         case "CoreVariant":
-            return expr.args.every(isSyntacticValue);
+            return expr.args.length > 0 && expr.args.every(isSyntacticValue);
 
         // Records are syntactic values if all field values are
         case "CoreRecord":

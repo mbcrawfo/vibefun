@@ -578,9 +578,13 @@ describe("Syntactic Value Restriction", () => {
     });
 
     describe("Variant constructors", () => {
-        it("should recognize variant constructor with no args as syntactic value", () => {
+        it("should NOT treat a nullary variant constructor as a syntactic value", () => {
+            // Per the spec value restriction (data-literals.md §Empty List Type
+            // Inference), a nullary constructor such as `None`/`Nil`/`[]` must
+            // stay monomorphic — generalising it would let one binding be used
+            // at two incompatible element types. See VF-FC-0003.
             const expr: CoreVariant = { kind: "CoreVariant", constructor: "None", args: [], loc: testLoc };
-            expect(isSyntacticValue(expr)).toBe(true);
+            expect(isSyntacticValue(expr)).toBe(false);
         });
 
         it("should recognize variant constructor with value args as syntactic value", () => {
