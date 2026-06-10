@@ -340,6 +340,15 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         case "Pipe":
             return desugarPipe(expr.expr, expr.func, expr.loc, gen, desugar);
 
+        // Mutable-binding reassignment statement - lower 1:1 to CoreAssign
+        case "Assign":
+            return {
+                kind: "CoreAssign",
+                name: expr.name,
+                value: desugar(expr.value, gen),
+                loc: expr.loc,
+            };
+
         // Block expressions - desugar to nested lets
         case "Block":
             return desugarBlock(expr.exprs, expr.loc, gen, desugar, desugarPattern);

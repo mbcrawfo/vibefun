@@ -61,6 +61,9 @@ let inferVariantFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
 let inferMatchFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreMatch" }>) => InferResult = () => {
     throw new Error("inferMatchFn not initialized - setInferenceFunctions must be called first");
 };
+let inferAssignFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreAssign" }>) => InferResult = () => {
+    throw new Error("inferAssignFn not initialized - setInferenceFunctions must be called first");
+};
 
 /**
  * Set up dependency injection for other inference functions
@@ -77,6 +80,7 @@ export function setInferenceFunctions(fns: {
     inferRecordUpdate: typeof inferRecordUpdateFn;
     inferVariant: typeof inferVariantFn;
     inferMatch: typeof inferMatchFn;
+    inferAssign: typeof inferAssignFn;
 }): void {
     inferLambdaFn = fns.inferLambda;
     inferAppFn = fns.inferApp;
@@ -89,6 +93,7 @@ export function setInferenceFunctions(fns: {
     inferRecordUpdateFn = fns.inferRecordUpdate;
     inferVariantFn = fns.inferVariant;
     inferMatchFn = fns.inferMatch;
+    inferAssignFn = fns.inferAssign;
 }
 
 /**
@@ -175,6 +180,10 @@ export function inferExpr(ctx: InferenceContext, expr: CoreExpr): InferResult {
         // Pattern matching
         case "CoreMatch":
             return inferMatchFn(ctx, expr);
+
+        // Mutable-binding reassignment
+        case "CoreAssign":
+            return inferAssignFn(ctx, expr);
 
         case "CoreTuple": {
             let subst = ctx.subst;

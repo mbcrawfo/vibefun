@@ -114,6 +114,12 @@ function setupBlock(scenario: Scenario): string {
             if (trimmed.startsWith("let ")) {
                 return `${stmt};`;
             }
+            // Mutable-binding reassignment (`x = expr`) is a STATEMENT —
+            // wrapping it in parens would put it in expression position,
+            // which the grammar rejects. Emit it raw. (VF-FC-0005)
+            if (/^[A-Za-z_][\w]*\s*=[^=]/.test(trimmed)) {
+                return `${stmt};`;
+            }
             return `let _matrixSetup${i} = (${stmt});`;
         })
         .join("\n");
@@ -269,6 +275,16 @@ const scenarios: Scenario[] = [
         setupStmts: ["let full = x(3, 4)", "let part = x(3)(4)"],
         outputExpr: "String.fromInt(full + part)",
         expectation: { kind: "runOutput", output: "14" },
+    },
+    {
+        name: "mut-binding-reassigned",
+        requires: { mutable: true, recursive: false, mutual: false },
+        rhs: "ref(0)",
+        // Rebinding the variable itself (`x = expr`, VF-FC-0005) must work
+        // through every mut-supporting binding path, top-level and block.
+        setupStmts: ["x = ref(10)"],
+        outputExpr: "String.fromInt(!x)",
+        expectation: { kind: "runOutput", output: "10" },
     },
     {
         name: "recursive-self-reference",

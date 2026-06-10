@@ -88,6 +88,11 @@ export type Expr =
     | { kind: "UnaryOp"; op: UnaryOp; expr: Expr; loc: Location }
     // Pipe
     | { kind: "Pipe"; expr: Expr; func: Expr; loc: Location }
+    // Mutable-binding reassignment statement: `x = expr;` rebinds a
+    // `let mut` variable to a new value (returns Unit). Distinct from the
+    // `:=` RefAssign operator, which mutates a ref's contents. The parser
+    // only produces this node in statement position (top level / blocks).
+    | { kind: "Assign"; name: string; value: Expr; loc: Location }
     // Blocks
     | { kind: "Block"; exprs: Expr[]; loc: Location }
     // Type Annotation

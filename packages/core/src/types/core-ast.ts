@@ -54,7 +54,9 @@ export type CoreExpr =
     | CoreUnsafe
     | CoreTryCatch
     // Tuples
-    | CoreTuple;
+    | CoreTuple
+    // Mutable-binding reassignment (statement, returns Unit)
+    | CoreAssign;
 
 /**
  * Integer literal
@@ -323,6 +325,21 @@ export type CoreTryCatch = {
 export type CoreTuple = {
     kind: "CoreTuple";
     elements: CoreExpr[];
+    loc: Location;
+};
+
+/**
+ * Mutable-binding reassignment: `x = expr;`
+ *
+ * Rebinds a `let mut` variable to a new value. A statement of type Unit —
+ * distinct from the `RefAssign` (`:=`) binary operator, which mutates a
+ * ref's contents. The typechecker enforces that `name` is a mutable
+ * binding (VF4019 otherwise).
+ */
+export type CoreAssign = {
+    kind: "CoreAssign";
+    name: string;
+    value: CoreExpr;
     loc: Location;
 };
 

@@ -311,7 +311,7 @@ describe("Diagnostic registry conventions (meta-tests)", () => {
     // Adding or removing a VFxxxx definition requires updating this assertion
     // (and regenerating docs/errors/ via `pnpm docs:errors`).
     it("F-19: registry contains the expected number of registered codes", () => {
-        expect(registry.size).toBe(127);
+        expect(registry.size).toBe(128);
     });
 
     // F-10: every registered warning must live in its phase's reserved

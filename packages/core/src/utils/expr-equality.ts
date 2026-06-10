@@ -181,6 +181,9 @@ export function exprEquals(e1: CoreExpr, e2: CoreExpr): boolean {
                 const elem2 = e2.elements[i];
                 return elem2 !== undefined && exprEquals(elem1, elem2);
             });
+
+        case "CoreAssign":
+            return e2.kind === "CoreAssign" && e1.name === e2.name && exprEquals(e1.value, e2.value);
     }
 }
 

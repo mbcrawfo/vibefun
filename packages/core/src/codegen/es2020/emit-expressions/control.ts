@@ -209,3 +209,16 @@ export function emitTryCatch(
     const catchCode = emitExpr(expr.catchBody, ctx);
     return `(() => { try { return (${tryCode}); } catch (${binder}) { return (${catchCode}); } })()`;
 }
+
+/**
+ * Emit a mutable-binding reassignment: `x = expr;`
+ *
+ * `let mut` bindings emit as JS `let`, so reassignment is a plain JS
+ * assignment. The comma-undefined wrapper makes the expression yield
+ * Unit (undefined), mirroring how `:=` ref assignment is emitted.
+ */
+export function emitAssign(expr: { kind: "CoreAssign"; name: string; value: CoreExpr }, ctx: EmitContext): string {
+    const target = escapeIdentifier(expr.name);
+    const valueCode = emitExpr(expr.value, withPrecedence(ctx, 0));
+    return `(${target} = ${valueCode}, undefined)`;
+}
