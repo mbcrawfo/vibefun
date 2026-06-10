@@ -40,6 +40,11 @@ type Scenario = {
     /** RHS of the binding (`let [mut] [rec] x = <rhs>`). */
     rhs: string;
     /**
+     * Optional type annotation on the binding (`let x: <annotation> = …`).
+     * Rendered identically across every form.
+     */
+    annotation?: string;
+    /**
      * Statements that run after the binding is declared and use `x`. Each
      * entry is a single statement WITHOUT a trailing semicolon; the
      * renderer wraps bare expressions in `let _matrixSetupN = (...)` so
@@ -94,11 +99,12 @@ function secondClause(second: NonNullable<Scenario["second"]>): string {
 
 function bindingDecl(scenario: Scenario, opts: { recursive: boolean; group: boolean }): string {
     const header = bindingHeader({ mutable: scenario.requires.mutable, recursive: opts.recursive });
+    const annotation = scenario.annotation !== undefined ? `: ${scenario.annotation}` : "";
     if (opts.group) {
         const second = scenario.second ?? { name: "_matrixDummy", mutable: false, rhs: "0" };
-        return `${header} x = ${scenario.rhs} ${secondClause(second)};`;
+        return `${header} x${annotation} = ${scenario.rhs} ${secondClause(second)};`;
     }
-    return `${header} x = ${scenario.rhs};`;
+    return `${header} x${annotation} = ${scenario.rhs};`;
 }
 
 function setupBlock(scenario: Scenario): string {
@@ -251,6 +257,18 @@ const scenarios: Scenario[] = [
         setupStmts: ["let _i: List<Int> = x", "let _s: List<String> = x"],
         outputExpr: '"unreachable"',
         expectation: { kind: "compileError" },
+    },
+    {
+        name: "multi-param-annotation-curried",
+        requires: { mutable: false, recursive: false, mutual: false },
+        // `(A, B) -> R` ≡ `A -> B -> R` (auto-currying): the annotated
+        // binding must accept full application AND partial application
+        // through every binding path. (VF-FC-0009)
+        annotation: "(Int, Int) -> Int",
+        rhs: "(a, b) => a + b",
+        setupStmts: ["let full = x(3, 4)", "let part = x(3)(4)"],
+        outputExpr: "String.fromInt(full + part)",
+        expectation: { kind: "runOutput", output: "14" },
     },
     {
         name: "recursive-self-reference",

@@ -69,7 +69,7 @@ add unit→integration tests until back to par.
 - [x] Phase gate: `pnpm run verify` + coverage (combined ≥ baseline: lines 92.97, stmts 92.16, funcs 93.03, branches 86.96)
 
 ### Phase 2 — Typechecker externals/inference cluster (strict order)
-- [ ] **6. VF-FC-0009** — curry multi-param `(A,B)->R` function types → `vf-fc-0009-multiarg-function-type-curry.md`
+- [x] **6. VF-FC-0009** — curry multi-param `(A,B)->R` function types in `convertTypeExpr`; codegen additionally needed a curried wrapper const for multi-param externals (the desugarer emits single-arg call chains against n-ary JS functions) → `vf-fc-0009-multiarg-function-type-curry.md`
 - [ ] **7. VF-FC-0008** — make external overload validation reachable post-desugar → `vf-fc-0008-external-overload-validation.md`
 - [ ] **8. VF-FC-0004** — infer record-pattern lambda parameters → `vf-fc-0004-lambda-record-pattern-inference.md`
 - [ ] Phase gate: `pnpm run verify` + coverage

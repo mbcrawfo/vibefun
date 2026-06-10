@@ -17,6 +17,12 @@ export function emitVar(name: string, ctx: EmitContext): string {
     const binding = ctx.env.values.get(name);
     if (binding) {
         if (binding.kind === "External" || binding.kind === "ExternalOverload") {
+            // Multi-param externals are emitted as curried wrapper consts
+            // (see emitExternalDecl) — reference the wrapper by its vibefun
+            // name instead of inlining the raw n-ary jsName.
+            if (ctx.shared.curriedExternals.has(name)) {
+                return escapeIdentifier(name);
+            }
             // Use the JavaScript name instead of the vibefun name
             // Don't escape external JS names (they may be dotted like Math.floor)
             return binding.jsName;

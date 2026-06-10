@@ -127,6 +127,15 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
         declarationTypes: typedModule.declarationTypes,
     });
 
+    // Register multi-param externals up front: emitVar must reference their
+    // curried wrapper const (by vibefun name) anywhere in the module, even
+    // before the declaration itself is emitted.
+    for (const decl of module.declarations) {
+        if (decl.kind === "CoreExternalDecl" && Declarations.externalNeedsCurryWrapper(decl)) {
+            ctx.shared.curriedExternals.add(decl.name);
+        }
+    }
+
     // Generate code sections
     const header = generateHeader(filename);
     const imports = generateImports(module, ctx);
@@ -352,6 +361,10 @@ function collectExternalImport(decl: CoreExternalDecl, importsByModule: Map<stri
         // Different names - import jsName, may need alias
         // The binding is handled in declaration emission
     }
+
+    // A curried external wrapper occupies the vibefun name, so a same-named
+    // raw import must be aliased out of its way (`g` → `g$raw`).
+    alias = Declarations.externalCurriedImportAlias(decl) ?? alias;
 
     addOrMergeImport(items, {
         name: importName,
