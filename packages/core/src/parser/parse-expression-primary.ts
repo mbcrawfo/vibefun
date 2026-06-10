@@ -7,6 +7,7 @@
 import type { Expr, ListElement, Location } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
+import { isAssignStatementStart } from "./parse-declarations/index.js";
 import { parseTypeParameters } from "./parse-types.js";
 
 // Forward declarations for complex expression parsers (injected by aggregator)
@@ -440,7 +441,7 @@ export function parsePrimary(parser: ParserBase): Expr {
         // Check for a mutable-binding reassignment statement: { id = ... }
         // is a block whose first statement is `id = expr;` (records use
         // COLON, never OP_EQUALS). [VF-FC-0005]
-        if (parser.check("IDENTIFIER") && parser.peek(1).type === "OP_EQUALS") {
+        if (isAssignStatementStart(parser)) {
             return parseBlockExprFn(parser, startLoc);
         }
 
