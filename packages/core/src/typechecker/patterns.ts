@@ -290,10 +290,30 @@ function checkRecordPattern(
     expectedType: Type,
     subst: Substitution,
     level: number,
-    _ctx: UnifyContext,
+    ctx: UnifyContext,
 ): PatternCheckResult {
     // Expected type should be a record
-    const appliedExpected = applySubst(subst, expectedType);
+    let appliedExpected = applySubst(subst, expectedType);
+    let currentSubst = subst;
+
+    // A record pattern matched against a free type variable (e.g. the
+    // synthesized match scrutinee of an unannotated destructuring lambda
+    // parameter) pins that variable to the CLOSED record type implied by
+    // the pattern's field set — records have no row polymorphism, so the
+    // named fields ARE the whole type. Each field starts as a fresh type
+    // variable, constrained by the field sub-patterns and the body's
+    // uses. Mirrors checkTuplePattern's fresh-skeleton unification.
+    // [BUG: VF-FC-0004]
+    if (appliedExpected.type === "Var") {
+        const skeletonFields = new Map<string, Type>();
+        for (const field of pattern.fields) {
+            skeletonFields.set(field.name, freshTypeVar(level));
+        }
+        const skeleton: Type = { type: "Record", fields: skeletonFields };
+        const unifySubst = unify(appliedExpected, skeleton, ctx);
+        currentSubst = composeSubst(unifySubst, currentSubst);
+        appliedExpected = applySubst(currentSubst, expectedType);
+    }
 
     if (appliedExpected.type !== "Record") {
         throwDiagnostic("VF4500", pattern.loc, {
@@ -302,7 +322,6 @@ function checkRecordPattern(
     }
 
     const recordType = appliedExpected;
-    let currentSubst = subst;
     const allBindings = new Map<string, Type>();
 
     // Check each field pattern
