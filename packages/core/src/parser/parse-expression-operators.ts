@@ -564,6 +564,29 @@ function parseCall(parser: ParserBase): Expr {
                 loc: expr.loc,
             };
         }
+        // List indexing: expr[index] (spec 13-appendix precedence 16).
+        // Mandatory statement semicolons keep this unambiguous with a
+        // list literal opening the next statement.
+        else if (parser.match("LBRACKET")) {
+            // Skip newlines inside the brackets
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+
+            const index = parseExpression(parser);
+
+            while (parser.check("NEWLINE")) {
+                parser.advance();
+            }
+            parser.expect("RBRACKET", "Expected ']' after index expression");
+
+            expr = {
+                kind: "Index",
+                target: expr,
+                index,
+                loc: expr.loc,
+            };
+        }
         // Postfix dereference: expr!
         // Used to dereference mutable references: ref! gets the value
         // Chainable: ref!! for double dereference

@@ -477,15 +477,17 @@ Each form listed in `docs/spec/13-appendix.md:15-58` is verified as implemented.
 
 #### F-33: List indexing operator (`[]`)
 
-- **Spec ref**: `docs/spec/13-appendix.md:89` — list/record indexing
-- **Status**: ✅ Implemented
+- **Spec ref**: `docs/spec/13-appendix.md:89` — list indexing; semantics in `docs/spec/04-expressions/data-literals.md` §List Indexing
+- **Status**: ✅ Implemented (VF-FC-0012 — the original audit entry wrongly marked this implemented while citing a non-existent `Index` node and LBRACKET handling; the operator was entirely unimplemented until that fix)
 - **Implementation**:
-  - `packages/core/src/parser/parse-expression-operators.ts:200-250` — parsePostfix() handles LBRACKET
-  - `packages/core/src/types/ast.ts:85` — Index node
+  - `packages/core/src/parser/parse-expression-operators.ts` — `parseCall` postfix loop handles LBRACKET
+  - `packages/core/src/types/ast.ts` — `Index` surface node (desugars to `__std__.List.get(target)(index)`)
+  - `packages/stdlib/src/list.ts` / `packages/core/src/typechecker/module-signatures/stdlib/list.ts` — `List.get : <A>(List<A>, Int) -> Option<A>`
 - **Tests**:
-  - Unit: `packages/core/src/parser/parser.test.ts:"indexing"` (5+ tests)
-- **Coverage assessment**: ⚠️ Thin
-- **Notes**: Parsed but codegen may have limited implementation; tests exist but sparse.
+  - Unit: `packages/core/src/parser/index-operator.test.ts`, `packages/core/src/desugarer/index-operator.test.ts`, `packages/stdlib/src/list.test.ts:"get"`
+  - E2E: `tests/e2e/spec-validation/04-expressions.test.ts:"list indexing operator"`
+- **Coverage assessment**: ✅ Adequate
+- **Notes**: `xs[i] : Option<T>`; out-of-bounds → `None`. Record dynamic-key indexing (`r["a"]`) is a flagged follow-up — closed records cannot soundly type a dynamic key, and it currently fails typechecking against `List<T>`.
 
 #### F-34: Type annotation operator (`:`)
 

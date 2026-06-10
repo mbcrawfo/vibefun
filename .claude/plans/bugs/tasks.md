@@ -81,7 +81,7 @@ add unit→integration tests until back to par.
 
 ### Phase 4 — New surface syntax (last)
 - [x] **11. VF-FC-0005** — `Assign`/`CoreAssign` statement through the full pipeline; parser admits `<ident> = <expr>` in statement positions only (incl. block-vs-record disambiguation); typechecker requires a `let mut` target (new **VF4019**) via a `mutable` flag on Value bindings; codegen emits `(x = v, undefined)` → `vf-fc-0005-mutable-binding-reassignment.md`
-- [ ] **12. VF-FC-0012** — list indexing `[]` → `Option<T>` → `vf-fc-0012-indexing-operator.md`
+- [x] **12. VF-FC-0012** — `Index` surface node + LBRACKET postfix rule; desugars to `__std__.List.get(xs)(i)` (new stdlib `List.get : <A>(List<A>, Int) -> Option<A>`); spec semantics section added (data-literals §List Indexing) + appendix cross-link + audit F-33 corrected; record indexing stays a flagged follow-up → `vf-fc-0012-indexing-operator.md`
 - [ ] Final gate: `pnpm run verify` + `pnpm run test:coverage` (≥ baseline) + `pnpm docs:errors` (if error codes changed)
 
 ---

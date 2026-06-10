@@ -340,6 +340,35 @@ export function desugar(expr: Expr, gen: FreshVarGen = new FreshVarGen()): CoreE
         case "Pipe":
             return desugarPipe(expr.expr, expr.func, expr.loc, gen, desugar);
 
+        // List indexing - desugar to __std__.List.get(target)(index), the
+        // same compiler-hidden qualified reference list-spread concat uses
+        // (codegen auto-injects the __std__ import). xs[i] : Option<T>,
+        // out-of-bounds -> None.
+        case "Index": {
+            const getRef: CoreExpr = {
+                kind: "CoreRecordAccess",
+                record: {
+                    kind: "CoreRecordAccess",
+                    record: { kind: "CoreVar", name: "__std__", loc: expr.loc },
+                    field: "List",
+                    loc: expr.loc,
+                },
+                field: "get",
+                loc: expr.loc,
+            };
+            return {
+                kind: "CoreApp",
+                func: {
+                    kind: "CoreApp",
+                    func: getRef,
+                    args: [desugar(expr.target, gen)],
+                    loc: expr.loc,
+                },
+                args: [desugar(expr.index, gen)],
+                loc: expr.loc,
+            };
+        }
+
         // Mutable-binding reassignment statement - lower 1:1 to CoreAssign
         case "Assign":
             return {
