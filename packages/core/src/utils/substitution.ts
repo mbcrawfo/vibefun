@@ -382,6 +382,20 @@ export function substituteMultiple(expr: CoreExpr, bindings: Map<string, CoreExp
                     expr: substExpr(e.expr),
                 };
 
+            case "CoreAssign": {
+                // The assignment target is a USE of an existing mutable
+                // binding. If a replacement renames that binding to another
+                // variable, follow the rename; non-variable replacements
+                // cannot apply to an assignment target.
+                const replacement = bindings.get(e.name);
+                const newName = replacement?.kind === "CoreVar" ? replacement.name : e.name;
+                return {
+                    ...e,
+                    name: newName,
+                    value: substExpr(e.value),
+                };
+            }
+
             case "CoreTryCatch": {
                 // The catch binder introduces a fresh local binding inside
                 // catchBody. Handle shadowing (binder hides one of our

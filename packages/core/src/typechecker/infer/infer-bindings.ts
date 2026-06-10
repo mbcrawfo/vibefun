@@ -115,6 +115,7 @@ export function inferLet(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: 
         bodyEnv.values.set(expr.pattern.name, {
             kind: "Value",
             scheme: valueScheme,
+            mutable: expr.mutable,
             loc: expr.loc,
         });
     } else if (expr.pattern.kind === "CoreTuplePattern") {
@@ -295,6 +296,7 @@ export function inferLetRecExpr(
         finalEnv.values.set(varName, {
             kind: "Value",
             scheme,
+            mutable: binding.mutable,
             loc: binding.loc,
         });
     }
@@ -308,4 +310,40 @@ export function inferLetRecExpr(
     };
 
     return inferExprFn(bodyCtx, expr.body);
+}
+
+/**
+ * Infer the type of a mutable-binding reassignment: `x = expr;`
+ *
+ * Rules (07-mutable-references.md):
+ * 1. The target must be an existing binding (VF4100 otherwise).
+ * 2. The target must have been declared `let mut` (VF4019 otherwise).
+ * 3. The new value's type must unify with the binding's type — `let mut`
+ *    bindings are monomorphic (the value restriction skips generalization
+ *    for them), so the scheme's type is the binding's concrete type.
+ * 4. The reassignment is a statement: its type is Unit.
+ */
+export function inferAssign(ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreAssign" }>): InferResult {
+    const binding = ctx.env.values.get(expr.name);
+
+    if (!binding) {
+        throwDiagnostic("VF4100", expr.loc, { name: expr.name });
+    }
+
+    if (binding.kind !== "Value" || binding.mutable !== true) {
+        throwDiagnostic("VF4019", expr.loc, { name: expr.name });
+    }
+
+    const valueResult = inferExprFn(ctx, expr.value);
+
+    // `let mut` bindings never generalize, so the scheme carries the
+    // binding's monomorphic type directly.
+    const bindingType = applySubst(valueResult.subst, binding.scheme.type);
+    const unifySubst = unify(applySubst(valueResult.subst, valueResult.type), bindingType, {
+        loc: expr.value.loc,
+        types: ctx.env.types,
+    });
+    const finalSubst = composeSubst(unifySubst, valueResult.subst);
+
+    return { type: { type: "Const", name: "Unit" }, subst: finalSubst };
 }

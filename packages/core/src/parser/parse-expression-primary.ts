@@ -437,6 +437,13 @@ export function parsePrimary(parser: ParserBase): Expr {
             }
         }
 
+        // Check for a mutable-binding reassignment statement: { id = ... }
+        // is a block whose first statement is `id = expr;` (records use
+        // COLON, never OP_EQUALS). [VF-FC-0005]
+        if (parser.check("IDENTIFIER") && parser.peek(1).type === "OP_EQUALS") {
+            return parseBlockExprFn(parser, startLoc);
+        }
+
         // Need to parse first expression to check for semicolon
         // Save position for potential rollback
         const p = parser as unknown as { current: number };
