@@ -149,6 +149,7 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
         needsEq: ctx.shared.needsEqHelper,
         needsIntDiv: ctx.shared.needsIntDivHelper,
         needsIntMod: ctx.shared.needsIntModHelper,
+        needsPanic: ctx.shared.needsPanicHelper,
     });
     const exports = generateExports(ctx, exportAliases);
 

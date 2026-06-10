@@ -30,6 +30,7 @@ export type SharedState = {
     needsRefHelper: boolean;
     needsIntDivHelper: boolean;
     needsIntModHelper: boolean;
+    needsPanicHelper: boolean;
     exportedNames: Set<string>;
     /** Counter for generating unique wildcard identifiers */
     wildcardCounter: number;
@@ -112,6 +113,7 @@ export function createContext(options: CreateContextOptions): EmitContext {
         needsRefHelper: false,
         needsIntDivHelper: false,
         needsIntModHelper: false,
+        needsPanicHelper: false,
         exportedNames: new Set(),
         wildcardCounter: 0,
         curriedExternals: new Set(),
@@ -249,6 +251,15 @@ export function markNeedsIntDivHelper(ctx: EmitContext): void {
  */
 export function markNeedsIntModHelper(ctx: EmitContext): void {
     ctx.shared.needsIntModHelper = true;
+}
+
+/**
+ * Mark that the $panic helper is needed (runtime binding for the panic builtin)
+ *
+ * @param ctx - Context to update (mutates shared state!)
+ */
+export function markNeedsPanicHelper(ctx: EmitContext): void {
+    ctx.shared.needsPanicHelper = true;
 }
 
 /**

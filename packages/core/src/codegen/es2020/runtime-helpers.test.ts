@@ -4,6 +4,7 @@ import {
     generateEqHelper,
     generateIntDivHelper,
     generateIntModHelper,
+    generatePanicHelper,
     generateRefHelper,
     generateRuntimeHelpers,
 } from "./runtime-helpers.js";
@@ -72,7 +73,7 @@ describe("Runtime Helpers", () => {
     });
 
     describe("generateRuntimeHelpers", () => {
-        const none = { needsRef: false, needsEq: false, needsIntDiv: false, needsIntMod: false };
+        const none = { needsRef: false, needsEq: false, needsIntDiv: false, needsIntMod: false, needsPanic: false };
 
         it("should return empty string when no helpers needed", () => {
             const result = generateRuntimeHelpers(none);
@@ -116,6 +117,16 @@ describe("Runtime Helpers", () => {
             expect(result).toContain("const $intMod");
             expect(result).toContain("Division by zero");
         });
+
+        it("should generate $panic when needed", () => {
+            const result = generateRuntimeHelpers({ ...none, needsPanic: true });
+            expect(result).toContain("const $panic");
+        });
+
+        it("should not generate $panic when not needed", () => {
+            const result = generateRuntimeHelpers(none);
+            expect(result).not.toContain("$panic");
+        });
     });
 
     describe("generateIntDivHelper", () => {
@@ -141,6 +152,21 @@ describe("Runtime Helpers", () => {
             const fn = new Function(`${generateIntModHelper()}; return $intMod;`)();
             expect(fn(7, 3)).toBe(1);
             expect(fn(-7, 3)).toBe(-1);
+        });
+    });
+
+    describe("generatePanicHelper", () => {
+        it("should generate the $panic helper", () => {
+            expect(generatePanicHelper()).toBe("const $panic = (msg) => { throw new Error(msg); };");
+        });
+
+        it("should generate valid JavaScript", () => {
+            expect(() => new Function(generatePanicHelper())).not.toThrow();
+        });
+
+        it("should throw an Error carrying the supplied message", () => {
+            const fn = new Function(`${generatePanicHelper()}; return $panic;`)() as (msg: string) => never;
+            expect(() => fn("boom")).toThrowError(new Error("boom"));
         });
     });
 
