@@ -5,7 +5,8 @@
 import type { CoreExpr, CorePattern } from "../../../types/core-ast.js";
 import type { EmitContext } from "../context.js";
 
-import { withPrecedence } from "../context.js";
+import { markNeedsFfiOptionHelper, withPrecedence } from "../context.js";
+import { isOptionTypeExpr, jsCallTarget } from "../emit-declarations.js";
 import { CALL_PRECEDENCE, needsParens } from "../emit-operators.js";
 import { emitExpr } from "./index.js";
 import { emitPattern } from "./shared-state.js";
@@ -53,7 +54,15 @@ export function emitApp(expr: { kind: "CoreApp"; func: CoreExpr; args: CoreExpr[
         const binding = ctx.env.values.get(spine.head.name);
         if (binding?.kind === "ExternalOverload") {
             const argsCode = spine.args.map((arg) => emitExpr(arg, withPrecedence(ctx, 0))).join(", ");
-            const code = `${binding.jsName}(${argsCode})`;
+            let code = `${jsCallTarget(binding.jsName)}(${argsCode})`;
+            // The typechecker resolved the overload by exact spine arity;
+            // marshal its Option<T> return through $ffiOption like wrapped
+            // single externals do. [BUG: VF-FC-0010]
+            const overload = binding.overloads.find((o) => o.paramTypes.length === spine.args.length);
+            if (overload !== undefined && isOptionTypeExpr(overload.returnType)) {
+                markNeedsFfiOptionHelper(ctx);
+                code = `$ffiOption(${code})`;
+            }
             return maybeParens(code, CALL_PRECEDENCE, ctx.precedence);
         }
     }
