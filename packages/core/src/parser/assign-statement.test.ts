@@ -70,6 +70,25 @@ let _ = {
             expect(stmt.value.exprs[0]?.kind).toBe("Assign");
         });
 
+        it("parses a reassignment directly after a block-let (let-body position)", () => {
+            const module = parseModule(`let mut x = ref(0);
+let _ = {
+  let mut y = ref(0);
+  x = ref(7);
+  ();
+};`);
+            const stmt = module.declarations[1];
+            expect(stmt?.kind).toBe("LetDecl");
+            if (stmt?.kind !== "LetDecl") return;
+            expect(stmt.value.kind).toBe("Block");
+            if (stmt.value.kind !== "Block") return;
+            // The block-let captures the assignment as its body expression.
+            const letExpr = stmt.value.exprs[0];
+            expect(letExpr?.kind).toBe("Let");
+            if (letExpr?.kind !== "Let") return;
+            expect(letExpr.body.kind).toBe("Assign");
+        });
+
         it("a block starting with a reassignment is a block, not a record", () => {
             const module = parseModule(`let mut x = ref(0);
 let _ = {
