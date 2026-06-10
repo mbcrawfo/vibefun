@@ -96,6 +96,23 @@ export function generatePanicHelper(): string {
 }
 
 /**
+ * Generate the $ffiOption() helper function
+ *
+ * Marshals an external call's return value at the FFI boundary when the
+ * declared return type is `Option<T>` (type-safety.md): JS null/undefined
+ * become `None`, any other value becomes `Some(value)`. The constructed
+ * objects use the same `{ $tag, $0 }` shape the variant emitter and the
+ * stdlib runtime produce, so pattern matching works unchanged. `== null`
+ * deliberately covers both null and undefined while letting other falsy
+ * values (0, "", false, NaN) marshal to Some.
+ *
+ * @returns JavaScript code for the $ffiOption helper
+ */
+export function generateFfiOptionHelper(): string {
+    return `const $ffiOption = (v) => v == null ? { $tag: "None" } : { $tag: "Some", $0: v };`;
+}
+
+/**
  * Flags indicating which runtime helpers a generated module requires.
  */
 export type RuntimeHelperFlags = {
@@ -104,6 +121,7 @@ export type RuntimeHelperFlags = {
     needsIntDiv: boolean;
     needsIntMod: boolean;
     needsPanic: boolean;
+    needsFfiOption: boolean;
 };
 
 /**
@@ -133,6 +151,10 @@ export function generateRuntimeHelpers(flags: RuntimeHelperFlags): string {
 
     if (flags.needsPanic) {
         helpers.push(generatePanicHelper());
+    }
+
+    if (flags.needsFfiOption) {
+        helpers.push(generateFfiOptionHelper());
     }
 
     if (helpers.length === 0) {

@@ -523,10 +523,31 @@ export function externalDecl(
  * returning Int — used to model the declared surface shape of externals.
  */
 export function funTypeExpr(paramCount: number): CoreTypeExpr {
+    return funTypeExprReturning(paramCount, dummyTypeExpr());
+}
+
+/**
+ * Create a function type expression with `paramCount` Int parameters and an
+ * explicit return type expression (e.g. `optionTypeExpr()` for FFI
+ * marshalling shapes, or a nested function type for curried surfaces).
+ */
+export function funTypeExprReturning(paramCount: number, return_: CoreTypeExpr): CoreTypeExpr {
     return {
         kind: "CoreFunctionType",
         params: Array.from({ length: paramCount }, () => dummyTypeExpr()),
-        return_: dummyTypeExpr(),
+        return_,
+        loc: testLoc(),
+    };
+}
+
+/**
+ * Create an `Option<Int>` type expression.
+ */
+export function optionTypeExpr(): CoreTypeExpr {
+    return {
+        kind: "CoreTypeApp",
+        constructor: { kind: "CoreTypeConst", name: "Option", loc: testLoc() },
+        args: [dummyTypeExpr()],
         loc: testLoc(),
     };
 }

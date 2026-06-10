@@ -44,14 +44,14 @@ describe("emitVar", () => {
         // not inline the raw n-ary jsName.
         const ctx = createTestContext();
         ctx.env.values.set("add2", externalBinding("((a, b) => a + b)"));
-        ctx.shared.curriedExternals.add("add2");
+        ctx.shared.wrappedExternals.add("add2");
         expect(emitVar("add2", ctx)).toBe("add2");
     });
 
     it("escapes the wrapper name for a reserved-word curried external", () => {
         const ctx = createTestContext();
         ctx.env.values.set("default", externalBinding("someFn"));
-        ctx.shared.curriedExternals.add("default");
+        ctx.shared.wrappedExternals.add("default");
         expect(emitVar("default", ctx)).toBe("default$");
     });
 
