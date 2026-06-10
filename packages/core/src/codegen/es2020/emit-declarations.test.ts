@@ -347,7 +347,7 @@ describe("Declaration Emission", () => {
                 // would re-declare the wrapper const.
                 const ctx = createTestContext();
                 const decl = externalDecl("default", "default", { from: "m", typeExpr: funTypeExpr(2) });
-                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBe("default$raw");
+                expect(externalWrapperImportAlias(decl as CoreExternalDecl)).toBe("default$raw");
                 expect(emitDeclaration(decl, ctx)).toBe("const default$ = ($a0) => ($a1) => default$raw($a0, $a1);");
             });
 
@@ -356,7 +356,7 @@ describe("Declaration Emission", () => {
                 // call the ESCAPED local binding, not the raw remote name.
                 const ctx = createTestContext();
                 const decl = externalDecl("myDef", "default", { from: "m", typeExpr: funTypeExpr(2) });
-                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBeUndefined();
+                expect(externalWrapperImportAlias(decl as CoreExternalDecl)).toBeUndefined();
                 expect(emitDeclaration(decl, ctx)).toBe("const myDef = ($a0) => ($a1) => default$($a0, $a1);");
             });
 
