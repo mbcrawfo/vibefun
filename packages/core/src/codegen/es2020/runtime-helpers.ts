@@ -83,6 +83,19 @@ export function generateIntModHelper(): string {
 }
 
 /**
+ * Generate the $panic() helper function
+ *
+ * Runtime binding for the `panic` builtin. Spec (09-error-handling.md)
+ * requires panic to throw a JavaScript Error with the supplied message
+ * and stop execution immediately.
+ *
+ * @returns JavaScript code for the $panic helper
+ */
+export function generatePanicHelper(): string {
+    return `const $panic = (msg) => { throw new Error(msg); };`;
+}
+
+/**
  * Flags indicating which runtime helpers a generated module requires.
  */
 export type RuntimeHelperFlags = {
@@ -90,6 +103,7 @@ export type RuntimeHelperFlags = {
     needsEq: boolean;
     needsIntDiv: boolean;
     needsIntMod: boolean;
+    needsPanic: boolean;
 };
 
 /**
@@ -115,6 +129,10 @@ export function generateRuntimeHelpers(flags: RuntimeHelperFlags): string {
 
     if (flags.needsIntMod) {
         helpers.push(generateIntModHelper());
+    }
+
+    if (flags.needsPanic) {
+        helpers.push(generatePanicHelper());
     }
 
     if (helpers.length === 0) {

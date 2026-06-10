@@ -75,7 +75,7 @@ add unit→integration tests until back to par.
 - [x] Phase gate: `pnpm run verify` + coverage (combined ≥ baseline: lines 93.00, stmts 92.21, funcs 93.10, branches 87.07)
 
 ### Phase 3 — Codegen cluster
-- [ ] **9. VF-FC-0006** — panic runtime helper → `vf-fc-0006-panic-runtime-helper.md`
+- [x] **9. VF-FC-0006** — `$panic` runtime helper gated by `needsPanicHelper`, builtin mapped in `emitVar` (builtin-loc check so user shadowing stays untouched) → `vf-fc-0006-panic-runtime-helper.md`
 - [ ] **10. VF-FC-0010** — FFI null→Option marshalling → `vf-fc-0010-ffi-null-to-option.md`
 - [ ] Phase gate: `pnpm run verify` + coverage
 

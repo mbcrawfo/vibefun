@@ -54,4 +54,31 @@ describe("emitVar", () => {
         ctx.shared.curriedExternals.add("default");
         expect(emitVar("default", ctx)).toBe("default$");
     });
+
+    // [BUG: VF-FC-0006] the panic builtin maps to the gated $panic helper.
+    describe("panic builtin", () => {
+        it("emits $panic and marks the helper for the builtin binding", () => {
+            const ctx = createTestContext();
+            ctx.env.values.set("panic", {
+                kind: "Value",
+                scheme: { vars: [], type: constType("Never") },
+                loc: { file: "<builtin>", line: 0, column: 0, offset: 0 },
+            });
+
+            expect(emitVar("panic", ctx)).toBe("$panic");
+            expect(ctx.shared.needsPanicHelper).toBe(true);
+        });
+
+        it("leaves a user binding named panic untouched", () => {
+            const ctx = createTestContext();
+            ctx.env.values.set("panic", {
+                kind: "Value",
+                scheme: { vars: [], type: constType("Int") },
+                loc: testLoc,
+            });
+
+            expect(emitVar("panic", ctx)).toBe("panic");
+            expect(ctx.shared.needsPanicHelper).toBe(false);
+        });
+    });
 });
