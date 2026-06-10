@@ -412,7 +412,12 @@ export function externalNeedsCurryWrapper(decl: CoreExternalDecl): boolean {
 export function externalCurriedImportAlias(decl: CoreExternalDecl): string | undefined {
     if (!externalNeedsCurryWrapper(decl)) return undefined;
     if (!decl.from || decl.jsName.includes(".")) return undefined;
-    if (decl.jsName !== escapeIdentifier(decl.name)) return undefined;
+    // Compare ESCAPED forms: the import statement escapes its local binding
+    // name and the wrapper const is the escaped vibefun name, so the
+    // collision happens between the escaped identifiers (e.g. an external
+    // named `default` importing jsName "default" — both escape to
+    // `default$`).
+    if (escapeIdentifier(decl.jsName) !== escapeIdentifier(decl.name)) return undefined;
     return `${decl.jsName}$raw`;
 }
 
@@ -430,6 +435,11 @@ function curriedExternalWrapper(decl: CoreExternalDecl, vfName: string): string 
     const importAlias = externalCurriedImportAlias(decl);
     if (importAlias !== undefined) {
         jsRef = importAlias;
+    } else if (decl.from && !decl.jsName.includes(".")) {
+        // The import statement escapes its LOCAL binding name
+        // (`import { default as default$ }`), so the wrapper must reference
+        // the escaped local, not the raw remote name.
+        jsRef = escapeIdentifier(decl.jsName);
     } else if (!decl.from && decl.jsName === vfName) {
         // A same-named global: a bare reference inside the initializer would
         // hit the temporal dead zone of the const being declared, so go
