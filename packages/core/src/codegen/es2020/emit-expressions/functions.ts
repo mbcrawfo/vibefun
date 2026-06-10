@@ -57,9 +57,16 @@ export function emitApp(expr: { kind: "CoreApp"; func: CoreExpr; args: CoreExpr[
             let code = `${jsCallTarget(binding.jsName)}(${argsCode})`;
             // The typechecker resolved the overload by exact spine arity;
             // marshal its Option<T> return through $ffiOption like wrapped
-            // single externals do. [BUG: VF-FC-0010]
+            // single externals do. A missing overload here means the
+            // typechecker and codegen disagree about the spine — fail loudly
+            // rather than silently skipping the marshalling. [BUG: VF-FC-0010]
             const overload = binding.overloads.find((o) => o.paramTypes.length === spine.args.length);
-            if (overload !== undefined && isOptionTypeExpr(overload.returnType)) {
+            if (overload === undefined) {
+                throw new Error(
+                    `Internal error: no overload of '${spine.head.name}' matches arity ${spine.args.length}`,
+                );
+            }
+            if (isOptionTypeExpr(overload.returnType)) {
                 markNeedsFfiOptionHelper(ctx);
                 code = `$ffiOption(${code})`;
             }
