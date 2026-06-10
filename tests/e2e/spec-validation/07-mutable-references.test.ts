@@ -236,7 +236,6 @@ let v = match !r {
         });
     });
 
-    // Spec ref: docs/spec/07-mutable-references.md:54-82 — a `let mut`
     // Spec 07-mutable-references.md:54-82: a `let mut` binding may be
     // reassigned to a new ref with `x = expr;` — a statement returning
     // Unit, distinct from `:=` which mutates the ref's contents.
