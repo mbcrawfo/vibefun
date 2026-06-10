@@ -1,8 +1,16 @@
+import type { CoreExternalDecl } from "../../types/core-ast.js";
 import type { EmitContext } from "./context.js";
 
 import { describe, expect, it } from "vitest";
 
-import { emitDeclaration, extractPatternNames, setEmitExpr, setEmitPattern } from "./emit-declarations.js";
+import {
+    emitDeclaration,
+    externalCurriedImportAlias,
+    externalNeedsCurryWrapper,
+    extractPatternNames,
+    setEmitExpr,
+    setEmitPattern,
+} from "./emit-declarations.js";
 import { emitExpr, setEmitMatchPattern, setEmitPattern as setExprEmitPattern } from "./emit-expressions/index.js";
 import { emitMatchPattern, emitPattern } from "./emit-patterns.js";
 import {
@@ -12,6 +20,7 @@ import {
     createTestContext,
     externalDecl,
     externalTypeDecl,
+    funTypeExpr,
     importDecl,
     importItem,
     intLit,
@@ -282,6 +291,82 @@ describe("Declaration Emission", () => {
             const ctx = createTestContext();
             const decl = externalDecl("default", "defaultValue");
             expect(emitDeclaration(decl, ctx)).toBe("const default$ = defaultValue;");
+        });
+
+        // Multi-param externals get a curried wrapper const so that the
+        // single-argument application chains the desugarer produces line up
+        // with the n-ary JS function behind the declaration. [BUG: VF-FC-0009]
+        describe("curried wrappers for multi-param externals", () => {
+            it("wraps a 2-param external in a curried const", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("add2", "((a, b) => a + b)", { typeExpr: funTypeExpr(2) });
+                expect(emitDeclaration(decl, ctx)).toBe("const add2 = ($a0) => ($a1) => ((a, b) => a + b)($a0, $a1);");
+            });
+
+            it("wraps a 3-param external in a curried const", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("sum3", "mySum", { typeExpr: funTypeExpr(3) });
+                expect(emitDeclaration(decl, ctx)).toBe(
+                    "const sum3 = ($a0) => ($a1) => ($a2) => mySum($a0, $a1, $a2);",
+                );
+            });
+
+            it("does not wrap a 1-param external", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("floor", "Math.floor", { typeExpr: funTypeExpr(1) });
+                expect(emitDeclaration(decl, ctx)).toBe("const floor = Math.floor;");
+            });
+
+            it("references a same-named global through globalThis to avoid the TDZ", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("parseInt", "parseInt", { typeExpr: funTypeExpr(2) });
+                expect(emitDeclaration(decl, ctx)).toBe(
+                    "const parseInt = ($a0) => ($a1) => globalThis.parseInt($a0, $a1);",
+                );
+            });
+
+            it("references a same-named module import through its $raw alias", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("join", "join", { from: "node:path", typeExpr: funTypeExpr(2) });
+                expect(emitDeclaration(decl, ctx)).toBe("const join = ($a0) => ($a1) => join$raw($a0, $a1);");
+                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBe("join$raw");
+            });
+
+            it("needs no alias when the wrapped import has a different name", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("joinPath", "join", { from: "node:path", typeExpr: funTypeExpr(2) });
+                expect(emitDeclaration(decl, ctx)).toBe("const joinPath = ($a0) => ($a1) => join($a0, $a1);");
+                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBeUndefined();
+            });
+
+            it("still collects the export for a wrapped external", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("add2", "((a, b) => a + b)", {
+                    typeExpr: funTypeExpr(2),
+                    exported: true,
+                });
+                emitDeclaration(decl, ctx);
+                expect(ctx.exportedNames.has("add2")).toBe(true);
+            });
+
+            it("externalNeedsCurryWrapper is false for non-function and 0/1-param externals", () => {
+                expect(externalNeedsCurryWrapper(externalDecl("v", "value") as CoreExternalDecl)).toBe(false);
+                expect(
+                    externalNeedsCurryWrapper(
+                        externalDecl("f", "fn", { typeExpr: funTypeExpr(0) }) as CoreExternalDecl,
+                    ),
+                ).toBe(false);
+                expect(
+                    externalNeedsCurryWrapper(
+                        externalDecl("g", "fn", { typeExpr: funTypeExpr(1) }) as CoreExternalDecl,
+                    ),
+                ).toBe(false);
+                expect(
+                    externalNeedsCurryWrapper(
+                        externalDecl("h", "fn", { typeExpr: funTypeExpr(2) }) as CoreExternalDecl,
+                    ),
+                ).toBe(true);
+            });
         });
     });
 

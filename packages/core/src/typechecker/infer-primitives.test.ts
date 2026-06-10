@@ -8,6 +8,7 @@ import type {
     CoreBoolLit,
     CoreExpr,
     CoreFloatLit,
+    CoreFunctionType,
     CoreIntLit,
     CoreLambda,
     CoreStringLit,
@@ -28,8 +29,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { getBuiltinEnv } from "./builtins.js";
-import { createContext, inferExpr } from "./infer/index.js";
-import { freshTypeVar, primitiveTypes, resetTypeVarCounter, typeEquals, typeToString } from "./types.js";
+import { convertTypeExpr, createContext, inferExpr } from "./infer/index.js";
+import { freshTypeVar, funType, primitiveTypes, resetTypeVarCounter, typeEquals, typeToString } from "./types.js";
 import { applySubst } from "./unify.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
@@ -761,5 +762,62 @@ describe("Type Inference - Complex tuple type annotations (03a F-13)", () => {
             expect(error).toBeInstanceOf(VibefunDiagnostic);
             expect((error as VibefunDiagnostic).code).toBe("VF4026");
         }
+    });
+});
+
+describe("convertTypeExpr — multi-param function type currying", () => {
+    // Per the spec (external-declarations.md §auto-currying), `(A, B) -> R`
+    // and `A -> B -> R` are the SAME type. The desugarer curries every lambda
+    // and application into single-argument form, so the canonical internal
+    // representation of a multi-param function type must be a right-nested
+    // chain of single-param Funs. [BUG: VF-FC-0009]
+    beforeEach(() => {
+        resetTypeVarCounter();
+    });
+
+    function coreConst(name: string): CoreTypeConst {
+        return { kind: "CoreTypeConst", name, loc: testLoc };
+    }
+
+    function coreFun(params: CoreTypeExpr[], return_: CoreTypeExpr): CoreFunctionType {
+        return { kind: "CoreFunctionType", params, return_, loc: testLoc };
+    }
+
+    it("curries a 2-param function type into nested single-param Funs", () => {
+        const result = convertTypeExpr(coreFun([coreConst("Int"), coreConst("String")], coreConst("Bool")));
+
+        expect(result).toEqual(funType([primitiveTypes.Int], funType([primitiveTypes.String], primitiveTypes.Bool)));
+    });
+
+    it("curries a 3-param function type into a right-nested chain", () => {
+        const result = convertTypeExpr(
+            coreFun([coreConst("Int"), coreConst("String"), coreConst("Bool")], coreConst("Unit")),
+        );
+
+        expect(result).toEqual(
+            funType(
+                [primitiveTypes.Int],
+                funType([primitiveTypes.String], funType([primitiveTypes.Bool], primitiveTypes.Unit)),
+            ),
+        );
+    });
+
+    it("leaves a 1-param function type as a single Fun", () => {
+        const result = convertTypeExpr(coreFun([coreConst("Int")], coreConst("Bool")));
+
+        expect(result).toEqual(funType([primitiveTypes.Int], primitiveTypes.Bool));
+    });
+
+    it("leaves a 0-param function type unchanged", () => {
+        const result = convertTypeExpr(coreFun([], coreConst("Int")));
+
+        expect(result).toEqual(funType([], primitiveTypes.Int));
+    });
+
+    it("produces the same representation for (A, B) -> R and A -> B -> R", () => {
+        const uncurried = convertTypeExpr(coreFun([coreConst("Int"), coreConst("Int")], coreConst("Int")));
+        const curried = convertTypeExpr(coreFun([coreConst("Int")], coreFun([coreConst("Int")], coreConst("Int"))));
+
+        expect(uncurried).toEqual(curried);
     });
 });
