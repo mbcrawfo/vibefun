@@ -72,7 +72,7 @@ add unit→integration tests until back to par.
 - [x] **6. VF-FC-0009** — curry multi-param `(A,B)->R` function types in `convertTypeExpr`; codegen additionally needed a curried wrapper const for multi-param externals (the desugarer emits single-arg call chains against n-ary JS functions) → `vf-fc-0009-multiarg-function-type-curry.md`
 - [x] **7. VF-FC-0008** — overload grouping/validation (VF4801/02/03) now runs on post-desugar `CoreExternalDecl` (buildEnvironment takes `CoreModule`; cast removed); arity resolution wired through `inferApp` (application-spine reassembly) and codegen emits overloaded calls as one n-ary `jsName(...)` → `vf-fc-0008-external-overload-validation.md`
 - [x] **8. VF-FC-0004** — record pattern vs free tyvar now instantiates the closed record type implied by the pattern fields (`checkRecordPattern` skeleton unification, mirroring tuples) → `vf-fc-0004-lambda-record-pattern-inference.md`
-- [ ] Phase gate: `pnpm run verify` + coverage
+- [x] Phase gate: `pnpm run verify` + coverage (combined ≥ baseline: lines 93.00, stmts 92.21, funcs 93.10, branches 87.07)
 
 ### Phase 3 — Codegen cluster
 - [ ] **9. VF-FC-0006** — panic runtime helper → `vf-fc-0006-panic-runtime-helper.md`
