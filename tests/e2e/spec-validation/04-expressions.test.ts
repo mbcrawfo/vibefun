@@ -1128,16 +1128,55 @@ let _ = f("a");`,
         });
     });
 
-    // Spec: 04-expressions/functions-composition.md §Destructuring Parameters.
-    // Audit: 04b F-16. Spec-validation coverage deferred — the
-    // intended assertion (`let f = ({x, y}) => x + y; f({x: 1, y: 2})`
-    // runs and returns 3) currently fails to compile with VF4500
-    // because the synthesised match arm runs against a fresh type
-    // variable rather than the closed record type implied by the
-    // pattern. Tracked as VF-FC-0004 in
-    // `.claude/FAST_CHECK_BUG_BACKLOG.md`; the spec-correct
-    // assertion will land in the same PR that wires inference for
-    // record-pattern lambdas.
+    // Spec: 04-expressions/functions-composition.md §Destructuring in Lambda
+    // Parameters. Audit: 04b F-16. An UNANNOTATED record pattern in a lambda
+    // parameter pins the parameter to the closed record type implied by the
+    // pattern's field set (records have no row polymorphism). [BUG: VF-FC-0004]
+    describe("lambda destructuring parameter inference", () => {
+        it("infers an unannotated record-pattern parameter", () => {
+            expectRunOutput(
+                withOutput(
+                    `let f = ({ x, y }) => x + y;
+let result = f({ x: 1, y: 2 });`,
+                    `String.fromInt(result)`,
+                ),
+                "3",
+            );
+        });
+
+        it("runs the spec's getCoords example (record in, tuple out)", () => {
+            expectRunOutput(
+                withOutput(
+                    `let getCoords = ({ x, y }) => (x, y);
+let (a, b) = getCoords({ x: 4, y: 5 });`,
+                    `String.fromInt(a) & "," & String.fromInt(b)`,
+                ),
+                "4,5",
+            );
+        });
+
+        it("infers nested record destructuring", () => {
+            expectRunOutput(
+                withOutput(
+                    `let processUser = ({ profile: { name, age } }) => name & " is " & String.fromInt(age);
+let result = processUser({ profile: { name: "Ada", age: 36 } });`,
+                    `result`,
+                ),
+                "Ada is 36",
+            );
+        });
+
+        it("mixes regular and destructured parameters", () => {
+            expectRunOutput(
+                withOutput(
+                    `let combine = (prefix, { value }) => prefix & String.fromInt(value);
+let result = combine("v=", { value: 7 });`,
+                    `result`,
+                ),
+                "v=7",
+            );
+        });
+    });
 
     // Spec: 04-expressions/functions-composition.md §Lambdas Cannot Be Recursive.
     // Audit: 04b F-17. A let-bound lambda does NOT see its own binding;

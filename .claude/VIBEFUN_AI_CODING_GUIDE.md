@@ -311,9 +311,13 @@ let complex = (x) => {
 let identity = <T>(x: T): T => x;
 
 // Destructuring in lambda params (irrefutable patterns only).
-// Record and tuple destructuring work; include a type annotation when
-// the record type cannot be inferred from the call site alone.
-let getX = ({ x, y }: { x: Int, y: Int }) => x;
+// Record and tuple destructuring work WITHOUT annotations — an
+// unannotated record pattern pins the parameter to the closed record
+// type implied by its fields (no row polymorphism, so the named
+// fields are the whole type).
+let getName = ({ name }) => name;          // ({ name: T }) -> T
+let add = ({ x, y }) => x + y;             // ({ x: Int, y: Int }) -> Int
+let getX = ({ x, y }: { x: Int, y: Int }) => x;  // annotation optional
 let fst = ((a, b): (Int, Int)) => a;
 
 // Refutable patterns (list, constructor) are NOT accepted directly in
