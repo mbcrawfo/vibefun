@@ -514,6 +514,35 @@ let withTrailing = [;
 ]
 ```
 
+### List Indexing
+
+The postfix indexing operator `xs[i]` reads a list element by zero-based
+position. Its type is `Option<T>` — an in-bounds read produces
+`Some(element)`, and any out-of-bounds read (negative or past the end)
+produces `None`, so indexing can never fail at runtime:
+
+```vibefun
+let xs = [10, 20, 30];
+
+match xs[0] {
+    | Some(v) => v      // 10
+    | None => 0
+};
+
+xs[2];      // Some(30)
+xs[3];      // None (past the end)
+xs[0 - 1];  // None (negative)
+```
+
+- The target must be a `List<T>` and the index an `Int` expression.
+- `[]` binds at precedence 16 (tightest, left-associative), the same
+  postfix family as function calls and field access — see the
+  [operator precedence table](../13-appendix.md).
+- Indexing is O(i) on the singly-linked `List<T>`; it is sugar for
+  [`List.get`](../11-stdlib/list.md#listget).
+- Record indexing (`r["a"]`) is **not supported**: closed records cannot
+  soundly type a dynamic key. Use field access (`r.a`) instead.
+
 ### Trailing Commas
 
 Trailing commas are permitted in both list and record literals to improve version control diffs and make adding/removing elements easier.

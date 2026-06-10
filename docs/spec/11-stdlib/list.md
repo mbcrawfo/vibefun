@@ -259,6 +259,33 @@ List.tail([]);  // None
 
 ---
 
+### List.get
+
+```vibefun
+List.get: <A>(List<A>, Int) -> Option<A>
+```
+
+**Description:** Return the element at a zero-based position, if it exists.
+Backs the surface indexing operator `xs[i]` (see
+[List Indexing](../04-expressions/data-literals.md#list-indexing)).
+
+**Semantics:**
+- Returns `Some(element)` when `0 <= i < List.length(list)`
+- Returns `None` for any out-of-bounds index (negative or past the end)
+
+**Examples:**
+
+```vibefun
+List.get([10, 20, 30], 0);  // Some(10)
+List.get([10, 20, 30], 2);  // Some(30)
+List.get([10, 20, 30], 3);  // None
+List.get([], 0);  // None
+```
+
+**Performance:** O(i) time — the list is walked from the head
+
+---
+
 ### List.reverse
 
 ```vibefun

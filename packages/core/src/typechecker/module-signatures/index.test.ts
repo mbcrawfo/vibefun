@@ -38,7 +38,19 @@ describe("getStdlibModuleSignature", () => {
     it("List module exports all spec functions", () => {
         const sig = expectModule(getStdlibModuleSignature("List"));
         expect(Array.from(sig.exports.keys()).sort()).toEqual(
-            ["concat", "filter", "flatten", "fold", "foldRight", "head", "length", "map", "reverse", "tail"].sort(),
+            [
+                "concat",
+                "filter",
+                "flatten",
+                "fold",
+                "foldRight",
+                "get",
+                "head",
+                "length",
+                "map",
+                "reverse",
+                "tail",
+            ].sort(),
         );
     });
 

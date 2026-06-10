@@ -72,6 +72,13 @@ export function getListModuleSignature(): Type {
         exports.set("tail", scheme([a.id], curriedFun([listType(a.var)], optionType(listType(a.var)))));
     }
 
+    // get: forall a. (List<a>, Int) -> Option<a> — backs the surface
+    // indexing operator `xs[i]` (out-of-bounds → None).
+    {
+        const a = freshVar();
+        exports.set("get", scheme([a.id], curriedFun([listType(a.var), primitiveTypes.Int], optionType(a.var))));
+    }
+
     // reverse: forall a. List<a> -> List<a>
     {
         const a = freshVar();
