@@ -61,6 +61,9 @@ let inferVariantFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "Cor
 let inferMatchFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreMatch" }>) => InferResult = () => {
     throw new Error("inferMatchFn not initialized - setInferenceFunctions must be called first");
 };
+// Error-throwing safety net, unreachable once index.ts wires the setter —
+// excluded from coverage like the parse-declarations DI stubs.
+/* v8 ignore next 3 */
 let inferAssignFn: (ctx: InferenceContext, expr: Extract<CoreExpr, { kind: "CoreAssign" }>) => InferResult = () => {
     throw new Error("inferAssignFn not initialized - setInferenceFunctions must be called first");
 };

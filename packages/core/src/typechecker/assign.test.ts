@@ -72,6 +72,14 @@ x = ref("hello");`);
         }
     });
 
+    it("rejects reassigning an external binding with VF4019", () => {
+        expectDiagnostic(
+            `external f: (Int) -> Int = "f";
+f = ref(1);`,
+            "VF4019",
+        );
+    });
+
     it("rejects reassigning a lambda parameter (not a mut binding)", () => {
         expectDiagnostic(
             `let f = (n: Int) => {
