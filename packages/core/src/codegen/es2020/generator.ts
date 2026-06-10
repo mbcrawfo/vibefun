@@ -354,21 +354,18 @@ function collectExternalImport(decl: CoreExternalDecl, importsByModule: Map<stri
     // If jsName contains a dot, it's a namespace access (e.g., "Foo.bar")
     // In that case, we need to import the namespace, not the method
     let importName = decl.jsName;
-    let alias: string | undefined;
 
     if (decl.jsName.includes(".")) {
-        // Dotted name - import the namespace portion
+        // Dotted name - import the namespace portion (no alias needed)
         const parts = decl.jsName.split(".");
         importName = parts[0]!;
-        // No alias needed for namespace imports
-    } else if (decl.jsName !== decl.name) {
-        // Different names - import jsName, may need alias
-        // The binding is handled in declaration emission
     }
 
     // A curried external wrapper occupies the vibefun name, so a same-named
-    // raw import must be aliased out of its way (`g` → `g$raw`).
-    alias = Declarations.externalCurriedImportAlias(decl) ?? alias;
+    // raw import must be aliased out of its way (`g` → `g$raw`). All other
+    // cases import the jsName directly; the const binding (if any) is
+    // handled in declaration emission.
+    const alias = Declarations.externalCurriedImportAlias(decl);
 
     addOrMergeImport(items, {
         name: importName,
