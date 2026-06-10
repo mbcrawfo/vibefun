@@ -307,7 +307,7 @@ describe("Diagnostic registry conventions (meta-tests)", () => {
         reloadProductionRegistry();
     });
 
-    // F-19: tripwire on the registered-code count. Plan-asserted target is 127.
+    // F-19: tripwire on the registered-code count. Plan-asserted target is 128.
     // Adding or removing a VFxxxx definition requires updating this assertion
     // (and regenerating docs/errors/ via `pnpm docs:errors`).
     it("F-19: registry contains the expected number of registered codes", () => {

@@ -156,7 +156,11 @@ export function prettyPrintExpr(e: Expr): string {
         case "Var":
             return e.name;
         case "Assign":
-            return paren(`${e.name} = ${prettyPrintExpr(e.value)}`);
+            // Statement form, deliberately unparenthesized: the grammar
+            // accepts reassignment only in statement position, so `(x = 1)`
+            // would not re-parse. No arbitrary generates Assign nodes; this
+            // case exists for exhaustiveness and failure diagnostics.
+            return `${e.name} = ${prettyPrintExpr(e.value)}`;
         case "Index":
             return paren(`${prettyPrintExpr(e.target)}[${prettyPrintExpr(e.index)}]`);
         case "Let":

@@ -272,6 +272,9 @@ Backs the surface indexing operator `xs[i]` (see
 **Semantics:**
 - Returns `Some(element)` when `0 <= i < List.length(list)`
 - Returns `None` for any out-of-bounds index (negative or past the end)
+- Returns `None` for non-integer indices (defensive: unreachable from
+  Vibefun code, where the index is typed `Int`, but pinned for raw JS
+  callers of the runtime)
 
 **Examples:**
 
