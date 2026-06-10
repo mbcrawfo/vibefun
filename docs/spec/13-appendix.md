@@ -86,7 +86,7 @@ pattern when guard
 |---------------------------|-----------|---------------|--------------------------|
 | `.`                       | 16        | Left          | Field access             |
 | `()`                      | 16        | Left          | Function call            |
-| `[]`                      | 16        | Left          | List indexing            |
+| `[]`                      | 16        | Left          | List indexing (`xs[i] : Option<T>`, [semantics](./04-expressions/data-literals.md#list-indexing)) |
 | `!`                       | 15        | Right         | Dereference/Logical NOT  |
 | `-` (unary)               | 15        | Right         | Unary minus              |
 | `*`                       | 14        | Left          | Multiplication           |
