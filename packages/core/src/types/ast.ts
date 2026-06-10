@@ -75,6 +75,9 @@ export type Expr =
     // Records
     | { kind: "Record"; fields: RecordField[]; loc: Location }
     | { kind: "RecordAccess"; record: Expr; field: string; loc: Location }
+    // List indexing: `xs[i]` — precedence-16 postfix, type Option<T>
+    // (out-of-bounds reads yield None). Desugars to List.get.
+    | { kind: "Index"; target: Expr; index: Expr; loc: Location }
     | {
           kind: "RecordUpdate";
           record: Expr;

@@ -157,6 +157,8 @@ export function prettyPrintExpr(e: Expr): string {
             return e.name;
         case "Assign":
             return paren(`${e.name} = ${prettyPrintExpr(e.value)}`);
+        case "Index":
+            return `${prettyPrintExpr(e.target)}[${prettyPrintExpr(e.index)}]`;
         case "Let":
             return paren(
                 `let ${e.recursive ? "rec " : ""}${e.mutable ? "mut " : ""}${prettyPrintPattern(e.pattern)} = ${prettyPrintExpr(e.value)}; ${prettyPrintExpr(e.body)}`,

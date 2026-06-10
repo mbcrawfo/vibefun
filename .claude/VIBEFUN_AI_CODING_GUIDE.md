@@ -431,6 +431,15 @@ let numbers = [1, 2, 3, 4, 5];
 let list = 1 :: 2 :: 3 :: [];  // Cons operator
 let extended = [0, ...numbers, 6];  // Spread
 
+// List indexing — xs[i] has type Option<T>; out-of-bounds is safe (None).
+// Always pattern-match the result.
+let first = match numbers[0] {
+    | Some(v) => v
+    | None => 0
+};
+numbers[99];   // None — never a runtime error
+// Records do NOT support indexing — use field access (r.a), not r["a"].
+
 // Pipe operator |> (left-to-right, idiomatic!)
 let result = data |> parse |> validate |> transform;
 
@@ -809,7 +818,7 @@ match node {
 
 ### List Module
 
-**Core functions**: `map`, `filter`, `fold`, `head`, `tail`, `concat`, `flatten`, `reverse`, `length`, `take`, `drop`, `find`, `sort`
+**Core functions**: `map`, `filter`, `fold`, `get`, `head`, `tail`, `concat`, `flatten`, `reverse`, `length`, `take`, `drop`, `find`, `sort`
 
 ```vibefun
 // Common operations
@@ -818,6 +827,7 @@ List.filter(list, pred)      // Keep matching elements
 List.fold(list, init, fn)    // Reduce to single value
 List.head(list)              // Option<T> - first element
 List.tail(list)              // Option<List<T>> - all but first
+List.get(list, i)            // Option<T> - element at index (xs[i] is sugar)
 
 // ⚠️ Performance: prepending O(1), appending O(n)
 let fast = 0 :: [1, 2, 3];        // Fast

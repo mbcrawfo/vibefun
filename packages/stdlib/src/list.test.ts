@@ -82,6 +82,40 @@ describe("List", () => {
         });
     });
 
+    // Backs the surface indexing operator `xs[i]` (VF-FC-0012).
+    describe("get", () => {
+        it("returns Some(element) for in-bounds indices", () => {
+            const xs = fromArray([10, 20, 30]);
+            expect(L.get(xs)(0)).toEqual(Some(10));
+            expect(L.get(xs)(2)).toEqual(Some(30));
+        });
+
+        it("returns None for out-of-bounds indices", () => {
+            const xs = fromArray([10, 20, 30]);
+            expect(L.get(xs)(3)).toEqual(None);
+            expect(L.get(xs)(99)).toEqual(None);
+            expect(L.get(Nil)(0)).toEqual(None);
+        });
+
+        it("returns None for negative or fractional indices", () => {
+            const xs = fromArray([10, 20, 30]);
+            expect(L.get(xs)(-1)).toEqual(None);
+            expect(L.get(xs)(1.5)).toEqual(None);
+        });
+
+        it("property: get agrees with array indexing for every valid index", () => {
+            fc.assert(
+                fc.property(listArb(fc.integer()), (xs) => {
+                    const arr = listToArray(xs);
+                    for (let i = 0; i < arr.length; i++) {
+                        expect(L.get(xs)(i)).toEqual(Some(arr[i]));
+                    }
+                    expect(L.get(xs)(arr.length)).toEqual(None);
+                }),
+            );
+        });
+    });
+
     describe("reverse", () => {
         it("reverses elements", () => {
             expect(toArray(L.reverse(fromArray([1, 2, 3])))).toEqual([3, 2, 1]);

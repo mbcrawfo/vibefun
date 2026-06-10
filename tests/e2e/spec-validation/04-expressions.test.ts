@@ -598,21 +598,65 @@ let result = 3 |> double << add1;`,
         });
     });
 
-    // Spec: docs/spec/13-appendix.md:89 lists `[]` as a precedence-16
-    // list/record indexing operator. It is NOT implemented: there is no Index
-    // AST node and the parser has no LBRACKET postfix rule, so `xs[0]` and
-    // `r["a"]` fail to parse (VF2107). These bug-pin the current behaviour.
-    //
-    // [BUG: VF-FC-0012] When indexing lands, replace these with real read +
-    // out-of-bounds tests per the spec-defined semantics. See
-    // .claude/FAST_CHECK_BUG_BACKLOG.md.
-    describe("list/record indexing operator `[]` (F-33, unimplemented)", () => {
-        it("list indexing `xs[0]` does not parse", () => {
-            expectCompileError(`let xs = [10, 20, 30];\nlet y = xs[0];`, "VF2107");
+    // Spec: docs/spec/13-appendix.md lists `[]` as a precedence-16 indexing
+    // operator; list indexing `xs[i]` has type Option<T> with out-of-bounds
+    // reads yielding None (owner decision). [BUG: VF-FC-0012]
+    describe("list indexing operator `[]`", () => {
+        it("in-bounds index resolves to Some(element)", () => {
+            expectRunOutput(
+                withOutput(
+                    `let xs = [10, 20, 30];
+let result = match xs[0] { | Some(v) => String.fromInt(v) | None => "none" };`,
+                    `result`,
+                ),
+                "10",
+            );
         });
 
-        it('record indexing `r["a"]` does not parse', () => {
-            expectCompileError(`let r = { a: 1 };\nlet y = r["a"];`, "VF2107");
+        it("out-of-bounds index resolves to None", () => {
+            expectRunOutput(
+                withOutput(
+                    `let xs = [10, 20, 30];
+let result = match xs[9] { | Some(v) => String.fromInt(v) | None => "none" };`,
+                    `result`,
+                ),
+                "none",
+            );
+        });
+
+        it("negative index resolves to None", () => {
+            expectRunOutput(
+                withOutput(
+                    `let xs = [10, 20, 30];
+let result = match xs[0 - 1] { | Some(v) => String.fromInt(v) | None => "none" };`,
+                    `result`,
+                ),
+                "none",
+            );
+        });
+
+        it("the index may be any Int expression", () => {
+            expectRunOutput(
+                withOutput(
+                    `let xs = [10, 20, 30];
+let i = 1;
+let result = match xs[i + 1] { | Some(v) => String.fromInt(v) | None => "none" };`,
+                    `result`,
+                ),
+                "30",
+            );
+        });
+
+        it("a non-Int index is rejected", () => {
+            expectCompileError(`let xs = [10, 20, 30];
+let y = xs[true];`);
+        });
+
+        // Record dynamic-key indexing is a flagged follow-up (closed records
+        // cannot soundly type a dynamic key). `r["a"]` parses as an Index
+        // node but fails to typecheck against List<T>.
+        it('record indexing `r["a"]` is rejected by the typechecker', () => {
+            expectCompileError(`let r = { a: 1 };\nlet y = r["a"];`);
         });
     });
 
