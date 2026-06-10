@@ -13,11 +13,12 @@ import type {
     CorePattern,
     CoreReExportDecl,
     CoreTypeDecl,
+    CoreTypeExpr,
     CoreVariantConstructor,
 } from "../../types/core-ast.js";
 import type { EmitContext } from "./context.js";
 
-import { addExport, getIndent, markNeedsRefHelper, withPrecedence } from "./context.js";
+import { addExport, getIndent, markNeedsFfiOptionHelper, markNeedsRefHelper, withPrecedence } from "./context.js";
 import { escapeIdentifier } from "./reserved-words.js";
 
 // =============================================================================
@@ -346,14 +347,15 @@ function emitExternalDecl(decl: CoreExternalDecl, ctx: EmitContext): string {
         return `${indent}const ${vfName} = ${decl.jsName};`;
     }
 
-    // Multi-param externals: the desugarer curries every application into
-    // single-argument calls (`f(a)(b)`), but the declared surface shape
-    // `(A, B) -> R` promises an n-ary JS function. Bridge the calling
-    // conventions with a curried wrapper const; `emitVar` references the
-    // wrapper instead of inlining the raw jsName (see curriedExternals in
-    // the shared emit state).
-    if (externalNeedsCurryWrapper(decl)) {
-        return `${indent}const ${vfName} = ${curriedExternalWrapper(decl, vfName)};`;
+    // Wrapped externals: a wrapper const bridges the calling conventions
+    // when the declared surface shape takes ≥2 parameters (the desugarer
+    // curries every application into single-argument calls, but the JS
+    // function is n-ary) and/or marshals an Option<T> return through
+    // $ffiOption (null/undefined → None, value → Some). `emitVar`
+    // references the wrapper instead of inlining the raw jsName (see
+    // wrappedExternals in the shared emit state).
+    if (externalNeedsWrapper(decl)) {
+        return `${indent}const ${vfName} = ${externalWrapper(decl, vfName, ctx)};`;
     }
 
     // If the jsName equals the vfName (after escaping), we might not need a binding
@@ -389,28 +391,97 @@ function emitExternalDecl(decl: CoreExternalDecl, ctx: EmitContext): string {
 }
 
 /**
- * True when an external's declared surface type takes ≥2 parameters.
+ * The JS calling shape an external's declared surface type promises.
  *
- * Such externals are emitted as curried wrapper consts because the declared
- * shape `(A, B) -> R` means the underlying JS function expects all arguments
- * in one call, while emitted vibefun applications are always single-argument
- * chains. An explicitly curried declaration (`(A) -> (B) -> R`) has one
- * surface parameter, so it is excluded — its JS function takes one argument
- * and returns a function, matching the emitted call shape already.
+ * Each `CoreFunctionType` level is one JS call segment: `(A, B) -> R` is a
+ * single binary call, `(A) -> (B) -> R` two unary calls. `finalReturn` is
+ * the type after following every function level.
  */
-export function externalNeedsCurryWrapper(decl: CoreExternalDecl): boolean {
-    return decl.typeExpr.kind === "CoreFunctionType" && decl.typeExpr.params.length >= 2;
+type ExternalCallShape = { segments: number[]; finalReturn: CoreTypeExpr };
+
+function externalCallShape(decl: CoreExternalDecl): ExternalCallShape | null {
+    if (decl.typeExpr.kind !== "CoreFunctionType") return null;
+    const segments: number[] = [];
+    let current: CoreTypeExpr = decl.typeExpr;
+    while (current.kind === "CoreFunctionType") {
+        segments.push(current.params.length);
+        current = current.return_;
+    }
+    return { segments, finalReturn: current };
 }
 
 /**
- * Import alias for a curried external imported from a module under the same
+ * Wrap a jsName in parentheses when it is not a plain (possibly dotted)
+ * identifier path, so using it in call position keeps its own grouping:
+ * `(b) => b ? 5 : null` called as-is would parse the call into the arrow
+ * body, while `((b) => b ? 5 : null)(x)` calls the function. Already
+ * fully-parenthesized expressions are left alone.
+ */
+export function jsCallTarget(jsName: string): string {
+    const identifierPath = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
+    if (identifierPath.test(jsName) || isFullyParenthesized(jsName)) {
+        return jsName;
+    }
+    return `(${jsName})`;
+}
+
+/**
+ * True when the string is one parenthesized group: starts with `(` whose
+ * matching `)` is the final character. The scan does not track string
+ * literals inside the expression — a misdetection only adds a redundant
+ * (harmless) pair of parentheses.
+ */
+function isFullyParenthesized(s: string): boolean {
+    if (!s.startsWith("(") || !s.endsWith(")")) return false;
+    let depth = 0;
+    for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === "(") depth++;
+        else if (ch === ")") {
+            depth--;
+            if (depth === 0) return i === s.length - 1;
+        }
+    }
+    return false;
+}
+
+/**
+ * True for a surface type expression denoting `Option<...>`.
+ */
+export function isOptionTypeExpr(typeExpr: CoreTypeExpr): boolean {
+    return (
+        typeExpr.kind === "CoreTypeApp" &&
+        typeExpr.constructor.kind === "CoreTypeConst" &&
+        typeExpr.constructor.name === "Option"
+    );
+}
+
+/**
+ * True when an external must be emitted as a wrapper const. Two triggers:
+ *
+ * - The outer surface shape takes ≥2 parameters: `(A, B) -> R` means the
+ *   underlying JS function expects all arguments in one call, while emitted
+ *   vibefun applications are single-argument chains. (An explicitly curried
+ *   declaration `(A) -> (B) -> R` already matches the emitted call shape.)
+ * - The final return type is `Option<T>`: the result must be marshalled
+ *   through $ffiOption (null/undefined → None, value → Some) per
+ *   type-safety.md, unconditionally.
+ */
+export function externalNeedsWrapper(decl: CoreExternalDecl): boolean {
+    const shape = externalCallShape(decl);
+    if (!shape) return false;
+    return (shape.segments[0] ?? 0) >= 2 || isOptionTypeExpr(shape.finalReturn);
+}
+
+/**
+ * Import alias for a wrapped external imported from a module under the same
  * name as its vibefun binding. The wrapper const occupies the vibefun name,
  * so the raw import needs an alias (`g` → `g$raw`) to avoid redeclaring it.
  * Returns undefined when no alias is needed. Used by the generator's import
- * collection; `curriedExternalWrapper` references the same alias.
+ * collection; `externalWrapper` references the same alias.
  */
-export function externalCurriedImportAlias(decl: CoreExternalDecl): string | undefined {
-    if (!externalNeedsCurryWrapper(decl)) return undefined;
+export function externalWrapperImportAlias(decl: CoreExternalDecl): string | undefined {
+    if (!externalNeedsWrapper(decl)) return undefined;
     if (!decl.from || decl.jsName.includes(".")) return undefined;
     // Compare ESCAPED forms: the import statement escapes its local binding
     // name and the wrapper const is the escaped vibefun name, so the
@@ -422,17 +493,19 @@ export function externalCurriedImportAlias(decl: CoreExternalDecl): string | und
 }
 
 /**
- * Build the curried wrapper expression for a multi-param external:
- * `($a0) => ($a1) => jsRef($a0, $a1)`.
+ * Build the wrapper expression for an external:
+ * `($a0) => ($a1) => jsRef($a0, $a1)` for a 2-param shape, with the call
+ * wrapped in `$ffiOption(...)` when the declared return type is Option<T>.
  */
-function curriedExternalWrapper(decl: CoreExternalDecl, vfName: string): string {
-    if (decl.typeExpr.kind !== "CoreFunctionType") {
-        throw new Error("Internal error: curriedExternalWrapper called for a non-function external");
+function externalWrapper(decl: CoreExternalDecl, vfName: string, ctx: EmitContext): string {
+    const shape = externalCallShape(decl);
+    if (!shape) {
+        throw new Error("Internal error: externalWrapper called for a non-function external");
     }
 
     // Reference to the raw JS function being wrapped.
-    let jsRef = decl.jsName;
-    const importAlias = externalCurriedImportAlias(decl);
+    let jsRef = jsCallTarget(decl.jsName);
+    const importAlias = externalWrapperImportAlias(decl);
     if (importAlias !== undefined) {
         jsRef = importAlias;
     } else if (decl.from && !decl.jsName.includes(".")) {
@@ -447,9 +520,27 @@ function curriedExternalWrapper(decl: CoreExternalDecl, vfName: string): string 
         jsRef = `globalThis.${decl.jsName}`;
     }
 
-    const params = decl.typeExpr.params.map((_, i) => `$a${i}`);
-    const chain = params.map((p) => `(${p}) => `).join("");
-    return `${chain}${jsRef}(${params.join(", ")})`;
+    // Parameters are curried one at a time on the vibefun side; the raw
+    // call groups them by the declared segments.
+    const totalParams = shape.segments.reduce((a, b) => a + b, 0);
+    const params = Array.from({ length: totalParams }, (_, i) => `$a${i}`);
+
+    let call = jsRef;
+    let next = 0;
+    for (const segment of shape.segments) {
+        call = `${call}(${params.slice(next, next + segment).join(", ")})`;
+        next += segment;
+    }
+
+    if (isOptionTypeExpr(shape.finalReturn)) {
+        markNeedsFfiOptionHelper(ctx);
+        call = `$ffiOption(${call})`;
+    }
+
+    // Zero-param shape still needs a thunk — a bare call would run at
+    // module-init time instead of at the call site.
+    const chain = params.length > 0 ? params.map((p) => `(${p}) => `).join("") : "() => ";
+    return `${chain}${call}`;
 }
 
 // =============================================================================

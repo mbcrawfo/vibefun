@@ -127,15 +127,17 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
         declarationTypes: typedModule.declarationTypes,
     });
 
-    // Register multi-param externals up front: emitVar must reference their
-    // curried wrapper const (by vibefun name) anywhere in the module, even
-    // before the declaration itself is emitted. Overloaded externals are
-    // excluded — their calls emit the n-ary jsName directly (see emitApp).
+    // Register wrapped externals up front: emitVar must reference their
+    // wrapper const (by vibefun name) anywhere in the module, even before
+    // the declaration itself is emitted. Wrappers bridge multi-param
+    // calling conventions and/or marshal Option<T> returns. Overloaded
+    // externals are excluded — their calls emit the n-ary jsName directly
+    // (see emitApp).
     for (const decl of module.declarations) {
-        if (decl.kind === "CoreExternalDecl" && Declarations.externalNeedsCurryWrapper(decl)) {
+        if (decl.kind === "CoreExternalDecl" && Declarations.externalNeedsWrapper(decl)) {
             const binding = typedModule.env.values.get(decl.name);
             if (binding?.kind !== "ExternalOverload") {
-                ctx.shared.curriedExternals.add(decl.name);
+                ctx.shared.wrappedExternals.add(decl.name);
             }
         }
     }
@@ -150,6 +152,7 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
         needsIntDiv: ctx.shared.needsIntDivHelper,
         needsIntMod: ctx.shared.needsIntModHelper,
         needsPanic: ctx.shared.needsPanicHelper,
+        needsFfiOption: ctx.shared.needsFfiOptionHelper,
     });
     const exports = generateExports(ctx, exportAliases);
 
@@ -362,11 +365,11 @@ function collectExternalImport(decl: CoreExternalDecl, importsByModule: Map<stri
         importName = parts[0]!;
     }
 
-    // A curried external wrapper occupies the vibefun name, so a same-named
+    // An external wrapper const occupies the vibefun name, so a same-named
     // raw import must be aliased out of its way (`g` → `g$raw`). All other
     // cases import the jsName directly; the const binding (if any) is
     // handled in declaration emission.
-    const alias = Declarations.externalCurriedImportAlias(decl);
+    const alias = Declarations.externalWrapperImportAlias(decl);
 
     addOrMergeImport(items, {
         name: importName,

@@ -57,7 +57,9 @@ unsafe {
 
 #### Handling JavaScript Null and Undefined
 
-JavaScript `null` and `undefined` don't exist in Vibefun's type system. Use `Option` to represent nullable values:
+JavaScript `null` and `undefined` don't exist in Vibefun's type system. Use `Option` to represent nullable values.
+
+When an external's declared return type is `Option<T>`, the compiler **unconditionally** marshals the returned value at the FFI boundary: JS `null` or `undefined` becomes `None`, and any other value becomes `Some(value)`. This marshalling is always emitted — it is not gated by the runtime-checks modes above. (Other falsy JS values such as `0`, `""`, `false`, and `NaN` are real values and marshal to `Some`.)
 
 ```vibefun
 // Declare external that might return null

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     generateEqHelper,
+    generateFfiOptionHelper,
     generateIntDivHelper,
     generateIntModHelper,
     generatePanicHelper,
@@ -73,7 +74,14 @@ describe("Runtime Helpers", () => {
     });
 
     describe("generateRuntimeHelpers", () => {
-        const none = { needsRef: false, needsEq: false, needsIntDiv: false, needsIntMod: false, needsPanic: false };
+        const none = {
+            needsRef: false,
+            needsEq: false,
+            needsIntDiv: false,
+            needsIntMod: false,
+            needsPanic: false,
+            needsFfiOption: false,
+        };
 
         it("should return empty string when no helpers needed", () => {
             const result = generateRuntimeHelpers(none);
@@ -127,6 +135,16 @@ describe("Runtime Helpers", () => {
             const result = generateRuntimeHelpers(none);
             expect(result).not.toContain("$panic");
         });
+
+        it("should generate $ffiOption when needed", () => {
+            const result = generateRuntimeHelpers({ ...none, needsFfiOption: true });
+            expect(result).toContain("const $ffiOption");
+        });
+
+        it("should not generate $ffiOption when not needed", () => {
+            const result = generateRuntimeHelpers(none);
+            expect(result).not.toContain("$ffiOption");
+        });
     });
 
     describe("generateIntDivHelper", () => {
@@ -167,6 +185,37 @@ describe("Runtime Helpers", () => {
         it("should throw an Error carrying the supplied message", () => {
             const fn = new Function(`${generatePanicHelper()}; return $panic;`)() as (msg: string) => never;
             expect(() => fn("boom")).toThrowError(new Error("boom"));
+        });
+    });
+
+    describe("generateFfiOptionHelper", () => {
+        it("should generate valid JavaScript", () => {
+            expect(() => new Function(generateFfiOptionHelper())).not.toThrow();
+        });
+
+        function getFfiOption(): (v: unknown) => { $tag: string; $0?: unknown } {
+            const fn = new Function(`${generateFfiOptionHelper()}; return $ffiOption;`);
+            return fn() as (v: unknown) => { $tag: string; $0?: unknown };
+        }
+
+        it("marshals null to None", () => {
+            expect(getFfiOption()(null)).toEqual({ $tag: "None" });
+        });
+
+        it("marshals undefined to None", () => {
+            expect(getFfiOption()(undefined)).toEqual({ $tag: "None" });
+        });
+
+        it("marshals a value to Some carrying it", () => {
+            expect(getFfiOption()(5)).toEqual({ $tag: "Some", $0: 5 });
+        });
+
+        it("marshals falsy non-null values to Some (0, empty string, false, NaN)", () => {
+            const $ffiOption = getFfiOption();
+            expect($ffiOption(0)).toEqual({ $tag: "Some", $0: 0 });
+            expect($ffiOption("")).toEqual({ $tag: "Some", $0: "" });
+            expect($ffiOption(false)).toEqual({ $tag: "Some", $0: false });
+            expect($ffiOption(NaN)).toEqual({ $tag: "Some", $0: NaN });
         });
     });
 

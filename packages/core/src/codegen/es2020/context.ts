@@ -31,17 +31,20 @@ export type SharedState = {
     needsIntDivHelper: boolean;
     needsIntModHelper: boolean;
     needsPanicHelper: boolean;
+    needsFfiOptionHelper: boolean;
     exportedNames: Set<string>;
     /** Counter for generating unique wildcard identifiers */
     wildcardCounter: number;
     /**
-     * Names of external declarations whose surface type takes ≥2 parameters.
-     * These are emitted as curried wrapper consts (the desugarer curries all
-     * applications, but the underlying JS function is n-ary), so variable
+     * Names of external declarations emitted as wrapper consts, so variable
      * references must use the vibefun name instead of inlining the jsName.
-     * Overloaded externals are excluded — their calls emit n-ary directly.
+     * Two triggers: the surface type takes ≥2 parameters (the desugarer
+     * curries all applications but the underlying JS function is n-ary),
+     * and/or the declared return type is Option<T> (the result must be
+     * marshalled through $ffiOption). Overloaded externals are excluded —
+     * their calls emit n-ary directly.
      */
-    curriedExternals: Set<string>;
+    wrappedExternals: Set<string>;
     /**
      * Overloaded external names whose alias const has been emitted. A group
      * has several CoreExternalDecl nodes sharing one name; only the first
@@ -114,9 +117,10 @@ export function createContext(options: CreateContextOptions): EmitContext {
         needsIntDivHelper: false,
         needsIntModHelper: false,
         needsPanicHelper: false,
+        needsFfiOptionHelper: false,
         exportedNames: new Set(),
         wildcardCounter: 0,
-        curriedExternals: new Set(),
+        wrappedExternals: new Set(),
         emittedOverloadAliases: new Set(),
     };
 
@@ -260,6 +264,15 @@ export function markNeedsIntModHelper(ctx: EmitContext): void {
  */
 export function markNeedsPanicHelper(ctx: EmitContext): void {
     ctx.shared.needsPanicHelper = true;
+}
+
+/**
+ * Mark that the $ffiOption helper is needed (FFI null→Option marshalling)
+ *
+ * @param ctx - Context to update (mutates shared state!)
+ */
+export function markNeedsFfiOptionHelper(ctx: EmitContext): void {
+    ctx.shared.needsFfiOptionHelper = true;
 }
 
 /**
