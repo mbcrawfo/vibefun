@@ -179,6 +179,7 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 newEnv.values.set(name, {
                     kind: "Value",
                     scheme,
+                    mutable: decl.mutable,
                     loc: decl.loc,
                 });
             }
@@ -310,6 +311,7 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
                 newEnv.values.set(name, {
                     kind: "Value",
                     scheme,
+                    mutable: binding.mutable,
                     loc: binding.loc,
                 });
             }

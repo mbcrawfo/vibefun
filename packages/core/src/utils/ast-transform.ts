@@ -195,6 +195,13 @@ export function transformChildren(expr: CoreExpr, fn: Transformer): CoreExpr {
                 ...expr,
                 elements: expr.elements.map((e) => transformExpr(e, fn)),
             };
+
+        // Mutable-binding reassignment
+        case "CoreAssign":
+            return {
+                ...expr,
+                value: transformExpr(expr.value, fn),
+            };
     }
 }
 
@@ -353,6 +360,10 @@ export function visitExpr(expr: CoreExpr, fn: Visitor): void {
         case "CoreTryCatch":
             visitExpr(expr.tryBody, fn);
             visitExpr(expr.catchBody, fn);
+            return;
+
+        case "CoreAssign":
+            visitExpr(expr.value, fn);
             return;
     }
 }

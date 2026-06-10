@@ -80,7 +80,7 @@ add unit→integration tests until back to par.
 - [x] Phase gate: `pnpm run verify` + coverage (combined ≥ baseline: lines 93.06, stmts 92.28, funcs 93.17, branches 87.21)
 
 ### Phase 4 — New surface syntax (last)
-- [ ] **11. VF-FC-0005** — mutable-binding reassignment `x = expr;` → `vf-fc-0005-mutable-binding-reassignment.md`
+- [x] **11. VF-FC-0005** — `Assign`/`CoreAssign` statement through the full pipeline; parser admits `<ident> = <expr>` in statement positions only (incl. block-vs-record disambiguation); typechecker requires a `let mut` target (new **VF4019**) via a `mutable` flag on Value bindings; codegen emits `(x = v, undefined)` → `vf-fc-0005-mutable-binding-reassignment.md`
 - [ ] **12. VF-FC-0012** — list indexing `[]` → `Option<T>` → `vf-fc-0012-indexing-operator.md`
 - [ ] Final gate: `pnpm run verify` + `pnpm run test:coverage` (≥ baseline) + `pnpm docs:errors` (if error codes changed)
 

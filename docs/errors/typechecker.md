@@ -28,6 +28,7 @@ Errors during type checking and inference
 | [VF4016](#vf4016) | RefAssignmentMismatch | **Error** |
 | [VF4017](#vf4017) | NotImplemented | **Error** |
 | [VF4018](#vf4018) | MutableBindingRequiresRef | **Error** |
+| [VF4019](#vf4019) | ImmutableBindingReassigned | **Error** |
 | [VF4020](#vf4020) | CannotUnify | **Error** |
 | [VF4021](#vf4021) | FunctionArityMismatch | **Error** |
 | [VF4022](#vf4022) | TypeApplicationArityMismatch | **Error** |
@@ -789,6 +790,45 @@ let mut x = ref(5)
 ### Related
 
 [VF2003](parser.md#vf2003), [VF2008](parser.md#vf2008)
+
+
+---
+
+## VF4019
+
+**ImmutableBindingReassigned** **Error**
+
+### Message
+
+> Cannot reassign immutable binding '{name}'
+
+### Explanation
+
+Reassignment ('x = expr;') rebinds a variable to a new value, which is only allowed for bindings declared with 'let mut' (07-mutable-references.md). Immutable bindings ('let x = ...') cannot be reassigned. To mutate state, either declare the binding mutable or use a Ref and the ':=' operator.
+
+### Example
+
+**Problem:**
+
+```vibefun
+let y = 42; y = 43;
+```
+
+**Solution:**
+
+```vibefun
+let mut y = ref(42); y = ref(43);
+```
+
+*Declared the binding with 'let mut' so it can be reassigned*
+
+### Hint
+
+> Declare the binding with 'let mut {name} = ref(...)' if it needs to be reassigned
+
+### Related
+
+[VF4018](typechecker.md#vf4018)
 
 
 ---

@@ -26,6 +26,11 @@ export type ValueBinding =
           kind: "Value";
           /** Type scheme for the value (with quantified variables) */
           scheme: TypeScheme;
+          /**
+           * True when the binding was declared `let mut` and may therefore
+           * be reassigned (`x = expr;`). Absent/false for everything else.
+           */
+          mutable?: boolean;
           /** Source location for error reporting */
           loc: Location;
       }
