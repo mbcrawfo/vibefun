@@ -360,7 +360,8 @@ function collectExternalImport(decl: CoreExternalDecl, importsByModule: Map<stri
     let importName = decl.jsName;
 
     if (decl.jsName.includes(".")) {
-        // Dotted name - import the namespace portion (no alias needed)
+        // Dotted name - import the namespace portion directly (the wrapper
+        // alias below only ever applies to simple, non-dotted jsNames)
         const parts = decl.jsName.split(".");
         importName = parts[0]!;
     }
