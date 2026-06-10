@@ -21,8 +21,8 @@ import { describe, expect, it } from "vitest";
 import { listType, optionType } from "./builtins.js";
 import { buildEnvironment } from "./environment.js";
 import { checkPattern } from "./patterns.js";
-import { primitiveTypes } from "./types.js";
-import { emptySubst } from "./unify.js";
+import { freshTypeVar, primitiveTypes } from "./types.js";
+import { applySubst, composeSubst, emptySubst, unify } from "./unify.js";
 
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
@@ -440,6 +440,99 @@ describe("Pattern Checking", () => {
             expect(() => {
                 checkPattern(env, pattern, primitiveTypes.Int, emptySubst(), 0);
             }).toThrow("VF4500");
+        });
+
+        // [BUG: VF-FC-0004] A record pattern against a FREE type variable
+        // (e.g. an unannotated destructuring lambda's synthesized scrutinee)
+        // instantiates the variable to the closed record type implied by the
+        // pattern's field set, instead of failing with VF4500.
+        describe("against a free type variable", () => {
+            it("instantiates the variable to the closed record type implied by the pattern", () => {
+                const pattern: CoreRecordPattern = {
+                    kind: "CoreRecordPattern",
+                    fields: [
+                        { name: "x", pattern: { kind: "CoreVarPattern", name: "xVal", loc: testLoc }, loc: testLoc },
+                        { name: "y", pattern: { kind: "CoreVarPattern", name: "yVal", loc: testLoc }, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                };
+
+                const scrutinee = freshTypeVar(0);
+                const result = checkPattern(env, pattern, scrutinee, emptySubst(), 0);
+
+                // The scrutinee variable is now a closed record with exactly
+                // the pattern's fields, each a fresh type variable.
+                const resolved = applySubst(result.subst, scrutinee);
+                expect(resolved.type).toBe("Record");
+                if (resolved.type === "Record") {
+                    expect(Array.from(resolved.fields.keys()).sort()).toEqual(["x", "y"]);
+                }
+                expect(result.bindings.size).toBe(2);
+                expect(result.bindings.get("xVal")?.type).toBe("Var");
+                expect(result.bindings.get("yVal")?.type).toBe("Var");
+            });
+
+            it("handles nested record patterns against a free variable", () => {
+                const pattern: CoreRecordPattern = {
+                    kind: "CoreRecordPattern",
+                    fields: [
+                        {
+                            name: "inner",
+                            pattern: {
+                                kind: "CoreRecordPattern",
+                                fields: [
+                                    {
+                                        name: "a",
+                                        pattern: { kind: "CoreVarPattern", name: "aVal", loc: testLoc },
+                                        loc: testLoc,
+                                    },
+                                ],
+                                loc: testLoc,
+                            },
+                            loc: testLoc,
+                        },
+                    ],
+                    loc: testLoc,
+                };
+
+                const scrutinee = freshTypeVar(0);
+                const result = checkPattern(env, pattern, scrutinee, emptySubst(), 0);
+
+                const resolved = applySubst(result.subst, scrutinee);
+                expect(resolved.type).toBe("Record");
+                if (resolved.type === "Record") {
+                    const inner = resolved.fields.get("inner");
+                    expect(inner?.type).toBe("Record");
+                    if (inner?.type === "Record") {
+                        expect(Array.from(inner.fields.keys())).toEqual(["a"]);
+                    }
+                }
+                expect(result.bindings.get("aVal")?.type).toBe("Var");
+            });
+
+            it("later unification constrains the synthesized field types", () => {
+                const pattern: CoreRecordPattern = {
+                    kind: "CoreRecordPattern",
+                    fields: [
+                        { name: "x", pattern: { kind: "CoreVarPattern", name: "xVal", loc: testLoc }, loc: testLoc },
+                    ],
+                    loc: testLoc,
+                };
+
+                const scrutinee = freshTypeVar(0);
+                const result = checkPattern(env, pattern, scrutinee, emptySubst(), 0);
+
+                // Unify the synthesized record with a concrete one — the
+                // binding's type variable resolves to the concrete field type.
+                const concrete: Type = { type: "Record", fields: new Map([["x", primitiveTypes.Int]]) };
+                const finalSubst = composeSubst(
+                    unify(applySubst(result.subst, scrutinee), concrete, { loc: testLoc }),
+                    result.subst,
+                );
+                const xVal = result.bindings.get("xVal");
+                expect(xVal).toBeDefined();
+                expect(applySubst(finalSubst, xVal!)).toEqual(primitiveTypes.Int);
+            });
         });
     });
 
