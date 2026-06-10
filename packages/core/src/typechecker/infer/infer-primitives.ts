@@ -11,6 +11,7 @@ import type { InferenceContext, InferResult } from "./infer-context.js";
 
 import { throwDiagnostic } from "../../diagnostics/index.js";
 import { typeToString } from "../format.js";
+import { curriedFun } from "../module-signatures/scheme-builders.js";
 import { constType, funType, primitiveTypes, tupleType } from "../types.js";
 import { applySubst, composeSubst, expandAliasFully, unify } from "../unify.js";
 import { instantiate } from "./infer-context.js";
@@ -393,11 +394,21 @@ export function convertTypeExpr(typeExpr: CoreTypeExpr, typeParams?: Map<string,
             }
             return constType(typeExpr.name);
 
-        case "CoreFunctionType":
-            return funType(
-                typeExpr.params.map((p) => convertTypeExpr(p, typeParams)),
-                convertTypeExpr(typeExpr.return_, typeParams),
-            );
+        case "CoreFunctionType": {
+            // Per the spec (external-declarations.md §auto-currying),
+            // `(A, B) -> R` and `A -> B -> R` are the SAME type. The
+            // desugarer curries every lambda and application into
+            // single-argument form, so multi-param annotations must lower
+            // to the same right-nested chain of single-param Funs
+            // (`curriedFun`, the shape every stdlib signature already uses).
+            // Zero-param `() -> R` keeps its `Fun([], R)` representation.
+            const params = typeExpr.params.map((p) => convertTypeExpr(p, typeParams));
+            const returnType = convertTypeExpr(typeExpr.return_, typeParams);
+            if (params.length <= 1) {
+                return funType(params, returnType);
+            }
+            return curriedFun(params, returnType);
+        }
 
         case "CoreTypeApp": {
             const constructor = convertTypeExpr(typeExpr.constructor, typeParams);

@@ -502,12 +502,12 @@ export function recordTypeDecl(
 export function externalDecl(
     name: string,
     jsName: string,
-    options?: { from?: string; exported?: boolean },
+    options?: { from?: string; exported?: boolean; typeExpr?: CoreTypeExpr },
 ): CoreDeclaration {
     const result: CoreDeclaration = {
         kind: "CoreExternalDecl",
         name,
-        typeExpr: dummyTypeExpr(),
+        typeExpr: options?.typeExpr ?? dummyTypeExpr(),
         jsName,
         exported: options?.exported ?? false,
         loc: testLoc(),
@@ -516,6 +516,19 @@ export function externalDecl(
         (result as { from: string }).from = options.from;
     }
     return result;
+}
+
+/**
+ * Create a function type expression with `paramCount` Int parameters
+ * returning Int — used to model the declared surface shape of externals.
+ */
+export function funTypeExpr(paramCount: number): CoreTypeExpr {
+    return {
+        kind: "CoreFunctionType",
+        params: Array.from({ length: paramCount }, () => dummyTypeExpr()),
+        return_: dummyTypeExpr(),
+        loc: testLoc(),
+    };
 }
 
 /**

@@ -44,6 +44,68 @@ let result = unsafe { basename("/tmp/file.txt") };`,
         });
     });
 
+    describe("multi-argument externals (auto-currying)", () => {
+        // Per external-declarations.md:296-305, `(A, B) -> R` and
+        // `A -> B -> R` are the SAME type (auto-currying). Multi-param
+        // function types failed to typecheck with VF4021 before
+        // [BUG: VF-FC-0009] was fixed; these pin the repaired behaviour.
+        it("multi-arg external typechecks and runs with full application", () => {
+            expectRunOutput(
+                withOutput(
+                    `external add2: (Int, Int) -> Int = "((a, b) => a + b)";
+let r = unsafe { add2(3, 4) };`,
+                    `String.fromInt(r)`,
+                ),
+                "7",
+            );
+        });
+
+        it("multi-arg external supports partial application", () => {
+            expectRunOutput(
+                withOutput(
+                    `external add2: (Int, Int) -> Int = "((a, b) => a + b)";
+let add3 = unsafe { add2(3) };
+let r = add3(4);`,
+                    `String.fromInt(r)`,
+                ),
+                "7",
+            );
+        });
+
+        it("3-arg external runs with full application", () => {
+            expectRunOutput(
+                withOutput(
+                    `external sum3: (Int, Int, Int) -> Int = "((a, b, c) => a + b + c)";
+let r = unsafe { sum3(1, 2, 3) };`,
+                    `String.fromInt(r)`,
+                ),
+                "6",
+            );
+        });
+
+        it("explicitly curried external type takes single-arg JS calls", () => {
+            expectRunOutput(
+                withOutput(
+                    `external mk: (Int) -> (Int) -> Int = "((a) => (b) => a + b)";
+let r = unsafe { mk(3)(4) };`,
+                    `String.fromInt(r)`,
+                ),
+                "7",
+            );
+        });
+
+        it("multi-param function-type annotation on a let compiles and runs", () => {
+            expectRunOutput(
+                withOutput(
+                    `let add: (Int, Int) -> Int = (a, b) => a + b;
+let r = add(3, 4);`,
+                    `String.fromInt(r)`,
+                ),
+                "7",
+            );
+        });
+    });
+
     describe("unsafe blocks", () => {
         it("unsafe block required for external calls", () => {
             expectRunOutput(
@@ -209,14 +271,24 @@ let o = unsafe { to_obj("{\\"a\\": 2}") };`,
         });
 
         // F-20: Promise<T> is accepted as an opaque type annotation. Awaiting
-        // is a documented future feature (unsafe-blocks.md:97-103), and chaining
-        // via a `.then(p, f)` helper needs multi-argument externals, which
-        // currently fail to typecheck — see [BUG: VF-FC-0009]. So this asserts
-        // the type is accepted end-to-end, not that the promise is resolved.
+        // is a documented future feature (unsafe-blocks.md:97-103).
         it("Promise<T> is accepted as an opaque type", () => {
             expectCompiles(
                 `external fetch_text: (String) -> Promise<String> = "fetch";
 let p = unsafe { fetch_text("https://example.com") };`,
+            );
+        });
+
+        // F-20 follow-up: with multi-argument externals fixed (VF-FC-0009),
+        // Promise chaining via a `.then(p, f)` helper works end-to-end — the
+        // microtask runs before node exits, so the output is observable.
+        it("Promise<T> chains via a multi-argument .then external", () => {
+            expectRunOutput(
+                `external console_log: (String) -> Unit = "console.log";
+external js_resolve: (String) -> Promise<String> = "((x) => Promise.resolve(x))";
+external js_then: (Promise<String>, (String) -> Unit) -> Unit = "((p, f) => { p.then(f); })";
+let _ = unsafe { js_then(js_resolve("chained"), (s) => unsafe { console_log(s) }) };`,
+                "chained",
             );
         });
 

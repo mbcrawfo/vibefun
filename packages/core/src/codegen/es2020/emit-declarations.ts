@@ -330,6 +330,16 @@ function emitExternalDecl(decl: CoreExternalDecl, ctx: EmitContext): string {
         addExport(ctx, vfName);
     }
 
+    // Multi-param externals: the desugarer curries every application into
+    // single-argument calls (`f(a)(b)`), but the declared surface shape
+    // `(A, B) -> R` promises an n-ary JS function. Bridge the calling
+    // conventions with a curried wrapper const; `emitVar` references the
+    // wrapper instead of inlining the raw jsName (see curriedExternals in
+    // the shared emit state).
+    if (externalNeedsCurryWrapper(decl)) {
+        return `${indent}const ${vfName} = ${curriedExternalWrapper(decl, vfName)};`;
+    }
+
     // If the jsName equals the vfName (after escaping), we might not need a binding
     // But for consistency and to ensure proper export handling, always emit the binding
 
@@ -360,6 +370,60 @@ function emitExternalDecl(decl: CoreExternalDecl, ctx: EmitContext): string {
 
     // Using global directly with same name - no binding needed
     return "";
+}
+
+/**
+ * True when an external's declared surface type takes ≥2 parameters.
+ *
+ * Such externals are emitted as curried wrapper consts because the declared
+ * shape `(A, B) -> R` means the underlying JS function expects all arguments
+ * in one call, while emitted vibefun applications are always single-argument
+ * chains. An explicitly curried declaration (`(A) -> (B) -> R`) has one
+ * surface parameter, so it is excluded — its JS function takes one argument
+ * and returns a function, matching the emitted call shape already.
+ */
+export function externalNeedsCurryWrapper(decl: CoreExternalDecl): boolean {
+    return decl.typeExpr.kind === "CoreFunctionType" && decl.typeExpr.params.length >= 2;
+}
+
+/**
+ * Import alias for a curried external imported from a module under the same
+ * name as its vibefun binding. The wrapper const occupies the vibefun name,
+ * so the raw import needs an alias (`g` → `g$raw`) to avoid redeclaring it.
+ * Returns undefined when no alias is needed. Used by the generator's import
+ * collection; `curriedExternalWrapper` references the same alias.
+ */
+export function externalCurriedImportAlias(decl: CoreExternalDecl): string | undefined {
+    if (!externalNeedsCurryWrapper(decl)) return undefined;
+    if (!decl.from || decl.jsName.includes(".")) return undefined;
+    if (decl.jsName !== escapeIdentifier(decl.name)) return undefined;
+    return `${decl.jsName}$raw`;
+}
+
+/**
+ * Build the curried wrapper expression for a multi-param external:
+ * `($a0) => ($a1) => jsRef($a0, $a1)`.
+ */
+function curriedExternalWrapper(decl: CoreExternalDecl, vfName: string): string {
+    if (decl.typeExpr.kind !== "CoreFunctionType") {
+        throw new Error("Internal error: curriedExternalWrapper called for a non-function external");
+    }
+
+    // Reference to the raw JS function being wrapped.
+    let jsRef = decl.jsName;
+    const importAlias = externalCurriedImportAlias(decl);
+    if (importAlias !== undefined) {
+        jsRef = importAlias;
+    } else if (!decl.from && decl.jsName === vfName) {
+        // A same-named global: a bare reference inside the initializer would
+        // hit the temporal dead zone of the const being declared, so go
+        // through globalThis instead.
+        jsRef = `globalThis.${decl.jsName}`;
+    }
+
+    const params = decl.typeExpr.params.map((_, i) => `$a${i}`);
+    const chain = params.map((p) => `(${p}) => `).join("");
+    return `${chain}${jsRef}(${params.join(", ")})`;
 }
 
 // =============================================================================
