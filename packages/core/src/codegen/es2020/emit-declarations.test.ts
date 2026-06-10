@@ -339,6 +339,25 @@ describe("Declaration Emission", () => {
                 expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBeUndefined();
             });
 
+            it("aliases a reserved-word import whose escaped name collides with the wrapper", () => {
+                // `default` (vf name) and "default" (jsName) both escape to
+                // `default$`: without an alias the import's local binding
+                // would re-declare the wrapper const.
+                const ctx = createTestContext();
+                const decl = externalDecl("default", "default", { from: "m", typeExpr: funTypeExpr(2) });
+                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBe("default$raw");
+                expect(emitDeclaration(decl, ctx)).toBe("const default$ = ($a0) => ($a1) => default$raw($a0, $a1);");
+            });
+
+            it("references the escaped local for a reserved-word import under a different name", () => {
+                // import { default as default$ } from "m" — the wrapper must
+                // call the ESCAPED local binding, not the raw remote name.
+                const ctx = createTestContext();
+                const decl = externalDecl("myDef", "default", { from: "m", typeExpr: funTypeExpr(2) });
+                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBeUndefined();
+                expect(emitDeclaration(decl, ctx)).toBe("const myDef = ($a0) => ($a1) => default$($a0, $a1);");
+            });
+
             it("still collects the export for a wrapped external", () => {
                 const ctx = createTestContext();
                 const decl = externalDecl("add2", "((a, b) => a + b)", {
