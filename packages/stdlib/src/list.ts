@@ -86,6 +86,25 @@ export const head = <A>(list: List<A>): Option<A> => (list.$tag === "Cons" ? Som
 
 export const tail = <A>(list: List<A>): Option<List<A>> => (list.$tag === "Cons" ? Some(list.$1) : None);
 
+/**
+ * Safe positional access: `get(list)(i)` is `Some(element)` when `0 <= i <
+ * length(list)` and `None` otherwise (negative, fractional, or past-the-end
+ * indices). Backs the surface indexing operator `xs[i]`.
+ */
+export const get =
+    <A>(list: List<A>) =>
+    (index: number): Option<A> => {
+        if (index < 0 || !Number.isInteger(index)) return None;
+        let cur: List<A> = list;
+        let i = 0;
+        while (cur.$tag === "Cons") {
+            if (i === index) return Some(cur.$0);
+            cur = cur.$1;
+            i++;
+        }
+        return None;
+    };
+
 export const reverse = <A>(list: List<A>): List<A> => {
     let result: List<A> = Nil;
     let cur: List<A> = list;
