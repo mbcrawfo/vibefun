@@ -4,6 +4,7 @@
 
 import type { EmitContext } from "../context.js";
 
+import { markNeedsPanicHelper } from "../context.js";
 import { escapeIdentifier } from "../reserved-words.js";
 
 /**
@@ -15,6 +16,15 @@ import { escapeIdentifier } from "../reserved-words.js";
 export function emitVar(name: string, ctx: EmitContext): string {
     // Check if this is an external binding
     const binding = ctx.env.values.get(name);
+
+    // The `panic` builtin has no JS global behind it — map it to the gated
+    // $panic runtime helper. The builtin-location check keeps a user
+    // binding that shadows the name untouched. [BUG: VF-FC-0006]
+    if (name === "panic" && binding?.kind === "Value" && binding.loc.file === "<builtin>") {
+        markNeedsPanicHelper(ctx);
+        return "$panic";
+    }
+
     if (binding) {
         if (binding.kind === "External" || binding.kind === "ExternalOverload") {
             // Multi-param externals are emitted as curried wrapper consts
