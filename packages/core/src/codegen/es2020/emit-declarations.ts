@@ -330,6 +330,22 @@ function emitExternalDecl(decl: CoreExternalDecl, ctx: EmitContext): string {
         addExport(ctx, vfName);
     }
 
+    // Overloaded externals: the group shares one name across several
+    // declarations, and call sites emit the n-ary jsName directly (see
+    // emitApp), so only the first member may emit the alias const — JS
+    // forbids re-declaring it.
+    if (ctx.env.values.get(decl.name)?.kind === "ExternalOverload") {
+        if (ctx.shared.emittedOverloadAliases.has(decl.name)) {
+            return "";
+        }
+        ctx.shared.emittedOverloadAliases.add(decl.name);
+        if (vfName === decl.jsName) {
+            // The import or same-named global already provides the binding.
+            return "";
+        }
+        return `${indent}const ${vfName} = ${decl.jsName};`;
+    }
+
     // Multi-param externals: the desugarer curries every application into
     // single-argument calls (`f(a)(b)`), but the declared surface shape
     // `(A, B) -> R` promises an n-ary JS function. Bridge the calling

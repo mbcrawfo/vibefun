@@ -43,6 +43,21 @@ export function emitLambda(expr: { kind: "CoreLambda"; param: CorePattern; body:
  * Note: CoreApp.args is always a single-element array (curried)
  */
 export function emitApp(expr: { kind: "CoreApp"; func: CoreExpr; args: CoreExpr[] }, ctx: EmitContext): string {
+    // Calls to overloaded externals emit the whole curried spine as ONE
+    // n-ary JS call: the typechecker resolved the overload by exact spine
+    // arity, and all overloads share a single jsName (VF4801), so the raw
+    // JS function expects every argument at once. The outermost CoreApp
+    // handles the full spine, so inner segments are never visited.
+    const spine = collectAppSpine(expr);
+    if (spine.head.kind === "CoreVar") {
+        const binding = ctx.env.values.get(spine.head.name);
+        if (binding?.kind === "ExternalOverload") {
+            const argsCode = spine.args.map((arg) => emitExpr(arg, withPrecedence(ctx, 0))).join(", ");
+            const code = `${binding.jsName}(${argsCode})`;
+            return maybeParens(code, CALL_PRECEDENCE, ctx.precedence);
+        }
+    }
+
     const funcCode = emitExpr(expr.func, withPrecedence(ctx, CALL_PRECEDENCE));
     // Args is always single-element in core AST
     const arg = expr.args[0];
@@ -53,4 +68,30 @@ export function emitApp(expr: { kind: "CoreApp"; func: CoreExpr; args: CoreExpr[
     const code = `${funcCode}(${argCode})`;
 
     return maybeParens(code, CALL_PRECEDENCE, ctx.precedence);
+}
+
+/**
+ * Reassemble the application spine of a curried CoreApp chain
+ * (`f(a)(b)` → head `f`, args `[a, b]`).
+ */
+function collectAppSpine(expr: { kind: "CoreApp"; func: CoreExpr; args: CoreExpr[] }): {
+    head: CoreExpr;
+    args: CoreExpr[];
+} {
+    const outerArg = expr.args[0];
+    if (outerArg === undefined) {
+        throw new Error("Internal error: CoreApp.args is empty");
+    }
+    const args: CoreExpr[] = [outerArg];
+    let current: CoreExpr = expr.func;
+    while (current.kind === "CoreApp") {
+        const arg = current.args[0];
+        if (arg === undefined) {
+            throw new Error("Internal error: CoreApp.args is empty");
+        }
+        args.push(arg);
+        current = current.func;
+    }
+    args.reverse();
+    return { head: current, args };
 }

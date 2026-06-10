@@ -2,20 +2,25 @@
  * Tests for type environment builder
  */
 
-import type { Module } from "../types/index.js";
+import type { CoreModule } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
+import { desugarModule } from "../desugarer/index.js";
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
 import { Parser } from "../parser/index.js";
 import { buildEnvironment } from "./environment.js";
 
-function parseModule(source: string): Module {
+// buildEnvironment runs on the post-desugar Core AST in the real pipeline
+// (typeCheck receives a CoreModule), so every fixture parses AND desugars.
+// This is exactly the path where overload grouping/validation was dead
+// before VF-FC-0008: the validators only matched pre-desugar kinds.
+function parseModule(source: string): CoreModule {
     const lexer = new Lexer(source, "test.vf");
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens, "test.vf");
-    return parser.parse();
+    return desugarModule(parser.parse());
 }
 
 describe("Environment Builder - External Overloading", () => {
