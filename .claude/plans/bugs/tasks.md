@@ -76,7 +76,7 @@ add unit→integration tests until back to par.
 
 ### Phase 3 — Codegen cluster
 - [x] **9. VF-FC-0006** — `$panic` runtime helper gated by `needsPanicHelper`, builtin mapped in `emitVar` (builtin-loc check so user shadowing stays untouched) → `vf-fc-0006-panic-runtime-helper.md`
-- [ ] **10. VF-FC-0010** — FFI null→Option marshalling → `vf-fc-0010-ffi-null-to-option.md`
+- [x] **10. VF-FC-0010** — unconditional null/undefined→None marshalling via gated `$ffiOption` helper; externals with an `Option<T>` return emit a wrapper const (generalizing the 0009 curry wrapper to call-shape segments + marshalling); overloaded externals marshal per resolved overload at the call site → `vf-fc-0010-ffi-null-to-option.md`
 - [ ] Phase gate: `pnpm run verify` + coverage
 
 ### Phase 4 — New surface syntax (last)

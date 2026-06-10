@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import {
     emitDeclaration,
-    externalCurriedImportAlias,
-    externalNeedsCurryWrapper,
+    externalNeedsWrapper,
+    externalWrapperImportAlias,
     extractPatternNames,
     setEmitExpr,
     setEmitPattern,
@@ -21,12 +21,14 @@ import {
     externalDecl,
     externalTypeDecl,
     funTypeExpr,
+    funTypeExprReturning,
     importDecl,
     importItem,
     intLit,
     lambda,
     letDecl,
     letRecGroup,
+    optionTypeExpr,
     recordPat,
     recordTypeDecl,
     reExportDecl,
@@ -329,14 +331,14 @@ describe("Declaration Emission", () => {
                 const ctx = createTestContext();
                 const decl = externalDecl("join", "join", { from: "node:path", typeExpr: funTypeExpr(2) });
                 expect(emitDeclaration(decl, ctx)).toBe("const join = ($a0) => ($a1) => join$raw($a0, $a1);");
-                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBe("join$raw");
+                expect(externalWrapperImportAlias(decl as CoreExternalDecl)).toBe("join$raw");
             });
 
             it("needs no alias when the wrapped import has a different name", () => {
                 const ctx = createTestContext();
                 const decl = externalDecl("joinPath", "join", { from: "node:path", typeExpr: funTypeExpr(2) });
                 expect(emitDeclaration(decl, ctx)).toBe("const joinPath = ($a0) => ($a1) => join($a0, $a1);");
-                expect(externalCurriedImportAlias(decl as CoreExternalDecl)).toBeUndefined();
+                expect(externalWrapperImportAlias(decl as CoreExternalDecl)).toBeUndefined();
             });
 
             it("aliases a reserved-word import whose escaped name collides with the wrapper", () => {
@@ -368,21 +370,73 @@ describe("Declaration Emission", () => {
                 expect(ctx.exportedNames.has("add2")).toBe(true);
             });
 
-            it("externalNeedsCurryWrapper is false for non-function and 0/1-param externals", () => {
-                expect(externalNeedsCurryWrapper(externalDecl("v", "value") as CoreExternalDecl)).toBe(false);
+            it("externalNeedsWrapper is false for non-function and 0/1-param externals", () => {
+                expect(externalNeedsWrapper(externalDecl("v", "value") as CoreExternalDecl)).toBe(false);
                 expect(
-                    externalNeedsCurryWrapper(
-                        externalDecl("f", "fn", { typeExpr: funTypeExpr(0) }) as CoreExternalDecl,
-                    ),
+                    externalNeedsWrapper(externalDecl("f", "fn", { typeExpr: funTypeExpr(0) }) as CoreExternalDecl),
                 ).toBe(false);
                 expect(
-                    externalNeedsCurryWrapper(
-                        externalDecl("g", "fn", { typeExpr: funTypeExpr(1) }) as CoreExternalDecl,
-                    ),
+                    externalNeedsWrapper(externalDecl("g", "fn", { typeExpr: funTypeExpr(1) }) as CoreExternalDecl),
                 ).toBe(false);
                 expect(
-                    externalNeedsCurryWrapper(
-                        externalDecl("h", "fn", { typeExpr: funTypeExpr(2) }) as CoreExternalDecl,
+                    externalNeedsWrapper(externalDecl("h", "fn", { typeExpr: funTypeExpr(2) }) as CoreExternalDecl),
+                ).toBe(true);
+            });
+        });
+
+        // [BUG: VF-FC-0010] externals declared `-> Option<T>` marshal their
+        // return through $ffiOption (null/undefined → None, value → Some).
+        describe("Option-return marshalling wrappers", () => {
+            it("wraps a 1-param Option-returning external with $ffiOption", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("maybe", "((b) => b ? 5 : null)", {
+                    typeExpr: funTypeExprReturning(1, optionTypeExpr()),
+                });
+                expect(emitDeclaration(decl, ctx)).toBe(
+                    "const maybe = ($a0) => $ffiOption(((b) => b ? 5 : null)($a0));",
+                );
+                expect(ctx.shared.needsFfiOptionHelper).toBe(true);
+            });
+
+            it("composes currying and marshalling for a multi-param Option external", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("find", "myFind", {
+                    typeExpr: funTypeExprReturning(2, optionTypeExpr()),
+                });
+                expect(emitDeclaration(decl, ctx)).toBe("const find = ($a0) => ($a1) => $ffiOption(myFind($a0, $a1));");
+            });
+
+            it("marshals through an explicitly curried surface type", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("mk", "mkFn", {
+                    typeExpr: funTypeExprReturning(1, funTypeExprReturning(1, optionTypeExpr())),
+                });
+                expect(emitDeclaration(decl, ctx)).toBe("const mk = ($a0) => ($a1) => $ffiOption(mkFn($a0)($a1));");
+            });
+
+            it("parenthesizes an unparenthesized expression jsName in call position", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("maybe", "(b) => b ? 5 : null", {
+                    typeExpr: funTypeExprReturning(1, optionTypeExpr()),
+                });
+                expect(emitDeclaration(decl, ctx)).toBe(
+                    "const maybe = ($a0) => $ffiOption(((b) => b ? 5 : null)($a0));",
+                );
+            });
+
+            it("leaves non-Option returns unwrapped and unmarked", () => {
+                const ctx = createTestContext();
+                const decl = externalDecl("floor", "Math.floor", { typeExpr: funTypeExpr(1) });
+                expect(emitDeclaration(decl, ctx)).toBe("const floor = Math.floor;");
+                expect(ctx.shared.needsFfiOptionHelper).toBe(false);
+            });
+
+            it("externalNeedsWrapper is true for a 1-param Option-returning external", () => {
+                expect(
+                    externalNeedsWrapper(
+                        externalDecl("m", "fn", {
+                            typeExpr: funTypeExprReturning(1, optionTypeExpr()),
+                        }) as CoreExternalDecl,
                     ),
                 ).toBe(true);
             });

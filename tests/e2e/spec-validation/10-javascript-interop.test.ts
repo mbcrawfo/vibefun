@@ -7,7 +7,7 @@
 
 import { describe, it } from "vitest";
 
-import { expectCompileError, expectCompiles, expectRunOutput, expectRuntimeError, withOutput } from "./helpers.js";
+import { expectCompileError, expectCompiles, expectRunOutput, withOutput } from "./helpers.js";
 
 describe("10-javascript-interop", () => {
     describe("external declarations", () => {
@@ -407,22 +407,60 @@ let r = unsafe {
     });
 
     describe("null handling", () => {
-        // [BUG: VF-FC-0010] Spec type-safety.md:58-77 says a JS null/undefined
-        // returned from an external typed `-> Option<T>` is marshalled to
-        // `None` (a value to `Some`). No such conversion is emitted: the raw
-        // `null` reaches the `match`, which exhausts at runtime. The
-        // `--runtime-checks` modes the spec ties this to are also unimplemented
-        // (the CLI rejects the flag). This pins the current (buggy) "Match
-        // exhausted" runtime error; once null->None marshalling lands, flip to
-        // expectRunOutput(..., "none"). Tracked in
-        // .claude/FAST_CHECK_BUG_BACKLOG.md.
-        it("[BUG: VF-FC-0010] null is not auto-marshalled to None at the FFI boundary", () => {
-            expectRuntimeError(
+        // Spec type-safety.md: a JS null/undefined returned from an external
+        // typed `-> Option<T>` is marshalled to `None`; any other value to
+        // `Some(value)`. Marshalling is unconditional (owner decision — the
+        // `--runtime-checks` flag is out of scope). [BUG: VF-FC-0010]
+        it("null returned from an Option-typed external marshals to None", () => {
+            expectRunOutput(
                 withOutput(
                     `external js_maybe: (Bool) -> Option<Int> = "(b) => b ? 5 : null";`,
                     `match js_maybe(false) { | Some(_) => "got" | None => "none" }`,
                 ),
-                "Match exhausted",
+                "none",
+            );
+        });
+
+        it("a value returned from an Option-typed external marshals to Some", () => {
+            expectRunOutput(
+                withOutput(
+                    `external js_maybe: (Bool) -> Option<Int> = "(b) => b ? 5 : null";`,
+                    `match js_maybe(true) { | Some(v) => "got " & String.fromInt(v) | None => "none" }`,
+                ),
+                "got 5",
+            );
+        });
+
+        it("undefined returned from an Option-typed external marshals to None", () => {
+            expectRunOutput(
+                withOutput(
+                    `external js_undef: (Bool) -> Option<Int> = "((b) => undefined)";`,
+                    `match js_undef(true) { | Some(_) => "got" | None => "none" }`,
+                ),
+                "none",
+            );
+        });
+
+        it("falsy non-null values marshal to Some, not None", () => {
+            expectRunOutput(
+                withOutput(
+                    `external js_zero: (Bool) -> Option<Int> = "((b) => 0)";`,
+                    `match js_zero(true) { | Some(v) => "some " & String.fromInt(v) | None => "none" }`,
+                ),
+                "some 0",
+            );
+        });
+
+        it("multi-arg Option-typed externals marshal too", () => {
+            expectRunOutput(
+                withOutput(
+                    `external js_find: (Int, Int) -> Option<Int> = "((a, b) => a > b ? a : null)";
+let hit = unsafe { js_find(9, 4) };
+let miss = unsafe { js_find(1, 4) };
+let show = (o: Option<Int>) => match o { | Some(v) => String.fromInt(v) | None => "none" };`,
+                    `show(hit) & "," & show(miss)`,
+                ),
+                "9,none",
             );
         });
     });
