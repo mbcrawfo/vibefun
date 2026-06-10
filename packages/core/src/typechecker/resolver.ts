@@ -2,10 +2,16 @@
  * Overload resolution for external functions
  *
  * This module implements the algorithm for resolving which overload
- * of an external function to use based on call-site argument types.
+ * of an external function to use based on the call-site argument count.
+ *
+ * Overload groups are built from post-desugar `CoreExternalDecl` nodes
+ * (see environment.ts), so signatures are Core type expressions. Because
+ * the desugarer curries every application into single-argument `CoreApp`
+ * chains, the call-site argument count is the length of the application
+ * spine whose head references the overloaded external.
  */
 
-import type { Expr, TypeExpr } from "../types/ast.js";
+import type { CoreTypeExpr } from "../types/core-ast.js";
 import type { ExternalOverload, TypeEnv, ValueBinding } from "../types/environment.js";
 
 import { throwDiagnostic } from "../diagnostics/index.js";
@@ -38,15 +44,11 @@ export type ResolutionResult =
  * 1. Look up the function name in the environment
  * 2. If not found → error
  * 3. If single binding (not overloaded) → return it
- * 4. If overloaded → resolve based on arguments:
- *    a. Filter by arity (argument count)
- *    b. Filter by type compatibility (when types are available)
- *    c. Select most specific match
- *    d. If ambiguous or no match → error
+ * 4. If overloaded → resolve based on argument count (arity)
  *
  * @param env - The type environment
  * @param name - The function name being called
- * @param args - The argument expressions at the call site
+ * @param argCount - The number of arguments at the call site
  * @param callLoc - Location of the function call (for error reporting)
  * @returns The resolution result
  * @throws {VibefunDiagnostic} If resolution fails
@@ -54,7 +56,7 @@ export type ResolutionResult =
 export function resolveCall(
     env: TypeEnv,
     name: string,
-    args: Expr[],
+    argCount: number,
     callLoc: { line: number; column: number; file: string; offset: number },
 ): ResolutionResult {
     // Look up the name in the environment
@@ -73,34 +75,35 @@ export function resolveCall(
     }
 
     // Overloaded external - resolve which overload to use
-    return resolveOverload(name, binding, args, callLoc);
+    return resolveOverload(name, binding, argCount, callLoc);
 }
 
 /**
  * Resolve which overload to use for an overloaded external function
  *
- * Resolution strategy:
- * 1. Filter by arity (number of parameters must match number of arguments)
- * 2. Filter by type compatibility (when type information is available)
- * 3. If exactly one candidate remains → success
- * 4. If zero candidates → error (no matching signature)
- * 5. If multiple candidates → error (ambiguous call)
+ * Resolution strategy (external-declarations.md "Overloads are resolved by
+ * argument count"):
+ * 1. Filter by arity — the overload's parameter count must equal the
+ *    call-site argument count exactly. Partial application of a larger
+ *    overload requires eta-expansion (`(x) => f(x, y)`), per the spec.
+ * 2. If exactly one candidate remains → success
+ * 3. If zero candidates → error (no matching signature)
+ * 4. If multiple candidates → error (ambiguous call)
  *
  * @param name - Function name (for error messages)
  * @param binding - The overloaded external binding
- * @param args - Argument expressions
+ * @param argCount - The number of arguments at the call site
  * @param callLoc - Call site location
  * @returns Resolution result with selected overload
  * @throws {VibefunDiagnostic} If resolution fails
  */
-function resolveOverload(
+export function resolveOverload(
     name: string,
     binding: ValueBinding & { kind: "ExternalOverload" },
-    args: Expr[],
+    argCount: number,
     callLoc: { line: number; column: number; file: string; offset: number },
 ): ResolutionResult {
     const { overloads, jsName, from } = binding;
-    const argCount = args.length;
 
     // Step 1: Filter by arity (argument count)
     const arityCandidates = overloads
@@ -114,8 +117,8 @@ function resolveOverload(
     }
 
     // Step 2: Filter by type compatibility
-    // TODO: When full type inference is implemented, add type-based filtering here
-    // For now, we skip this step since we don't have type information for arguments
+    // TODO: When type-directed resolution is needed, add type-based filtering
+    // here. Arity-only resolution matches the spec's documented strategy.
 
     const candidates = arityCandidates;
 
@@ -136,9 +139,8 @@ function resolveOverload(
     }
 
     // Multiple candidates remain - ambiguous call
-    // This can happen when:
-    // - We don't have type information yet (no inference implemented)
-    // - Multiple overloads have the same arity but different types
+    // This happens when multiple overloads share an arity and differ only in
+    // parameter types (resolution is arity-based per the spec).
     throwDiagnostic("VF4205", callLoc, { name });
 }
 
@@ -165,35 +167,32 @@ function formatOverloads(overloads: ExternalOverload[]): string {
 }
 
 /**
- * Format a type expression for display
- *
- * This is a simplified formatter for error messages.
- * TODO: Improve formatting when full type checker is implemented.
+ * Format a Core type expression for display in error messages
  *
  * @param typeExpr - The type expression to format
  * @returns A human-readable type string
  */
-function formatType(typeExpr: TypeExpr): string {
+function formatType(typeExpr: CoreTypeExpr): string {
     switch (typeExpr.kind) {
-        case "TypeVar":
+        case "CoreTypeVar":
             return typeExpr.name;
-        case "TypeConst":
+        case "CoreTypeConst":
             return typeExpr.name;
-        case "FunctionType": {
+        case "CoreFunctionType": {
             const params = typeExpr.params.map((p) => formatType(p)).join(", ");
             const returnType = formatType(typeExpr.return_);
             return `(${params}) -> ${returnType}`;
         }
-        case "TypeApp": {
+        case "CoreTypeApp": {
             const constructor = formatType(typeExpr.constructor);
             const args = typeExpr.args.map((a) => formatType(a)).join(", ");
             return `${constructor}<${args}>`;
         }
-        case "RecordType": {
+        case "CoreRecordType": {
             const fields = typeExpr.fields.map((f) => `${f.name}: ${formatType(f.typeExpr)}`).join(", ");
             return `{ ${fields} }`;
         }
-        case "VariantType": {
+        case "CoreVariantType": {
             const constructors = typeExpr.constructors
                 .map((c) => {
                     if (c.args.length === 0) {
@@ -205,14 +204,14 @@ function formatType(typeExpr: TypeExpr): string {
                 .join(" | ");
             return constructors;
         }
-        case "UnionType": {
+        case "CoreUnionType": {
             return typeExpr.types.map((t) => formatType(t)).join(" | ");
         }
-        case "TupleType": {
+        case "CoreTupleType": {
             const elements = typeExpr.elements.map((e) => formatType(e)).join(", ");
             return `(${elements})`;
         }
-        case "StringLiteralType":
+        case "CoreStringLiteralType":
             return JSON.stringify(typeExpr.value);
     }
 }

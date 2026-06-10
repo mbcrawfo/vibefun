@@ -2,8 +2,7 @@
  * Tests for pattern exhaustiveness and reachability checking
  */
 
-import type { Module } from "../types/ast.js";
-import type { CorePattern } from "../types/core-ast.js";
+import type { CoreModule, CorePattern } from "../types/core-ast.js";
 import type { Type } from "../types/environment.js";
 import type { CaseForExhaustiveness } from "./patterns.js";
 
@@ -21,7 +20,7 @@ function toCases(patterns: CorePattern[]): CaseForExhaustiveness[] {
 }
 
 describe("Pattern Checking", () => {
-    const emptyModule: Module = {
+    const emptyModule: CoreModule = {
         imports: [],
         declarations: [],
         loc: testLoc,

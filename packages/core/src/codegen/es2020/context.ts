@@ -38,8 +38,15 @@ export type SharedState = {
      * These are emitted as curried wrapper consts (the desugarer curries all
      * applications, but the underlying JS function is n-ary), so variable
      * references must use the vibefun name instead of inlining the jsName.
+     * Overloaded externals are excluded — their calls emit n-ary directly.
      */
     curriedExternals: Set<string>;
+    /**
+     * Overloaded external names whose alias const has been emitted. A group
+     * has several CoreExternalDecl nodes sharing one name; only the first
+     * may emit the `const vfName = jsName;` alias or JS would re-declare it.
+     */
+    emittedOverloadAliases: Set<string>;
 };
 
 /**
@@ -108,6 +115,7 @@ export function createContext(options: CreateContextOptions): EmitContext {
         exportedNames: new Set(),
         wildcardCounter: 0,
         curriedExternals: new Set(),
+        emittedOverloadAliases: new Set(),
     };
 
     return {

@@ -5,7 +5,6 @@
  * Hindley-Milner type inference on a desugared CoreModule.
  */
 
-import type { Module } from "../types/ast.js";
 import type { CoreDeclaration, CoreModule } from "../types/core-ast.js";
 import type { Type, TypeEnv } from "../types/environment.js";
 
@@ -75,9 +74,10 @@ export type TypedModule = {
 export function typeCheck(module: CoreModule, _options?: TypeCheckOptions): TypedModule {
     // Note: options.source will be used in future phases for error formatting
     // Build initial type environment from module declarations
-    // This includes built-ins, user type definitions, and external declarations
-    // Note: CoreModule is structurally compatible with Module for buildEnvironment's purposes
-    let env = buildEnvironment(module as unknown as Module);
+    // This includes built-ins, user type definitions, and external declarations.
+    // Overloaded externals are validated (VF4801/VF4802/VF4803) and grouped
+    // into ExternalOverload bindings here.
+    let env = buildEnvironment(module);
 
     // First-pass: register user-defined type declarations (aliases, records,
     // variants) so that constructor references and type annotations resolve
@@ -323,6 +323,16 @@ function typeCheckDeclaration(decl: CoreDeclaration, env: TypeEnv, declarationTy
             return env;
 
         case "CoreExternalDecl": {
+            // Overloaded externals keep the ExternalOverload group binding
+            // built by buildEnvironment — rebinding here as kind:"External"
+            // would silently overwrite earlier same-named overloads (the
+            // VF-FC-0008 bug). Call sites resolve per-overload from the
+            // group, so there is no single declared type to record.
+            const existing = env.values.get(decl.name);
+            if (existing?.kind === "ExternalOverload") {
+                return env;
+            }
+
             // External declarations need to be converted and stored in declarationTypes
             // Convert the CoreTypeExpr to a Type
             const type = convertTypeExpr(decl.typeExpr);

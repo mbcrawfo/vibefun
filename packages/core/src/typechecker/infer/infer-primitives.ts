@@ -221,7 +221,12 @@ function inferVar(
         }
         scheme = binding.scheme;
     } else {
-        // ExternalOverload case - not yet supported
+        // Overloaded externals resolve per call site by argument count (see
+        // inferApp); a bare reference has no call context to resolve against.
+        // Outside unsafe, the external-reference restriction fires first.
+        if (!ctx.inUnsafe) {
+            throwDiagnostic("VF4805", loc, { name });
+        }
         throwDiagnostic("VF4804", loc, { name });
     }
 

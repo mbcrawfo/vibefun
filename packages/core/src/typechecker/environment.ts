@@ -3,9 +3,13 @@
  *
  * Scans module declarations and builds a type environment,
  * detecting and grouping external function overloads.
+ *
+ * The typechecker runs on the post-desugar Core AST, so grouping and
+ * validation operate on `CoreExternalDecl` nodes (the desugarer rewrites
+ * every surface `ExternalDecl` / `ExternalBlock` before this runs).
  */
 
-import type { Declaration, Module, TypeExpr } from "../types/ast.js";
+import type { CoreDeclaration, CoreExternalDecl, CoreModule } from "../types/core-ast.js";
 import type { ExternalOverload, TypeEnv, ValueBinding } from "../types/environment.js";
 
 import { throwDiagnostic } from "../diagnostics/index.js";
@@ -14,19 +18,20 @@ import { getBuiltinEnv } from "./builtins.js";
 import { getStdlibRootSignature } from "./module-signatures/index.js";
 
 /**
- * Build type environment from a module
+ * Build type environment from a desugared module
  *
  * This function scans all declarations in a module and builds a type environment.
- * It detects external functions with multiple declarations (overloads) and groups
- * them into ExternalOverload bindings.
+ * It detects external functions with multiple declarations (overloads), validates
+ * them (VF4801 consistent jsName, VF4802 consistent `from`, VF4803 all function
+ * shapes), and groups them into ExternalOverload bindings.
  *
  * The environment starts with built-in types and functions, then adds module declarations.
  *
- * @param module - The parsed module
+ * @param module - The desugared core module
  * @returns The type environment with built-ins and module declarations
  * @throws {VibefunDiagnostic} If overload declarations are invalid
  */
-export function buildEnvironment(module: Module): TypeEnv {
+export function buildEnvironment(module: CoreModule): TypeEnv {
     const env = emptyEnv();
 
     // Inject built-in types and standard library functions
@@ -49,7 +54,7 @@ export function buildEnvironment(module: Module): TypeEnv {
         loc: { file: "<builtin>", line: 0, column: 0, offset: 0 },
     });
 
-    // First pass: collect all declarations by name
+    // First pass: collect all external declarations by name
     const declarationsByName = groupDeclarationsByName(module);
 
     // Second pass: process each group
@@ -70,90 +75,62 @@ export function buildEnvironment(module: Module): TypeEnv {
 }
 
 /**
- * Group declarations by name for overload detection
+ * Group external declarations by name for overload detection
  *
- * This includes:
- * - External declarations (ExternalDecl)
- * - External block items (from ExternalBlock)
+ * The desugarer has already expanded `ExternalBlock` items into individual
+ * `CoreExternalDecl` nodes, so a single kind check covers every external.
  *
  * Note: We only group externals. Let declarations with duplicate names
  * would be an error (handled later by type checker).
  */
-function groupDeclarationsByName(module: Module): Map<string, Declaration[]> {
-    const groups = new Map<string, Declaration[]>();
+function groupDeclarationsByName(module: CoreModule): Map<string, CoreExternalDecl[]> {
+    const groups = new Map<string, CoreExternalDecl[]>();
 
     for (const decl of module.declarations) {
-        if (decl.kind === "ExternalDecl") {
-            // Single external declaration
+        if (decl.kind === "CoreExternalDecl") {
             const existing = groups.get(decl.name) ?? [];
             existing.push(decl);
             groups.set(decl.name, existing);
-        } else if (decl.kind === "ExternalBlock") {
-            // External block - expand items
-            for (const item of decl.items) {
-                if (item.kind === "ExternalValue") {
-                    // Create a synthetic ExternalDecl for the item
-                    const syntheticDecl: Declaration = {
-                        kind: "ExternalDecl",
-                        name: item.name,
-                        typeExpr: item.typeExpr,
-                        jsName: item.jsName,
-                        ...(decl.from !== undefined && { from: decl.from }),
-                        exported: decl.exported,
-                        loc: item.loc,
-                    };
-                    const existing = groups.get(item.name) ?? [];
-                    existing.push(syntheticDecl);
-                    groups.set(item.name, existing);
-                }
-                // Note: ExternalType items are handled separately (type bindings)
-            }
-        } else {
-            // Other declarations (LetDecl, TypeDecl, etc.) are not grouped
-            // They will be processed individually in the future
         }
+        // Other declarations (CoreLetDecl, CoreTypeDecl, etc.) are not grouped
     }
 
     return groups;
 }
 
 /**
- * Add a single (non-overloaded) declaration to the environment
+ * Add a single (non-overloaded) external declaration to the environment
+ *
+ * The scheme is a placeholder; `typeCheckDeclaration`'s CoreExternalDecl
+ * handler replaces it with the converted declared type.
  */
-function addSingleDeclaration(env: TypeEnv, decl: Declaration): void {
-    if (decl.kind === "ExternalDecl") {
-        // For now, we just track that it exists as a single external
-        // Full type scheme construction will happen when type checker is implemented
-        const binding: ValueBinding = {
-            kind: "External",
-            scheme: {
-                vars: [], // No quantified variables for now
-                type: { type: "Const", name: "Unknown" }, // Placeholder
-            },
-            jsName: decl.jsName,
-            ...(decl.from !== undefined && { from: decl.from }),
-            loc: decl.loc,
-        };
-        env.values.set(decl.name, binding);
-    }
-    // TODO: Handle other declaration types (LetDecl, TypeDecl, etc.) when type checker is implemented
+function addSingleDeclaration(env: TypeEnv, decl: CoreExternalDecl): void {
+    const binding: ValueBinding = {
+        kind: "External",
+        scheme: {
+            vars: [], // No quantified variables for now
+            type: { type: "Const", name: "Unknown" }, // Placeholder
+        },
+        jsName: decl.jsName,
+        ...(decl.from !== undefined && { from: decl.from }),
+        loc: decl.loc,
+    };
+    env.values.set(decl.name, binding);
 }
 
 /**
- * Process a group of declarations with the same name
+ * Process a group of external declarations with the same name
  *
  * Validates that they're all externals with compatible signatures,
  * then creates an ExternalOverload binding.
  */
-function processOverloadGroup(env: TypeEnv, name: string, declarations: Declaration[]): void {
+function processOverloadGroup(env: TypeEnv, name: string, declarations: CoreDeclaration[]): void {
     // Verify all are external declarations
-    const externalDecls = declarations.filter(
-        (d): d is Declaration & { kind: "ExternalDecl" } => d.kind === "ExternalDecl",
-    );
+    const externalDecls = declarations.filter((d): d is CoreExternalDecl => d.kind === "CoreExternalDecl");
 
     if (externalDecls.length !== declarations.length) {
         // Some declarations are not external - this is an error
-        const firstNonExternal = declarations.find((d) => d.kind !== "ExternalDecl");
+        const firstNonExternal = declarations.find((d) => d.kind !== "CoreExternalDecl");
         const firstDecl = declarations[0];
         const errorLoc =
             firstNonExternal?.loc ?? (firstDecl ? firstDecl.loc : { file: "unknown", line: 0, column: 0, offset: 0 });
@@ -184,14 +161,14 @@ function processOverloadGroup(env: TypeEnv, name: string, declarations: Declarat
 
     // Verify all have function types
     for (const decl of externalDecls) {
-        if (decl.typeExpr.kind !== "FunctionType") {
+        if (decl.typeExpr.kind !== "CoreFunctionType") {
             throwDiagnostic("VF4803", decl.loc, { name });
         }
     }
 
     // Build overload cases
     const overloads: ExternalOverload[] = externalDecls.map((decl) => {
-        const funcType = decl.typeExpr as TypeExpr & { kind: "FunctionType" };
+        const funcType = decl.typeExpr as Extract<CoreExternalDecl["typeExpr"], { kind: "CoreFunctionType" }>;
         return {
             paramTypes: funcType.params,
             returnType: funcType.return_,

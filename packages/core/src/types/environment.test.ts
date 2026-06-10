@@ -101,13 +101,13 @@ describe("Type Environment", () => {
             const env = emptyEnv();
             const overloads: ExternalOverload[] = [
                 {
-                    paramTypes: [{ kind: "TypeConst", name: "Int", loc: testLoc }],
-                    returnType: { kind: "TypeConst", name: "String", loc: testLoc },
+                    paramTypes: [{ kind: "CoreTypeConst", name: "Int", loc: testLoc }],
+                    returnType: { kind: "CoreTypeConst", name: "String", loc: testLoc },
                     loc: testLoc,
                 },
                 {
-                    paramTypes: [{ kind: "TypeConst", name: "Float", loc: testLoc }],
-                    returnType: { kind: "TypeConst", name: "String", loc: testLoc },
+                    paramTypes: [{ kind: "CoreTypeConst", name: "Float", loc: testLoc }],
+                    returnType: { kind: "CoreTypeConst", name: "String", loc: testLoc },
                     loc: testLoc,
                 },
             ];
@@ -295,8 +295,8 @@ describe("Type Environment", () => {
                 kind: "ExternalOverload",
                 overloads: [
                     {
-                        paramTypes: [{ kind: "TypeConst", name: "Int", loc: testLoc }],
-                        returnType: { kind: "TypeConst", name: "String", loc: testLoc },
+                        paramTypes: [{ kind: "CoreTypeConst", name: "Int", loc: testLoc }],
+                        returnType: { kind: "CoreTypeConst", name: "String", loc: testLoc },
                         loc: testLoc,
                     },
                 ],
@@ -485,8 +485,8 @@ describe("Type Environment", () => {
                 kind: "ExternalOverload",
                 overloads: [
                     {
-                        paramTypes: [{ kind: "TypeConst", name: "Int", loc: testLoc }],
-                        returnType: { kind: "TypeConst", name: "String", loc: testLoc },
+                        paramTypes: [{ kind: "CoreTypeConst", name: "Int", loc: testLoc }],
+                        returnType: { kind: "CoreTypeConst", name: "String", loc: testLoc },
                         loc: testLoc,
                     },
                 ],
@@ -503,8 +503,8 @@ describe("Type Environment", () => {
                 kind: "ExternalOverload",
                 overloads: [
                     {
-                        paramTypes: [{ kind: "TypeConst", name: "Int", loc: testLoc }],
-                        returnType: { kind: "TypeConst", name: "String", loc: testLoc },
+                        paramTypes: [{ kind: "CoreTypeConst", name: "Int", loc: testLoc }],
+                        returnType: { kind: "CoreTypeConst", name: "String", loc: testLoc },
                         loc: testLoc,
                     },
                 ],
@@ -548,8 +548,8 @@ describe("Type Environment", () => {
                 kind: "ExternalOverload",
                 overloads: [
                     {
-                        paramTypes: [{ kind: "TypeConst", name: "Int", loc: testLoc }],
-                        returnType: { kind: "TypeConst", name: "String", loc: testLoc },
+                        paramTypes: [{ kind: "CoreTypeConst", name: "Int", loc: testLoc }],
+                        returnType: { kind: "CoreTypeConst", name: "String", loc: testLoc },
                         loc: testLoc,
                     },
                 ],

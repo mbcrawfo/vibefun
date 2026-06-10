@@ -199,16 +199,56 @@ let result = safeSqrt(9.0);`,
     });
 
     describe("external overloading", () => {
-        // F-03: the parser + typechecker accept multiple external declarations
-        // that share a name and JS name but differ in arity (the "store
-        // multiple overloads" capability). Arity-based call-site *resolution*
-        // is a separate, unimplemented feature (VF4804) and is broken
-        // end-to-end — a call collapses to the last declaration and fails
-        // arity unification. See [BUG: VF-FC-0008].
+        // F-03: multiple external declarations that share a name and JS name
+        // but differ in arity form an overload group, and call sites resolve
+        // by argument count (external-declarations.md:237-260). [BUG: VF-FC-0008]
         it("accepts same-name externals that differ only in arity", () => {
             expectCompiles(
                 `external fetch: (String) -> Int = "fetch";
 external fetch: (String, Int) -> Int = "fetch";`,
+            );
+        });
+
+        it("resolves an overloaded call by arity and runs", () => {
+            expectRunOutput(
+                withOutput(
+                    `external pick: (Int) -> Int = "((a, b) => b === undefined ? a + 1 : a + b)";
+external pick: (Int, Int) -> Int = "((a, b) => b === undefined ? a + 1 : a + b)";
+let one = unsafe { pick(10) };
+let two = unsafe { pick(10, 5) };`,
+                    `String.fromInt(one) & "," & String.fromInt(two)`,
+                ),
+                "11,15",
+            );
+        });
+
+        // Resolution requires an exact arity match; partial application of a
+        // larger overload needs eta-expansion per the spec
+        // (external-declarations.md "Partial application with overloads").
+        it("rejects a call whose arity matches no overload", () => {
+            expectCompileError(
+                `external pick: (Int) -> Int = "p";
+external pick: (Int, Int) -> Int = "p";
+let r = unsafe { pick(1, 2, 3) };`,
+                "VF4201",
+            );
+        });
+
+        it("rejects an overloaded external used as a bare value", () => {
+            expectCompileError(
+                `external pick: (Int) -> Int = "p";
+external pick: (Int, Int) -> Int = "p";
+let f = unsafe { pick };`,
+                "VF4804",
+            );
+        });
+
+        it("rejects an overloaded call outside unsafe", () => {
+            expectCompileError(
+                `external pick: (Int) -> Int = "p";
+external pick: (Int, Int) -> Int = "p";
+let r = pick(1);`,
+                "VF4805",
             );
         });
 
@@ -227,19 +267,31 @@ let f = (x: Int) => "second";`,
             );
         });
 
-        // F-05/F-06/F-07 — overload *validation* (VF4801 inconsistent JS name,
-        // VF4802 inconsistent `from`, VF4803 mixed function/non-function
-        // shapes; external-declarations.md:237-260) is emitted by
-        // buildEnvironment and covered at U-layer in
-        // packages/core/src/typechecker/environment.test.ts, but it is DEAD in
-        // the full compile pipeline: the desugarer rewrites `ExternalDecl` ->
-        // `CoreExternalDecl`, a kind buildEnvironment's overload grouping never
-        // matches, so none of VF4801/4802/4803 fire end-to-end. V-layer tests
-        // are deferred until the validator runs post-desugaring. Once fixed, add:
-        //   expectCompileError('external f: (Int)->Int = "a"; external f: (Int,Int)->Int = "b";', "VF4801");
-        //   expectCompileError('external f: (Int)->Int = "x" from "a"; external f: (Int,Int)->Int = "x" from "b";', "VF4802");
-        //   expectCompileError('external f: (Int)->Int = "x"; external f: Int = "x";', "VF4803");
-        // Tracked in .claude/FAST_CHECK_BUG_BACKLOG.md [BUG: VF-FC-0008].
+        // F-05/F-06/F-07 — overload validation per
+        // external-declarations.md:237-260. [BUG: VF-FC-0008]
+        it("rejects overloads with inconsistent JS names (VF4801)", () => {
+            expectCompileError(
+                `external f: (Int) -> Int = "a";
+external f: (Int, Int) -> Int = "b";`,
+                "VF4801",
+            );
+        });
+
+        it("rejects overloads with inconsistent from modules (VF4802)", () => {
+            expectCompileError(
+                `external f: (Int) -> Int = "x" from "a";
+external f: (Int, Int) -> Int = "x" from "b";`,
+                "VF4802",
+            );
+        });
+
+        it("rejects overload groups with a non-function shape (VF4803)", () => {
+            expectCompileError(
+                `external f: (Int) -> Int = "x";
+external f: Int = "x";`,
+                "VF4803",
+            );
+        });
     });
 
     describe("opaque types", () => {
