@@ -2,13 +2,13 @@
  * Tests for type inference - variants and pattern matching
  */
 
-import type { Module } from "../types/ast.js";
 import type {
     CoreBinOp,
     CoreIntLit,
     CoreLet,
     CoreMatch,
     CoreMatchCase,
+    CoreModule,
     CoreRecord,
     CoreStringLit,
     CoreVariant,
@@ -38,7 +38,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -73,7 +73,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -108,7 +108,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -149,7 +149,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -185,7 +185,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -222,7 +222,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -247,7 +247,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -281,7 +281,7 @@ describe("Type Inference - Variants", () => {
             loc: testLoc,
         };
 
-        const emptyModule: Module = {
+        const emptyModule: CoreModule = {
             imports: [],
             declarations: [],
             loc: testLoc,
@@ -308,7 +308,7 @@ describe("Type Inference - Variants", () => {
 });
 
 describe("Type Inference - Match Expressions", () => {
-    const emptyModule: Module = {
+    const emptyModule: CoreModule = {
         imports: [],
         declarations: [],
         loc: testLoc,

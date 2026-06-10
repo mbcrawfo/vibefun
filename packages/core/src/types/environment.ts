@@ -5,7 +5,8 @@
  * including support for external function overloading.
  */
 
-import type { Location, TypeExpr } from "./ast.js";
+import type { Location } from "./ast.js";
+import type { CoreTypeExpr } from "./core-ast.js";
 
 /**
  * Type environment mapping names to bindings
@@ -53,12 +54,16 @@ export type ValueBinding =
 
 /**
  * A single overload case for an external function
+ *
+ * Overload groups are formed from post-desugar `CoreExternalDecl` nodes
+ * (the desugarer rewrites every surface external before the typechecker
+ * runs), so the signature shape is stored as Core type expressions.
  */
 export type ExternalOverload = {
     /** Parameter types (in order) */
-    paramTypes: TypeExpr[];
+    paramTypes: CoreTypeExpr[];
     /** Return type */
-    returnType: TypeExpr;
+    returnType: CoreTypeExpr;
     /** Source location for error reporting */
     loc: Location;
 };

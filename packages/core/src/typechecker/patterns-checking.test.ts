@@ -2,9 +2,9 @@
  * Tests for pattern type checking
  */
 
-import type { Module } from "../types/ast.js";
 import type {
     CoreLiteralPattern,
+    CoreModule,
     CorePattern,
     CoreRecordPattern,
     CoreRecordPatternField,
@@ -27,7 +27,7 @@ import { emptySubst } from "./unify.js";
 const testLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
 describe("Pattern Checking", () => {
-    const emptyModule: Module = {
+    const emptyModule: CoreModule = {
         imports: [],
         declarations: [],
         loc: testLoc,

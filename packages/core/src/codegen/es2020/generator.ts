@@ -129,10 +129,14 @@ export function generate(typedModule: TypedModule, options?: GenerateOptions): G
 
     // Register multi-param externals up front: emitVar must reference their
     // curried wrapper const (by vibefun name) anywhere in the module, even
-    // before the declaration itself is emitted.
+    // before the declaration itself is emitted. Overloaded externals are
+    // excluded — their calls emit the n-ary jsName directly (see emitApp).
     for (const decl of module.declarations) {
         if (decl.kind === "CoreExternalDecl" && Declarations.externalNeedsCurryWrapper(decl)) {
-            ctx.shared.curriedExternals.add(decl.name);
+            const binding = typedModule.env.values.get(decl.name);
+            if (binding?.kind !== "ExternalOverload") {
+                ctx.shared.curriedExternals.add(decl.name);
+            }
         }
     }
 

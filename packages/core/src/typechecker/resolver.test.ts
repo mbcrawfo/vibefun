@@ -2,27 +2,24 @@
  * Tests for overload resolution
  */
 
-import type { Expr, Module } from "../types/index.js";
+import type { CoreModule } from "../types/core-ast.js";
 
 import { describe, expect, it } from "vitest";
 
+import { desugarModule } from "../desugarer/index.js";
 import { VibefunDiagnostic } from "../diagnostics/index.js";
 import { Lexer } from "../lexer/index.js";
 import { Parser } from "../parser/index.js";
 import { buildEnvironment } from "./environment.js";
 import { getOverloads, isOverloaded, resolveCall } from "./resolver.js";
 
-function parseModule(source: string): Module {
+// Resolution runs on the post-desugar Core AST (the typechecker's view),
+// so every fixture parses AND desugars before building the environment.
+function parseModule(source: string): CoreModule {
     const lexer = new Lexer(source, "test.vf");
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens, "test.vf");
-    return parser.parse();
-}
-
-// Helper to create a dummy expression for testing
-function dummyExpr(count: number): Expr[] {
-    const loc = { file: "test.vf", line: 1, column: 1, offset: 0 };
-    return Array.from({ length: count }, () => ({ kind: "IntLit" as const, value: 42, loc }));
+    return desugarModule(parser.parse());
 }
 
 describe("Overload Resolver", () => {
@@ -33,7 +30,7 @@ describe("Overload Resolver", () => {
             const env = buildEnvironment(module);
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
-            const result = resolveCall(env, "fetch", dummyExpr(1), callLoc);
+            const result = resolveCall(env, "fetch", 1, callLoc);
 
             expect(result.kind).toBe("Single");
             if (result.kind === "Single") {
@@ -51,8 +48,8 @@ describe("Overload Resolver", () => {
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
-            expect(() => resolveCall(env, "nonExistent", dummyExpr(1), callLoc)).toThrow(VibefunDiagnostic);
-            expect(() => resolveCall(env, "nonExistent", dummyExpr(1), callLoc)).toThrow(/VF4100/);
+            expect(() => resolveCall(env, "nonExistent", 1, callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "nonExistent", 1, callLoc)).toThrow(/VF4100/);
         });
     });
 
@@ -66,7 +63,7 @@ describe("Overload Resolver", () => {
             const env = buildEnvironment(module);
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
-            const result = resolveCall(env, "fetch", dummyExpr(1), callLoc);
+            const result = resolveCall(env, "fetch", 1, callLoc);
 
             expect(result.kind).toBe("Overload");
             if (result.kind === "Overload") {
@@ -85,7 +82,7 @@ describe("Overload Resolver", () => {
             const env = buildEnvironment(module);
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
-            const result = resolveCall(env, "fetch", dummyExpr(2), callLoc);
+            const result = resolveCall(env, "fetch", 2, callLoc);
 
             expect(result.kind).toBe("Overload");
             if (result.kind === "Overload") {
@@ -107,19 +104,19 @@ describe("Overload Resolver", () => {
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
             // Test 1 argument
-            const result1 = resolveCall(env, "parseInt", dummyExpr(1), callLoc);
+            const result1 = resolveCall(env, "parseInt", 1, callLoc);
             if (result1.kind === "Overload") {
                 expect(result1.index).toBe(0);
             }
 
             // Test 2 arguments
-            const result2 = resolveCall(env, "parseInt", dummyExpr(2), callLoc);
+            const result2 = resolveCall(env, "parseInt", 2, callLoc);
             if (result2.kind === "Overload") {
                 expect(result2.index).toBe(1);
             }
 
             // Test 3 arguments
-            const result3 = resolveCall(env, "parseInt", dummyExpr(3), callLoc);
+            const result3 = resolveCall(env, "parseInt", 3, callLoc);
             if (result3.kind === "Overload") {
                 expect(result3.index).toBe(2);
             }
@@ -138,12 +135,12 @@ describe("Overload Resolver", () => {
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
             // Try with 0 arguments
-            expect(() => resolveCall(env, "fetch", dummyExpr(0), callLoc)).toThrow(VibefunDiagnostic);
-            expect(() => resolveCall(env, "fetch", dummyExpr(0), callLoc)).toThrow(/VF4201/);
+            expect(() => resolveCall(env, "fetch", 0, callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "fetch", 0, callLoc)).toThrow(/VF4201/);
 
             // Try with 3 arguments
-            expect(() => resolveCall(env, "fetch", dummyExpr(3), callLoc)).toThrow(VibefunDiagnostic);
-            expect(() => resolveCall(env, "fetch", dummyExpr(3), callLoc)).toThrow(/VF4201/);
+            expect(() => resolveCall(env, "fetch", 3, callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "fetch", 3, callLoc)).toThrow(/VF4201/);
         });
 
         it("error message shows code and message", () => {
@@ -157,7 +154,7 @@ describe("Overload Resolver", () => {
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
             try {
-                resolveCall(env, "fetch", dummyExpr(0), callLoc);
+                resolveCall(env, "fetch", 0, callLoc);
                 expect.fail("Should have thrown an error");
             } catch (error) {
                 expect(error).toBeInstanceOf(VibefunDiagnostic);
@@ -179,8 +176,8 @@ describe("Overload Resolver", () => {
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
             // Both overloads have 1 parameter, so this is ambiguous without type info
-            expect(() => resolveCall(env, "log", dummyExpr(1), callLoc)).toThrow(VibefunDiagnostic);
-            expect(() => resolveCall(env, "log", dummyExpr(1), callLoc)).toThrow(/VF4205/);
+            expect(() => resolveCall(env, "log", 1, callLoc)).toThrow(VibefunDiagnostic);
+            expect(() => resolveCall(env, "log", 1, callLoc)).toThrow(/VF4205/);
         });
     });
 
@@ -247,13 +244,13 @@ describe("Overload Resolver", () => {
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
 
-            const result2 = resolveCall(env, "setTimeout", dummyExpr(2), callLoc);
+            const result2 = resolveCall(env, "setTimeout", 2, callLoc);
             expect(result2.kind).toBe("Overload");
             if (result2.kind === "Overload") {
                 expect(result2.index).toBe(0);
             }
 
-            const result3 = resolveCall(env, "setTimeout", dummyExpr(3), callLoc);
+            const result3 = resolveCall(env, "setTimeout", 3, callLoc);
             expect(result3.kind).toBe("Overload");
             if (result3.kind === "Overload") {
                 expect(result3.index).toBe(1);
@@ -271,7 +268,7 @@ describe("Overload Resolver", () => {
             const env = buildEnvironment(module);
 
             const callLoc = { file: "test.vf", line: 1, column: 1, offset: 0 };
-            const result = resolveCall(env, "setTimeout", dummyExpr(2), callLoc);
+            const result = resolveCall(env, "setTimeout", 2, callLoc);
 
             if (result.kind === "Overload") {
                 expect(result.from).toBe("node:timers");
