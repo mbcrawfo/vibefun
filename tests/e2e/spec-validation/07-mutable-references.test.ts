@@ -237,26 +237,65 @@ let v = match !r {
     });
 
     // Spec ref: docs/spec/07-mutable-references.md:54-82 — a `let mut`
-    // ref binding may be reassigned to a new ref via `x = ref(...)`.
-    // Audit (07 F-14) marked this ✅ Implemented but did not have a
-    // direct test. Authoring the test surfaces a parser gap: the
-    // surface syntax `<ident> = <expr>;` is rejected with VF2107
-    // (`Expected ';' or newline between declarations`) at the top
-    // level and the equivalent VF2107 inside blocks. Only `:=`
-    // (mutating the ref's contents) is admitted today.
-    //
-    // [BUG: VF-FC-0005] The assertion below pins the buggy parser
-    // behavior so the gap surfaces in the suite without breaking CI.
-    // When VF-FC-0005 is fixed (see `.claude/FAST_CHECK_BUG_BACKLOG.md`),
-    // flip `expectCompileError` to `expectRunOutput(..., "10")` per
-    // the spec example, and remove the bug banner.
+    // Spec 07-mutable-references.md:54-82: a `let mut` binding may be
+    // reassigned to a new ref with `x = expr;` — a statement returning
+    // Unit, distinct from `:=` which mutates the ref's contents.
+    // Reassigning an immutable binding is VF4019. [BUG: VF-FC-0005]
     describe("mutable binding reassignment", () => {
-        it("[BUG: VF-FC-0005] currently rejects `x = ref(10)` as a parser error", () => {
+        it("reassigns a mut binding to a new ref (spec example)", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut x = ref(0);
+x = ref(10);`,
+                    `String.fromInt(!x)`,
+                ),
+                "10",
+            );
+        });
+
+        it("reassignment works inside a block", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut x = ref(0);
+let _ = {
+  x = ref(7);
+  ();
+};`,
+                    `String.fromInt(!x)`,
+                ),
+                "7",
+            );
+        });
+
+        it("reassignment composes with := contents mutation", () => {
+            expectRunOutput(
+                withOutput(
+                    `let mut x = ref(0);
+x = ref(10);
+x := !x + 5;`,
+                    `String.fromInt(!x)`,
+                ),
+                "15",
+            );
+        });
+
+        it("rejects reassigning an immutable binding (spec example)", () => {
+            expectCompileError(
+                `let y = 42;
+y = 43;`,
+                "VF4019",
+            );
+        });
+
+        it("rejects a reassignment whose type does not match the binding", () => {
             expectCompileError(
                 `let mut x = ref(0);
-x = ref(10);`,
-                "VF2107",
+x = ref("hello");`,
             );
+        });
+
+        it("rejects reassigning an unbound name", () => {
+            expectCompileError(`z = ref(1);`, "VF4100");
         });
     });
 });

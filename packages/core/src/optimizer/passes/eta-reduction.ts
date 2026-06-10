@@ -251,6 +251,14 @@ export class EtaReductionPass extends OptimizationPass {
                     ...expr,
                     elements: expr.elements.map((e) => this.reduceEta(e)),
                 };
+
+            // Mutable-binding reassignment - reduce the value, keep the
+            // side-effecting assignment itself
+            case "CoreAssign":
+                return {
+                    ...expr,
+                    value: this.reduceEta(expr.value),
+                };
         }
     }
 }

@@ -7,7 +7,7 @@
 import type { Expr, Location, MatchCase, RecordField, TypeExpr } from "../types/index.js";
 import type { ParserBase } from "./parser-base.js";
 
-import { validateMutableBinding } from "./parse-declarations/index.js";
+import { isAssignStatementStart, parseAssignStatement, validateMutableBinding } from "./parse-declarations/index.js";
 
 // Forward declarations (injected by aggregator)
 // Initialized to error-throwing functions for type safety and better error messages
@@ -367,7 +367,11 @@ export function parseBlockExpr(parser: ParserBase, startLoc: Location): Expr {
 
     // Parse expressions separated by explicit semicolons
     while (!parser.check("RBRACE") && !parser.isAtEnd()) {
-        const expr = parseExpressionFn(parser);
+        // A statement may also be a mutable-binding reassignment
+        // (`x = expr;`, spec 07-mutable-references.md) — reassignment is a
+        // statement, not an expression, so it is recognised here rather
+        // than in the expression grammar.
+        const expr = isAssignStatementStart(parser) ? parseAssignStatement(parser) : parseExpressionFn(parser);
         exprs.push(expr);
 
         // Skip optional newlines after expression
@@ -471,7 +475,11 @@ export function parseLetExpr(parser: ParserBase, startLoc: Location): Expr {
     // Parse body (rest of block)
     // For nested let expressions, we parse another expression
     // For the final expression, this will be the result
-    const body = parseExpressionFn(parser);
+    // A reassignment statement (`x = expr;`) may also follow a block-let;
+    // it is a statement, so it must be dispatched here exactly like in
+    // parseBlockExpr (the remaining block statements after it are picked
+    // back up by the enclosing block loop). [VF-FC-0005]
+    const body = isAssignStatementStart(parser) ? parseAssignStatement(parser) : parseExpressionFn(parser);
 
     return {
         kind: "Let",

@@ -57,7 +57,17 @@ function gitStatusDocsErrors(): string {
     if (result.exitCode !== 0) {
         throw new Error(`git status failed: ${result.stderr}`);
     }
-    return result.stdout;
+    // Staged-but-worktree-clean entries (porcelain "M  file" — second
+    // column blank) are pending-commit state, not regen drift: a commit
+    // that adds an error code necessarily carries the regenerated docs in
+    // the index while verify runs. Only worktree-vs-index differences
+    // (second column set) and untracked files ("??") can indicate the
+    // generator is out of sync with the registry.
+    return result.stdout
+        .split("\n")
+        .filter((line) => line !== "")
+        .filter((line) => line.startsWith("??") || line[1] !== " ")
+        .join("\n");
 }
 
 function restoreDocsErrors(): void {

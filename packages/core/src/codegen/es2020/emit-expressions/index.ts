@@ -11,7 +11,7 @@ import type { CoreExpr } from "../../../types/core-ast.js";
 import type { EmitContext } from "../context.js";
 
 import { emitRecord, emitRecordAccess, emitRecordUpdate, emitTuple, emitVariant } from "./collections.js";
-import { emitLet, emitLetRecExpr, emitMatch, emitTryCatch } from "./control.js";
+import { emitAssign, emitLet, emitLetRecExpr, emitMatch, emitTryCatch } from "./control.js";
 import { emitApp, emitLambda } from "./functions.js";
 import { emitFloatLit, emitIntLit, emitStringLit } from "./literals.js";
 import { emitBinOp, emitUnaryOp } from "./operators.js";
@@ -93,6 +93,9 @@ export function emitExpr(expr: CoreExpr, ctx: EmitContext): string {
 
         case "CoreTryCatch":
             return emitTryCatch(expr, ctx);
+
+        case "CoreAssign":
+            return emitAssign(expr, ctx);
 
         default: {
             // Exhaustiveness check

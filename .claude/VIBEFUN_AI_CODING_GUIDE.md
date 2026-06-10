@@ -264,6 +264,7 @@ let result = add5(3);  // 8
 let mut counter = ref(0);  // Ref<Int>
 let value = !counter;      // Dereference with !
 counter := !counter + 1;   // Update with :=
+counter = ref(100);        // Rebind the variable to a NEW ref (statement)
 ```
 
 ---
@@ -583,6 +584,21 @@ let counter = ref(0);
 let mut counter = ref(0);
 let value = !counter;      // Dereference with !
 counter := !counter + 1;   // Update with :=
+```
+
+Two distinct mutation forms exist, both requiring `let mut`:
+
+```vibefun
+let mut x = ref(0);
+x := 20;       // := mutates the ref's CONTENTS (x still points at the same ref)
+x = ref(10);   // = rebinds the VARIABLE to a new ref (statement, returns Unit)
+
+// ❌ ERROR (VF4019): Cannot reassign an immutable binding
+let y = 42;
+// y = 43;
+
+// Reassignment is a statement — it cannot appear in expression position:
+// let z = (x = ref(1));  // ❌ parse error
 ```
 
 ### #6: Record Syntax & Keyword Fields

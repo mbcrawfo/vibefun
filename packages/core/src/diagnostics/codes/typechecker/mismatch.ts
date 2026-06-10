@@ -348,6 +348,27 @@ export const VF4018: DiagnosticDefinition = {
     relatedCodes: ["VF2003", "VF2008"],
 };
 
+export const VF4019: DiagnosticDefinition = {
+    code: "VF4019",
+    title: "ImmutableBindingReassigned",
+    messageTemplate: "Cannot reassign immutable binding '{name}'",
+    severity: "error",
+    phase: "typechecker",
+    category: "mismatch",
+    hintTemplate: "Declare the binding with 'let mut {name} = ref(...)' if it needs to be reassigned",
+    explanation:
+        "Reassignment ('x = expr;') rebinds a variable to a new value, which is only " +
+        "allowed for bindings declared with 'let mut' (07-mutable-references.md). " +
+        "Immutable bindings ('let x = ...') cannot be reassigned. To mutate state, " +
+        "either declare the binding mutable or use a Ref and the ':=' operator.",
+    example: {
+        bad: "let y = 42; y = 43;",
+        good: "let mut y = ref(42); y = ref(43);",
+        description: "Declared the binding with 'let mut' so it can be reassigned",
+    },
+    relatedCodes: ["VF4018"],
+};
+
 export const mismatchCodes: readonly DiagnosticDefinition[] = [
     VF4001,
     VF4002,
@@ -367,4 +388,5 @@ export const mismatchCodes: readonly DiagnosticDefinition[] = [
     VF4016,
     VF4017,
     VF4018,
+    VF4019,
 ];
