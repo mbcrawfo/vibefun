@@ -174,6 +174,13 @@ export class PatternMatchOptimizationPass extends OptimizationPass {
                     ...expr,
                     elements: expr.elements.map((e) => this.optimizeMatch(e)),
                 };
+
+            // Mutable-binding reassignment - optimize the value only
+            case "CoreAssign":
+                return {
+                    ...expr,
+                    value: this.optimizeMatch(expr.value),
+                };
         }
     }
 

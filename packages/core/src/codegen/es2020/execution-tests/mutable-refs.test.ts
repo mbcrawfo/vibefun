@@ -123,3 +123,34 @@ describe("Properties", () => {
         );
     });
 });
+
+describe("mutable binding reassignment", () => {
+    // [BUG: VF-FC-0005] `x = expr;` rebinds a `let mut` variable.
+    it("rebinding a mut variable is observable through later derefs", () => {
+        const result = compileAndGetExport(
+            `let mut x = ref(0);
+x = ref(10);
+let observed = !x;`,
+            "observed",
+        );
+        expect(result).toBe(10);
+    });
+
+    it("rebinding composes with := contents mutation", () => {
+        const result = compileAndGetExport(
+            `let mut x = ref(0);
+x = ref(10);
+x := !x + 5;
+let observed = !x;`,
+            "observed",
+        );
+        expect(result).toBe(15);
+    });
+
+    it("emits a plain JS assignment yielding undefined", () => {
+        const js = compileToJs(`let mut x = ref(0);
+x = ref(10);`);
+        expect(js).toContain("let x = ref(0);");
+        expect(js).toContain("(x = ref(10), undefined)");
+    });
+});

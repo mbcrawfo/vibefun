@@ -631,5 +631,9 @@ export function isSyntacticValue(expr: CoreExpr): boolean {
             // syntactic value — the value restriction applies to let
             // bindings that wrap it.
             return false;
+
+        case "CoreAssign":
+            // Reassignment is a side effect, never a syntactic value.
+            return false;
     }
 }

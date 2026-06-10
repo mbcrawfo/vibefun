@@ -1,5 +1,11 @@
 // Import all inference functions
-import { generalize, inferLet, inferLetRecExpr, setInferExpr as setInferExprInBindings } from "./infer-bindings.js";
+import {
+    generalize,
+    inferAssign,
+    inferLet,
+    inferLetRecExpr,
+    setInferExpr as setInferExprInBindings,
+} from "./infer-bindings.js";
 import {
     inferApp,
     inferLambda,
@@ -52,6 +58,7 @@ setInferenceFunctions({
     inferRecordUpdate,
     inferVariant,
     inferMatch,
+    inferAssign,
 });
 
 // Re-export the main inference function

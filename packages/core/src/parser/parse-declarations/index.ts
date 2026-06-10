@@ -6,7 +6,7 @@
  * expression) and delegates to a focused sub-file.
  */
 
-import type { Declaration } from "../../types/index.js";
+import type { Declaration, Expr } from "../../types/index.js";
 import type { ParserBase } from "../parser-base.js";
 
 import { parseExternalDeclOrBlock } from "./external.js";
@@ -19,6 +19,36 @@ import { parseTypeDecl } from "./type.js";
 export { validateMutableBinding } from "./let.js";
 export { parseTypeDeclBody } from "./type.js";
 export { setParseExpression, setParseFunctionType, setParsePattern, setParseTypeExpr } from "./shared-state.js";
+
+/**
+ * True when the upcoming tokens begin a mutable-binding reassignment
+ * statement: `<ident> = <expr>`. Safe on one token of lookahead — `==`,
+ * `=>`, and `:=` all lex as distinct token types, so `OP_EQUALS` after an
+ * identifier can only be a reassignment in statement position.
+ */
+export function isAssignStatementStart(parser: ParserBase): boolean {
+    return parser.check("IDENTIFIER") && parser.peek(1).type === "OP_EQUALS";
+}
+
+/**
+ * Parse a mutable-binding reassignment statement: `x = expr`.
+ *
+ * Reassignment is a statement (returning Unit), not an expression — this is
+ * only called from statement positions (top level and block statements), so
+ * `x = y = z` cannot be expressed. (Spec: 07-mutable-references.md.)
+ */
+export function parseAssignStatement(parser: ParserBase): Expr {
+    const nameToken = parser.expect("IDENTIFIER", "Expected identifier in reassignment");
+    parser.expect("OP_EQUALS", "Expected '=' in reassignment");
+    const value = parseExpression(parser);
+
+    return {
+        kind: "Assign",
+        name: nameToken.value as string,
+        value,
+        loc: nameToken.loc,
+    };
+}
 
 /**
  * Parse a top-level declaration
@@ -43,16 +73,30 @@ export function parseDeclaration(parser: ParserBase): Declaration {
     while (parser.match("NEWLINE"));
 
     // If no keyword follows, this is a top-level expression statement
-    // (per spec: 08-modules.md "Top-Level Expression Evaluation"). Parse
-    // the expression and synthesize a wildcard-let so downstream passes
-    // can treat it uniformly — `let _ = expr;` has well-defined semantics
-    // throughout the pipeline.
+    // (per spec: 08-modules.md "Top-Level Expression Evaluation") or a
+    // mutable-binding reassignment statement (`x = expr;`, spec
+    // 07-mutable-references.md). Parse it and synthesize a wildcard-let so
+    // downstream passes can treat it uniformly — `let _ = expr;` has
+    // well-defined semantics throughout the pipeline.
     if (!parser.check("KEYWORD")) {
         if (exported) {
             // `export <expr>;` is nonsense — bare expressions can't be
             // exported. Fail with the same diagnostic as a missing
             // declaration keyword.
             throw parser.error("VF2000", parser.peek().loc);
+        }
+
+        if (isAssignStatementStart(parser)) {
+            const assign = parseAssignStatement(parser);
+            return {
+                kind: "LetDecl",
+                pattern: { kind: "WildcardPattern", loc: assign.loc },
+                value: assign,
+                mutable: false,
+                recursive: false,
+                exported: false,
+                loc: assign.loc,
+            };
         }
 
         return wrapExpressionStatement(parser);
